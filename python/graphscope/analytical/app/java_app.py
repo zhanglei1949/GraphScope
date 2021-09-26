@@ -108,6 +108,14 @@ def _parse_user_app(java_app_class: str, java_jar_full_path: str):
         if line.find("ParallelAppBase") != -1:
             _java_app_type = "parallel_simple"
             continue
+        if line.find("ParallelPropertyApp") != -1:
+            _java_app_type = "parallel_property"
+            continue 
+        if line.find("DefaultAppBase") != -1:
+            _java_app_type = "default_simple"
+        if line.find("ParallelAppBase") != -1:
+            _java_app_type = "parallel_simple"
+            continue
         if line.find("Error") != -1:
             raise Exception("Error occured in verifying user app")
         if line.find("TypeParams") != -1:

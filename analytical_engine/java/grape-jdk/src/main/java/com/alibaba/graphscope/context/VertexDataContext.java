@@ -22,6 +22,7 @@ import com.alibaba.graphscope.ds.GSVertexArray;
 import com.alibaba.graphscope.fragment.EdgecutFragment;
 import com.alibaba.graphscope.utils.CppClassName;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
+
 import java.util.Objects;
 
 public abstract class VertexDataContext<FRAG_T extends EdgecutFragment, DATA_T> {

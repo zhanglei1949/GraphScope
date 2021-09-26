@@ -86,7 +86,6 @@ public interface SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> {
     boolean gid2Vertex(@CXXReference VID_T gid, @CXXReference Vertex<VID_T> vertex);
 
     VID_T vertex2Gid(@CXXReference Vertex<VID_T> vertex);
-
     /**
      * Get the number of inner vertices.
      *
