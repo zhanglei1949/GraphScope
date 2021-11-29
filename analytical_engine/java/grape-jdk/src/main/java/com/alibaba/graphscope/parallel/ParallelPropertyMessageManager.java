@@ -20,6 +20,7 @@ import static com.alibaba.graphscope.utils.CppClassName.GS_PARALLEL_PROPERTY_MES
 import static com.alibaba.graphscope.utils.CppHeaderName.ARROW_FRAGMENT_H;
 import static com.alibaba.graphscope.utils.CppHeaderName.CORE_JAVA_JAVA_MESSAGES_H;
 import static com.alibaba.graphscope.utils.CppHeaderName.CORE_JAVA_TYPE_ALIAS_H;
+import static com.alibaba.graphscope.utils.CppHeaderName.CORE_PARALLEL_PARALLEL_PROPERTY_MESSAGE_MANAGER_H;
 import static com.alibaba.graphscope.utils.CppHeaderName.GRAPE_PARALLEL_MESSAGE_IN_BUFFER_H;
 import static com.alibaba.graphscope.utils.JNILibraryName.JNI_LIBRARY_NAME;
 
@@ -33,22 +34,20 @@ import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.fragment.ArrowFragment;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import com.alibaba.graphscope.utils.TriConsumer;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-/**
- * As PropertyParalleMessager.h has not much difference from ParallelMessageManager, here will use
- * ParallelMessageManager.h as underlying implementation.
- */
 @FFIGen(library = JNI_LIBRARY_NAME)
 @FFITypeAlias(GS_PARALLEL_PROPERTY_MESSAGE_MANAGER)
 @CXXHead({
     GRAPE_PARALLEL_MESSAGE_IN_BUFFER_H,
     ARROW_FRAGMENT_H,
     CORE_JAVA_TYPE_ALIAS_H,
-    CORE_JAVA_JAVA_MESSAGES_H
+    CORE_JAVA_JAVA_MESSAGES_H,
+    CORE_PARALLEL_PARALLEL_PROPERTY_MESSAGE_MANAGER_H
 })
 public interface ParallelPropertyMessageManager extends MessageManagerBase {
     @FFINameAlias("InitChannels")
