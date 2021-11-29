@@ -1,7 +1,6 @@
 package com.alibaba.graphscope.ds.adaptor;
 
 import com.alibaba.graphscope.ds.GrapeNbr;
-
 import java.util.Iterator;
 
 public interface AdjList<VID_T, EDATA_T> {

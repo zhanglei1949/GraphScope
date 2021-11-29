@@ -29,12 +29,10 @@ import com.alibaba.graphscope.parallel.message.LongMsg;
 import com.alibaba.graphscope.parallel.message.PrimitiveMessage;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import com.alibaba.graphscope.utils.TriConsumer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ParallelPropertyWCCVertexData
         implements ParallelPropertyAppBase<Long, ParallelPropertyWCCVertexDataContext>,

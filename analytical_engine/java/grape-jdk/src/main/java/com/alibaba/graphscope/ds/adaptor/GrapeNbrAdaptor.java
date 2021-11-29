@@ -5,9 +5,6 @@ import com.alibaba.graphscope.ds.Vertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class GrapeNbrAdaptor<VID_T, EDATA_T> implements Nbr<VID_T, EDATA_T> {
     private static Logger logger = LoggerFactory.getLogger(GrapeNbrAdaptor.class.getName());
     public static final String TYPE = "GrapeNbr";

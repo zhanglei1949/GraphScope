@@ -34,6 +34,15 @@
     <jni.library.name>grape-jni</jni.library.name>
     <jni.library.path>${project.basedir}/target/native/</jni.library.path>
     <maven.javadoc.version>3.3.1</maven.javadoc.version>
+    <skip.perf.benchmarks>false</skip.perf.benchmarks>
+    <benchmark.filter>.*</benchmark.filter>
+    <benchmark.forks>1</benchmark.forks>
+    <benchmark.jvmargs></benchmark.jvmargs>
+    <benchmark.warmups>5</benchmark.warmups>
+    <benchmark.runs>5</benchmark.runs>
+    <benchmark.list></benchmark.list>
+    <benchmark.resultfile>jmh-result.json</benchmark.resultfile>
+    <benchmark.resultformat>json</benchmark.resultformat>
   </properties>
 
   <dependencies>
@@ -41,6 +50,11 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <version>${jmh.version}</version>
     </dependency>
     <dependency>
       <groupId>com.alibaba.fastffi</groupId>
@@ -66,6 +80,11 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-core</artifactId>
+      <version>${hadoop-core.version}</version>
     </dependency>
   </dependencies>
 
@@ -101,6 +120,26 @@
         <artifactId>maven-shade-plugin</artifactId>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>make</id>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <target>
+                <ant antfile="${basedir}/build.xml">
+                  <target name="giraph-jni"></target>
+                </ant>
+              </target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <version>${jacoco.version}</version>
@@ -128,6 +167,42 @@
               <dataFile>target/jacoco.exec</dataFile>
               <outputDirectory>target/jacoco.out</outputDirectory>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.6.0</version>
+        <configuration>
+          <skip>${skip.perf.benchmarks}</skip>
+          <classpathScope>test</classpathScope>
+          <executable>java</executable>
+          <arguments>
+            <argument>-classpath</argument>
+            <classpath></classpath>
+            <argument>org.openjdk.jmh.Main</argument>
+            <argument>${benchmark.filter}</argument>
+            <argument>-f</argument>
+            <argument>${benchmark.forks}</argument>
+            <argument>-wi</argument>
+            <argument>${benchmark.warmups}</argument>
+            <argument>-i</argument>
+            <argument>${benchmark.runs}</argument>
+            <argument>${benchmark.list}</argument>
+            <argument>-rff</argument>
+            <argument>${benchmark.resultfile}</argument>
+            <argument>-rf</argument>
+            <argument>${benchmark.resultformat}</argument>
+          </arguments>
+        </configuration>
+        <executions>
+          <execution>
+            <id>run-java-benchmarks</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>integration-test</phase>
           </execution>
         </executions>
       </plugin>

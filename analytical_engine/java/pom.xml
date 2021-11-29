@@ -54,6 +54,8 @@
     <odps.sdk.version>0.36.4</odps.sdk.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j-api.version>1.7.25</slf4j-api.version>
+    <hadoop-core.version>1.2.1</hadoop-core.version>
+    <jmh.version>1.21</jmh.version>
   </properties>
   <dependencyManagement>
     <dependencies>
