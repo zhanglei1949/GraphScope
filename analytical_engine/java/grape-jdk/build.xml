@@ -15,27 +15,45 @@
   -->
 <project name="Giraph-JNI">
   <target name="giraph-jni">
+
     <condition property="platform" value="linux64">
       <os arch="amd64" family="unix"/>
     </condition>
 
     <mkdir dir="${project.build.directory}/native"/>
 
+<property environment="env"/>
+    <fail unless="env.LLVM11_HOME" message="LLVM11_HOME not set."/>
+
     <condition property="platform" value="mac">
       <os arch="x86_64" family="mac"/>
     </condition>
+
+    <condition property="lld" value="${env.LLVM11_HOME}/bin/ld.lld">
+      <os family="unix" arch="amd64" />
+    </condition>
+
+    <fail message="lld ${lld} not set or missing">
+      <condition>
+        <and>
+          <not>
+            <available file="${lld}" />
+          </not>
+          <os family="unix" arch="amd64" />
+        </and>
+      </condition>
+    </fail>
 
     <echo level="info" message="Make graphscope java sdk jni code"/>
 
     <echo level="info" message="Native Library Name: ${jni.library.name}"/>
 
     <exec dir="${project.build.directory}/native" executable="cmake" failonerror="true" os="Linux">
-      <arg line="${basedir}"/>
+      <arg line="-DCMAKE_C_COMPILER=&quot;${env.LLVM11_HOME}/bin/clang&quot; -DCMAKE_CXX_COMPILER=&quot;${env.LLVM11_HOME}/bin/clang++&quot; ${basedir}"/>
     </exec>
-
     <exec dir="${project.build.directory}/native" executable="cmake" failonerror="true"
       os="Mac OS X">
-      <arg line="${basedir}"/>
+      <arg line=" ${basedir}"/>
     </exec>
 
     <exec dir="${project.build.directory}/native" executable="make" failonerror="true">

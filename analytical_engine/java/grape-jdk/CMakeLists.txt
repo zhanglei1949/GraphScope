@@ -37,10 +37,23 @@ find_package(JNI REQUIRED)
 include_directories(SYSTEM ${JAVA_INCLUDE_PATH})
 include_directories(SYSTEM ${JAVA_INCLUDE_PATH2})
 
+
+#fbgrape-lite-------------------------------------------------------------------
+find_package(libgrapelite REQUIRED)
+include_directories(SYSTEM ${LIBGRAPELITE_INCLUDE_DIRS})
+
+# find vineyard ---------------------------------------------
+find_package(vineyard 0.2.9 REQUIRED)
+include_directories(${VINEYARD_INCLUDE_DIRS})
+
+# find graphscope analytical engine---------------------------------------------
+find_package(graphscope-analytical)
+include_directories(SYSTEM ${GRAPHSCOPE_ANALYTICAL_INCLUDE_DIRS})
+
 find_package(Threads REQUIRED)
 
 add_library(giraph-jni SHARED ${SOURCES})
 target_compile_definitions(giraph-jni PUBLIC ENABLE_JAVA_SDK)
-target_link_libraries(giraph-jni ${CMAKE_JNI_LINKER_FLAGS} )
+target_link_libraries(giraph-jni ${CMAKE_JNI_LINKER_FLAGS}  ${LIBGRAPELITE_LIBRARIES} ${VINEYARD_LIBRARIES})
 set_target_properties(giraph-jni PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_features(giraph-jni PRIVATE cxx_std_14)

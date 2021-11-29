@@ -35,7 +35,7 @@
     <jni.library.path>${project.basedir}/target/native/</jni.library.path>
     <maven.javadoc.version>3.3.1</maven.javadoc.version>
     <skip.perf.benchmarks>false</skip.perf.benchmarks>
-    <benchmark.filter>.*</benchmark.filter>
+    <benchmark.filter>org.apache.hadoop.*</benchmark.filter>
     <benchmark.forks>1</benchmark.forks>
     <benchmark.jvmargs></benchmark.jvmargs>
     <benchmark.warmups>5</benchmark.warmups>
@@ -43,6 +43,8 @@
     <benchmark.list></benchmark.list>
     <benchmark.resultfile>jmh-result.json</benchmark.resultfile>
     <benchmark.resultformat>json</benchmark.resultformat>
+    <uberjar.name>uberjar</uberjar.name>
+    <benchmark.jvmargs>-Djava.library.path=${project.build.directory}/native -XX:CompileCommandFile=/home/graphscope/compile-commands.txt</benchmark.jvmargs>
   </properties>
 
   <dependencies>
@@ -86,6 +88,12 @@
       <artifactId>hadoop-core</artifactId>
       <version>${hadoop-core.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <version>${jmh.version}</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -105,8 +113,28 @@
         <artifactId>spotless-maven-plugin</artifactId>
       </plugin>
       <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>2.6</version>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.openjdk.jmh</groupId>
+              <artifactId>jmh-generator-annprocess</artifactId>
+              <version>${jmh.version}</version>
+            </path>
+            <path>
+              <groupId>com.alibaba.fastffi</groupId>
+              <artifactId>annotation-processor</artifactId>
+              <version>0.1</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -114,10 +142,6 @@
         <configuration>
           <skipTests>true</skipTests>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -177,19 +201,20 @@
         <configuration>
           <skip>${skip.perf.benchmarks}</skip>
           <classpathScope>test</classpathScope>
-          <executable>java</executable>
+         <executable>java</executable>
           <arguments>
-            <argument>-classpath</argument>
-            <classpath></classpath>
+		<argument>-classpath</argument>
+                  <argument>${env.myclasspath}</argument>
             <argument>org.openjdk.jmh.Main</argument>
             <argument>${benchmark.filter}</argument>
             <argument>-f</argument>
             <argument>${benchmark.forks}</argument>
+            <argument>-jvmArgs</argument>
+            <argument>${benchmark.jvmargs}</argument>
             <argument>-wi</argument>
             <argument>${benchmark.warmups}</argument>
             <argument>-i</argument>
             <argument>${benchmark.runs}</argument>
-            <argument>${benchmark.list}</argument>
             <argument>-rff</argument>
             <argument>${benchmark.resultfile}</argument>
             <argument>-rf</argument>

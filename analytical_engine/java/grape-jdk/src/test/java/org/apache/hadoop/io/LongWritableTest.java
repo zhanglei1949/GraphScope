@@ -14,7 +14,7 @@ import org.openjdk.jmh.annotations.TearDown;
 @State(Scope.Benchmark)
 public class LongWritableTest {
     static {
-        System.load("giraph-jni");
+        System.loadLibrary("giraph-jni");
     }
 
     private LongWritable[] longWritables;
@@ -25,7 +25,7 @@ public class LongWritableTest {
     public void prepare() {
         readWritable = new LongWritable[SIZE];
         for (int i = 0; i < SIZE; ++i) {
-            readWritable[i].set(i);
+            readWritable[i] = new LongWritable(i);
         }
     }
 
@@ -38,6 +38,9 @@ public class LongWritableTest {
     public void allocatingFFI() {
         try (CXXValueScope scope = new CXXValueScope()) {
             longWritables = new LongWritable[SIZE];
+            for (int i = 0; i < SIZE; ++i) {
+                longWritables[i] = new LongWritable(i);
+            }
         }
     }
 
