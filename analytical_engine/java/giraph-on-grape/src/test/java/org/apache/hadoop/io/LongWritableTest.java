@@ -21,19 +21,19 @@ public class LongWritableTest {
     private LongWritable[] longWritables;
     private LongWritable[] readWritable;
     private FFILongWritable[] ffiLongWritables;
-    private LongWritableImpl[] longWritableimpl;
+    private LongWritableImpl longWritableimpl;
     private int SIZE = 1024 * 1024;
 
     @Setup
     public void prepare() {
         readWritable = new LongWritable[SIZE];
         ffiLongWritables = new FFILongWritable[SIZE];
-        longWritableimpl = new LongWritableImpl[SIZE];
+        longWritableimpl = new LongWritableImpl(SIZE);
         for (int i = 0; i < SIZE; ++i) {
             readWritable[i] = new LongWritable(i);
             ffiLongWritables[i] = FFILongWritable.factory.create();
             ffiLongWritables[i].value(i);
-            longWritableimpl[i] = new LongWritableImpl(i);
+//            longWritableimpl[i] = new LongWritableImpl(i);
         }
     }
 
@@ -77,11 +77,11 @@ public class LongWritableTest {
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
-    public int unsafeRead() {
-        int result = 0;
-        for (int i = 0; i < SIZE; ++i) {
-            result += longWritableimpl[i].get();
-        }
+    public long unsafeRead() {
+        long result = longWritableimpl.get();
+//        for (int i = 0; i < SIZE; ++i) {
+//            result += longWritableimpl[i].get();
+//        }
         return result;
     }
 
@@ -109,8 +109,6 @@ public class LongWritableTest {
     @BenchmarkMode(Mode.AverageTime)
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
     public void unsafeWrite() {
-        for (int i = 0; i < SIZE; ++i) {
-            longWritableimpl[i].set(i);
-        }
+        longWritableimpl.set(1);
     }
 }

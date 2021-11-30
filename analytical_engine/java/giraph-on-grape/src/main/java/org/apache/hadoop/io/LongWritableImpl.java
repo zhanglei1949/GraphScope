@@ -9,6 +9,7 @@ import sun.misc.Unsafe;
 
 public class LongWritableImpl {
     private static Unsafe unsafe;
+    private static int SIZE  = 1024 * 1024;
     static {
         try {
             Field field = Unsafe.class.getDeclaredField("theUnsafe");
@@ -23,19 +24,32 @@ public class LongWritableImpl {
     private long address;
 
     public LongWritableImpl() {
-        address = unsafe.allocateMemory(8);
+        address = unsafe.allocateMemory(8 * SIZE);
     }
 
     public LongWritableImpl(long value) {
-        address = unsafe.allocateMemory(8);
-        unsafe.putLong(address, value);
+        address = unsafe.allocateMemory(8 * SIZE);
+
     }
 
     public void set(long value) {
-        unsafe.putLong(address, value);
+        long cur = address;
+        long targetAddress = address + 8 * SIZE;
+        long index = 1;
+        while (cur < targetAddress){
+            unsafe.putLong(cur, index++);
+            cur += 8;
+        }
     }
 
     public long get() {
-        return unsafe.getLong(address);
+        long result = 0;
+        long cur = address;
+        long targetAddress = address + 8 * SIZE;
+        while (cur < targetAddress){
+            result += unsafe.getLong(cur);
+            cur += 8;
+        }
+        return result;
     }
 }
