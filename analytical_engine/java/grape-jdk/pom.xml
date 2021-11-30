@@ -34,17 +34,6 @@
     <jni.library.name>grape-jni</jni.library.name>
     <jni.library.path>${project.basedir}/target/native/</jni.library.path>
     <maven.javadoc.version>3.3.1</maven.javadoc.version>
-    <skip.perf.benchmarks>false</skip.perf.benchmarks>
-    <benchmark.filter>org.apache.hadoop.*</benchmark.filter>
-    <benchmark.forks>1</benchmark.forks>
-    <benchmark.jvmargs></benchmark.jvmargs>
-    <benchmark.warmups>5</benchmark.warmups>
-    <benchmark.runs>5</benchmark.runs>
-    <benchmark.list></benchmark.list>
-    <benchmark.resultfile>jmh-result.json</benchmark.resultfile>
-    <benchmark.resultformat>json</benchmark.resultformat>
-    <uberjar.name>uberjar</uberjar.name>
-    <benchmark.jvmargs>-Djava.library.path=${project.build.directory}/native -XX:CompileCommandFile=/home/graphscope/compile-commands.txt</benchmark.jvmargs>
   </properties>
 
   <dependencies>
@@ -52,11 +41,6 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.openjdk.jmh</groupId>
-      <artifactId>jmh-core</artifactId>
-      <version>${jmh.version}</version>
     </dependency>
     <dependency>
       <groupId>com.alibaba.fastffi</groupId>
@@ -83,17 +67,6 @@
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-core</artifactId>
-      <version>${hadoop-core.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.openjdk.jmh</groupId>
-      <artifactId>jmh-generator-annprocess</artifactId>
-      <version>${jmh.version}</version>
-      <scope>provided</scope>
-    </dependency>
   </dependencies>
 
   <build>
@@ -113,28 +86,8 @@
         <artifactId>spotless-maven-plugin</artifactId>
       </plugin>
       <plugin>
-        <artifactId>maven-resources-plugin</artifactId>
-        <version>2.6</version>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
-          <annotationProcessorPaths>
-            <path>
-              <groupId>org.openjdk.jmh</groupId>
-              <artifactId>jmh-generator-annprocess</artifactId>
-              <version>${jmh.version}</version>
-            </path>
-            <path>
-              <groupId>com.alibaba.fastffi</groupId>
-              <artifactId>annotation-processor</artifactId>
-              <version>0.1</version>
-            </path>
-          </annotationProcessorPaths>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -145,23 +98,7 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>make</id>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <phase>compile</phase>
-            <configuration>
-              <target>
-                <ant antfile="${basedir}/build.xml">
-                  <target name="giraph-jni"></target>
-                </ant>
-              </target>
-            </configuration>
-          </execution>
-        </executions>
+        <artifactId>maven-shade-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
@@ -191,43 +128,6 @@
               <dataFile>target/jacoco.exec</dataFile>
               <outputDirectory>target/jacoco.out</outputDirectory>
             </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>1.6.0</version>
-        <configuration>
-          <skip>${skip.perf.benchmarks}</skip>
-          <classpathScope>test</classpathScope>
-          <executable>java</executable>
-          <arguments>
-            <argument>-classpath</argument>
-            <argument>${env.myclasspath}</argument>
-            <argument>org.openjdk.jmh.Main</argument>
-            <argument>${benchmark.filter}</argument>
-            <argument>-f</argument>
-            <argument>${benchmark.forks}</argument>
-            <argument>-jvmArgs</argument>
-            <argument>${benchmark.jvmargs}</argument>
-            <argument>-wi</argument>
-            <argument>${benchmark.warmups}</argument>
-            <argument>-i</argument>
-            <argument>${benchmark.runs}</argument>
-            <argument>-rff</argument>
-            <argument>${benchmark.resultfile}</argument>
-            <argument>-rf</argument>
-            <argument>${benchmark.resultformat}</argument>
-          </arguments>
-        </configuration>
-        <executions>
-          <execution>
-            <id>run-java-benchmarks</id>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <phase>integration-test</phase>
           </execution>
         </executions>
       </plugin>

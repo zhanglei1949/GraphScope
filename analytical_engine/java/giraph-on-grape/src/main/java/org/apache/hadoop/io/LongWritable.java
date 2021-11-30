@@ -1,9 +1,9 @@
 package org.apache.hadoop.io;
 
+import org.apache.hadoop.io.ffi.FFILongWritable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import org.apache.hadoop.io.ffi.FFILongWritable;
 
 public class LongWritable implements WritableComparable {
     private FFILongWritable ffiLongWritable;

@@ -1,9 +1,9 @@
 package org.apache.hadoop.io;
 
+import org.apache.hadoop.io.ffi.FFIIntWritable;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import org.apache.hadoop.io.ffi.FFIIntWritable;
 
 public class IntWritable implements WritableComparable {
     private FFIIntWritable ffiIntWritable;
