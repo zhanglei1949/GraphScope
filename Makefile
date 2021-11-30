@@ -34,6 +34,11 @@ gsvineyard:
 graphscope-image:
 	$(MAKE) -C $(WORKING_DIR)/k8s/ graphscope-image VERSION=$(VERSION)
 
+# bulld graphscope image from source code without wheel package
+.PHONY: graphscope-dev-image
+graphscope-dev-image:
+	$(MAKE) -C $(WORKING_DIR)/k8s/ graphscope-dev-image VERSION=$(VERSION)
+
 .PHONY: graphscope-store-image
 graphscope-store-image:
 	$(MAKE) -C $(WORKING_DIR)/k8s/ graphscope-store-image VERSION=$(VERSION)
@@ -56,6 +61,10 @@ coordinator:
 	cd $(WORKING_DIR)/coordinator && \
 	pip3 install -r requirements.txt -r requirements-dev.txt --user && \
 	python3 setup.py build_builtin
+	if [ ! -d "/var/log/graphscope" ]; then \
+		sudo mkdir /var/log/graphscope; \
+	fi
+	sudo chown -R $(id -u):$(id -g) /var/log/graphscope
 
 .PHONY: gae
 gae:
