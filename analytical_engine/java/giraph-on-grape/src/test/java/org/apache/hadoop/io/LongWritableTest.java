@@ -44,12 +44,12 @@ public class LongWritableTest {
     @BenchmarkMode(Mode.AverageTime)
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
     public void allocatingFFI() {
-        try (CXXValueScope scope = new CXXValueScope()) {
-            longWritables = new LongWritable[SIZE];
-            for (int i = 0; i < SIZE; ++i) {
-                longWritables[i] = new LongWritable(i);
-            }
-        }
+        //try (CXXValueScope scope = new CXXValueScope()) {
+        //    longWritables = new LongWritable[SIZE];
+        //    for (int i = 0; i < SIZE; ++i) {
+        //        longWritables[i] = new LongWritable(i);
+         //   }
+        //}
     }
 
     @Benchmark
@@ -77,7 +77,7 @@ public class LongWritableTest {
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
-    public int readUnsafe() {
+    public int unsafeRead() {
         int result = 0;
         for (int i = 0; i < SIZE; ++i) {
             result += longWritableimpl[i].get();
@@ -108,7 +108,7 @@ public class LongWritableTest {
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
-    public void writeUnsafe() {
+    public void unsafeWrite() {
         for (int i = 0; i < SIZE; ++i) {
             longWritableimpl[i].set(i);
         }
