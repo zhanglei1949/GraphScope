@@ -30,6 +30,7 @@
     <module>grape-demo</module>
     <module>grape-runtime</module>
     <module>giraph-on-grape</module>
+    <module>giraph-test</module>
   </modules>
 
   <properties>

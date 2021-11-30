@@ -24,32 +24,19 @@ public class LongWritableImpl {
     private long address;
 
     public LongWritableImpl() {
-        address = unsafe.allocateMemory(8 * SIZE);
+        address = unsafe.allocateMemory(8);
     }
 
     public LongWritableImpl(long value) {
-        address = unsafe.allocateMemory(8 * SIZE);
-
+        address = unsafe.allocateMemory(8 );
+        unsafe.putLong(address, value);
     }
 
     public void set(long value) {
-        long cur = address;
-        long targetAddress = address + 8 * SIZE;
-        long index = 1;
-        while (cur < targetAddress){
-            unsafe.putLong(cur, index++);
-            cur += 8;
-        }
+        unsafe.putLong(address, value);
     }
 
     public long get() {
-        long result = 0;
-        long cur = address;
-        long targetAddress = address + 8 * SIZE;
-        while (cur < targetAddress){
-            result += unsafe.getLong(cur);
-            cur += 8;
-        }
-        return result;
+        return unsafe.getLong(address);
     }
 }
