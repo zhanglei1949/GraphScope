@@ -272,6 +272,10 @@ if (BUILD_TESTS)
         target_compile_definitions(property_graph_java_app_benchmarks PUBLIC ENABLE_JAVA_SDK)
         target_link_libraries(property_graph_java_app_benchmarks gs_proto ${JNI_LIBRARIES} ${Boost_LIBRARIES} ${CMAKE_DL_LIBS}  ${VINEYARD_LIBRARIES})
         
+        # giraph runner
+        add_executable(giraph_runner test/giraph_runner.cc)
+        target_link_directories(giraph_runner ${Boost_LIBRARIES} ${GFLAGS_LIBRARIES} ${GLOG_LIBRARIES})
+
         if (${LIBUNWIND_FOUND})
             target_link_libraries(run_java_app ${LIBUNWIND_LIBRARIES})
             target_link_libraries(property_graph_java_app_benchmarks ${LIBUNWIND_LIBRARIES})

@@ -1,6 +1,0 @@
-#ifndef _GIRAPH_JNI_FFI_H
-#define _GIRAPH_JNI_FFI_H
-#include "jni_org_apache_hadoop_io_ffi_FFIIntWritable_cxx_0xcee5efa6.h"
-#include "jni_org_apache_hadoop_io_ffi_FFIDoubleWritable_cxx_0xaafe5c3a.h"
-#include "jni_org_apache_hadoop_io_ffi_FFILongWritable_cxx_0x19fe2225.h"
-#endif // _GIRAPH_JNI_FFI_H
