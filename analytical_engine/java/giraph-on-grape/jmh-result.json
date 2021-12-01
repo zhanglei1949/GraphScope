@@ -1,0 +1,375 @@
+[
+    {
+        "jmhVersion" : "1.21",
+        "benchmark" : "org.apache.hadoop.io.LongWritableTest.allocatingFFI",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.312.b07-1.el7_9.x86_64/jre/bin/java",
+        "jvmArgs" : [
+            "-Djava.library.path=/home/graphscope/GraphScope/analytical_engine/java/giraph-on-grape/target/native",
+            "-XX:CompileCommandFile=/home/graphscope/compile-commands.txt"
+        ],
+        "jdkVersion" : "1.8.0_312",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "25.312-b07",
+        "warmupIterations" : 5,
+        "warmupTime" : "10 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 5,
+        "measurementTime" : "10 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 5.76620078046228E-4,
+            "scoreError" : 1.339343901405888E-6,
+            "scoreConfidence" : [
+                5.752807341448221E-4,
+                5.779594219476339E-4
+            ],
+            "scorePercentiles" : {
+                "0.0" : 5.761477949680338E-4,
+                "50.0" : 5.768592020212216E-4,
+                "90.0" : 5.768751229264633E-4,
+                "95.0" : 5.768751229264633E-4,
+                "99.0" : 5.768751229264633E-4,
+                "99.9" : 5.768751229264633E-4,
+                "99.99" : 5.768751229264633E-4,
+                "99.999" : 5.768751229264633E-4,
+                "99.9999" : 5.768751229264633E-4,
+                "100.0" : 5.768751229264633E-4
+            },
+            "scoreUnit" : "us/op",
+            "rawData" : [
+                [
+                    5.768592020212216E-4,
+                    5.76346071109085E-4,
+                    5.768721992063365E-4,
+                    5.761477949680338E-4,
+                    5.768751229264633E-4
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.21",
+        "benchmark" : "org.apache.hadoop.io.LongWritableTest.read",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.312.b07-1.el7_9.x86_64/jre/bin/java",
+        "jvmArgs" : [
+            "-Djava.library.path=/home/graphscope/GraphScope/analytical_engine/java/giraph-on-grape/target/native",
+            "-XX:CompileCommandFile=/home/graphscope/compile-commands.txt"
+        ],
+        "jdkVersion" : "1.8.0_312",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "25.312-b07",
+        "warmupIterations" : 5,
+        "warmupTime" : "10 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 5,
+        "measurementTime" : "10 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 12339.649155614758,
+            "scoreError" : 117.39806806079429,
+            "scoreConfidence" : [
+                12222.251087553963,
+                12457.047223675552
+            ],
+            "scorePercentiles" : {
+                "0.0" : 12309.775017220172,
+                "50.0" : 12336.163575832306,
+                "90.0" : 12390.48295420792,
+                "95.0" : 12390.48295420792,
+                "99.0" : 12390.48295420792,
+                "99.9" : 12390.48295420792,
+                "99.99" : 12390.48295420792,
+                "99.999" : 12390.48295420792,
+                "99.9999" : 12390.48295420792,
+                "100.0" : 12390.48295420792
+            },
+            "scoreUnit" : "us/op",
+            "rawData" : [
+                [
+                    12309.775017220172,
+                    12336.163575832306,
+                    12324.719810344828,
+                    12337.104420468557,
+                    12390.48295420792
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.21",
+        "benchmark" : "org.apache.hadoop.io.LongWritableTest.readFFI",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.312.b07-1.el7_9.x86_64/jre/bin/java",
+        "jvmArgs" : [
+            "-Djava.library.path=/home/graphscope/GraphScope/analytical_engine/java/giraph-on-grape/target/native",
+            "-XX:CompileCommandFile=/home/graphscope/compile-commands.txt"
+        ],
+        "jdkVersion" : "1.8.0_312",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "25.312-b07",
+        "warmupIterations" : 5,
+        "warmupTime" : "10 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 5,
+        "measurementTime" : "10 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 12083.099960633723,
+            "scoreError" : 327.50635792536457,
+            "scoreConfidence" : [
+                11755.593602708359,
+                12410.606318559087
+            ],
+            "scorePercentiles" : {
+                "0.0" : 12006.572975990397,
+                "50.0" : 12049.836972289157,
+                "90.0" : 12217.063231990232,
+                "95.0" : 12217.063231990232,
+                "99.0" : 12217.063231990232,
+                "99.9" : 12217.063231990232,
+                "99.99" : 12217.063231990232,
+                "99.999" : 12217.063231990232,
+                "99.9999" : 12217.063231990232,
+                "100.0" : 12217.063231990232
+            },
+            "scoreUnit" : "us/op",
+            "rawData" : [
+                [
+                    12114.224875302663,
+                    12027.801747596153,
+                    12006.572975990397,
+                    12049.836972289157,
+                    12217.063231990232
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.21",
+        "benchmark" : "org.apache.hadoop.io.LongWritableTest.unsafeRead",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.312.b07-1.el7_9.x86_64/jre/bin/java",
+        "jvmArgs" : [
+            "-Djava.library.path=/home/graphscope/GraphScope/analytical_engine/java/giraph-on-grape/target/native",
+            "-XX:CompileCommandFile=/home/graphscope/compile-commands.txt"
+        ],
+        "jdkVersion" : "1.8.0_312",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "25.312-b07",
+        "warmupIterations" : 5,
+        "warmupTime" : "10 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 5,
+        "measurementTime" : "10 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 422.4721238059903,
+            "scoreError" : 262.98350903094183,
+            "scoreConfidence" : [
+                159.48861477504846,
+                685.4556328369322
+            ],
+            "scorePercentiles" : {
+                "0.0" : 391.513606154328,
+                "50.0" : 392.06934909433073,
+                "90.0" : 544.6429027286096,
+                "95.0" : 544.6429027286096,
+                "99.0" : 544.6429027286096,
+                "99.9" : 544.6429027286096,
+                "99.99" : 544.6429027286096,
+                "99.999" : 544.6429027286096,
+                "99.9999" : 544.6429027286096,
+                "100.0" : 544.6429027286096
+            },
+            "scoreUnit" : "us/op",
+            "rawData" : [
+                [
+                    544.6429027286096,
+                    392.13857944474944,
+                    391.9961816079338,
+                    392.06934909433073,
+                    391.513606154328
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.21",
+        "benchmark" : "org.apache.hadoop.io.LongWritableTest.unsafeWrite",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.312.b07-1.el7_9.x86_64/jre/bin/java",
+        "jvmArgs" : [
+            "-Djava.library.path=/home/graphscope/GraphScope/analytical_engine/java/giraph-on-grape/target/native",
+            "-XX:CompileCommandFile=/home/graphscope/compile-commands.txt"
+        ],
+        "jdkVersion" : "1.8.0_312",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "25.312-b07",
+        "warmupIterations" : 5,
+        "warmupTime" : "10 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 5,
+        "measurementTime" : "10 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 731.8399894830377,
+            "scoreError" : 4.263845060669773,
+            "scoreConfidence" : [
+                727.576144422368,
+                736.1038345437074
+            ],
+            "scorePercentiles" : {
+                "0.0" : 730.6000568381064,
+                "50.0" : 731.6731398887913,
+                "90.0" : 733.6412822977038,
+                "95.0" : 733.6412822977038,
+                "99.0" : 733.6412822977038,
+                "99.9" : 733.6412822977038,
+                "99.99" : 733.6412822977038,
+                "99.999" : 733.6412822977038,
+                "99.9999" : 733.6412822977038,
+                "100.0" : 733.6412822977038
+            },
+            "scoreUnit" : "us/op",
+            "rawData" : [
+                [
+                    731.5511686174104,
+                    731.7342997731763,
+                    733.6412822977038,
+                    731.6731398887913,
+                    730.6000568381064
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.21",
+        "benchmark" : "org.apache.hadoop.io.LongWritableTest.write",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.312.b07-1.el7_9.x86_64/jre/bin/java",
+        "jvmArgs" : [
+            "-Djava.library.path=/home/graphscope/GraphScope/analytical_engine/java/giraph-on-grape/target/native",
+            "-XX:CompileCommandFile=/home/graphscope/compile-commands.txt"
+        ],
+        "jdkVersion" : "1.8.0_312",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "25.312-b07",
+        "warmupIterations" : 5,
+        "warmupTime" : "10 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 5,
+        "measurementTime" : "10 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 14045.995449354547,
+            "scoreError" : 153.36694709461347,
+            "scoreConfidence" : [
+                13892.628502259933,
+                14199.36239644916
+            ],
+            "scorePercentiles" : {
+                "0.0" : 14002.509538461538,
+                "50.0" : 14038.216963534362,
+                "90.0" : 14110.67778561354,
+                "95.0" : 14110.67778561354,
+                "99.0" : 14110.67778561354,
+                "99.9" : 14110.67778561354,
+                "99.99" : 14110.67778561354,
+                "99.999" : 14110.67778561354,
+                "99.9999" : 14110.67778561354,
+                "100.0" : 14110.67778561354
+            },
+            "scoreUnit" : "us/op",
+            "rawData" : [
+                [
+                    14110.67778561354,
+                    14047.032883426966,
+                    14002.509538461538,
+                    14038.216963534362,
+                    14031.540075736326
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    },
+    {
+        "jmhVersion" : "1.21",
+        "benchmark" : "org.apache.hadoop.io.LongWritableTest.writeFFI",
+        "mode" : "avgt",
+        "threads" : 1,
+        "forks" : 1,
+        "jvm" : "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.312.b07-1.el7_9.x86_64/jre/bin/java",
+        "jvmArgs" : [
+            "-Djava.library.path=/home/graphscope/GraphScope/analytical_engine/java/giraph-on-grape/target/native",
+            "-XX:CompileCommandFile=/home/graphscope/compile-commands.txt"
+        ],
+        "jdkVersion" : "1.8.0_312",
+        "vmName" : "OpenJDK 64-Bit Server VM",
+        "vmVersion" : "25.312-b07",
+        "warmupIterations" : 5,
+        "warmupTime" : "10 s",
+        "warmupBatchSize" : 1,
+        "measurementIterations" : 5,
+        "measurementTime" : "10 s",
+        "measurementBatchSize" : 1,
+        "primaryMetric" : {
+            "score" : 14091.893965597159,
+            "scoreError" : 235.7281193754137,
+            "scoreConfidence" : [
+                13856.165846221746,
+                14327.622084972572
+            ],
+            "scorePercentiles" : {
+                "0.0" : 14014.855453781513,
+                "50.0" : 14113.140973201693,
+                "90.0" : 14166.591791784702,
+                "95.0" : 14166.591791784702,
+                "99.0" : 14166.591791784702,
+                "99.9" : 14166.591791784702,
+                "99.99" : 14166.591791784702,
+                "99.999" : 14166.591791784702,
+                "99.9999" : 14166.591791784702,
+                "100.0" : 14166.591791784702
+            },
+            "scoreUnit" : "us/op",
+            "rawData" : [
+                [
+                    14166.591791784702,
+                    14120.161093088858,
+                    14113.140973201693,
+                    14014.855453781513,
+                    14044.720516129033
+                ]
+            ]
+        },
+        "secondaryMetrics" : {
+        }
+    }
+]
+
+

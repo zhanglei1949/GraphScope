@@ -19,7 +19,7 @@
     <hadoop-core.version>1.2.1</hadoop-core.version>
     <jmh.version>1.21</jmh.version>
     <skip.perf.benchmarks>false</skip.perf.benchmarks>
-    <benchmark.filter>org.apache.hadoop.io.LongWritableTest.unsafe*</benchmark.filter>
+    <benchmark.filter>org.apache.hadoop.*</benchmark.filter>
     <benchmark.forks>1</benchmark.forks>
     <benchmark.jvmargs></benchmark.jvmargs>
     <benchmark.warmups>5</benchmark.warmups>
@@ -93,7 +93,7 @@
           <executable>java</executable>
           <arguments>
             <argument>-classpath</argument>
-		<classpath />
+	    <argument>${env.giraphcp}</argument>
             <argument>org.openjdk.jmh.Main</argument>
             <argument>${benchmark.filter}</argument>
             <argument>-f</argument>
@@ -108,6 +108,7 @@
             <argument>${benchmark.resultfile}</argument>
             <argument>-rf</argument>
             <argument>${benchmark.resultformat}</argument>
+	  <classpath />
           </arguments>
         </configuration>
         <executions>

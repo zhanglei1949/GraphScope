@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 public class LongWritableTest {
 
     private LongWritable[] longWritables;
-    private int SIZE = 102400;
+    private int SIZE = 1024 * 1024;
 
     @Setup
     public void prepare(){
