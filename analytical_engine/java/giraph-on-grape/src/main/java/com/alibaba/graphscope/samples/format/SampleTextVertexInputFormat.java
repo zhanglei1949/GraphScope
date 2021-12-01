@@ -1,0 +1,72 @@
+package com.alibaba.graphscope.samples.format;
+
+import static org.apache.hadoop.fs.Path.SEPARATOR;
+
+import com.alibaba.graphscope.samples.SccVertexValue;
+import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.util.List;
+import org.apache.giraph.edge.Edge;
+import org.apache.giraph.edge.EdgeFactory;
+import org.apache.giraph.io.formats.TextVertexInputFormat;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+
+public class SampleTextVertexInputFormat extends TextVertexInputFormat<LongWritable, SccVertexValue, NullWritable> {
+
+    /**
+     * The factory method which produces the {@link TextVertexReader} used by this input format.
+     *
+     * @param split   the split to be read
+     * @param context the information about the task
+     * @return the text vertex reader to be used
+     */
+    @Override
+    public TextVertexReader createVertexReader(InputSplit split, TaskAttemptContext context)
+        throws IOException {
+        return new LongLongNullVertexReader();
+    }
+    /**
+     * Vertex reader associated with {@link SampleTextVertexInputFormat}.
+     */
+    public class LongLongNullVertexReader extends
+        TextVertexReaderFromEachLineProcessed<String[]> {
+
+        /**
+         * Cached vertex id for the current line
+         */
+        private LongWritable id;
+
+        @Override
+        protected String[] preprocessLine(Text line) throws IOException {
+            String[] tokens = SEPARATOR.split(line.toString());
+            id = new LongWritable(Long.parseLong(tokens[0]));
+            return tokens;
+        }
+
+        @Override
+        protected LongWritable getId(String[] tokens) throws IOException {
+            return id;
+        }
+
+        @Override
+        protected SccVertexValue getValue(String[] tokens) throws IOException {
+            return new SccVertexValue(Long.parseLong(tokens[0]));
+        }
+
+        @Override
+        protected Iterable<Edge<LongWritable, NullWritable>> getEdges(
+            String[] tokens) throws IOException {
+            List<Edge<LongWritable, NullWritable>> edges =
+                Lists.newArrayListWithCapacity(tokens.length - 1);
+            for (int n = 1; n < tokens.length; n++) {
+                edges.add(EdgeFactory.create(
+                    new LongWritable(Long.parseLong(tokens[n]))));
+            }
+            return edges;
+        }
+    }
+}
