@@ -32,6 +32,7 @@ import java.util.function.BiConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** A sample implementation for BFS(Breadth First Search) on property graph in parallel. */
 public class ParallelPropertyBfsVertexData
         implements ParallelPropertyAppBase<Long, ParallelPropertyBfsVertexDataContext>,
                 ParallelEngine {

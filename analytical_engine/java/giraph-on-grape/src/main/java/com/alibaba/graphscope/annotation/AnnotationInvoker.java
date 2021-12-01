@@ -23,7 +23,9 @@ import static com.alibaba.graphscope.utils.CppClassName.GRAPE_EMPTY_TYPE;
 import static com.alibaba.graphscope.utils.CppClassName.GS_PRIMITIVE_MESSAGE;
 import static com.alibaba.graphscope.utils.CppClassName.GS_VERTEX_ARRAY;
 import static com.alibaba.graphscope.utils.CppClassName.LONG_MSG;
+import static com.alibaba.graphscope.utils.CppHeaderName.GRAPE_FRAGMENT_IMMUTABLE_EDGECUT_FRAGMENT_H;
 
+import com.alibaba.fastffi.CXXHead;
 import com.alibaba.fastffi.CXXTemplate;
 import com.alibaba.fastffi.FFIFunGen;
 import com.alibaba.fastffi.FFIGen;
@@ -150,7 +152,9 @@ import com.alibaba.graphscope.utils.CppClassName;
                     java = {
                         "com.alibaba.graphscope.fragment.ImmutableEdgecutFragment<Long,Long,Long,Double>",
                         "Long"
-                    }),
+                    },
+                    include = @CXXHead(GRAPE_FRAGMENT_IMMUTABLE_EDGECUT_FRAGMENT_H)
+                    ),
             }),
         @FFIGen(
             type = "com.alibaba.graphscope.parallel.DefaultMessageManager",

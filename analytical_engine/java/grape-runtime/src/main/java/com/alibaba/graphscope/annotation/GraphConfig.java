@@ -16,6 +16,7 @@
 
 package com.alibaba.graphscope.annotation;
 
+/** Defines the configuration for code generation. */
 public class GraphConfig {
 
     final String vidType;

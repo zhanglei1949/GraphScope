@@ -34,6 +34,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** A sample implementation for SSSP on property graph in parallel. */
 public class ParallelPropertySSSPVertexData
         implements ParallelPropertyAppBase<Long, ParallelPropertySSSPVertexDataContext>,
                 ParallelEngine {

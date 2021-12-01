@@ -16,6 +16,7 @@
 
 package com.alibaba.graphscope.runtime;
 
+/** Load JNI library with library name. */
 public class LoadLibrary {
     static {
         System.loadLibrary("grape-jni");
