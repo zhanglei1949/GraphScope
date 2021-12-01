@@ -20,16 +20,19 @@ public class LongWritableTest {
 
     private FFILongWritable[] ffiLongWritables;
     private LongWritableImpl[] longWritableimpl;
-    private int SIZE = 102400;
+    private LongWritable[] longWritables;
+    private int SIZE = 1024 * 1024  * 10;
 
     @Setup
     public void prepare() {
         ffiLongWritables = new FFILongWritable[SIZE];
         longWritableimpl = new LongWritableImpl[SIZE];
+        longWritables = new LongWritable[SIZE];
         for (int i = 0; i < SIZE; ++i) {
             ffiLongWritables[i] = FFILongWritable.factory.create();
             ffiLongWritables[i].value(i);
             longWritableimpl[i] = new LongWritableImpl(i);
+            longWritables[i] = new LongWritable(i);
         }
     }
 
@@ -58,6 +61,16 @@ public class LongWritableTest {
         return result;
     }
 
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    @OutputTimeUnit(TimeUnit.MICROSECONDS)
+    public long hadoopRead() {
+        long result = 0;
+        for (int i = 0; i < SIZE; ++i) {
+            result += longWritables[i].get();
+        }
+        return result;
+    }
 
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
@@ -74,6 +87,15 @@ public class LongWritableTest {
     public void unsafeWrite() {
         for (int i = 0; i < SIZE; ++i) {
             longWritableimpl[i].set(i);
+        }
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    @OutputTimeUnit(TimeUnit.MICROSECONDS)
+    public void hadoopWrite() {
+        for (int i = 0; i < SIZE; ++i) {
+            longWritables[i].set(i);
         }
     }
 }

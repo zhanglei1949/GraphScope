@@ -21,7 +21,9 @@ public class StdVectorTest {
     private static final int VECTOR_LENGTH = 1024 * 1024 * 10;
 
     private static final int ALLOCATOR_CAPACITY = 1024 * 1024 *10 * 8;
-    private StdVector<Long> vector = FFITypeFactory.getFactory(StdVector.Factory.class, "std::vector<int64_t>");
+    private StdVector.Factory vectorFactory = FFITypeFactory.getFactory(StdVector.Factory.class, "std::vector<int64_t>");
+    private StdVector<Long> vector = vectorFactory.create();
+
 
     private BufferAllocator allocator;
 
