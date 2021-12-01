@@ -19,7 +19,7 @@
     <hadoop-core.version>1.2.1</hadoop-core.version>
     <jmh.version>1.21</jmh.version>
     <skip.perf.benchmarks>false</skip.perf.benchmarks>
-    <benchmark.filter>org.apache.hadoop.*</benchmark.filter>
+    <benchmark.filter>org.apache.hadoop.io.*</benchmark.filter>
     <benchmark.forks>1</benchmark.forks>
     <benchmark.jvmargs></benchmark.jvmargs>
     <benchmark.warmups>5</benchmark.warmups>
@@ -28,7 +28,7 @@
     <benchmark.resultfile>jmh-result.json</benchmark.resultfile>
     <benchmark.resultformat>json</benchmark.resultformat>
     <uberjar.name>uberjar</uberjar.name>
-    <benchmark.jvmargs>-Djava.library.path=${project.build.directory}/native -XX:CompileCommandFile=/home/graphscope/compile-commands.txt</benchmark.jvmargs>
+    <benchmark.jvmargs>-Djava.library.path=${project.build.directory}/native:${project.build.directory}/../../grape-runtime/target/native -XX:CompileCommandFile=/home/graphscope/compile-commands.txt</benchmark.jvmargs>
   </properties>
 
   <dependencies>
@@ -80,7 +80,6 @@
       <groupId>org.apache.arrow</groupId>
       <artifactId>arrow-memory-netty</artifactId>
       <version>7.0.0-SNAPSHOT</version>
-      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -131,7 +130,7 @@
             <argument>${benchmark.resultfile}</argument>
             <argument>-rf</argument>
             <argument>${benchmark.resultformat}</argument>
-	  <classpath />
+
           </arguments>
         </configuration>
         <executions>
@@ -144,6 +143,33 @@
           </execution>
         </executions>
       </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${uberjar.name}</finalName>
+
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
     </plugins>
   </build>
 
