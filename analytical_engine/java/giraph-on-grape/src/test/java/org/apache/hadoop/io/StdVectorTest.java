@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.IntVector;
+import org.apache.arrow.vector.UInt8Vector;
 import org.junit.Assert;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -21,16 +22,16 @@ public class StdVectorTest {
 	static {
 		System.loadLibrary("giraph-jni");
 	}
-    private static final int VECTOR_LENGTH = 1024 * 1024 * 10;
+    private static final int VECTOR_LENGTH = 1024 * 1024 * 128;
 
-    private static final int ALLOCATOR_CAPACITY = 1024 * 1024 *10 * 8;
+    private static final int ALLOCATOR_CAPACITY = 1024 * 1024 *128 * 8;
     private StdVector.Factory vectorFactory = FFITypeFactory.getFactory(StdVector.class, "std::vector<int64_t>");
     private StdVector<Long> vector = vectorFactory.create();
 
 
     private BufferAllocator allocator;
 
-    private IntVector arrowVector;
+    private UInt8Vector arrowVector;
 
     @Setup
     public void prepare() {
@@ -40,7 +41,7 @@ public class StdVectorTest {
         }
 
         allocator = new RootAllocator(ALLOCATOR_CAPACITY );
-        arrowVector = new IntVector("vector", allocator);
+        arrowVector = new UInt8Vector("vector", allocator);
         arrowVector.allocateNew(VECTOR_LENGTH);
         arrowVector.setValueCount(VECTOR_LENGTH);
 
@@ -53,9 +54,9 @@ public class StdVectorTest {
     public void tearDown() {
         //In tear down, we check the equality
         vector.setAddress(arrowVector.getDataBufferAddress());
-        //for (int i = 0; i < arrowVector.getValueCount(); ++i){
-        //   Assert.assertTrue(vector.get(i) == i);
-       // }
+        for (int i = 0; i < arrowVector.getValueCount(); ++i){
+           Assert.assertTrue(vector.get(i) == i);
+        }
         allocator.close();
         arrowVector.close();
     }

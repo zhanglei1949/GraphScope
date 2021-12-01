@@ -21,7 +21,7 @@ public class LongWritableTest {
     private FFILongWritable[] ffiLongWritables;
     private LongWritableImpl[] longWritableimpl;
     private LongWritable[] longWritables;
-    private int SIZE = 1024 * 1024  * 10;
+    private int SIZE = 1024 * 1024  * 128;
 
     @Setup
     public void prepare() {

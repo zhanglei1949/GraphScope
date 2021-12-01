@@ -39,9 +39,9 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Benchmark)
 public class IntBenchmarks {
 
-    private static final int VECTOR_LENGTH = 1024 * 1024 * 10;
+    private static final int VECTOR_LENGTH = 1024 * 1024 * 128;
 
-    private static final int ALLOCATOR_CAPACITY = 1024 * 1024 * 10 * 8;
+    private static final int ALLOCATOR_CAPACITY = 1024 * 1024 * 128 * 8;
 
     private BufferAllocator allocator;
 
