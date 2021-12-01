@@ -117,6 +117,11 @@ import javax.tools.StandardLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * GraphScopeAnnotationProcessor define the process procedure for classes annotated with FFIMirror,
+ * FFIMirrorDefinition and GraphType. User shall not use this annotation, as it is mainly used for
+ * code generation.
+ */
 @SupportedAnnotationTypes({
     "com.alibaba.fastffi.FFIMirror",
     "com.alibaba.fastffi.FFIMirrorDefinition",

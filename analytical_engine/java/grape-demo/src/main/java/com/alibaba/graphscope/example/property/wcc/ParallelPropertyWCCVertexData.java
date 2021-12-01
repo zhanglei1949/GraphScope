@@ -34,6 +34,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/** A sample implementation for WCC(Weakly Connected Component) on property graph in parallel. */
 public class ParallelPropertyWCCVertexData
         implements ParallelPropertyAppBase<Long, ParallelPropertyWCCVertexDataContext>,
                 ParallelEngine {

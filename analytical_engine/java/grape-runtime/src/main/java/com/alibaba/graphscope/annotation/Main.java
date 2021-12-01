@@ -16,6 +16,7 @@
 
 package com.alibaba.graphscope.annotation;
 
+/** A main class demostrate the usage of GraphScopeAppScanner. */
 public class Main {
 
     public static final boolean ignoreError = true;
