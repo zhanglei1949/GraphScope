@@ -24,7 +24,6 @@ import com.alibaba.graphscope.fragment.ArrowFragment;
 import com.alibaba.graphscope.stdcxx.StdVector;
 import com.alibaba.graphscope.utils.CppClassName;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
-
 import java.util.Objects;
 
 public abstract class LabeledVertexDataContext<OID_T, DATA_T> {

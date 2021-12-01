@@ -55,6 +55,12 @@ import javax.tools.JavaFileObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class accept
+ *
+ * <p>1) classpath 2) output directory 3) graph template string Then scan all class, for all class
+ * annotated with FFIGen, FFIMirror, do the code generation.
+ */
 public class GraphScopeAppScanner {
     private static Logger logger = LoggerFactory.getLogger(GraphScopeAppScanner.class.getName());
     private String classpath;

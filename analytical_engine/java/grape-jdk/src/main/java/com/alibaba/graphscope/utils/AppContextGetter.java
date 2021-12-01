@@ -23,7 +23,6 @@ import com.alibaba.graphscope.app.ParallelPropertyAppBase;
 import com.alibaba.graphscope.context.LabeledVertexDataContext;
 import com.alibaba.graphscope.context.PropertyDefaultContextBase;
 import com.alibaba.graphscope.context.VertexDataContext;
-
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
@@ -97,19 +96,6 @@ public class AppContextGetter {
     public static String getDefaultContextName(Class<? extends DefaultAppBase> appClass) {
         Class<? extends DefaultContextBase> clz =
                 (Class<? extends DefaultContextBase>) getInterfaceTemplateType(appClass, 4);
-        return clz.getName();
-    }
-
-    /**
-     * For parallel property app ,the index of context type in template is 1.
-     *
-     * @param appClass user-defined app class object.
-     * @return the corrsponding class name.
-     */
-    public static String getParallelPropertyContextName(
-            Class<? extends ParallelPropertyAppBase> appClass) {
-        Class<? extends PropertyDefaultContextBase> clz =
-                (Class<? extends PropertyDefaultContextBase>) getInterfaceTemplateType(appClass, 1);
         return clz.getName();
     }
 

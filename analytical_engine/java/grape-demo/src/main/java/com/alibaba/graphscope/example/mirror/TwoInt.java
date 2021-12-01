@@ -23,6 +23,11 @@ import com.alibaba.fastffi.FFINameSpace;
 import com.alibaba.fastffi.FFIPointer;
 import com.alibaba.fastffi.FFITypeAlias;
 
+/**
+ * GRAPE-jdk allows user to define their own data structures with DSL, @FFIMirror provided by
+ * fastFFI. The defined data structure are stored and managed in c++ memory. Here is the sample
+ * usage for Defining a Class with two int fields.
+ */
 @FFIMirror
 @FFINameSpace("sample")
 @FFITypeAlias("TwoInt")

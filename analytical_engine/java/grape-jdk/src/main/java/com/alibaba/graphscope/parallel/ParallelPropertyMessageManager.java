@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.alibaba.graphscope.parallel;
 
 import static com.alibaba.graphscope.utils.CppClassName.GRAPE_LONG_VERTEX;
@@ -20,6 +21,7 @@ import static com.alibaba.graphscope.utils.CppClassName.GS_PARALLEL_PROPERTY_MES
 import static com.alibaba.graphscope.utils.CppHeaderName.ARROW_FRAGMENT_H;
 import static com.alibaba.graphscope.utils.CppHeaderName.CORE_JAVA_JAVA_MESSAGES_H;
 import static com.alibaba.graphscope.utils.CppHeaderName.CORE_JAVA_TYPE_ALIAS_H;
+import static com.alibaba.graphscope.utils.CppHeaderName.CORE_PARALLEL_PARALLEL_PROPERTY_MESSAGE_MANAGER_H;
 import static com.alibaba.graphscope.utils.CppHeaderName.GRAPE_PARALLEL_MESSAGE_IN_BUFFER_H;
 import static com.alibaba.graphscope.utils.JNILibraryName.JNI_LIBRARY_NAME;
 
@@ -38,19 +40,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-/**
- * As PropertyParalleMessager.h has not much difference from ParallelMessageManager, here will use
- * ParallelMessageManager.h as underlying implementation.
- */
+/** As PropertyParalleMessager.h has not much difference from ParallelMessageManager. */
 @FFIGen(library = JNI_LIBRARY_NAME)
 @FFITypeAlias(GS_PARALLEL_PROPERTY_MESSAGE_MANAGER)
 @CXXHead({
+    CORE_PARALLEL_PARALLEL_PROPERTY_MESSAGE_MANAGER_H,
     GRAPE_PARALLEL_MESSAGE_IN_BUFFER_H,
     ARROW_FRAGMENT_H,
     CORE_JAVA_TYPE_ALIAS_H,
     CORE_JAVA_JAVA_MESSAGES_H
 })
 public interface ParallelPropertyMessageManager extends MessageManagerBase {
+
     @FFINameAlias("InitChannels")
     void initChannels(int channel_num);
 
@@ -68,7 +69,6 @@ public interface ParallelPropertyMessageManager extends MessageManagerBase {
      * @param vertex query vertex.
      * @param channel_id message channel id.
      * @param <FRAG_T> fragment type.
-     * @param unused unused variable for allowing method overloading in generated code.
      */
     @FFINameAlias("SyncStateOnOuterVertex")
     <FRAG_T extends ArrowFragment, @FFISkip OID> void syncStateOnOuterVertexNoMsg(
@@ -125,9 +125,8 @@ public interface ParallelPropertyMessageManager extends MessageManagerBase {
                             MSG_T msg = msgSupplier.get();
                             boolean result;
                             while (true) {
-                                synchronized (ParallelMessageManager.class) {
-                                    result = getMessageInBuffer(messageInBuffer);
-                                }
+                                result = getMessageInBuffer(messageInBuffer);
+
                                 if (result) {
                                     while (messageInBuffer.getMessage(frag, vertex, msg)) {
                                         consumer.accept(vertex, msg, vertexLabelId);
@@ -178,7 +177,9 @@ public interface ParallelPropertyMessageManager extends MessageManagerBase {
                             MSG_T msg = msgSupplier.get();
                             boolean result;
                             while (true) {
+                                // not need for synchronization
                                 result = getMessageInBuffer(messageInBuffer);
+
                                 if (result) {
                                     while (messageInBuffer.getMessage(frag, vertex, msg)) {
                                         consumer.accept(vertex, msg);

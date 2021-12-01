@@ -25,10 +25,6 @@ import com.alibaba.graphscope.ds.VertexSet;
 import com.alibaba.graphscope.fragment.ArrowFragment;
 import com.alibaba.graphscope.parallel.ParallelPropertyMessageManager;
 import com.alibaba.graphscope.utils.AtomicLongArrayWrapper;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -37,6 +33,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ParallelPropertyWCCVertexDataContext extends LabeledVertexDataContext<Long, Double>
         implements PropertyParallelContextBase<Long> {
