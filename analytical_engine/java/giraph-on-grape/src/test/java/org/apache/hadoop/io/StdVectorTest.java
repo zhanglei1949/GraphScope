@@ -17,18 +17,32 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
+import org.openjdk.jmh.annotations.CompilerControl;
+import sun.misc.Unsafe;
+import java.lang.reflect.Field;
 
 @State(Scope.Benchmark)
 public class StdVectorTest {
 	static {
 		System.loadLibrary("giraph-jni");
 	}
+    private static Unsafe unsafe;
+    static {
+        try {
+            Field field = Unsafe.class.getDeclaredField("theUnsafe");
+            field.setAccessible(true);
+            unsafe =  (Unsafe) field.get(null);
+            System.out.println("Got unsafe");
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
+    }
     private static final int VECTOR_LENGTH = 1024 * 1024 * 8;
 
     private static final int ALLOCATOR_CAPACITY = 1024 * 1024 * 8 * 64;
     private StdVector.Factory vectorFactory = FFITypeFactory.getFactory(StdVector.class, "std::vector<int64_t>");
     private StdVector<Long> vector = vectorFactory.create();
-
+    private long vectorAddr = vector.getAddress();
 
     private BufferAllocator allocator;
 
@@ -46,6 +60,8 @@ public class StdVectorTest {
         for (long i = 0; i < VECTOR_LENGTH; ++i){
             arrowBuf.setLong(i * 8, i);
         }
+        long stdVectorFirstAddr = unsafe.getLong(vectorAddr);
+	System.out.println("stdvector addr: " + vectorAddr + ", " + stdVectorFirstAddr);
     }
 
     @TearDown
@@ -86,17 +102,21 @@ public class StdVectorTest {
         }
         return sum;
     }
+
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
+    @CompilerControl(CompilerControl.Mode.PRINT)
     public void write() {
         for (long i = 0; i < VECTOR_LENGTH; ++i){
             vector.set(i, i);
         }
     }
+
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
+    @CompilerControl(CompilerControl.Mode.PRINT)
     public void writeArrow() {
         for (long i = 0; i < VECTOR_LENGTH; ++i){
             arrowBuf.setLong(i * 8, i);
