@@ -3,6 +3,7 @@ package org.apache.hadoop.io;
 import com.alibaba.fastffi.FFITypeFactory;
 import com.alibaba.graphscope.stdcxx.StdVector;
 import java.util.concurrent.TimeUnit;
+import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.IntVector;
@@ -31,7 +32,7 @@ public class StdVectorTest {
 
     private BufferAllocator allocator;
 
-    private UInt8Vector arrowVector;
+    private ArrowBuf arrowBuf;
 
     @Setup
     public void prepare() {
@@ -41,24 +42,23 @@ public class StdVectorTest {
         }
 
         allocator = new RootAllocator(ALLOCATOR_CAPACITY );
-        arrowVector = new UInt8Vector("vector", allocator);
-        arrowVector.allocateNew(VECTOR_LENGTH);
-        arrowVector.setValueCount(VECTOR_LENGTH);
-
-        for (int i = 0; i < VECTOR_LENGTH; i++) {
-            arrowVector.set(i, i);
+        arrowBuf = allocator.buffer(VECTOR_LENGTH * Long.BYTES);
+        for (long i = 0; i < VECTOR_LENGTH; ++i){
+            arrowBuf.setLong(i, i);
         }
     }
 
     @TearDown
     public void tearDown() {
         //In tear down, we check the equality
-        vector.setAddress(arrowVector.getDataBufferAddress());
-        for (int i = 0; i < arrowVector.getValueCount(); ++i){
-           Assert.assertTrue(vector.get(i) == i);
+//        vector.setAddress(arrowVector.getDataBufferAddress());
+        for (int i = 0; i < VECTOR_LENGTH; ++i){
+//           Assert.assertTrue(vector.get(i) == i);
+            Assert.assertTrue(arrowBuf.getLong(i) == i);
         }
+        arrowBuf.close();
         allocator.close();
-        arrowVector.close();
+
     }
 
     @Benchmark

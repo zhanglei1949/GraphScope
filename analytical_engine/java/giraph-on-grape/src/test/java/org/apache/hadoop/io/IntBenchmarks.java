@@ -17,6 +17,7 @@
 
 package org.apache.hadoop.io;
 
+import org.apache.arrow.memory.ArrowBuf;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.IntVector;
@@ -45,23 +46,20 @@ public class IntBenchmarks {
 
     private BufferAllocator allocator;
 
-    private IntVector vector;
+    private ArrowBuf arrowBuf;
 
     @Setup
     public void prepare() {
         allocator = new RootAllocator(ALLOCATOR_CAPACITY );
-        vector = new IntVector("vector", allocator);
-        vector.allocateNew(VECTOR_LENGTH);
-        vector.setValueCount(VECTOR_LENGTH);
-
-        for (int i = 0; i < VECTOR_LENGTH; i++) {
-            vector.setSafe(i, 1);
+        arrowBuf = allocator.buffer(VECTOR_LENGTH * Long.BYTES);
+        for (long i = 0; i < VECTOR_LENGTH; ++i){
+            arrowBuf.setLong(i, i);
         }
     }
 
     @TearDown
     public void tearDown() {
-        vector.close();
+        arrowBuf.close();
         allocator.close();
     }
 
@@ -71,7 +69,7 @@ public class IntBenchmarks {
     public int read() {
         int sum = 0;
         for (int i = 0; i < VECTOR_LENGTH; ++i) {
-            sum += vector.get(i);
+            sum += arrowBuf.getLong(i);
         }
         return sum;
     }
@@ -81,7 +79,7 @@ public class IntBenchmarks {
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
     public void write() {
         for (int i = 0; i < VECTOR_LENGTH; ++i){
-            vector.set(i, i);
+            arrowBuf.setLong(i, i);
         }
     }
 
