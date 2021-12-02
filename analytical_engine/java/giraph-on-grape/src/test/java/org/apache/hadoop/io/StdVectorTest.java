@@ -44,7 +44,7 @@ public class StdVectorTest {
         allocator = new RootAllocator(ALLOCATOR_CAPACITY );
         arrowBuf = allocator.buffer(VECTOR_LENGTH * Long.BYTES);
         for (long i = 0; i < VECTOR_LENGTH; ++i){
-            arrowBuf.setLong(i, i);
+            arrowBuf.setLong(i * 8, i);
         }
     }
 
@@ -54,7 +54,11 @@ public class StdVectorTest {
 //        vector.setAddress(arrowVector.getDataBufferAddress());
         for (int i = 0; i < VECTOR_LENGTH; ++i){
 //           Assert.assertTrue(vector.get(i) == i);
-            Assert.assertTrue(arrowBuf.getLong(i) == i);
+//            Assert.assertTrue(arrowBuf.getLong(i) == i);
+		if (arrowBuf.getLong(i * 8) != i){
+			System.out.println("value not match: " + i + "," + arrowBuf.getLong(i * 8));
+			break;
+		}
         }
         arrowBuf.close();
         allocator.close();
@@ -75,10 +79,27 @@ public class StdVectorTest {
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
+    public int readArrow() {
+        int sum = 0;
+        for (int i = 0; i < VECTOR_LENGTH; ++i) {
+            sum += arrowBuf.getLong(i * 8);
+        }
+        return sum;
+    }
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    @OutputTimeUnit(TimeUnit.MICROSECONDS)
     public void write() {
         for (long i = 0; i < VECTOR_LENGTH; ++i){
             vector.set(i, i);
         }
     }
-
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    @OutputTimeUnit(TimeUnit.MICROSECONDS)
+    public void writeArrow() {
+        for (long i = 0; i < VECTOR_LENGTH; ++i){
+            arrowBuf.setLong(i * 8, i);
+        }
+    }
 }
