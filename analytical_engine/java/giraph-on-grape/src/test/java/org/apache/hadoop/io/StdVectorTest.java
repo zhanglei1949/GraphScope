@@ -22,9 +22,9 @@ public class StdVectorTest {
 	static {
 		System.loadLibrary("giraph-jni");
 	}
-    private static final int VECTOR_LENGTH = 1024 * 1024 * 128;
+    private static final int VECTOR_LENGTH = 1024 * 1024 * 8;
 
-    private static final int ALLOCATOR_CAPACITY = 1024 * 1024 *128 * 8;
+    private static final int ALLOCATOR_CAPACITY = 1024 * 1024 * 8 * 64;
     private StdVector.Factory vectorFactory = FFITypeFactory.getFactory(StdVector.class, "std::vector<int64_t>");
     private StdVector<Long> vector = vectorFactory.create();
 
