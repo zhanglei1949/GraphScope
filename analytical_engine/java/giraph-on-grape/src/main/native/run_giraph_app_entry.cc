@@ -19,11 +19,11 @@ limitations under the License.
 extern "C"{
 void Run(std::string params) {
 
-  gs::Init(params);
+  grape::Init(params);
 
-  gs::RunGiraphApp(params);
+  grape::CreateAndQuery(params);
 
-  gs::Finalize();
+  grape::Finalize();
 
   google::ShutdownGoogleLogging();
 }

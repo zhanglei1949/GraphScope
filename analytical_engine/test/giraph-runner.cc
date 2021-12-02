@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <memory>
 #include <string>
 #include <utility>
@@ -19,11 +20,30 @@ DEFINE_string(combiner_class, "", "combiner for message processing");
 DEFINE_string(resolver_class, "", "resolver for graph loading");
 DEFINE_string(lib_path, "",
               "path for dynamic lib where the desired entry function exists");
+DEFINE_string(loading_thread_num, "",
+              "number of threads will be used in loading the graph");
 
 typedef void* RunT(std::string args);
 
 // put all flags in a json str
-std::string flags2JsonStr() { return ""; }
+std::string flags2JsonStr() {
+  boost::property_tree::ptree pt;
+  pt.put("input_format_class", FLAGS_input_format_class);
+  pt.put("output_format_class", FLAGS_output_format_class);
+  pt.put("app_class", FLAGS_app_class);
+  pt.put("input_vfile", FLAGS_input_vfile);
+  pt.put("input_efile", FLAGS_input_efile);
+  pt.put("output_path", FLAGS_output_path);
+  pt.put("aggregator_class", FLAGS_aggregator_class);
+  pt.put("combiner_class", FLAGS_combiner_class);
+  pt.put("resolver_class", FLAGS_resolver_class);
+  pt.put("lib_path", FLAGS_lib_path);
+  pt.put("loading_thread_num", FLAGS_loading_thread_num);
+
+  std::stringstream ss;
+  boost::property_tree::json_parser::write_json(ss, pt);
+  return std::move(ss.str());
+}
 
 class GiraphJobRunner {
  public:
