@@ -1,6 +1,7 @@
 package org.apache.hadoop.io;
 
 import com.alibaba.fastffi.FFITypeFactory;
+import com.alibaba.graphscope.stdcxx.LongStdVector;
 import com.alibaba.graphscope.stdcxx.StdVector;
 import java.util.concurrent.TimeUnit;
 import org.apache.arrow.memory.ArrowBuf;
@@ -11,6 +12,7 @@ import org.apache.arrow.vector.UInt8Vector;
 import org.junit.Assert;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.CompilerControl;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
@@ -40,9 +42,12 @@ public class StdVectorTest {
     private static final int VECTOR_LENGTH = 1024 * 1024 * 8;
 
     private static final int ALLOCATOR_CAPACITY = 1024 * 1024 * 8 * 64;
-    private StdVector.Factory vectorFactory = FFITypeFactory.getFactory(StdVector.class, "std::vector<int64_t>");
-    private StdVector<Long> vector = vectorFactory.create();
+
+    private LongStdVector.Factory vectorFactory = FFITypeFactory.getFactory(LongStdVector.class, "std::vector<int64_t>");
+    private LongStdVector vector = vectorFactory.create();
     private long vectorAddr = vector.getAddress();
+
+    private long stdVectorFirstAddr;
 
     private BufferAllocator allocator;
 
@@ -50,7 +55,7 @@ public class StdVectorTest {
 
     @Setup
     public void prepare() {
-        vector.reserve(VECTOR_LENGTH);
+        vector.resize(VECTOR_LENGTH);
         for (long i = 0; i < VECTOR_LENGTH; i++) {
             vector.set(i, i);
         }
@@ -60,7 +65,7 @@ public class StdVectorTest {
         for (long i = 0; i < VECTOR_LENGTH; ++i){
             arrowBuf.setLong(i * 8, i);
         }
-        long stdVectorFirstAddr = unsafe.getLong(vectorAddr);
+	stdVectorFirstAddr = unsafe.getLong(vectorAddr);
 	System.out.println("stdvector addr: " + vectorAddr + ", " + stdVectorFirstAddr);
     }
 
@@ -112,7 +117,15 @@ public class StdVectorTest {
             vector.set(i, i);
         }
     }
-
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    @OutputTimeUnit(TimeUnit.MICROSECONDS)
+    @CompilerControl(CompilerControl.Mode.PRINT)
+    public void writeDirectly() {
+        for (long i = 0; i < VECTOR_LENGTH; ++i){
+	    unsafe.putLong( stdVectorFirstAddr + i * 8, i);
+        }
+    }
     @Benchmark
     @BenchmarkMode(Mode.AverageTime)
     @OutputTimeUnit(TimeUnit.MICROSECONDS)

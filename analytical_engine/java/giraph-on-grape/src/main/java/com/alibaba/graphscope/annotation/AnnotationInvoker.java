@@ -40,6 +40,7 @@ import com.alibaba.graphscope.utils.CppClassName;
 @FFIGenBatch(
     value = {
         @FFIGen(type = "com.alibaba.graphscope.ds.EmptyType"),
+        @FFIGen(type = "com.alibaba.graphscope.stdcxx.LongStdVector"),
         @FFIGen(type = "com.alibaba.graphscope.parallel.message.DoubleMsg"),
         @FFIGen(type = "com.alibaba.graphscope.parallel.message.LongMsg"),
         @FFIGen(
@@ -114,22 +115,6 @@ import com.alibaba.graphscope.utils.CppClassName;
                 @CXXTemplate(cxx = "int64_t", java = "Long"),
                 @CXXTemplate(cxx = "double", java = "Double"),
                 @CXXTemplate(cxx = "int32_t", java = "Integer"),
-            }),
-        @FFIGen(
-            type = "com.alibaba.graphscope.stdcxx.StdVector",
-            templates = {
-                @CXXTemplate(cxx = "int64_t", java = "Long"),
-                @CXXTemplate(cxx = "double", java = "Double"),
-                @CXXTemplate(cxx = "int32_t", java = "Integer"),
-                @CXXTemplate(
-                    cxx = GS_VERTEX_ARRAY + "<double>",
-                    java = "com.alibaba.graphscope.ds.GSVertexArray" + "<Double>"),
-                @CXXTemplate(
-                    cxx = GS_VERTEX_ARRAY + "<int32_t>",
-                    java = "com.alibaba.graphscope.ds.GSVertexArray" + "<Integer>"),
-                @CXXTemplate(
-                    cxx = GS_VERTEX_ARRAY + "<int64_t>",
-                    java = "com.alibaba.graphscope.ds.GSVertexArray" + "<Long>"),
             }),
         @FFIGen(
             type = "com.alibaba.graphscope.fragment.ImmutableEdgecutFragment",
