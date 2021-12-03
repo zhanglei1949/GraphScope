@@ -94,6 +94,8 @@ void CreateAndQuery(std::string params) {
   JavaLoaderInvoker java_loader_invoker;
   java_loader_invoker.Init(
       DEFAULT_JAVA_LOADER_CLASS,
+      DEFAULT_JAVA_LOADER_METHOD_NAME,
+      DEFAULT_JAVA_LOADER_METHOD_SIG,
       getFromPtree<std::string>(pt, OPTION_INPUT_FORMAT_CLASS));
   // fill in theses buffers in java
   java_loader_invoker.CallJavaLoader(

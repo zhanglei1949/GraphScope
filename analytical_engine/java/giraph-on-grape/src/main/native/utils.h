@@ -91,13 +91,7 @@ void verifyClasses(const std::string& params) {
 
 template <typename T>
 static T getFromPtree(const ptree& pt, const char* key) {
-  T ret = pt.get<T>(key);
-  if (ret) {
-    return ret;
-  } else {
-    LOG(ERROR) << "No " << key << " in ptree:";
-    return ret;
-  }
+  return pt.get<T>(key);
 }
 
 }  // namespace grape
