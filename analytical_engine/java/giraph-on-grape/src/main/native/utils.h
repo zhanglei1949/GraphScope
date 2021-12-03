@@ -13,10 +13,30 @@
 
 namespace grape {
 
+// data vector contains all bytes, can be used to hold oid and vdata, edata.
+using byte_vector = std::vector<char>;
+// offset vector contains offsets to deserialize data vector.
+using offset_vector = std::vector<int>;
+
+static constexpr const char* OFFSET_VECTOR_VECTOR =
+    "std::vector<std::vector<int>>";
+static constexpr const char* DATA_VECTOR_VECTOR =
+    "std::vector<std::vector<byte>>";
+
 static constexpr const char* GIRAPH_PARAMS_CHECK_CLASS =
     "org/apache/giraph/utils/GiraphParamsChecker";
 static constexpr const char* VERIFY_CLASSES_SIGN =
     "(Ljava/lang/String;Ljava/lang/String;)V";
+
+static constexpr const char* OPTION_LOADING_THREAD_NUM = "loading_thread_num";
+static constexpr const char* OPTION_INPUT_FORMAT_CLASS = "input_format_class";
+static constexpr const char* OPTION_OUTPUT_FORMAT_CLASS = "output_format_class";
+static const std::string DEFAULT_JAVA_LOADER_CLASS =
+    "com.alibaba.graphscope.loader.impl.FileLoader";
+static const std::string DEFAULT_JAVA_LOADER_METHOD_NAME =
+    "com.alibaba.graphscope.loader.impl.FileLoader";
+static const std::string DEFAULT_JAVA_LOADER_METHOD_SIG =
+    "com.alibaba.graphscope.loader.impl.FileLoader";
 
 using ptree = boost::property_tree::ptree;
 
@@ -55,7 +75,7 @@ void verifyClasses(const std::string& params) {
         param_checker_class, "verifyClasses", VERIFY_CLASSES_SIGN);
     CHECK_NOTNULL(verify_class_method);
 
-    //jstring params_jstring = env->NewStringUTF(params.c_str());
+    // jstring params_jstring = env->NewStringUTF(params.c_str());
 
     // env->CallStaticVoidMethod(param_checker_class, verify_class_method,
     //                           params_jstring);

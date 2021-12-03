@@ -16,6 +16,7 @@
 #include "apps/java_pie/java_pie_default_app.h"
 
 #include "giraph_fragment_loader.h"
+#include "java_loader_invoker.h"
 #include "utils.h"
 
 #define QUOTE(X) #X
@@ -37,12 +38,6 @@ using vid_t = uint64_t;
 
 using LOADER_TYPE = grape::GiraphFragmentLoader<GRAPH_TYPE>;
 
-// data vector contains all bytes, can be used to hold oid and vdata, edata.
-using byte_vector = std::vector<char>;
-// offset vector contains offsets to deserialize data vector.
-using offset_vector = std::vector<int>;
-
-
 void Init(const std::string& params) {
   grape::InitMPIComm();
   grape::CommSpec comm_spec;
@@ -52,19 +47,6 @@ void Init(const std::string& params) {
   }
   verifyClasses(params);
 }
-
-/**
- * @brief Call java loader to fillin buffers
- *
- */
-void callJavaLoader(std::vector<byte_vector>& vid_buffers,
-                    std::vector<offset_vector>& vid_offsets,
-                    std::vector<byte_vector>& vdata_buffers,
-                    std::vector<byte_vector>& esrc_id_buffers,
-                    std::vector<offset_vector>& esrc_id_offsets,
-                    std::vector<byte_vector>& edst_id_buffers,
-                    std::vector<offset_vector>& edst_id_offsets,
-                    std::vector<byte_vector>& edata_buffers) {}
 
 template <typename FRAG_T>
 void Query(grape::CommSpec& comm_spec, std::shared_ptr<FRAG_T> fragment,
@@ -92,14 +74,11 @@ void CreateAndQuery(std::string params) {
   ptree pt;
   string2ptree(params, pt);
 
-  int loading_threads_num = getFromPtree<int>(pt, "loading_thread_num");
+  int loading_threads_num = getFromPtree<int>(pt, OPTION_LOADING_THREAD_NUM);
   if (loading_threads_num < 0) {
     LOG(ERROR) << "Invalid loading thread num: " << loading_threads_num;
     return;
   }
-
-  std::shared_ptr<LOADER_TYPE> loader = std::make_shared<LOADER_TYPE>(comm_spec);
-
   int vertex_buffer_nums = loading_threads_num * comm_spec.fnum();
   int edge_buffer_nums =
       loading_threads_num * comm_spec.fnum() * comm_spec.fnum();
@@ -110,23 +89,33 @@ void CreateAndQuery(std::string params) {
   std::vector<offset_vector> vid_offsets(vertex_buffer_nums),
       esrc_id_offsets(edge_buffer_nums), edst_id_offsets(edge_buffer_nums);
 
+  // Load via java_load_invoker. The class names must be ok since it has been
+  // verified.
+  JavaLoaderInvoker java_loader_invoker;
+  java_loader_invoker.Init(
+      DEFAULT_JAVA_LOADER_CLASS,
+      getFromPtree<std::string>(pt, OPTION_INPUT_FORMAT_CLASS));
   // fill in theses buffers in java
-  callJavaLoader(vid_buffers, vid_offsets, vdata_buffers, esrc_id_buffers,
-                 esrc_id_offsets, edst_id_buffers, edst_id_offsets,
-                 edata_buffers);
+  java_loader_invoker.CallJavaLoader(
+      vid_buffers, vid_offsets, vdata_buffers, esrc_id_buffers, esrc_id_offsets,
+      edst_id_buffers, edst_id_offsets, edata_buffers);
 
-  loader->AddVertexBuffers(std::move(vid_buffers), std::move(vid_offsets), std::move(vdata_buffers));
+  std::shared_ptr<LOADER_TYPE> loader =
+      std::make_shared<LOADER_TYPE>(comm_spec);
+  loader->AddVertexBuffers(std::move(vid_buffers), std::move(vid_offsets),
+                           std::move(vdata_buffers));
   VLOG(1) << "Finish add vertex buffers";
-  loader->AddEdgeBuffers(std::move(esrc_id_buffers), std::move(esrc_id_offsets), std::move(edst_id_buffers),
-                         std::move(edst_id_offsets), std::move(edata_buffers));
+  loader->AddEdgeBuffers(std::move(esrc_id_buffers), std::move(esrc_id_offsets),
+                         std::move(edst_id_buffers), std::move(edst_id_offsets),
+                         std::move(edata_buffers));
   VLOG(1) << "Finish add edge buffers";
 
   std::shared_ptr<GRAPH_TYPE> fragment = loader->LoadFragment();
-  //return fragment;
+  // return fragment;
 }
 
 void Finalize() {
   grape::FinalizeMPIComm();
   VLOG(1) << "Workers finalized.";
 }
-}
+}  // namespace grape

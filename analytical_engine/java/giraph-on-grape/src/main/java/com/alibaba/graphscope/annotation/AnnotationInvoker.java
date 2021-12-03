@@ -38,9 +38,10 @@ import com.alibaba.graphscope.utils.CppClassName;
             @FFIGen(
                     type = "com.alibaba.graphscope.stdcxx.StdVector",
                     templates = {
-                        @CXXTemplate(cxx = "int64_t", java = "Long"),
-                        @CXXTemplate(cxx = "int32_t", java = "Integer"),
-                        @CXXTemplate(cxx = "double", java = "Double")
+                        @CXXTemplate(cxx = "int", java = "Integer"),
+                        @CXXTemplate(cxx = "byte", java = "Byte"),
+                        @CXXTemplate(cxx = "std::vector<int>", java = "com.alibaba.graphscope.stdcxx.StdVector<java.lang.Integer>"),
+                        @CXXTemplate(cxx = "std::vector<byte>", java = "com.alibaba.graphscope.stdcxx.StdVector<java.lang.Byte>")
                     }),
             @FFIGen(type = "com.alibaba.graphscope.parallel.message.DoubleMsg"),
             @FFIGen(type = "com.alibaba.graphscope.parallel.message.LongMsg"),
