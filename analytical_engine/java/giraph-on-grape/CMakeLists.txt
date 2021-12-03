@@ -27,11 +27,20 @@ else()
     message(STATUS "Your compiler is ${CMAKE_CXX_COMPILER}")
 endif()
 
+if (NOT DEFINED ENV{GRAPH_TYPE})
+    message(FATAL_ERROR "Need GRAPH_TYPE")
+endif()
+
+if (NOT DEFINED ENV{APP_TYPE})
+    message(FATAL_ERROR "Need APP_TYPE")
+endif()
+
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g -std=gnu++14 -Wall -Werror")
 
 file(GLOB SOURCES "src/main/native/*.cc" "target/generated-sources/annotations/*.cc")
 # file(GLOB SOURCES  "target/generated-sources/annotations/*.cc")
 
+include_directories(SYSTEM "src/main/native")
 set(JAVA_AWT_LIBRARY NotNeeded)
 set(JAVA_AWT_INCLUDE_PATH NotNeeded)
 find_package(JNI REQUIRED)
@@ -54,8 +63,7 @@ include_directories(SYSTEM ${GRAPHSCOPE_ANALYTICAL_INCLUDE_DIRS})
 find_package(Threads REQUIRED)
 
 add_library(giraph-jni SHARED ${SOURCES})
-target_compile_definitions(giraph-jni PUBLIC ENABLE_JAVA_SDK)
+target_compile_definitions(giraph-jni PUBLIC ENABLE_JAVA_SDK GRAPH_TYPE=$ENV{GRAPH_TYPE} APP_TYPE=$ENV{APP_TYPE})
 target_link_libraries(giraph-jni ${CMAKE_JNI_LINKER_FLAGS}  ${LIBGRAPELITE_LIBRARIES} ${VINEYARD_LIBRARIES})
-target_include_directories("src/main/native")
 set_target_properties(giraph-jni PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_features(giraph-jni PRIVATE cxx_std_14)

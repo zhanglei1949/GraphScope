@@ -27,7 +27,7 @@ limitations under the License.
 
 #include "core/app/java/java_parallel_app_base.h"
 #include "core/error.h"
-#include "java_pie/java_pie_parallel_context.h"
+#include "apps/java_pie/java_pie_parallel_context.h"
 
 namespace gs {
 

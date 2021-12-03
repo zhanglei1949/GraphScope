@@ -24,8 +24,6 @@ void Run(std::string params) {
   grape::CreateAndQuery(params);
 
   grape::Finalize();
-
-  google::ShutdownGoogleLogging();
 }
 
 }

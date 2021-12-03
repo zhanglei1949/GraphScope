@@ -40,8 +40,10 @@ namespace gs {
  * @tparam FRAG_T Should be grape::ImmutableEdgecutFragment<...>
  */
 template <typename FRAG_T>
-class JavaPIEDefaultContext : public grape::ContextBase<FRAG_T> {
+class JavaPIEDefaultContext : public grape::ContextBase {
  public:
+  using fragment_t = FRAG_T;
+
   explicit JavaPIEDefaultContext(const FRAG_T& fragment)
       : fragment_(fragment),
         app_class_name_(NULL),
@@ -102,7 +104,7 @@ class JavaPIEDefaultContext : public grape::ContextBase<FRAG_T> {
       fragment_object_ = CreateFFIPointer(env, java_frag_type_name_.c_str(),
                                           url_class_loader_object_,
                                           reinterpret_cast<jlong>(&fragment_));
-      mm_object_ = CreateFFIPointer(env, parallel_java_message_mananger_name_,
+      mm_object_ = CreateFFIPointer(env, default_java_message_mananger_name_,
                                     url_class_loader_object_,
                                     reinterpret_cast<jlong>(&messages));
 
@@ -114,6 +116,9 @@ class JavaPIEDefaultContext : public grape::ContextBase<FRAG_T> {
           "(Lcom/alibaba/graphscope/fragment/ImmutableEdgecutFragment;"
           "Lcom/alibaba/graphscope/parallel/DefaultMessageManager;"
           "Lcom/alibaba/graphscope/stdcxx/StdVector;)V";
+
+      jclass context_class = env->FindClass(context_class_name_);
+      CHECK_NOTNULL(context_class);
       jmethodID init_methodID =
           env->GetMethodID(context_class, "Init", descriptor);
       CHECK_NOTNULL(init_methodID);
@@ -152,16 +157,16 @@ class JavaPIEDefaultContext : public grape::ContextBase<FRAG_T> {
     context_class_name_ = JavaClassNameDashToSlash(context_class);
     return true;
   }
+  const fragment_t& fragment_;
   char* app_class_name_;
   char* context_class_name_;
-  static const char* default_java_message_mananger_name_ =
+  static constexpr char* default_java_message_mananger_name_ =
       "grape::DefaultMessageManager";
   std::string java_frag_type_name_;
   jobject app_object_;
   jobject context_object_;
   jobject fragment_object_;
   jobject mm_object_;
-  const fragment_t& fragment_;
   jobject url_class_loader_object_;
 };
 }  // namespace gs

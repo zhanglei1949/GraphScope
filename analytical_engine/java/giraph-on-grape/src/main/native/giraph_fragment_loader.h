@@ -59,7 +59,7 @@ class GiraphFragmentLoader {
                         std::vector<std::vector<int>>&& vidOffsets,
                         std::vector<std::vector<char>>&& vdataBuffers) {}
 
-  void AddVertexBuffers(std::vector<std::vector<char>>&& esrcBuffers,
+  void AddEdgeBuffers(std::vector<std::vector<char>>&& esrcBuffers,
                         std::vector<std::vector<int>>&& esrcOffsets,
                         std::vector<std::vector<char>>&& edstBuffers,
                         std::vector<std::vector<int>>&& edstOffsets,

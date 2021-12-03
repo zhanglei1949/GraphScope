@@ -26,7 +26,7 @@ limitations under the License.
 
 #include "core/app/app_base.h"
 #include "core/error.h"
-#include "java_pie/java_pie_default_context.h"
+#include "apps/java_pie/java_pie_default_context.h"
 
 namespace gs {
 

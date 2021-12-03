@@ -1,0 +1,2 @@
+export GRAPH_TYPE="grape::ImmutableEdgecutFragment<int64_t,uint64_t,int64_t,double>"
+export APP_TYPE="gs::JavaPIEDefaultApp<GRAPH_TYPE>"

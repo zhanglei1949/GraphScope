@@ -2,12 +2,16 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <dlfcn.h>
 
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
 #include "boost/property_tree/json_parser.hpp"
 #include "boost/property_tree/ptree.hpp"
+#include <boost/leaf/error.hpp>
+
+#include "grape/config.h"
 
 DEFINE_string(input_format_class, "", "java class defines the input format");
 DEFINE_string(output_format_class, "", "java class defines the output format");
@@ -22,6 +26,27 @@ DEFINE_string(lib_path, "",
               "path for dynamic lib where the desired entry function exists");
 DEFINE_string(loading_thread_num, "",
               "number of threads will be used in loading the graph");
+
+inline void* open_lib(const char* path) {
+  void* handle = dlopen(path, RTLD_LAZY);
+  auto* p_error_msg = dlerror();
+  if (p_error_msg) {
+      LOG(ERROR) << "Error in open library: " <<path << p_error_msg;
+      return nullptr;
+  }
+  return handle;
+}
+
+inline void* get_func_ptr(const std::string& lib_path, void* handle,
+                                      const char* symbol) {
+  auto* p_func = dlsym(handle, symbol);
+  auto* p_error_msg = dlerror();
+  if (p_error_msg) {
+      LOG(ERROR) << "Failed to get symbol" << symbol << " from " << p_error_msg;
+  }
+  return p_func;
+}
+
 
 typedef void* RunT(std::string args);
 
@@ -50,9 +75,11 @@ class GiraphJobRunner {
   GiraphJobRunner(const std::string& lib_path)
       : lib_path_(lib_path), dl_handle_(nullptr), run_handle_(nullptr) {}
   bool Init() {
-    BOOST_LEAF_ASSIGN(dl_handle_, open_lib(lib_path_.c_str()));
-
-    BOOST_LEAF_AUTO(function_ptr, get_func_ptr(lib_path_, dl_handle_, "Run"));
+    dl_handle_ = open_lib(lib_path_.c_str());
+    if (!dl_handle_){
+       return false;
+    }
+    auto function_ptr = get_func_ptr(lib_path_, dl_handle_, "Run");
     if (function_ptr) {
       run_handle_ = reinterpret_cast<RunT*>(function_ptr);
     }
@@ -65,10 +92,10 @@ class GiraphJobRunner {
   void Run(std::string params) { run_handle_(std::move(params)); }
 
  private:
-  void* dl_handle_;
   std::string lib_path_;
+  void* dl_handle_;
   RunT* run_handle_;
-}
+};
 
 int main(int argc, char* argv[]) {
   FLAGS_stderrthreshold = 0;

@@ -24,8 +24,8 @@
 
     <property environment="env"/>
     <fail unless="env.LLVM11_HOME" message="LLVM11_HOME not set."/>
-    <fail unless="env._GRAPH_TYPE" message="graph type not set"/>
-    <fail unless="env._APP_TYPE" message="app type not set"/>
+    <fail unless="env.GRAPH_TYPE" message="graph type not set"/>
+    <fail unless="env.APP_TYPE" message="app type not set"/>
 
     <condition property="platform" value="mac">
       <os arch="x86_64" family="mac"/>
@@ -53,7 +53,7 @@
 
     <exec dir="${project.build.directory}/native" executable="cmake" failonerror="true" os="Linux">
       <arg
-        line="-DCMAKE_C_COMPILER=&quot;${env.LLVM11_HOME}/bin/clang&quot; -DCMAKE_CXX_COMPILER=&quot;${env.LLVM11_HOME}/bin/clang++&quot; -D_GRAPH_TYPE=&quot;${env._GRAPH_TYPE}&quot; -D_APP_TYPE=&quot;${env._APP_TYPE}&quot; ${basedir}"/>
+        line="-DCMAKE_C_COMPILER=&quot;${env.LLVM11_HOME}/bin/clang&quot; -DCMAKE_CXX_COMPILER=&quot;${env.LLVM11_HOME}/bin/clang++&quot;  ${basedir}"/>
     </exec>
     <exec dir="${project.build.directory}/native" executable="cmake" failonerror="true"
       os="Mac OS X">

@@ -19,16 +19,16 @@
     <hadoop-core.version>1.2.1</hadoop-core.version>
     <jmh.version>1.21</jmh.version>
     <skip.perf.benchmarks>false</skip.perf.benchmarks>
-    <benchmark.filter>org.apache.hadoop.io.*</benchmark.filter>
+    <benchmark.filter>org.apache.hadoop.io.StdVectorTest.write*</benchmark.filter>
     <benchmark.forks>1</benchmark.forks>
     <benchmark.jvmargs></benchmark.jvmargs>
-    <benchmark.warmups>5</benchmark.warmups>
-    <benchmark.runs>5</benchmark.runs>
+    <benchmark.warmups>0</benchmark.warmups>
+    <benchmark.runs>1</benchmark.runs>
     <benchmark.list></benchmark.list>
     <benchmark.resultfile>jmh-result.json</benchmark.resultfile>
     <benchmark.resultformat>json</benchmark.resultformat>
     <uberjar.name>uberjar</uberjar.name>
-    <benchmark.jvmargs>-Djava.library.path=${project.build.directory}/native:${project.build.directory}/../../grape-runtime/target/native -XX:CompileCommandFile=/home/graphscope/compile-commands.txt</benchmark.jvmargs>
+    <benchmark.jvmargs>-Darrow.enable_null_check_for_get=false -Darrow.enable_unsafe_memory_access=true -Djava.library.path=${project.build.directory}/native:${project.build.directory}/../../grape-runtime/target/native -XX:CompileCommandFile=/home/graphscope/compile-commands.txt</benchmark.jvmargs>
   </properties>
 
   <dependencies>
