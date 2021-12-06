@@ -26,6 +26,8 @@ DEFINE_string(lib_path, "",
               "path for dynamic lib where the desired entry function exists");
 DEFINE_string(loading_thread_num, "",
               "number of threads will be used in loading the graph");
+DEFINE_string(efile, "path to efile");
+DEFINE_string(vfile, "path to vfile");
 
 inline void* open_lib(const char* path) {
   void* handle = dlopen(path, RTLD_LAZY);
@@ -64,6 +66,8 @@ std::string flags2JsonStr() {
   pt.put("resolver_class", FLAGS_resolver_class);
   pt.put("lib_path", FLAGS_lib_path);
   pt.put("loading_thread_num", FLAGS_loading_thread_num);
+  pt.put("efile", FLAGS_efile);
+  pt.put("vfile", FLAGS_vfile);
 
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, pt);

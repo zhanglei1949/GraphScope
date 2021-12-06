@@ -35,14 +35,14 @@ import com.alibaba.graphscope.utils.CppClassName;
 @FFIGenBatch(
         value = {
             @FFIGen(type = "com.alibaba.graphscope.ds.EmptyType"),
-            @FFIGen(
-                    type = "com.alibaba.graphscope.stdcxx.StdVector",
-                    templates = {
-                        @CXXTemplate(cxx = "int", java = "Integer"),
-                        @CXXTemplate(cxx = "char", java = "Byte"),
-                        @CXXTemplate(cxx = "std::vector<int>", java = "com.alibaba.graphscope.stdcxx.StdVector<java.lang.Integer>"),
-                        @CXXTemplate(cxx = "std::vector<char>", java = "com.alibaba.graphscope.stdcxx.StdVector<java.lang.Byte>")
-                    }),
+//            @FFIGen(
+//                    type = "com.alibaba.graphscope.stdcxx.StdVector",
+//                    templates = {
+//                        @CXXTemplate(cxx = "int", java = "Integer"),
+//                        @CXXTemplate(cxx = "char", java = "Byte"),
+//                        @CXXTemplate(cxx = "std::vector<int>", java = "com.alibaba.graphscope.stdcxx.StdVector<java.lang.Integer>"),
+//                        @CXXTemplate(cxx = "std::vector<char>", java = "com.alibaba.graphscope.stdcxx.StdVector<java.lang.Byte>")
+//                    }),
             @FFIGen(type = "com.alibaba.graphscope.parallel.message.DoubleMsg"),
             @FFIGen(type = "com.alibaba.graphscope.parallel.message.LongMsg"),
             @FFIGen(

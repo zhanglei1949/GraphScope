@@ -31,6 +31,9 @@ static constexpr const char* VERIFY_CLASSES_SIGN =
 static constexpr const char* OPTION_LOADING_THREAD_NUM = "loading_thread_num";
 static constexpr const char* OPTION_INPUT_FORMAT_CLASS = "input_format_class";
 static constexpr const char* OPTION_OUTPUT_FORMAT_CLASS = "output_format_class";
+static constexpr const char* OPTION_EFILE = "efile";
+static constexpr const char* OPTION_VFILE = "vfile";
+
 static const std::string DEFAULT_JAVA_LOADER_CLASS =
     "com.alibaba.graphscope.loader.impl.FileLoader";
 static const std::string DEFAULT_JAVA_LOADER_METHOD_NAME =

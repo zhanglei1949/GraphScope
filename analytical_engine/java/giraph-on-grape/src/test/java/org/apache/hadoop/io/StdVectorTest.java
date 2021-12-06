@@ -1,6 +1,7 @@
 package org.apache.hadoop.io;
 
 import com.alibaba.fastffi.FFITypeFactory;
+import com.alibaba.graphscope.stdcxx.FFIIntVector;
 import com.alibaba.graphscope.stdcxx.StdVector;
 
 import org.apache.arrow.memory.ArrowBuf;
@@ -44,9 +45,9 @@ public class StdVectorTest {
 
     private static final int ALLOCATOR_CAPACITY = 1024 * 1024 * 8 * 64;
 
-    private StdVector.Factory vectorFactory =
-            FFITypeFactory.getFactory(StdVector.class, "std::vector<int64_t>");
-    private StdVector<Long> vector = vectorFactory.create();
+    private FFIIntVector.Factory vectorFactory =
+            FFITypeFactory.getFactory(FFIIntVector.class, "std::vector<int32_t>");
+    private FFIIntVector vector = (FFIIntVector) vectorFactory.create();
     private long vectorAddr = vector.getAddress();
 
     private long stdVectorFirstAddr;
@@ -58,7 +59,7 @@ public class StdVectorTest {
     @Setup
     public void prepare() {
         vector.resize(VECTOR_LENGTH);
-        for (long i = 0; i < VECTOR_LENGTH; i++) {
+        for (int i = 0; i < VECTOR_LENGTH; i++) {
             vector.set(i, i);
         }
 
@@ -114,7 +115,7 @@ public class StdVectorTest {
     @OutputTimeUnit(TimeUnit.MICROSECONDS)
     @CompilerControl(CompilerControl.Mode.PRINT)
     public void write() {
-        for (long i = 0; i < VECTOR_LENGTH; ++i) {
+        for (int i = 0; i < VECTOR_LENGTH; ++i) {
             vector.set(i, i);
         }
     }

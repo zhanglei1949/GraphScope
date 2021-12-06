@@ -83,6 +83,10 @@ void CreateAndQuery(std::string params) {
   int edge_buffer_nums =
       loading_threads_num * comm_spec.fnum() * comm_spec.fnum();
 
+  std::string efile = getFromPtree<std::string>(pt, OPTION_EFILE);
+  std::string vfile = getFromPtree<std::string>(pt, OPTION_VFILE);
+  VLOG(1) << "efile: " << efile << ", vfile: " << vfile;
+
   std::vector<byte_vector> vid_buffers(vertex_buffer_nums),
       vdata_buffers(vertex_buffer_nums), esrc_id_buffers(edge_buffer_nums),
       edst_id_buffers(edge_buffer_nums), edata_buffers(edge_buffer_nums);
@@ -91,28 +95,47 @@ void CreateAndQuery(std::string params) {
 
   // Load via java_load_invoker. The class names must be ok since it has been
   // verified.
-  JavaLoaderInvoker java_loader_invoker;
-  java_loader_invoker.Init(
-      DEFAULT_JAVA_LOADER_CLASS,
-      DEFAULT_JAVA_LOADER_METHOD_NAME,
-      DEFAULT_JAVA_LOADER_METHOD_SIG,
-      getFromPtree<std::string>(pt, OPTION_INPUT_FORMAT_CLASS));
-  // fill in theses buffers in java
-  java_loader_invoker.CallJavaLoader(
-      vid_buffers, vid_offsets, vdata_buffers, esrc_id_buffers, esrc_id_offsets,
-      edst_id_buffers, edst_id_offsets, edata_buffers);
+  // JavaLoaderInvoker java_loader_invoker;
+  // java_loader_invoker.Init(
+  //     DEFAULT_JAVA_LOADER_CLASS,
+  //     DEFAULT_JAVA_LOADER_METHOD_NAME,
+  //     DEFAULT_JAVA_LOADER_METHOD_SIG,
+  //     getFromPtree<std::string>(pt, OPTION_INPUT_FORMAT_CLASS));
+  // // fill in theses buffers in java
+  // java_loader_invoker.CallJavaLoader(
+  //     vid_buffers, vid_offsets, vdata_buffers, esrc_id_buffers,
+  //     esrc_id_offsets, edst_id_buffers, edst_id_offsets, edata_buffers);
 
-  std::shared_ptr<LOADER_TYPE> loader =
-      std::make_shared<LOADER_TYPE>(comm_spec);
-  loader->AddVertexBuffers(std::move(vid_buffers), std::move(vid_offsets),
-                           std::move(vdata_buffers));
-  VLOG(1) << "Finish add vertex buffers";
-  loader->AddEdgeBuffers(std::move(esrc_id_buffers), std::move(esrc_id_offsets),
-                         std::move(edst_id_buffers), std::move(edst_id_offsets),
-                         std::move(edata_buffers));
-  VLOG(1) << "Finish add edge buffers";
+  // std::shared_ptr<LOADER_TYPE> loader =
+  //     std::make_shared<LOADER_TYPE>(comm_spec);
+  // loader->AddVertexBuffers(std::move(vid_buffers), std::move(vid_offsets),
+  //                          std::move(vdata_buffers));
+  // VLOG(1) << "Finish add vertex buffers";
+  // loader->AddEdgeBuffers(std::move(esrc_id_buffers),
+  // std::move(esrc_id_offsets),
+  //                        std::move(edst_id_buffers),
+  //                        std::move(edst_id_offsets),
+  //                        std::move(edata_buffers));
+  // VLOG(1) << "Finish add edge buffers";
 
-  std::shared_ptr<GRAPH_TYPE> fragment = loader->LoadFragment();
+  // Load from ImmutableEdgecutFragmentLoader
+  LoadGraphSpec graph_spec = DefaultLoadGraphSpec();
+  graph_spec.set_directed(true);
+  graph_spec.set_rebalance(false, 0);
+
+  std::shared_ptr<GRAPH_TYPE> fragment;
+  if (FLAGS_segmented_partition) {
+    fragment =
+        LoadGraph<GRAPH_TYPE, SegmentedPartitioner<typename GRAPH_TYPE::oid_t>>(
+            efile, vfile, comm_spec, graph_spec);
+  } else {
+    fragment =
+        LoadGraph<GRAPH_TYPE, HashPartitioner<typename GRAPH_TYPE::oid_t>>(
+            efile, vfile, comm_spec, graph_spec);
+  }
+
+  VLOG(1) << fragment->fid() << ",vertex num: "
+          << fragment->GetVerticesNum()->",edge num:" << fragment->GetEdgeNum();
   // return fragment;
 }
 

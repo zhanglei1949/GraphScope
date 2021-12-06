@@ -12,19 +12,19 @@ import com.alibaba.fastffi.FFIForeignType;
 import com.alibaba.fastffi.FFIPointerImpl;
 import com.alibaba.fastffi.FFISynthetic;
 import com.alibaba.fastffi.llvm4jni.runtime.JavaRuntime;
-import jnr.ffi.annotations.In;
+import org.apache.tools.ant.taskdefs.Java;
 
 @FFIForeignType(
-    value = "std::vector<int32_t>",
-    factory = FFIIntVectorFactory.class
+    value = "std::vector<std::vector<char>>",
+    factory = FFIByteVectorFactory.class
 )
 @FFISynthetic("com.alibaba.graphscope.stdcxx.StdVector")
-public class FFIIntVector extends FFIPointerImpl implements StdVector<Integer> {
+public class FFIByteVecVector extends FFIPointerImpl implements StdVector<StdVector<Byte>> {
     public static final int SIZE = _elementSize$$$();
     private long objAddress;
     public static final int HASH_SHIFT;
 
-    public FFIIntVector(long address) {
+    public FFIByteVecVector(long address) {
         super(address);
         objAddress = JavaRuntime.getLong(address);
     }
@@ -37,7 +37,7 @@ public class FFIIntVector extends FFIPointerImpl implements StdVector<Integer> {
         if (this == o) {
             return true;
         } else if (o != null && this.getClass() == o.getClass()) {
-            FFIIntVector that = (FFIIntVector)o;
+            FFIByteVecVector that = (FFIByteVecVector)o;
             return this.address == that.address;
         } else {
             return false;
@@ -59,21 +59,14 @@ public class FFIIntVector extends FFIPointerImpl implements StdVector<Integer> {
     public static long nativeCapacity(long var0) {
         long var2 = JavaRuntime.getLong(var0 + 16L);
         long var4 = JavaRuntime.getLong(var0);
-        return var2 - var4 >> (int)2L;
+        return (var2 - var4) / 24L;
     }
 
     public void clear() {
         nativeClear(this.address);
     }
 
-    public static void nativeClear(long var0) {
-        long var2 = JavaRuntime.getLong(var0);
-        long var4 = var0 + 8L;
-        if (JavaRuntime.getLong(var4) != var2) {
-            JavaRuntime.putLong(var4, var2);
-        }
-
-    }
+    public static native void nativeClear(long var0);
 
     public long data() {
         return nativeData(this.address);
@@ -93,22 +86,23 @@ public class FFIIntVector extends FFIPointerImpl implements StdVector<Integer> {
 
     @CXXOperator("[]")
     @CXXReference
-    public Integer get(long arg0) {
-//        return new Integer(nativeGet(this.address, arg0));
-        return new Integer(JavaRuntime.getInt(objAddress + arg0 * 4L));
+    public StdVector<Byte> get(long arg0) {
+//        long ret$ = nativeGet(this.address, arg0);
+        long ret$ = objAddress + arg0 * 24L;
+        return new FFIByteVector(ret$);
     }
 
     @CXXOperator("[]")
     @CXXReference
-    public static int nativeGet(long var0, long var2) {
-        return JavaRuntime.getInt(JavaRuntime.getLong(var0) + var2 * 4L);
+    public static long nativeGet(long var0, long var2) {
+        return JavaRuntime.getLong(var0) + var2 * 24L;
     }
 
-    public void push_back(@CXXValue Integer arg0) {
-        nativePush_back(this.address, arg0);
+    public void push_back(@CXXValue StdVector<Byte> arg0) {
+        nativePush_back(this.address, ((FFIPointerImpl)arg0).address);
     }
 
-    public static native void nativePush_back(long var0, int var2);
+    public static native void nativePush_back(long var0, long var2);
 
     public void reserve(long arg0) {
         nativeReserve(this.address, arg0);
@@ -123,15 +117,12 @@ public class FFIIntVector extends FFIPointerImpl implements StdVector<Integer> {
     public static native void nativeResize(long var0, long var2);
 
     @CXXOperator("[]")
-    public void set(long arg0, @CXXReference Integer arg1) {
-        JavaRuntime.putInt(objAddress + arg0 * 4L, arg1);
-//        nativeSet(this.address, arg0, arg1);
+    public void set(long arg0, @CXXReference StdVector<Byte> arg1) {
+        nativeSet(this.address, arg0, ((FFIPointerImpl)arg1).address);
     }
 
     @CXXOperator("[]")
-    public static void nativeSet(long var0, long var2, int var4) {
-        JavaRuntime.putInt(JavaRuntime.getLong(var0) + var2 * 4L, var4);
-    }
+    public static native void nativeSet(long var0, long var2, long var4);
 
     public void setAddress(long arg0) {
         this.address = arg0;
@@ -144,7 +135,7 @@ public class FFIIntVector extends FFIPointerImpl implements StdVector<Integer> {
     public static long nativeSize(long var0) {
         long var2 = JavaRuntime.getLong(var0 + 8L);
         long var4 = JavaRuntime.getLong(var0);
-        return var2 - var4 >> (int)2L;
+        return (var2 - var4) / 24L;
     }
 
     public static native long nativeCreateFactory0();
