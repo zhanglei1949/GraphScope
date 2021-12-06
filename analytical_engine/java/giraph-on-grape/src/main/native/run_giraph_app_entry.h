@@ -124,18 +124,13 @@ void CreateAndQuery(std::string params) {
   graph_spec.set_rebalance(false, 0);
 
   std::shared_ptr<GRAPH_TYPE> fragment;
-  if (FLAGS_segmented_partition) {
-    fragment =
-        LoadGraph<GRAPH_TYPE, SegmentedPartitioner<typename GRAPH_TYPE::oid_t>>(
-            efile, vfile, comm_spec, graph_spec);
-  } else {
+
     fragment =
         LoadGraph<GRAPH_TYPE, HashPartitioner<typename GRAPH_TYPE::oid_t>>(
             efile, vfile, comm_spec, graph_spec);
-  }
 
   VLOG(1) << fragment->fid() << ",vertex num: "
-          << fragment->GetVerticesNum()->",edge num:" << fragment->GetEdgeNum();
+          << fragment->GetVerticesNum() << ",edge num:" << fragment->GetEdgeNum();
   // return fragment;
 }
 

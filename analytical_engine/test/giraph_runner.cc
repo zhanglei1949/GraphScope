@@ -26,8 +26,8 @@ DEFINE_string(lib_path, "",
               "path for dynamic lib where the desired entry function exists");
 DEFINE_string(loading_thread_num, "",
               "number of threads will be used in loading the graph");
-DEFINE_string(efile, "path to efile");
-DEFINE_string(vfile, "path to vfile");
+DEFINE_string(efile, "", "path to efile");
+DEFINE_string(vfile, "", "path to vfile");
 
 inline void* open_lib(const char* path) {
   void* handle = dlopen(path, RTLD_LAZY);
