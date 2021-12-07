@@ -558,6 +558,32 @@ public class FFIByteVectorInputStream extends InputStream
         return num;
     }
 
+    public int read(char b[], int off, int len) throws IOException {
+        if (offset == size) {
+            return -1;
+        }
+
+        if (b == null) {
+            throw new NullPointerException();
+        } else if (off < 0 || len < 0 || len > b.length - off) {
+            throw new IndexOutOfBoundsException();
+        } else if (len == 0) {
+            return 0;
+        }
+
+        int num = (int) Math.min((size - offset) / 2, len);
+
+//        UnsafeHolder.U.copyMemory(null, base + offset, b, off + baseOffset,
+//            num);
+//        vector.getRawBytes(b, off, offset, num);
+        for (int i = 0; i < num; ++i){
+	    b[off + i] = vector.getRawChar(offset + i * 2);
+	}
+        offset += num * 2;
+
+        return num;
+    }
+
     private void ensureRemaining(int requiredBytes) throws IOException {
         if (size - offset < requiredBytes) {
             throw new IOException("ensureRemaining: Only " + (size - offset) +

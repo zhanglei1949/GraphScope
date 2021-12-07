@@ -45,9 +45,9 @@ public class FFIByteVectorStreamTest {
         FFIByteVector vector = outputStream.getVector();
         inputStream.setVector(vector);
 
-        byte[] bytes = new byte[str.length() * 2];
-        inputStream.read(bytes, 0, bytes.length);
-        String res = new String(bytes);
+        char[] chars = new char[str.length()];
+        inputStream.read(chars, 0, chars.length);
+        String res = new String(chars);
         System.out
             .println("str: " + str.length() + ", " + str + " res: " + res.length() + ", " + res);
         Assert.assertTrue(str.equals(res));
