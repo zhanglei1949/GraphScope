@@ -56,9 +56,9 @@ public interface DefaultMessageManager extends MessageManagerBase {
     default <FRAG_T extends SimpleFragment, MSG_T> void sendToFragment(
             @CXXReference FRAG_T frag, @CXXReference MSG_T msg) {
         if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
-            sendToFragment((ArrowProjectedFragment) frag, msg);
+            sendToProjectedFragment((ArrowProjectedFragment) frag, msg);
         } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
-            sendToFragment((ImmutableEdgecutFragment) frag, msg);
+            sendToImmutableFragment((ImmutableEdgecutFragment) frag, msg);
         }
     }
 
@@ -131,7 +131,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
      * @param <MSG_T> msg type. By default we support Archive.
      */
     @FFINameAlias("SendToFragment")
-    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void sendToFragment(
+    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void sendToImmutableFragment(
             @CXXReference FRAG_T frag, @CXXReference MSG_T msg);
 
     /**
@@ -143,7 +143,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
      * @param <MSG_T> msg type. By default we support Archive.
      */
     @FFINameAlias("SendToFragment")
-    <FRAG_T extends ArrowProjectedFragment, MSG_T> void sendToFragment(
+    <FRAG_T extends ArrowProjectedFragment, MSG_T> void sendToProjectedFragment(
             @CXXReference FRAG_T frag, @CXXReference MSG_T msg);
 
     /**
