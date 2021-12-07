@@ -144,7 +144,7 @@ import com.alibaba.graphscope.utils.CppClassName;
                     type = "com.alibaba.graphscope.parallel.DefaultMessageManager",
                     functionTemplates = {
                         @FFIFunGen(
-                            name = "sendToFragment",
+                            name = "sendToImmutableFragment",
                             returnType = "void",
                             parameterTypes = {"FRAG_T", "MSG_T"},
                             templates = {
