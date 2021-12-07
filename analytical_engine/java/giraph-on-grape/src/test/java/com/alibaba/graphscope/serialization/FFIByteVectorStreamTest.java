@@ -66,4 +66,9 @@ public class FFIByteVectorStreamTest {
         //Make sure we compare with same encoding
         Assert.assertTrue(str.equals(res));
     }
+
+    @Test
+    public void testDigestVector(){
+
+    }
 }

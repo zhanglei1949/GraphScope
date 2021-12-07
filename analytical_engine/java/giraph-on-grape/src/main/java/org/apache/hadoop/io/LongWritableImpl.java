@@ -9,7 +9,7 @@ import sun.misc.Unsafe;
 
 public class LongWritableImpl {
     private static Unsafe unsafe;
-    private static int SIZE  = 1024 * 1024;
+    private static int POOL_SIZE  = 1024 * 1024;
     static {
         try {
             Field field = Unsafe.class.getDeclaredField("theUnsafe");

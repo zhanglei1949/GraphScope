@@ -20,14 +20,17 @@ import com.alibaba.fastffi.llvm4jni.runtime.JavaRuntime;
 public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
 
     public static final int SIZE = _elementSize$$$();
+    //Actual starting address of data
     private long objAddress;
     public static final int HASH_SHIFT;
-    public long capacity;
+    //We don't use reserve to allocate memory ,we use resize.
+    //It seems reserved memory isn't allowed to be set directly.
+    public long size;
 
     public FFIByteVector(long address) {
         super(address);
         objAddress = JavaRuntime.getLong(address);
-        capacity = nativeCapacity(address);
+        size = nativeSize(this.address);
     }
 
     private static final int _elementSize$$$() {
@@ -144,6 +147,17 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
             bOff + JavaRuntime.UNSAFE.arrayBaseOffset(byte[].class), size);
     }
 
+    /**
+     * This function copy another vector's memory after this vector. Shall be used in InputStream,
+     * Make sure that there is no blank space in range (objectAddress, objectAddress + curSize).
+     * @param vector vector to be appended.
+     */
+    public void appendVector(FFIByteVector vector){
+        long curSize = size();
+        resize(curSize + vector.size());
+        JavaRuntime.copyMemory(vector.objAddress + 0, objAddress + curSize, vector.size());
+    }
+
     @CXXOperator("[]")
     @CXXReference
     public static byte nativeGet(long var0, long var2) {
@@ -168,20 +182,21 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
 
     public static native void nativeResize(long var0, long var2);
 
-    public void ensure(long offset, int size) {
-        long minCapacity = size + offset;
-        long oldCapacity = capacity;
-        if (minCapacity <= oldCapacity) {
+    public void ensure(long offset, int requiredSize) {
+        long minSize = requiredSize + offset;
+        if (minSize <= size) {
             return;
         }
-        long newCapacity = oldCapacity + (oldCapacity >> 1);
-        if (newCapacity - minCapacity < 0) {
-            newCapacity = minCapacity;
+        long oldSize = size;
+        long newSize = oldSize + (oldSize >> 1);
+        if (newSize - minSize < 0) {
+            newSize = minSize;
         }
 //        this.base = reserve(newCapacity);
-        nativeReserve(address, newCapacity);
+//        nativeReserve(address, newCapacity);
+        nativeResize(this.address,newSize);
         this.objAddress = JavaRuntime.getLong(address);
-        this.capacity = newCapacity;
+        this.size = newSize;
     }
 
     @CXXOperator("[]")
@@ -224,6 +239,15 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
     public void setRawDouble(long arg0, double arg1) {
 //        ensure(arg0, 8);
         JavaRuntime.putDouble(objAddress + arg0, arg1);
+    }
+
+    public void finishSetting(long offset){
+        if (offset > size){
+            System.out.println("Impossible ");
+            return ;
+        }
+        nativeSize(offset);
+        size = offset;
     }
 
     @CXXOperator("[]")

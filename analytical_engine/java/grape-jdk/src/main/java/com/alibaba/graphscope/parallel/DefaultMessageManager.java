@@ -53,6 +53,15 @@ import com.alibaba.graphscope.fragment.adaptor.ImmutableEdgecutFragmentAdaptor;
 })
 public interface DefaultMessageManager extends MessageManagerBase {
 
+    default <FRAG_T extends SimpleFragment, MSG_T> void sendToFragment(
+            @CXXReference FRAG_T frag, @CXXReference MSG_T msg) {
+        if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
+            sendToFragment((ArrowProjectedFragment) frag, msg);
+        } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
+            sendToFragment((ImmutableEdgecutFragment) frag, msg);
+        }
+    }
+
     default <FRAG_T extends SimpleFragment, MSG_T> boolean getMessage(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
@@ -112,6 +121,40 @@ public interface DefaultMessageManager extends MessageManagerBase {
         }
         return false;
     }
+
+    /**
+     * Send a message to Immutable fragment.
+     *
+     * @param frag our fragment
+     * @param msg msg to send
+     * @param <FRAG_T> fragment type
+     * @param <MSG_T> msg type. By default we support Archive.
+     */
+    @FFINameAlias("SendToFragment")
+    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void sendToFragment(
+            @CXXReference FRAG_T frag, @CXXReference MSG_T msg);
+
+    /**
+     * Send a message to ArrowProjected fragment.
+     *
+     * @param frag our fragment
+     * @param msg msg to send
+     * @param <FRAG_T> fragment type
+     * @param <MSG_T> msg type. By default we support Archive.
+     */
+    @FFINameAlias("SendToFragment")
+    <FRAG_T extends ArrowProjectedFragment, MSG_T> void sendToFragment(
+            @CXXReference FRAG_T frag, @CXXReference MSG_T msg);
+
+    /**
+     * Get message into target MSG_T.
+     *
+     * @param msg received msg.
+     * @param <MSG_T> msg type
+     * @return
+     */
+    @FFINameAlias("GetMessage")
+    <MSG_T> boolean getPureMessage(@CXXReference MSG_T msg);
 
     /**
      * Get the message received for specified vertex during last super step.

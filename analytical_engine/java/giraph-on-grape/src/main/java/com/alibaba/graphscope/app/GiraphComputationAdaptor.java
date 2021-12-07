@@ -5,10 +5,13 @@ import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.GiraphMessageManager;
+import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
 import java.io.IOException;
 import org.apache.giraph.graph.AbstractComputation;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This adaptor bridges c++ driver app and Giraph Computation.
@@ -18,6 +21,8 @@ import org.apache.hadoop.io.LongWritable;
  * </p>
  */
 public class GiraphComputationAdaptor implements DefaultAppBase<Long,Long,Long,Double,GiraphComputationAdaptorContext> {
+
+    private static Logger logger = LoggerFactory.getLogger(GiraphComputationAdaptor.class);
 
     /**
      * Partial Evaluation to implement.
@@ -37,6 +42,8 @@ public class GiraphComputationAdaptor implements DefaultAppBase<Long,Long,Long,D
 
         GiraphComputationAdaptorContext ctx = (GiraphComputationAdaptorContext) context;
         AbstractComputation<LongWritable,LongWritable, DoubleWritable,LongWritable,LongWritable> userComputation = ctx.getUserComputation();
+        GiraphMessageManager<LongWritable,LongWritable, DoubleWritable, LongWritable,LongWritable> giraphMessageManager = ctx.getGiraphMessageManager();
+
         try {
             for (Vertex<Long> grapeVertex : ctx.innerVertices){
                 ctx.vertex.setLocalId(grapeVertex.GetValue().intValue());
@@ -45,6 +52,10 @@ public class GiraphComputationAdaptor implements DefaultAppBase<Long,Long,Long,D
         } catch (IOException e) {
             e.printStackTrace();
         }
+        //wait msg send finish.
+        giraphMessageManager.finishMessageSending();
+
+        //do aggregation.
     }
 
     /**
@@ -66,16 +77,31 @@ public class GiraphComputationAdaptor implements DefaultAppBase<Long,Long,Long,D
         GiraphComputationAdaptorContext ctx = (GiraphComputationAdaptorContext) context;
         AbstractComputation<LongWritable,LongWritable, DoubleWritable,LongWritable,LongWritable> userComputation = ctx.getUserComputation();
         GiraphMessageManager<LongWritable,LongWritable, DoubleWritable, LongWritable,LongWritable> giraphMessageManager = ctx.getGiraphMessageManager();
-        //0. Do aggregation.
+        //0. receive messages
+        giraphMessageManager.receiveMessages();
 
         //1. compute
         try {
             for (Vertex<Long> grapeVertex : ctx.innerVertices){
-                ctx.vertex.setLocalId(grapeVertex.GetValue().intValue());
-                userComputation.compute(ctx.vertex, giraphMessageManager.getMessages(ctx.vertex));
+                int lid = grapeVertex.GetValue().intValue();
+                if (!ctx.isHalted(lid)) {
+                    ctx.vertex.setLocalId(lid);
+                    userComputation.compute(ctx.vertex, giraphMessageManager.getMessages(lid));
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        //2. send msg
+        giraphMessageManager.finishMessageSending();
+
+        if (!ctx.allHalted()){
+            messageManager.ForceContinue();;
+        }
+        else {
+            logger.info("All halted.");
+        }
+
     }
 }

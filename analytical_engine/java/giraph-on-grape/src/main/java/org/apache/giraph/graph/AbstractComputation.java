@@ -1,5 +1,6 @@
 package org.apache.giraph.graph;
 
+import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.GiraphMessageManager;
 import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
 import java.io.IOException;
@@ -12,6 +13,8 @@ import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.Mapper.Context;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implement all methods in Computation other than compute, which left for user to define.
@@ -26,11 +29,19 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
     EDATA_T extends Writable,
     IN_MSG_T extends Writable,
     OUT_MSG_T extends Writable> extends CommunicatorImpl implements Computation<OID_T,VDATA_T,EDATA_T,IN_MSG_T,OUT_MSG_T>{
+    private static Logger logger = LoggerFactory.getLogger(AbstractComputation.class);
+
 
     private GiraphMessageManager<OID_T,VDATA_T,EDATA_T, IN_MSG_T,OUT_MSG_T> giraphMessageManager;
+    private SimpleFragment fragment;
+    private int curStep = 0;
 
     public void setGiraphMessageManager(GiraphMessageManager<OID_T,VDATA_T,EDATA_T,IN_MSG_T,OUT_MSG_T> giraphMessageManager){
         this.giraphMessageManager = giraphMessageManager;
+    }
+
+    public void setFragment(SimpleFragment fragment){
+        this.fragment = fragment;
     }
 
     /**
@@ -58,7 +69,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public long getSuperstep() {
-        return 0;
+        return curStep;
     }
 
     /**
@@ -68,7 +79,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public long getTotalNumVertices() {
-        return 0;
+        return fragment.getTotalVerticesNum();
     }
 
     /**
@@ -78,7 +89,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public long getTotalNumEdges() {
-        return 0;
+        return fragment.getEdgeNum();
     }
 
     /**
@@ -104,28 +115,28 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
     @Override
     public void addVertexRequest(OID_T id, VDATA_T value, OutEdges<OID_T, EDATA_T> edges)
         throws IOException {
-
+        logger.error("Not implemented");
     }
 
     @Override
     public void addVertexRequest(OID_T id, VDATA_T value) throws IOException {
-
+        logger.error("Not implemented");
     }
 
     @Override
     public void removeVertexRequest(OID_T vertexId) throws IOException {
-
+        logger.error("Not implemented");
     }
 
     @Override
     public void addEdgeRequest(OID_T sourceVertexId, Edge<OID_T,EDATA_T> edge) throws IOException {
-
+        logger.error("Not implemented");
     }
 
     @Override
     public void removeEdgesRequest(OID_T sourceVertexId,
         OID_T targetVertexId) throws IOException {
-
+        logger.error("Not implemented");
     }
 
     @Override

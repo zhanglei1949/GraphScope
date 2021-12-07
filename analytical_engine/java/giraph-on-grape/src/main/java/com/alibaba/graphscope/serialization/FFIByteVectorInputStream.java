@@ -32,6 +32,19 @@ public class FFIByteVectorInputStream extends InputStream
         size = vector.size();
     }
 
+    public void digestVector(FFIByteVector vector){
+        if (this.vector == null){
+            this.vector = vector;
+            offset = 0;
+            size = 0;
+        }
+        else {
+            this.vector.appendVector(vector);
+            //offset will not change.
+            size = vector.size();
+        }
+    }
+
     /**
      * Reset to the first pos. size still the same.
      */
