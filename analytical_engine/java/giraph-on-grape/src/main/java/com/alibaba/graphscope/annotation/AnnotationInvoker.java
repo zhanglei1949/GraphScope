@@ -151,7 +151,7 @@ import com.alibaba.graphscope.utils.CppClassName;
                                     @CXXTemplate(
                                             cxx = {
                                                 CppClassName.GRAPE_IMMUTABLE_FRAGMENT
-                                                        + "<int64_t,uint64_t,int64_t,jdouble>",
+                                                        + "<int64_t,uint64_t,int64_t,double>",
                                                 DOUBLE_MSG
                                             },
                                             java = {
@@ -167,7 +167,7 @@ import com.alibaba.graphscope.utils.CppClassName;
                                     @CXXTemplate(
                                             cxx = {
                                                 CppClassName.GRAPE_IMMUTABLE_FRAGMENT
-                                                        + "<int64_t,uint64_t,int64_t,jdouble>",
+                                                        + "<int64_t,uint64_t,int64_t,double>",
                                                 DOUBLE_MSG
                                             },
                                             java = {
@@ -183,7 +183,7 @@ import com.alibaba.graphscope.utils.CppClassName;
                                     @CXXTemplate(
                                             cxx = {
                                                 CppClassName.GRAPE_IMMUTABLE_FRAGMENT
-                                                        + "<int64_t,uint64_t,int64_t,jdouble>",
+                                                        + "<int64_t,uint64_t,int64_t,double>",
                                                 DOUBLE_MSG
                                             },
                                             java = {
@@ -199,7 +199,7 @@ import com.alibaba.graphscope.utils.CppClassName;
                                     @CXXTemplate(
                                             cxx = {
                                                 CppClassName.GRAPE_IMMUTABLE_FRAGMENT
-                                                        + "<int64_t,uint64_t,int64_t,jdouble>",
+                                                        + "<int64_t,uint64_t,int64_t,double>",
                                                 DOUBLE_MSG
                                             },
                                             java = {
@@ -215,7 +215,7 @@ import com.alibaba.graphscope.utils.CppClassName;
                                     @CXXTemplate(
                                             cxx = {
                                                 CppClassName.GRAPE_IMMUTABLE_FRAGMENT
-                                                        + "<int64_t,uint64_t,int64_t,jdouble>",
+                                                        + "<int64_t,uint64_t,int64_t,double>",
                                                 DOUBLE_MSG
                                             },
                                             java = {

@@ -28,7 +28,11 @@
     <benchmark.resultfile>jmh-result.json</benchmark.resultfile>
     <benchmark.resultformat>json</benchmark.resultformat>
     <uberjar.name>uberjar</uberjar.name>
-    <benchmark.jvmargs>-Darrow.enable_null_check_for_get=false -Darrow.enable_unsafe_memory_access=true -Djava.library.path=${project.build.directory}/native:${project.build.directory}/../../grape-runtime/target/native -XX:CompileCommandFile=/home/graphscope/compile-commands.txt</benchmark.jvmargs>
+    <benchmark.jvmargs>-Darrow.enable_null_check_for_get=false
+      -Darrow.enable_unsafe_memory_access=true
+      -Djava.library.path=${project.build.directory}/native:${project.build.directory}/../../grape-runtime/target/native
+      -XX:CompileCommandFile=/home/graphscope/compile-commands.txt
+    </benchmark.jvmargs>
   </properties>
 
   <dependencies>
@@ -115,7 +119,7 @@
           <executable>java</executable>
           <arguments>
             <argument>-classpath</argument>
-	    <argument>${env.giraphcp}</argument>
+            <argument>${env.giraphcp}</argument>
             <argument>org.openjdk.jmh.Main</argument>
             <argument>${benchmark.filter}</argument>
             <argument>-f</argument>
@@ -143,33 +147,40 @@
           </execution>
         </executions>
       </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.2</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <finalName>${uberjar.name}</finalName>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <finalName>${uberjar.name}</finalName>
 
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <argLine>-Djava.library.path=${project.build.directory}/native:${project.build.directory}/../../grape-runtime/target/native</argLine>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 

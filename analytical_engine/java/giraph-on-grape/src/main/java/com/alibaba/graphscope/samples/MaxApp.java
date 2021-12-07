@@ -4,10 +4,12 @@ import java.io.IOException;
 import org.apache.commons.lang.ObjectUtils.Null;
 import org.apache.giraph.graph.BasicComputation;
 import org.apache.giraph.graph.Vertex;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 
-public class MaxApp extends BasicComputation<IntWritable, IntWritable, NullWritable, IntWritable> {
+public class MaxApp extends BasicComputation<LongWritable, LongWritable, DoubleWritable, LongWritable> {
 
 
     /**
@@ -18,10 +20,10 @@ public class MaxApp extends BasicComputation<IntWritable, IntWritable, NullWrita
      *                 message is only guaranteed to have
      */
     @Override
-    public void compute(Vertex<IntWritable, IntWritable, NullWritable> vertex,
-        Iterable<IntWritable> messages) throws IOException {
+    public void compute(Vertex<LongWritable, LongWritable, DoubleWritable> vertex,
+        Iterable<LongWritable> messages) throws IOException {
         boolean changed = false;
-        for (IntWritable message : messages) {
+        for (LongWritable message : messages) {
             if (vertex.getValue().get() < message.get()) {
                 vertex.setValue(message);
                 changed = true;

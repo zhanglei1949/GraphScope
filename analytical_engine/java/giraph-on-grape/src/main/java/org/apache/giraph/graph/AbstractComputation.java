@@ -1,5 +1,7 @@
 package org.apache.giraph.graph;
 
+import com.alibaba.graphscope.parallel.GiraphMessageManager;
+import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
 import java.io.IOException;
 import java.util.Iterator;
 import org.apache.commons.math.ode.ODEIntegrator;
@@ -24,6 +26,12 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
     EDATA_T extends Writable,
     IN_MSG_T extends Writable,
     OUT_MSG_T extends Writable> extends CommunicatorImpl implements Computation<OID_T,VDATA_T,EDATA_T,IN_MSG_T,OUT_MSG_T>{
+
+    private GiraphMessageManager<OID_T,VDATA_T,EDATA_T, IN_MSG_T,OUT_MSG_T> giraphMessageManager;
+
+    public void setGiraphMessageManager(GiraphMessageManager<OID_T,VDATA_T,EDATA_T,IN_MSG_T,OUT_MSG_T> giraphMessageManager){
+        this.giraphMessageManager = giraphMessageManager;
+    }
 
     /**
      * Prepare for computation. This method is executed exactly once prior to {@link
@@ -127,7 +135,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
 
     @Override
     public void sendMessageToAllEdges(Vertex<OID_T,VDATA_T,EDATA_T> vertex, OUT_MSG_T message) {
-
+        giraphMessageManager.sendMessageToAllEdges(vertex, message);
     }
 
     @Override

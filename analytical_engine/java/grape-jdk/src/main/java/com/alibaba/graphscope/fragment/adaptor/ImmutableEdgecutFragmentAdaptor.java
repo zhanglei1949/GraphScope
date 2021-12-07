@@ -90,12 +90,12 @@ public class ImmutableEdgecutFragmentAdaptor<OID_T, VID_T, VDATA_T, EDATA_T>
     }
 
     @Override
-    public VID_T getInnerVerticesNum() {
+    public long getInnerVerticesNum() {
         return fragment.getInnerVerticesNum();
     }
 
     @Override
-    public VID_T getOuterVerticesNum() {
+    public long getOuterVerticesNum() {
         return fragment.getOuterVerticesNum();
     }
 

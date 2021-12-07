@@ -32,6 +32,7 @@ static jmethodID class_loader_load_communicator_class_methodID = NULL;
 static jmethodID class_loader_load_and_create_methodID = NULL;
 static jmethodID class_loader_new_gs_class_loader_methodID = NULL;
 static jmethodID class_loader_new_simple_gs_class_loader_methodID = NULL;
+static jmethodID class_loader_adapt2SimpleFragment_methodID = NULL;
 static jclass system_class = NULL;
 static jmethodID gc_methodID = NULL;
 
@@ -97,6 +98,10 @@ bool InitWellKnownClasses(JNIEnv* env) {
   gc_methodID = env->GetStaticMethodID(system_class, "gc", "()V");
   CHECK_NOTNULL(gc_methodID);
 
+  class_loader_adapt2SimpleFragment_methodID = env->GetStaticMethodID(
+      gs_class_loader_clz, "adapt2SimpleFragment",
+      "(Lcom/alibaba/graphscope/fragment/SimpleFragment;)Ljava/lang/Object;");
+  CHECK_NOTNULL(class_loader_adapt2SimpleFragment_methodID);
   return true;
 }
 
@@ -421,6 +426,14 @@ jclass LoadClassWithClassLoader(JNIEnv* env, const jobject& url_class_loader,
                << " with class loader " << &url_class_loader;
   }
   return result_class;
+}
+jobject ImmutableFragment2Simple(JNIEnv* env, ,
+                                 const jobject fragment_impl_obj) {
+  jobject res = (jobject) env->CallStaticObjectMethod(
+      gs_class_loader_clz, class_loader_adapt2SimpleFragment_methodID,
+      fragment_impl_obj);
+  CHECK_NOTNULL(res);
+  return env->NewGlobalRef(res);
 }
 }  // namespace gs
 #endif

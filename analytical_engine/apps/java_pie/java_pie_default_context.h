@@ -59,6 +59,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
         context_class_name_(NULL),
         app_object_(NULL),
         context_object_(NULL),
+        fragment_object_impl_(NULL),
         fragment_object_(NULL),
         mm_object_(NULL),
         url_class_loader_object_(NULL) {}
@@ -70,6 +71,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
     if (m.env()) {
       m.env()->DeleteGlobalRef(app_object_);
       m.env()->DeleteGlobalRef(context_object_);
+      m.env()->DeleteGlobalRef(fragment_object_impl_);
       m.env()->DeleteGlobalRef(fragment_object_);
       m.env()->DeleteGlobalRef(mm_object_);
       m.env()->DeleteGlobalRef(url_class_loader_object_);
@@ -113,9 +115,12 @@ class JavaPIEDefaultContext : public grape::ContextBase {
           LoadAndCreate(env, url_class_loader_object_, context_class_name_);
 
       java_frag_type_name_ = frag_name;
-      fragment_object_ = CreateFFIPointer(env, java_frag_type_name_.c_str(),
-                                          url_class_loader_object_,
-                                          reinterpret_cast<jlong>(&fragment_));
+      fragment_object_impl_ = CreateFFIPointer(
+          env, java_frag_type_name_.c_str(), url_class_loader_object_,
+          reinterpret_cast<jlong>(&fragment_));
+      // wrap immutable or projected fragment as simple fragment
+      fragment_object_ = ImmutableFragment2Simple(env, url_class_loader_object_,
+                                                  fragment_object_impl_);
       mm_object_ = CreateFFIPointer(env, default_java_message_mananger_name_,
                                     url_class_loader_object_,
                                     reinterpret_cast<jlong>(&messages));
@@ -142,7 +147,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
           env->CallStaticObjectMethod(json_class, parse_method, args_jstring);
       CHECK_NOTNULL(json_object);
       const char* descriptor =
-          "(Lcom/alibaba/graphscope/fragment/ImmutableEdgecutFragment;"
+          "(Lcom/alibaba/graphscope/fragment/SimpleFragment;"
           "Lcom/alibaba/graphscope/parallel/DefaultMessageManager;"
           "Lcom/alibaba/fastjson/JSONObject;)V";
 
@@ -168,7 +173,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
       CHECK_NOTNULL(context_class);
 
       const char* descriptor =
-          "(Lcom/alibaba/graphscope/fragment/ImmutableEdgecutFragment;)V";
+          "(Lcom/alibaba/graphscope/fragment/SimpleFragment;)V";
       jmethodID output_methodID =
           env->GetMethodID(context_class, "Output", descriptor);
       CHECK_NOTNULL(output_methodID);
@@ -212,6 +217,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
   std::string java_frag_type_name_;
   jobject app_object_;
   jobject context_object_;
+  jobject fragment_object_impl_;
   jobject fragment_object_;
   jobject mm_object_;
   jobject url_class_loader_object_;

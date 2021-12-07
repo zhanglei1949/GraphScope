@@ -7,6 +7,7 @@ import com.alibaba.fastffi.FFIForeignType;
 import com.alibaba.fastffi.FFIPointerImpl;
 import com.alibaba.fastffi.FFISynthetic;
 import com.alibaba.fastffi.llvm4jni.runtime.JavaRuntime;
+import org.apache.tools.ant.taskdefs.Java;
 
 /**
  * This is a FFIWrapper for std::vector. The code origins from the generated code via FFI and llvm4jni,
@@ -17,14 +18,16 @@ import com.alibaba.fastffi.llvm4jni.runtime.JavaRuntime;
     factory = FFIByteVectorFactory.class
 )
 @FFISynthetic("com.alibaba.graphscope.stdcxx.StdVector")
-public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
+public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte>{
     public static final int SIZE = _elementSize$$$();
     private long objAddress;
     public static final int HASH_SHIFT;
+    public long capacity;
 
     public FFIByteVector(long address) {
         super(address);
         objAddress = JavaRuntime.getLong(address);
+        capacity = nativeCapacity(address);
     }
 
     private static final int _elementSize$$$() {
@@ -96,6 +99,19 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
         return (byte) JavaRuntime.getByte(objAddress + arg0);
     }
 
+    public byte getRaw(long arg0) {
+//        return nativeGet(this.address, arg0);
+        return JavaRuntime.getByte(objAddress + arg0);
+    }
+
+    public int getRawInt(long arg0){
+        return JavaRuntime.getInt(objAddress + arg0);
+    }
+
+    public long getRawLong(long arg0){
+        return JavaRuntime.getLong(objAddress + arg0);
+    }
+
     @CXXOperator("[]")
     @CXXReference
     public static byte nativeGet(long var0, long var2) {
@@ -120,10 +136,59 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
 
     public static native void nativeResize(long var0, long var2);
 
+    public void ensure(long offset, int size){
+        long minCapacity = size + offset;
+        long oldCapacity = capacity;
+        if (minCapacity <= oldCapacity) {
+            return;
+        }
+        long newCapacity = oldCapacity + (oldCapacity >> 1);
+        if (newCapacity - minCapacity < 0){
+            newCapacity = minCapacity;
+        }
+//        this.base = reserve(newCapacity);
+        nativeReserve(address, newCapacity);
+        this.objAddress = JavaRuntime.getLong(address);
+        this.capacity = newCapacity;
+    }
+
     @CXXOperator("[]")
     public void set(long arg0, @CXXReference Byte arg1) {
+        ensure(arg0, 1);
 //        nativeSet(this.address, arg0, arg1);
         JavaRuntime.putByte(objAddress + arg0, arg1);
+    }
+
+    public void setRawByte(long arg0, byte arg1) {
+//        ensure(arg0, 1);
+        JavaRuntime.putByte(objAddress + arg0, arg1);
+    }
+
+    public void setRawShort(long arg0, short arg1) {
+//        ensure(arg0, 2);
+        JavaRuntime.putShort(objAddress + arg0, arg1);
+    }
+    public void setRawChar(long arg0, char arg1) {
+//        ensure(arg0, 2);
+        JavaRuntime.putChar(objAddress + arg0, arg1);
+    }
+
+    public void setRawInt(long arg0, int arg1) {
+//        ensure(arg0, 4);
+        JavaRuntime.putInt(objAddress + arg0, arg1);
+    }
+    public void setRawLong(long arg0, long arg1) {
+//        ensure(arg0, 8);
+        JavaRuntime.putLong(objAddress + arg0, arg1);
+    }
+    public void setRawFloat(long arg0, float arg1) {
+//        ensure(arg0, 4);
+        JavaRuntime.putFloat(objAddress + arg0, arg1);
+    }
+
+    public void setRawDouble(long arg0, double arg1) {
+//        ensure(arg0, 8);
+        JavaRuntime.putDouble(objAddress + arg0, arg1);
     }
 
     @CXXOperator("[]")

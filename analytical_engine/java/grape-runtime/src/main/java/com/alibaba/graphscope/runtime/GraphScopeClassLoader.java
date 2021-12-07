@@ -16,6 +16,11 @@
 
 package com.alibaba.graphscope.runtime;
 
+import com.alibaba.graphscope.fragment.ArrowProjectedFragment;
+import com.alibaba.graphscope.fragment.ImmutableEdgecutFragment;
+import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.fragment.adaptor.ArrowProjectedAdaptor;
+import com.alibaba.graphscope.fragment.adaptor.ImmutableEdgecutFragmentAdaptor;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -188,6 +193,20 @@ public class GraphScopeClassLoader {
     public static Class<?> loadCommunicatorClass(URLClassLoader classLoader)
             throws ClassNotFoundException {
         return loadClass(classLoader, "com.alibaba.graphscope.communication.Communicator");
+    }
+
+    public static SimpleFragment adapt2SimpleFragment(Object fragmentImpl) {
+        if (fragmentImpl instanceof ArrowProjectedFragment) {
+            ArrowProjectedFragment projectedFragment = (ArrowProjectedFragment) fragmentImpl;
+            return new ArrowProjectedAdaptor(projectedFragment);
+        } else if (fragmentImpl instanceof ImmutableEdgecutFragment) {
+            ImmutableEdgecutFragment immutableEdgecutFragment =
+                    (ImmutableEdgecutFragment) fragmentImpl;
+            return new ImmutableEdgecutFragmentAdaptor(immutableEdgecutFragment);
+        } else {
+            log("Provided fragment is neither a projected fragment nor a immutable fragment.");
+            return null;
+        }
     }
 
     private static String formatting(String className) {
