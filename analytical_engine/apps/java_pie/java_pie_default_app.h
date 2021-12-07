@@ -24,9 +24,9 @@ limitations under the License.
 #include "grape/grape.h"
 #include "grape/types.h"
 
+#include "apps/java_pie/java_pie_default_context.h"
 #include "core/app/app_base.h"
 #include "core/error.h"
-#include "apps/java_pie/java_pie_default_context.h"
 
 namespace gs {
 
@@ -64,7 +64,7 @@ class JavaPIEDefaultApp : public AppBase<FRAG_T, JavaPIEDefaultContext<FRAG_T>>,
       CHECK_NOTNULL(app_class);
 
       const char* descriptor =
-          "(Lcom/alibaba/graphscope/fragment/ImmutableEdgecutFragment;"
+          "(Lcom/alibaba/graphscope/fragment/SimpleFragment;"
           "Lcom/alibaba/graphscope/app/DefaultContextBase;"
           "Lcom/alibaba/graphscope/parallel/DefaultMessageManager;)V";
       jmethodID pEval_methodID =
@@ -100,7 +100,7 @@ class JavaPIEDefaultApp : public AppBase<FRAG_T, JavaPIEDefaultContext<FRAG_T>>,
       CHECK_NOTNULL(app_class);
 
       const char* descriptor =
-          "(Lcom/alibaba/graphscope/fragment/ImmutableEdgecutFragment;"
+          "(Lcom/alibaba/graphscope/fragment/SimpleFragment;"
           "Lcom/alibaba/graphscope/app/DefaultContextBase;"
           "Lcom/alibaba/graphscope/parallel/DefaultMessageManager;)V";
       jmethodID incEval_methodID =

@@ -88,7 +88,7 @@ public interface Vertex<OID_T extends WritableComparable,
      *
      * @return the total number of outbound edges from this vertex
      */
-    int getNumEDATA_Tdges();
+    int getNumEdges();
 
     /**
      * Get a read-only view of the out-edges of this vertex.
@@ -100,14 +100,14 @@ public interface Vertex<OID_T extends WritableComparable,
      *
      * @return the out edges (sort order determined by subclass implementation).
      */
-    Iterable<Edge<OID_T, EDATA_T>> getEDATA_Tdges();
+    Iterable<Edge<OID_T, EDATA_T>> getEdges();
 
     /**
      * Set the outgoing edges for this vertex.
      *
      * @param edges Iterable of edges
      */
-    void setEDATA_Tdges(Iterable<Edge<OID_T, EDATA_T>> edges);
+    void setEdges(Iterable<Edge<OID_T, EDATA_T>> edges);
 
     /**
      * Get an iterable of out-edges that can be modified in-place.
@@ -118,7 +118,7 @@ public interface Vertex<OID_T extends WritableComparable,
      *
      * @return An iterable of mutable out-edges
      */
-    Iterable<MutableEdge<OID_T, EDATA_T>> getMutableEDATA_Tdges();
+    Iterable<MutableEdge<OID_T, EDATA_T>> getMutableEdges();
 
     /**
      * Return the value of the first edge with the given target vertex id,
@@ -130,7 +130,7 @@ public interface Vertex<OID_T extends WritableComparable,
      * @param targetVertexId Target vertex id
      * @return EDATA_Tdge value (or null if missing)
      */
-    EDATA_T getEDATA_TdgeValue(OID_T targetVertexId);
+    EDATA_T getEdgeValue(OID_T targetVertexId);
 
     /**
      * If an edge to the target vertex exists, set it to the given edge value.
@@ -139,7 +139,7 @@ public interface Vertex<OID_T extends WritableComparable,
      * @param targetVertexId Target vertex id
      * @param edgeValue EDATA_Tdge value
      */
-    void setEDATA_TdgeValue(OID_T targetVertexId, EDATA_T edgeValue);
+    void setEdgeValue(OID_T targetVertexId, EDATA_T edgeValue);
 
     /**
      * Get an iterable over the values of all edges with the given target
@@ -152,21 +152,21 @@ public interface Vertex<OID_T extends WritableComparable,
      * @param targetVertexId Target vertex id
      * @return Iterable of edge values
      */
-    Iterable<EDATA_T> getAllEDATA_TdgeValues(final OID_T targetVertexId);
+    Iterable<EDATA_T> getAllEdgeValues(final OID_T targetVertexId);
 
     /**
      * Add an edge for this vertex (happens immediately)
      *
      * @param edge EDATA_Tdge to add
      */
-    void addEDATA_Tdge(Edge<OID_T, EDATA_T> edge);
+    void addEdge(Edge<OID_T, EDATA_T> edge);
 
     /**
      * Removes all edges pointing to the given vertex id.
      *
      * @param targetVertexId the target vertex id
      */
-    void removeEDATA_Tdges(OID_T targetVertexId);
+    void removeEdges(OID_T targetVertexId);
 
     /**
      * If a {@link org.apache.giraph.edge.MutableEdgesWrapper} was used to
@@ -175,7 +175,7 @@ public interface Vertex<OID_T extends WritableComparable,
      * reference to it (thus discarding the wrapper).
      * Called by the Giraph infrastructure after computation.
      */
-    void unwrapMutableEDATA_Tdges();
+    void unwrapMutableEdges();
 
     /**
      * Re-activate vertex if halted.

@@ -91,14 +91,14 @@ public interface SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> {
      *
      * @return number of inner vertices.
      */
-    VID_T getInnerVerticesNum();
+    long getInnerVerticesNum();
 
     /**
      * Get the number of outer vertices.
      *
      * @return umber of outer vertices.
      */
-    VID_T getOuterVerticesNum();
+    long getOuterVerticesNum();
 
     /**
      * Obtain vertex range contains all inner vertices.
