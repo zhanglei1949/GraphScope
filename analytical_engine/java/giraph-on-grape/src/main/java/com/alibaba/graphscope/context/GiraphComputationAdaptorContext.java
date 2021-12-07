@@ -5,17 +5,17 @@ import com.alibaba.graphscope.app.DefaultContextBase;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 
-@SuppressWarnings("rawtypes")
-public class GiraphComputationAdaptorContext implements DefaultContextBase {
+
+public class GiraphComputationAdaptorContext implements DefaultContextBase<Long,Long,Long,Double> {
 
     @Override
-    public void Init(SimpleFragment frag, DefaultMessageManager messageManager,
+    public void Init(SimpleFragment<Long,Long,Long,Double> frag, DefaultMessageManager messageManager,
         JSONObject jsonObject) {
 
     }
 
     @Override
-    public void Output(SimpleFragment frag) {
+    public void Output(SimpleFragment<Long,Long,Long,Double> frag) {
 
     }
 }

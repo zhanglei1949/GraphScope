@@ -50,7 +50,8 @@ void Init(const std::string& params) {
 
 template <typename FRAG_T>
 void Query(grape::CommSpec& comm_spec, std::shared_ptr<FRAG_T> fragment,
-           std::string& params_str) {
+           const std::string& app_class, const std::string& frag_name,
+           const std::string& params_str) {
   auto app = std::make_shared<APP_TYPE>();
   auto worker = APP_TYPE::CreateWorker(app, fragment);
 
@@ -61,7 +62,7 @@ void Query(grape::CommSpec& comm_spec, std::shared_ptr<FRAG_T> fragment,
   MPI_Barrier(comm_spec.comm());
   double t = -GetCurrentTime();
 
-  worker->Query(params_str);
+  worker->Query(app_class, frag_name, params_str);
 
   t += GetCurrentTime();
   VLOG(1) << "Query time" << t;
@@ -132,6 +133,15 @@ void CreateAndQuery(std::string params) {
   VLOG(1) << fragment->fid() << ",vertex num: "
           << fragment->GetVerticesNum() << ",edge num:" << fragment->GetEdgeNum();
   // return fragment;
+  std::string user_app_class = getFromPtree<std::string>(pt, OPTION_APP_CLASS);
+  std::string driver_app_class =
+      getFromPtree<std::string>(pt, OPTION_DRIVER_APP_CLASS);
+  if (user_app_class.find("MaxCompute") != std::string::npos) {
+    std::string frag_name = QUOTE(GRAPH_TYPE);
+    Query<GRAPH_TYPE>(comm_spec, fragment, driver_app_class, frag_name, params);
+  } else {
+    VLOG(1) << "Unrecoginized app: " << user_app_class;
+  }
 }
 
 void Finalize() {

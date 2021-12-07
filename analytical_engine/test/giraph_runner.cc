@@ -28,6 +28,7 @@ DEFINE_string(loading_thread_num, "",
               "number of threads will be used in loading the graph");
 DEFINE_string(efile, "", "path to efile");
 DEFINE_string(vfile, "", "path to vfile");
+DEFINE_string(java_driver_app, "com.alibaba.graphscope.app.GiraphComputationAdaptor","the driver app used in java");
 
 inline void* open_lib(const char* path) {
   void* handle = dlopen(path, RTLD_LAZY);
@@ -68,6 +69,7 @@ std::string flags2JsonStr() {
   pt.put("loading_thread_num", FLAGS_loading_thread_num);
   pt.put("efile", FLAGS_efile);
   pt.put("vfile", FLAGS_vfile);
+  pt.put("java_driver_app", FLAGS_java_driver_app);
 
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, pt);

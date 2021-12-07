@@ -25,6 +25,13 @@ limitations under the License.
 #include <string>
 #include <vector>
 
+#include "boost/algorithm/string.hpp"
+#include "boost/algorithm/string/split.hpp"
+#include "boost/filesystem/path.hpp"
+#include "boost/property_tree/json_parser.hpp"
+#include "boost/property_tree/ptree.hpp"
+
+// Don't include java context base
 #include "grape/app/context_base.h"
 #include "grape/grape.h"
 
@@ -32,7 +39,9 @@ limitations under the License.
 #include "core/java/javasdk.h"
 
 namespace gs {
-
+static constexpr const char* JSON_CLASS_NAME = "com.alibaba.fastjson.JSON";
+static constexpr const char* APP_CONTEXT_GETTER_CLASS =
+    "com/alibaba/graphscope/utils/AppContextGetter";
 /**
  * @brief Driver context for Java context, work along with @see
  * gs::JavaPIEDefaultApp.
@@ -43,7 +52,7 @@ template <typename FRAG_T>
 class JavaPIEDefaultContext : public grape::ContextBase {
  public:
   using fragment_t = FRAG_T;
-
+  using ptree = boost::property_tree::ptree;
   explicit JavaPIEDefaultContext(const FRAG_T& fragment)
       : fragment_(fragment),
         app_class_name_(NULL),
@@ -79,14 +88,12 @@ class JavaPIEDefaultContext : public grape::ContextBase {
     return url_class_loader_object_;
   }
 
-  void Init(grape::DefaultMessageManager& messages, std::string& frag_name,
-            std::string& app_class_name, std::string& app_context_name,
-            std::vector<std::string>& args) {
+  void Init(grape::DefaultMessageManager& messages,
+            const std::string& app_class_name, const std::string& frag_name,
+            const std::string& params) {
     JNIEnvMark m;
     if (m.env()) {
       JNIEnv* env = m.env();
-      CHECK_NOTNULL(!initClassNames(app_class_name, app_context_name));
-
       {
         // Create a gs class loader obj which has same classPath with parent
         // classLoader.
@@ -94,11 +101,16 @@ class JavaPIEDefaultContext : public grape::ContextBase {
         CHECK_NOTNULL(gs_class_loader_obj);
         url_class_loader_object_ = env->NewGlobalRef(gs_class_loader_obj);
       }
+      CHECK(!app_class_name.empty());
+      app_class_name_ = JavaClassNameDashToSlash(app_class_name);
+      app_object_ =
+          LoadAndCreate(env, url_class_loader_object_, app_class_name_);
+      std::string app_context_name = getContextNameFromAppClass(env);
+      context_class_name_ = JavaClassNameDashToSlash(app_context_name);
+      // CHECK_NOTNULL(!initClassNames(app_class_name, app_context_name));
 
       context_object_ =
           LoadAndCreate(env, url_class_loader_object_, context_class_name_);
-      app_object_ =
-          LoadAndCreate(env, url_class_loader_object_, app_class_name_);
 
       java_frag_type_name_ = frag_name;
       fragment_object_ = CreateFFIPointer(env, java_frag_type_name_.c_str(),
@@ -108,14 +120,31 @@ class JavaPIEDefaultContext : public grape::ContextBase {
                                     url_class_loader_object_,
                                     reinterpret_cast<jlong>(&messages));
 
-      jobject args_object = CreateFFIPointer(env, "std::vector<std::string>",
-                                             url_class_loader_object_,
-                                             reinterpret_cast<jlong>(&args));
+      // jobject args_object = CreateFFIPointer(env, "std::vector<std::string>",
+      //                                        url_class_loader_object_,
+      //                                        reinterpret_cast<jlong>(&args));
 
+      jclass json_class = (jclass) LoadClassWithClassLoader(
+          env, url_class_loader_object_, JSON_CLASS_NAME);
+      if (env->ExceptionCheck()) {
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+        LOG(ERROR) << "Exception in loading json class ";
+      }
+      CHECK_NOTNULL(json_class);
+      jmethodID parse_method = env->GetStaticMethodID(
+          json_class, "parseObject",
+          "(Ljava/lang/String;)Lcom/alibaba/fastjson/JSONObject;");
+      CHECK_NOTNULL(parse_method);
+      VLOG(1) << "User defined kw args: " << params;
+      jstring args_jstring = env->NewStringUTF(params.c_str());
+      jobject json_object =
+          env->CallStaticObjectMethod(json_class, parse_method, args_jstring);
+      CHECK_NOTNULL(json_object);
       const char* descriptor =
           "(Lcom/alibaba/graphscope/fragment/ImmutableEdgecutFragment;"
           "Lcom/alibaba/graphscope/parallel/DefaultMessageManager;"
-          "Lcom/alibaba/graphscope/stdcxx/StdVector;)V";
+          "Lcom/alibaba/fastjson/JSONObject;)V";
 
       jclass context_class = env->FindClass(context_class_name_);
       CHECK_NOTNULL(context_class);
@@ -124,7 +153,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
       CHECK_NOTNULL(init_methodID);
 
       env->CallVoidMethod(context_object_, init_methodID, fragment_object_,
-                          mm_object_, args_object);
+                          mm_object_, json_object);
     } else {
       LOG(ERROR) << "JNI env not available.";
     }
@@ -150,13 +179,31 @@ class JavaPIEDefaultContext : public grape::ContextBase {
   }
 
  private:
-  bool initClassNames(const std::string& app_class,
-                      const std::string& context_class) {
-    CHECK(!app_class.empty() && !context_class.empty());
-    app_class_name_ = JavaClassNameDashToSlash(app_class);
-    context_class_name_ = JavaClassNameDashToSlash(context_class);
-    return true;
+  // get the java context name with is bounded to app_object_.
+  std::string getContextNameFromAppClass(JNIEnv* env) {
+    jclass app_context_getter_class = (jclass) LoadClassWithClassLoader(
+        env, url_class_loader_object_, APP_CONTEXT_GETTER_CLASS);
+    if (env->ExceptionCheck()) {
+      LOG(ERROR) << "Exception in loading class: "
+                 << std::string(APP_CONTEXT_GETTER_CLASS);
+      env->ExceptionDescribe();
+      env->ExceptionClear();
+      LOG(ERROR) << "exiting since exception occurred";
+    }
+
+    CHECK_NOTNULL(app_context_getter_class);
+
+    jmethodID app_context_getter_method =
+        env->GetStaticMethodID(app_context_getter_class, "getContextName",
+                               "(Ljava/lang/Object;)Ljava/lang/String;");
+    CHECK_NOTNULL(app_context_getter_method);
+    // Pass app class's class object
+    jstring context_class_jstring = (jstring) env->CallStaticObjectMethod(
+        app_context_getter_class, app_context_getter_method, app_object_);
+    CHECK_NOTNULL(context_class_jstring);
+    return JString2String(env, context_class_jstring);
   }
+
   const fragment_t& fragment_;
   char* app_class_name_;
   char* context_class_name_;
@@ -168,7 +215,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
   jobject fragment_object_;
   jobject mm_object_;
   jobject url_class_loader_object_;
-};
+};  // namespace gs
 }  // namespace gs
 #endif
 #endif  // ANALYTICAL_ENGINE_APPS_JAVA_PIE_JAVA_PIE_DEFAULT_CONTEXT_H_
