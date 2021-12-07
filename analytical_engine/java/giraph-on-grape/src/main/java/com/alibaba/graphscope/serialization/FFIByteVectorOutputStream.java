@@ -16,10 +16,6 @@ public class FFIByteVectorOutputStream extends OutputStream
         vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
         offset = 0;
     }
-
-    public void reserve(long size){
-        vector.reserve(size);
-    }
     
     public void resize(long size){
         vector.resize(size);
@@ -31,6 +27,21 @@ public class FFIByteVectorOutputStream extends OutputStream
 
     public FFIByteVector getVector(){
         return vector;
+    }
+
+    /**
+     * Return how many bytes has been written.
+     * @return
+     */
+    public long bytesWriten(){
+        return offset;
+    }
+
+    /**
+     * Finish setting, shrink vector size to offset.
+     */
+    public void finishSetting(){
+        vector.finishSetting(offset);
     }
 
     /**

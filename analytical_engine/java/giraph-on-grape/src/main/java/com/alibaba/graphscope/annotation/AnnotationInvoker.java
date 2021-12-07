@@ -144,6 +144,39 @@ import com.alibaba.graphscope.utils.CppClassName;
                     type = "com.alibaba.graphscope.parallel.DefaultMessageManager",
                     functionTemplates = {
                         @FFIFunGen(
+                            name = "sendToFragment",
+                            returnType = "void",
+                            parameterTypes = {"FRAG_T", "MSG_T"},
+                            templates = {
+                                @CXXTemplate(
+                                    cxx = {
+                                        CppClassName.GRAPE_IMMUTABLE_FRAGMENT
+                                            + "<int64_t,uint64_t,int64_t,double>",
+                                        "std::vector<char>"
+                                    },
+                                    java = {
+                                        "com.alibaba.graphscope.fragment.ImmutableEdgecutFragment<Long,Long,Long,Double>",
+                                        "com.alibaba.graphscope.stdcxx.FFIByteVector"
+                                    }
+                                )
+                            }
+                        ),
+                        @FFIFunGen(
+                            name = "getPureMessage",
+                            returnType = "boolean",
+                            parameterTypes = {"MSG_T"},
+                            templates = {
+                                @CXXTemplate(
+                                    cxx = {
+                                        "std::vector<char>"
+                                    },
+                                    java = {
+                                        "com.alibaba.graphscope.stdcxx.FFIByteVector"
+                                    }
+                                )
+                            }
+                        ),
+                        @FFIFunGen(
                                 name = "sendMsgThroughIEdges",
                                 returnType = "void",
                                 parameterTypes = {"FRAG_T", "MSG_T"},

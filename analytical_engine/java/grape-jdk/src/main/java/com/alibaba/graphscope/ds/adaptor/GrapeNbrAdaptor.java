@@ -19,6 +19,10 @@ public class GrapeNbrAdaptor<VID_T, EDATA_T> implements Nbr<VID_T, EDATA_T> {
         nbr = n;
     }
 
+    public void setAddress(long address) {
+        nbr.setAddress(address);
+    }
+
     @Override
     public Vertex<VID_T> neighbor() {
         return nbr.neighbor();

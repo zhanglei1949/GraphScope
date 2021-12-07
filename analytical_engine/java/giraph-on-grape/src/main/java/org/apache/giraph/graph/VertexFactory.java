@@ -1,6 +1,7 @@
 package org.apache.giraph.graph;
 
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 

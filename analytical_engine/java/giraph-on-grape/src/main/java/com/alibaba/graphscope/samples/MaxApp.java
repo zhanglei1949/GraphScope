@@ -1,5 +1,6 @@
 package com.alibaba.graphscope.samples;
 
+import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
 import java.io.IOException;
 import org.apache.commons.lang.ObjectUtils.Null;
 import org.apache.giraph.graph.BasicComputation;
@@ -8,9 +9,11 @@ import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MaxApp extends BasicComputation<LongWritable, LongWritable, DoubleWritable, LongWritable> {
-
+    private static Logger logger = LoggerFactory.getLogger(MaxApp.class);
 
     /**
      * Must be defined by user to do computation on a single Vertex.
@@ -24,6 +27,7 @@ public class MaxApp extends BasicComputation<LongWritable, LongWritable, DoubleW
         Iterable<LongWritable> messages) throws IOException {
         boolean changed = false;
         for (LongWritable message : messages) {
+            logger.info("step: ["+getSuperstep() + "] " + message.get());
             if (vertex.getValue().get() < message.get()) {
                 vertex.setValue(message);
                 changed = true;

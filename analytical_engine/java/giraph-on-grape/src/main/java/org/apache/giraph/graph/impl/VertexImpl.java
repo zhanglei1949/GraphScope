@@ -1,23 +1,32 @@
-package org.apache.giraph.graph;
+package org.apache.giraph.graph.impl;
 
+import com.alibaba.graphscope.context.GiraphComputationAdaptorContext;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import org.apache.giraph.conf.DefaultImmutableClassesGiraphConfigurable;
 import org.apache.giraph.edge.Edge;
 import org.apache.giraph.edge.MutableEdge;
 import org.apache.giraph.edge.MutableEdgesWrapper;
 import org.apache.giraph.edge.OutEdges;
+import org.apache.giraph.graph.Vertex;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable> extends
-    DefaultImmutableClassesGiraphConfigurable<OID_T,VDATA_T,EDATA_T> implements Vertex<OID_T,VDATA_T,EDATA_T>{
+    DefaultImmutableClassesGiraphConfigurable<OID_T,VDATA_T,EDATA_T> implements
+    Vertex<OID_T,VDATA_T,EDATA_T> {
+
+    private static Logger logger = LoggerFactory.getLogger(VertexImpl.class);
 
     private SimpleFragment fragment;
     private long lid;
+    private GiraphComputationAdaptorContext giraphComputationContext;
 
-    public VertexImpl(SimpleFragment fragment){
+    public VertexImpl(SimpleFragment fragment, GiraphComputationAdaptorContext ctx){
         this.fragment = fragment;
         lid = -1; //set to a negative value to ensure set lid to be called later.
+        this.giraphComputationContext = ctx;
     }
 
     /**
@@ -83,7 +92,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public void voteToHalt() {
-
+        giraphComputationContext.haltVertex(lid);
     }
 
     /**
@@ -178,7 +187,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public void addEdge(Edge<OID_T, EDATA_T> edge) {
-
+        logger.error("Not implemented");
     }
 
     /**
@@ -188,7 +197,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public void removeEdges(OID_T targetVertexId) {
-
+        logger.error("Not implemented");
     }
 
     /**
