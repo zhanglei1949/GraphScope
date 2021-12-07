@@ -25,6 +25,10 @@ public class FFIByteVectorOutputStream extends OutputStream
         vector.resize(size);
     }
 
+    public void reset(){
+        offset = 0;
+    }
+
     public FFIByteVector getVector(){
         return vector;
     }

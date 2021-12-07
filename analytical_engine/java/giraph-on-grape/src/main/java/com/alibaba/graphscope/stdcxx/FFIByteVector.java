@@ -7,18 +7,18 @@ import com.alibaba.fastffi.FFIForeignType;
 import com.alibaba.fastffi.FFIPointerImpl;
 import com.alibaba.fastffi.FFISynthetic;
 import com.alibaba.fastffi.llvm4jni.runtime.JavaRuntime;
-import org.apache.tools.ant.taskdefs.Java;
 
 /**
- * This is a FFIWrapper for std::vector. The code origins from the generated code via FFI and llvm4jni,
- * with hands-on optimization.
+ * This is a FFIWrapper for std::vector. The code origins from the generated code via FFI and
+ * llvm4jni, with hands-on optimization.
  */
 @FFIForeignType(
     value = "std::vector<char>",
     factory = FFIByteVectorFactory.class
 )
 @FFISynthetic("com.alibaba.graphscope.stdcxx.StdVector")
-public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte>{
+public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
+
     public static final int SIZE = _elementSize$$$();
     private long objAddress;
     public static final int HASH_SHIFT;
@@ -46,7 +46,7 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte>{
     }
 
     public int hashCode() {
-        return (int)(this.address >> HASH_SHIFT);
+        return (int) (this.address >> HASH_SHIFT);
     }
 
     public String toString() {
@@ -103,22 +103,51 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte>{
 //        return nativeGet(this.address, arg0);
         return JavaRuntime.getByte(objAddress + arg0);
     }
+
     public char getRawChar(long arg0) {
 //        return nativeGet(this.address, arg0);
         return JavaRuntime.getChar(objAddress + arg0);
     }
-    public int getRawInt(long arg0){
+
+    public short getRawShort(long arg0) {
+//        return nativeGet(this.address, arg0);
+        return JavaRuntime.getShort(objAddress + arg0);
+    }
+
+    public int getRawInt(long arg0) {
         return JavaRuntime.getInt(objAddress + arg0);
     }
 
-    public long getRawLong(long arg0){
+    public float getRawFloat(long arg0) {
+        return JavaRuntime.getFloat(objAddress + arg0);
+    }
+
+    public double getRawDouble(long arg0) {
+        return JavaRuntime.getDouble(objAddress + arg0);
+    }
+
+    public long getRawLong(long arg0) {
         return JavaRuntime.getLong(objAddress + arg0);
+    }
+
+    /**
+     * Read serveral bytes to a byte array.
+     *
+     * @param b      Receive data
+     * @param bOff   first place to put
+     * @param offset offset in this buffer, from where we read now.
+     * @param size   how many to read
+     */
+    public void getRawBytes(byte[] b, int bOff, long offset, int size) {
+//        JavaRuntime.copyMemory(objAddress + offset, b );
+        JavaRuntime.UNSAFE.copyMemory(null, objAddress + offset, b,
+            bOff + JavaRuntime.UNSAFE.arrayBaseOffset(byte[].class), size);
     }
 
     @CXXOperator("[]")
     @CXXReference
     public static byte nativeGet(long var0, long var2) {
-        return (byte)JavaRuntime.getByte(JavaRuntime.getLong(var0) + var2);
+        return (byte) JavaRuntime.getByte(JavaRuntime.getLong(var0) + var2);
     }
 
     public void push_back(@CXXValue Byte arg0) {
@@ -139,14 +168,14 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte>{
 
     public static native void nativeResize(long var0, long var2);
 
-    public void ensure(long offset, int size){
+    public void ensure(long offset, int size) {
         long minCapacity = size + offset;
         long oldCapacity = capacity;
         if (minCapacity <= oldCapacity) {
             return;
         }
         long newCapacity = oldCapacity + (oldCapacity >> 1);
-        if (newCapacity - minCapacity < 0){
+        if (newCapacity - minCapacity < 0) {
             newCapacity = minCapacity;
         }
 //        this.base = reserve(newCapacity);
@@ -171,6 +200,7 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte>{
 //        ensure(arg0, 2);
         JavaRuntime.putShort(objAddress + arg0, arg1);
     }
+
     public void setRawChar(long arg0, char arg1) {
 //        ensure(arg0, 2);
         JavaRuntime.putChar(objAddress + arg0, arg1);
@@ -180,10 +210,12 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte>{
 //        ensure(arg0, 4);
         JavaRuntime.putInt(objAddress + arg0, arg1);
     }
+
     public void setRawLong(long arg0, long arg1) {
 //        ensure(arg0, 8);
         JavaRuntime.putLong(objAddress + arg0, arg1);
     }
+
     public void setRawFloat(long arg0, float arg1) {
 //        ensure(arg0, 4);
         JavaRuntime.putFloat(objAddress + arg0, arg1);
