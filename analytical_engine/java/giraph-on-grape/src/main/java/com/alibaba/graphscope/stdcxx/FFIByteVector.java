@@ -103,7 +103,10 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte>{
 //        return nativeGet(this.address, arg0);
         return JavaRuntime.getByte(objAddress + arg0);
     }
-
+    public char getRawChar(long arg0) {
+//        return nativeGet(this.address, arg0);
+        return JavaRuntime.getChar(objAddress + arg0);
+    }
     public int getRawInt(long arg0){
         return JavaRuntime.getInt(objAddress + arg0);
     }

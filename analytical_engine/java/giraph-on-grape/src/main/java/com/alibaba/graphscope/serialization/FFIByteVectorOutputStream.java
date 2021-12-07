@@ -20,6 +20,10 @@ public class FFIByteVectorOutputStream extends OutputStream
     public void reserve(long size){
         vector.reserve(size);
     }
+    
+    public void resize(long size){
+        vector.resize(size);
+    }
 
     public FFIByteVector getVector(){
         return vector;
