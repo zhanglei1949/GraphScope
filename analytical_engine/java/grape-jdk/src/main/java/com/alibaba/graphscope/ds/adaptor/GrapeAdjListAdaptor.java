@@ -4,6 +4,7 @@ import com.alibaba.graphscope.ds.GrapeAdjList;
 
 /**
  * Wrap a grape nbr into one object that fit Nbr interface.
+ *
  * @param <VID_T> vertex id type.
  * @param <EDATA_T> edge data type.
  */
