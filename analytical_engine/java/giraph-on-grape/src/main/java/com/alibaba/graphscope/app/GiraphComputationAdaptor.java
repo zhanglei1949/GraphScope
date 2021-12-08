@@ -5,6 +5,7 @@ import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.GiraphMessageManager;
+import com.alibaba.graphscope.parallel.MessageIterable;
 import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
 import java.io.IOException;
 import org.apache.giraph.graph.AbstractComputation;
@@ -44,10 +45,13 @@ public class GiraphComputationAdaptor implements DefaultAppBase<Long,Long,Long,D
         AbstractComputation<LongWritable,LongWritable, DoubleWritable,LongWritable,LongWritable> userComputation = ctx.getUserComputation();
         GiraphMessageManager<LongWritable,LongWritable, DoubleWritable, LongWritable,LongWritable> giraphMessageManager = ctx.getGiraphMessageManager();
 
+        //In first round, there is no message, we pass an empty iterable.
+        Iterable<LongWritable> messages = new MessageIterable<>();
+
         try {
             for (Vertex<Long> grapeVertex : ctx.innerVertices){
                 ctx.vertex.setLocalId(grapeVertex.GetValue().intValue());
-                userComputation.compute(ctx.vertex, null);
+                userComputation.compute(ctx.vertex, messages);
             }
         } catch (IOException e) {
             e.printStackTrace();

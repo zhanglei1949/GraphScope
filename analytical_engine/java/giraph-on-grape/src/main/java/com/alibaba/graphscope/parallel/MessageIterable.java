@@ -25,7 +25,7 @@ public class MessageIterable<MSG_T extends Writable> implements Iterable<MSG_T> 
      */
     @Override
     public Iterator<MSG_T> iterator() {
-        return null;
+        return msgs.iterator();
     }
 
 
