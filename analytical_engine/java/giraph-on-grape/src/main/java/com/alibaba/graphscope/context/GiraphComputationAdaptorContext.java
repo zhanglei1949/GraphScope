@@ -147,4 +147,7 @@ public class GiraphComputationAdaptorContext implements
     public boolean allHalted() {
         return halted.cardinality() == innerVerticesNum;
     }
+    public void activateVertex(long lid){
+        halted.set((int) lid, false);
+    }
 }

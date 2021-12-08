@@ -15,6 +15,7 @@ import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import com.alibaba.graphscope.utils.WritableFactory;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Objects;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.hadoop.io.LongWritable;
@@ -120,6 +121,17 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
     }
 
     /**
+     * Check any message available on this vertex.
+     *
+     * @param lid local id
+     * @return true if recevied messages.
+     */
+    @Override
+    public boolean messageAvailable(long lid) {
+        return receivedMessages[(int) lid].size() > 0;
+    }
+
+    /**
      * Send message to neighbor vertices.
      *
      * @param vertex
@@ -175,7 +187,7 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
 
         logger.info("After processing msg from vertex: " + grapeVertex.GetValue());
         for (int i = 0; i < fragment.fnum(); ++i) {
-            logger.info("To frag[i]: " + messagesOut[i].bytesWriten());
+            logger.info("To frag[" + i + "]: " + messagesOut[i].bytesWriten());
         }
     }
 
@@ -200,6 +212,16 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
                     "In final step, Frag [" + fragId + "] digest msg to self of size: " + size);
             }
         }
+    }
+
+    /**
+     * Check any messages to self.
+     *
+     * @return true if messages sent to self.
+     */
+    @Override
+    public boolean anyMessageToSelf() {
+        return messagesIn.longAvailable() > 0;
     }
 
     /**
