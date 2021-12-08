@@ -36,12 +36,12 @@ public class FFIByteVectorInputStream extends InputStream
         if (this.vector == null){
             this.vector = vector;
             offset = 0;
-            size = 0;
+            size = this.vector.size();
         }
         else {
             this.vector.appendVector(vector);
             //offset will not change.
-            size = vector.size();
+            size += vector.size();
         }
     }
 
