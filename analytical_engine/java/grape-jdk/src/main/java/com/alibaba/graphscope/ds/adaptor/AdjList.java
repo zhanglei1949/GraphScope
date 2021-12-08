@@ -53,15 +53,16 @@ public interface AdjList<VID_T, EDATA_T> {
                         long endAddress = 0;
                         long elementSize = 0;
 
-                        //There are cases where begin() and end() nbrs are null.
+                        // There are cases where begin() and end() nbrs are null.
                         {
-                            if (Objects.nonNull(beginPtr.getGrapeNbr()) && beginPtr.getAddress() > 0){
+                            if (Objects.nonNull(beginPtr.getGrapeNbr())
+                                    && beginPtr.getAddress() > 0) {
                                 this.currentAddress = beginPtr.getAddress();
+                                this.elementSize = beginPtr.getGrapeNbr().elementSize();
                             }
-                            if (Objects.nonNull(endPtr.getGrapeNbr()) && endPtr.getAddress() > 0){
+                            if (Objects.nonNull(endPtr.getGrapeNbr()) && endPtr.getAddress() > 0) {
                                 this.endAddress = endPtr.getAddress();
                             }
-                            this.elementSize = beginPtr.getGrapeNbr().elementSize();
                         }
 
                         public boolean hasNext() {
