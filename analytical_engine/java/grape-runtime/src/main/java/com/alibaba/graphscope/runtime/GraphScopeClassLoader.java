@@ -74,7 +74,7 @@ public class GraphScopeClassLoader {
     public static URLClassLoader newGraphScopeClassLoader(String classPath)
             throws IllegalAccessException {
         String[] libraries = ClassScope.getLoadedLibraries(ClassLoader.getSystemClassLoader());
-//        log("Loaded lib: " + String.join(" ", libraries));
+        //        log("Loaded lib: " + String.join(" ", libraries));
         logger.info("Loaded lib: " + String.join(" ", libraries));
         return new URLClassLoader(
                 classPath2URLArray(classPath), GraphScopeClassLoader.class.getClassLoader());
@@ -211,7 +211,8 @@ public class GraphScopeClassLoader {
                     (ImmutableEdgecutFragment) fragmentImpl;
             return new ImmutableEdgecutFragmentAdaptor(immutableEdgecutFragment);
         } else {
-            logger.info("Provided fragment is neither a projected fragment nor a immutable fragment.");
+            logger.info(
+                    "Provided fragment is neither a projected fragment nor a immutable fragment.");
             return null;
         }
     }

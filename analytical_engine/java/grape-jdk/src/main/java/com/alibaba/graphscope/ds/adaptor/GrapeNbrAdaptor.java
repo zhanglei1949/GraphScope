@@ -23,15 +23,16 @@ public class GrapeNbrAdaptor<VID_T, EDATA_T> implements Nbr<VID_T, EDATA_T> {
         nbr.setAddress(address);
     }
 
-    public long getAddress(){
+    public long getAddress() {
         return nbr.getAddress();
     }
 
     /**
      * Get the underlying grape nbr.
+     *
      * @return the underlying grape nbr.
      */
-    public GrapeNbr<VID_T,EDATA_T> getGrapeNbr(){
+    public GrapeNbr<VID_T, EDATA_T> getGrapeNbr() {
         return nbr;
     }
 
