@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Vector;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * GraphScope Class Loader contains several static functions which will be used by GraphScope
@@ -43,6 +45,9 @@ import java.util.stream.Collectors;
  * jvm environment provided by class loaders, which can avoid possible class conflicts.
  */
 public class GraphScopeClassLoader {
+
+    private static Logger logger = LoggerFactory.getLogger(GraphScopeClassLoader.class);
+
     static {
         try {
             String GS_HOME = System.getenv("GRAPHSCOPE_HOME");
@@ -69,7 +74,8 @@ public class GraphScopeClassLoader {
     public static URLClassLoader newGraphScopeClassLoader(String classPath)
             throws IllegalAccessException {
         String[] libraries = ClassScope.getLoadedLibraries(ClassLoader.getSystemClassLoader());
-        log("Loaded lib: " + String.join(" ", libraries));
+//        log("Loaded lib: " + String.join(" ", libraries));
+        logger.info("Loaded lib: " + String.join(" ", libraries));
         return new URLClassLoader(
                 classPath2URLArray(classPath), GraphScopeClassLoader.class.getClassLoader());
     }
@@ -82,7 +88,7 @@ public class GraphScopeClassLoader {
      */
     public static URLClassLoader newGraphScopeClassLoader() throws IllegalAccessException {
         String[] libraries = ClassScope.getLoadedLibraries(ClassLoader.getSystemClassLoader());
-        log("Loaded lib: " + String.join(" ", libraries));
+        logger.info("Loaded lib: " + String.join(" ", libraries));
         // CAUTION: add '.' to avoid empty url.
         return new URLClassLoader(
                 classPath2URLArray("."), Thread.currentThread().getContextClassLoader());
@@ -101,6 +107,7 @@ public class GraphScopeClassLoader {
      */
     public static Object loadAndCreate(URLClassLoader classLoader, String className)
             throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+        logger.info("Load and create: " + formatting(className));
         Class<?> clz = classLoader.loadClass(formatting(className));
         return clz.newInstance();
     }
@@ -125,7 +132,7 @@ public class GraphScopeClassLoader {
         // FFITypeFactor class need to be ensure loaded in current classLoader,
         // don't make it static.
         Class<?> ffiTypeFactoryClass = classLoader.loadClass(FFI_TYPE_FACTORY_CLASS);
-        log(
+        logger.info(
                 "Creating FFIPointer, typename ["
                         + foreignName
                         + "], address ["
@@ -157,15 +164,15 @@ public class GraphScopeClassLoader {
             for (Constructor constructor : constructors) {
                 if (constructor.getParameterCount() == 1
                         && constructor.getParameterTypes()[0].getName().equals("long")) {
-                    log("Desired constructor exists for " + javaClass.getName());
+                    logger.info("Desired constructor exists for " + javaClass.getName());
                     Object obj = constructor.newInstance(address);
-                    log("Successfully Construct " + obj);
+                    logger.info("Successfully Construct " + obj);
                     return obj;
                 }
             }
-            log("No Suitable constructors found.");
+            logger.info("No Suitable constructors found.");
         }
-        log("Loaded null class.");
+        logger.info("Loaded null class.");
         return null;
     }
 
@@ -179,7 +186,7 @@ public class GraphScopeClassLoader {
      */
     public static Class<?> loadClass(URLClassLoader classLoader, String className)
             throws ClassNotFoundException {
-        log("Loading class " + className);
+        logger.info("Loading class " + className);
         return classLoader.loadClass(formatting(className));
     }
 
@@ -204,13 +211,13 @@ public class GraphScopeClassLoader {
                     (ImmutableEdgecutFragment) fragmentImpl;
             return new ImmutableEdgecutFragmentAdaptor(immutableEdgecutFragment);
         } else {
-            log("Provided fragment is neither a projected fragment nor a immutable fragment.");
+            logger.info("Provided fragment is neither a projected fragment nor a immutable fragment.");
             return null;
         }
     }
 
     private static String formatting(String className) {
-        if (className.indexOf("/") == -1) return className;
+        if (!className.contains("/")) return className;
         return className.replace("/", ".");
     }
 
@@ -233,7 +240,7 @@ public class GraphScopeClassLoader {
                                     return null;
                                 })
                         .collect(Collectors.toList());
-        System.out.println(
+        logger.info(
                 "Extracted URL"
                         + String.join(
                                 ":", res.stream().map(URL::toString).collect(Collectors.toList())));
@@ -242,11 +249,6 @@ public class GraphScopeClassLoader {
             ret[i] = res.get(i);
         }
         return ret;
-    }
-
-    private static void log(String info) {
-        System.out.print("[GS Class Loader]: ");
-        System.out.println(info);
     }
 
     private static class ClassScope {
