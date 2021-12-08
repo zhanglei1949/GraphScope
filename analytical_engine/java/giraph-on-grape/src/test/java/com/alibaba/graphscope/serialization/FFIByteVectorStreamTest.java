@@ -1,6 +1,7 @@
 package com.alibaba.graphscope.serialization;
 
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
+import com.alibaba.graphscope.stdcxx.FFIByteVectorFactory;
 import java.io.IOException;
 import org.junit.Assert;
 import org.junit.Before;
@@ -68,7 +69,37 @@ public class FFIByteVectorStreamTest {
     }
 
     @Test
-    public void testDigestVector(){
+    public void testDigestVector() throws IOException {
+        FFIByteVector vector1 = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
+        FFIByteVector vector2 = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
 
+        vector1.resize(40);
+        vector2.resize(40);
+        for (int i = 0; i < 10; ++i){
+            vector1.setRawInt(i * 4, i);
+            vector2.setRawInt(i * 4, i + 10);
+        }
+
+        inputStream.digestVector(vector1);
+        inputStream.digestVector(vector2);
+
+        Assert.assertTrue(inputStream.longAvailable() ==80);
+        for (int i = 0; i < 20; ++i){
+            Assert.assertTrue(inputStream.readInt() == i);
+        }
+    }
+
+    @Test
+    public void testOutPutStream() throws IOException {
+        outputStream.reset();
+        for (int i = 0; i < 25; ++i) {
+            outputStream.writeInt(i);
+        }
+        Assert.assertTrue(outputStream.bytesWriten() == 100);
+        FFIByteVector vector = outputStream.getVector();
+        System.out.println("Buffer size: " + vector.size() + ", size: " + vector.size);
+        outputStream.finishSetting();
+        vector = outputStream.getVector();
+        Assert.assertTrue(vector.size == outputStream.bytesWriten());
     }
 }
