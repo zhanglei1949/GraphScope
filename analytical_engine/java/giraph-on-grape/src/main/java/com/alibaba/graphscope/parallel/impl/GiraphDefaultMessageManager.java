@@ -78,16 +78,14 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
     public void receiveMessages() {
         //Clear the message receiving buffers.
         parallelClearReceiveMessages();
-        for (int i = 0; i < fragmentNum; ++i) {
-            if (i == fragId) {
-                continue;
-            }
-            FFIByteVector tmpVector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
-            grapeMessageManager.getPureMessage(tmpVector);
+
+        FFIByteVector tmpVector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
+        while (grapeMessageManager.getPureMessage(tmpVector)){
+            //OutArchive will do the resize;
             this.messagesIn.digestVector(tmpVector);
         }
         //Parse messageIn and form into Iterable<message> for each vertex;
-        logger.info("Received [" + messagesIn.longAvailable() + "] bytes, starting deserialization");
+        logger.info("Frag [" + fragId + "] totally Received [" + messagesIn.longAvailable() + "] bytes, starting deserialization");
 
         com.alibaba.graphscope.ds.Vertex<Long> vertex = FFITypeFactoryhelper.newVertexLong();
         try {
@@ -95,15 +93,16 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
                 if (messagesIn.available() <= 0) {
                     break;
                 }
-                vertex.SetValue(messagesIn.readLong());
+                long dstVertexGid = messagesIn.readLong();
+
                 Writable inMsg = WritableFactory.newInMsg();
                 inMsg.readFields(messagesIn);
                 //TODO: only for testing
                 LongWritable inMsg2 = (LongWritable) inMsg;
-                logger.info("read vertex: " + vertex.GetValue() + "msg: " + inMsg2.get());
+                logger.info("Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
 
                 //store the msg
-                fragment.gid2Vertex(vertex.GetValue(), vertex);
+                fragment.gid2Vertex(dstVertexGid, vertex);
                 if (vertex.GetValue() >= maxInnerVertexLid){
                     logger.error("Received one vertex id which exceeds inner vertex range.");
                     return ;
@@ -153,7 +152,7 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
                 if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
                     messagesOut[dstfragId].finishSetting();
                     grapeMessageManager
-                        .sendToFragment(fragment, messagesOut[dstfragId].getVector());
+                        .sendToFragment(dstfragId, messagesOut[dstfragId].getVector());
                     messagesOut[dstfragId].reset();
                 }
                 messagesOut[dstfragId].writeLong((Long) fragment.vertex2Gid(curVertex));
@@ -175,7 +174,7 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
                 if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
                     messagesOut[dstfragId].finishSetting();
                     grapeMessageManager
-                        .sendToFragment(fragment, messagesOut[dstfragId].getVector());
+                        .sendToFragment(dstfragId, messagesOut[dstfragId].getVector());
                     messagesOut[dstfragId].reset();
                 }
                 messagesOut[dstfragId].writeLong((Long) fragment.vertex2Gid(curVertex));
@@ -185,7 +184,7 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
             e.printStackTrace();
         }
 
-        logger.info("After processing msg from vertex: " + grapeVertex.GetValue());
+        logger.info("After send messages from vertex: " + grapeVertex.GetValue() + " through all edges");
         for (int i = 0; i < fragment.fnum(); ++i) {
             logger.info("To frag[" + i + "]: " + messagesOut[i].bytesWriten());
         }
@@ -208,7 +207,7 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
             }
 
             if (i != fragId) {
-                grapeMessageManager.sendToFragment(fragment, messagesOut[i].getVector());
+                grapeMessageManager.sendToFragment(i, messagesOut[i].getVector());
                 logger.info(
                     "In final step, Frag [" + fragId + "] sending to frag [" + i + "] msg of size: "
                         + size);
