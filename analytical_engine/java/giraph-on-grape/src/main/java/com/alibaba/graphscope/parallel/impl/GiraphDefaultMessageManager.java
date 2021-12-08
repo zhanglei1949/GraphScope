@@ -197,19 +197,23 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
      */
     @Override
     public void finishMessageSending() {
-        this.messagesIn.reset();
+        this.messagesIn.clear();
         for (int i = 0; i < fragmentNum; ++i) {
             long size = messagesOut[i].bytesWriten();
             messagesOut[i].finishSetting();
+
+            if (size == 0){
+                logger.info("Message from frag[" + fragId + "] to frag [" + i + "] empty.");
+                continue ;
+            }
+
             if (i != fragId) {
-                //TODO: make sure the vector is tight, before sending to fragment. i.e. size = offset
                 grapeMessageManager.sendToFragment(fragment, messagesOut[i].getVector());
                 logger.info(
                     "In final step, Frag [" + fragId + "] sending to frag [" + i + "] msg of size: "
                         + size);
             } else {
                 //For messages send to local, we just do digest.
-                messagesIn.clear();
                 messagesIn.digestVector(messagesOut[i].getVector());
                 logger.info(
                     "In final step, Frag [" + fragId + "] digest msg to self of size: " + size);

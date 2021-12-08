@@ -43,15 +43,15 @@ public interface WorkerContext
     void preApplication() throws InstantiationException,IllegalAccessException;
 
     /**
-     * ize the WorkerContext. This method is executed once on each Worker after the last superstep
+     * Finalize the WorkerContext. This method is executed once on each Worker after the last superstep
      * ends.
      */
-    abstract void postApplication();
+    void postApplication();
 
     /**
      * Execute user code. This method is executed once on each Worker before each superstep starts.
      */
-    abstract void preSuperstep();
+    void preSuperstep();
 
     /**
      * Get messages which other workers sent to this worker and clear them (can be called once per
@@ -72,7 +72,7 @@ public interface WorkerContext
     /**
      * Execute user code. This method is executed once on each Worker after each superstep ends.
      */
-    abstract void postSuperstep();
+    void postSuperstep();
 
     /**
      * Retrieves the current superstep.
