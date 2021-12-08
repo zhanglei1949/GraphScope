@@ -154,7 +154,7 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
      * Make sure that there is no blank space in range (objectAddress, objectAddress + curSize).
      * @param vector vector to be appended.
      */
-    public void appendVector(long offset, FFIByteVector vector){
+    public void appendVector(FFIByteVector vector){
 //        long curSize = size();
 //        resize(curSize + vector.size());
         int vecSize = (int) vector.size();

@@ -1,13 +1,10 @@
 package com.alibaba.graphscope.serialization;
 
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
-import com.alibaba.graphscope.stdcxx.FFIByteVectorFactory;
 import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.UTFDataFormatException;
 import java.util.Objects;
 
@@ -21,40 +18,36 @@ public class FFIByteVectorInputStream extends InputStream
     private byte bytearr[] = new byte[80];
     private char chararr[] = new char[80];
 
-    public FFIByteVectorInputStream(){
+    public FFIByteVectorInputStream() {
         vector = null;
         offset = 0;
         size = 0;
     }
 
-    public FFIByteVectorInputStream(FFIByteVector vector){
+    public FFIByteVectorInputStream(FFIByteVector vector) {
         this.vector = vector;
         offset = 0;
         size = vector.size();
     }
 
-    public void digestVector(FFIByteVector vector){
-        if (this.vector == null){
-            this.vector = vector;
-            offset = 0;
-            size = this.vector.size();
-        }
-        else {
-            this.vector.appendVector(offset, vector);
-            //offset will not change.
-            size += vector.size();
-        }
+    /**
+     * Copy the memory.
+     *
+     * @param vector
+     */
+    public void digestVector(FFIByteVector vector) {
+        this.vector.appendVector(vector);
+        //offset will not change.
+        size += vector.size();
     }
 
     /**
      * Reset to the first pos. size still the same.
      */
-    public void reset(){
-        offset = 0;
-    }
+    public void reset() { offset = 0; }
 
-    public void clear(){
-        if (Objects.nonNull(this.vector)){
+    public void clear() {
+        if (Objects.nonNull(this.vector)) {
             this.vector.resize(0);
             offset = 0;
             size = 0;
@@ -68,7 +61,7 @@ public class FFIByteVectorInputStream extends InputStream
     }
 
 
-    public FFIByteVector getVector(){
+    public FFIByteVector getVector() {
         return vector;
     }
 
@@ -152,13 +145,15 @@ public class FFIByteVectorInputStream extends InputStream
      */
     @Override
     public void readFully(byte[] b, int off, int len) throws IOException {
-        if (len < 0)
+        if (len < 0) {
             throw new IndexOutOfBoundsException();
+        }
         int n = 0;
         while (n < len) {
             int count = read(b, off + n, len - n);
-            if (count < 0)
+            if (count < 0) {
                 throw new EOFException();
+            }
             n += count;
         }
     }
@@ -475,7 +470,9 @@ public class FFIByteVectorInputStream extends InputStream
 
         while (count < utflen) {
             c = (int) bytearr[count] & 0xff;
-            if (c > 127) break;
+            if (c > 127) {
+                break;
+            }
             count++;
             chararr[chararr_count++] = (char) c;
         }
@@ -499,27 +496,31 @@ public class FFIByteVectorInputStream extends InputStream
                 case 13:
                     /* 110x xxxx   10xx xxxx*/
                     count += 2;
-                    if (count > utflen)
+                    if (count > utflen) {
                         throw new UTFDataFormatException(
                             "malformed input: partial character at end");
+                    }
                     char2 = (int) bytearr[count - 1];
-                    if ((char2 & 0xC0) != 0x80)
+                    if ((char2 & 0xC0) != 0x80) {
                         throw new UTFDataFormatException(
                             "malformed input around byte " + count);
+                    }
                     chararr[chararr_count++] = (char) (((c & 0x1F) << 6) |
                         (char2 & 0x3F));
                     break;
                 case 14:
                     /* 1110 xxxx  10xx xxxx  10xx xxxx */
                     count += 3;
-                    if (count > utflen)
+                    if (count > utflen) {
                         throw new UTFDataFormatException(
                             "malformed input: partial character at end");
+                    }
                     char2 = (int) bytearr[count - 2];
                     char3 = (int) bytearr[count - 1];
-                    if (((char2 & 0xC0) != 0x80) || ((char3 & 0xC0) != 0x80))
+                    if (((char2 & 0xC0) != 0x80) || ((char3 & 0xC0) != 0x80)) {
                         throw new UTFDataFormatException(
                             "malformed input around byte " + (count - 1));
+                    }
                     chararr[chararr_count++] = (char) (((c & 0x0F) << 12) |
                         ((char2 & 0x3F) << 6) |
                         ((char3 & 0x3F) << 0));
@@ -586,6 +587,7 @@ public class FFIByteVectorInputStream extends InputStream
                 " bytes remaining, trying to read " + requiredBytes);
         }
     }
+
     @Override
     public int available() throws IOException {
         return (size - offset) > 0 ? 1 : 0;
