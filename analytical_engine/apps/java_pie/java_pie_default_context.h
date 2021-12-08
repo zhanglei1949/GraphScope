@@ -42,6 +42,8 @@ namespace gs {
 static constexpr const char* JSON_CLASS_NAME = "com.alibaba.fastjson.JSON";
 static constexpr const char* APP_CONTEXT_GETTER_CLASS =
     "com/alibaba/graphscope/utils/AppContextGetter";
+static constexpr const char* LOAD_LIBRARY_CLASS =
+    "com/alibaba/graphscope/utils/LoadLibrary";
 /**
  * @brief Driver context for Java context, work along with @see
  * gs::JavaPIEDefaultApp.
@@ -92,7 +94,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
 
   void Init(grape::DefaultMessageManager& messages,
             const std::string& app_class_name, const std::string& frag_name,
-            const std::string& params) {
+            const std::string& user_lib_path, const std::string& params) {
     JNIEnvMark m;
     if (m.env()) {
       JNIEnv* env = m.env();
@@ -107,6 +109,8 @@ class JavaPIEDefaultContext : public grape::ContextBase {
         CHECK_NOTNULL(gs_class_loader_obj);
         url_class_loader_object_ = env->NewGlobalRef(gs_class_loader_obj);
       }
+      LoadUserLibrary(user_lib_path);
+
       CHECK(!app_class_name.empty());
       app_class_name_ = JavaClassNameDashToSlash(app_class_name);
       app_object_ =
@@ -211,6 +215,34 @@ class JavaPIEDefaultContext : public grape::ContextBase {
         app_context_getter_class, app_context_getter_method, app_object_);
     CHECK_NOTNULL(context_class_jstring);
     return JString2String(env, context_class_jstring);
+  }
+  void LoadUserLibrary(const std::string& user_library_name) {
+    // Before query make sure the jni lib is loaded
+    if (!user_library_name.empty()) {
+      // Since we load loadLibraryClass with urlClassLoader, the
+      // fromClass.classLoader literal, which is used in System.load, should
+      // be urlClassLoader.
+      jclass load_library_class = (jclass) LoadClassWithClassLoader(
+          env, url_class_loader_object_, LOAD_LIBRARY_CLASS);
+      CHECK_NOTNULL(load_library_class);
+      jstring user_library_jstring =
+          env->NewStringUTF(user_library_name.c_str());
+      jmethodID load_library_methodID = env->GetStaticMethodID(
+          load_library_class, "invoke", "(Ljava/lang/String;)V");
+
+      // call static method
+      env->CallStaticVoidMethod(load_library_class, load_library_methodID,
+                                user_library_jstring);
+      if (env->ExceptionCheck()) {
+        LOG(ERROR) << "Exception occurred when loading user library";
+        env->ExceptionDescribe();
+        env->ExceptionClear();
+        LOG(ERROR) << "Exiting since exception occurred";
+      }
+      VLOG(1) << "Loaded specified user jni library: " << user_library_name;
+    } else {
+      LOG(1) << "Skipping loadin jni lib since user_library_name none";
+    }
   }
 
   const fragment_t& fragment_;
