@@ -1,6 +1,7 @@
 package com.alibaba.graphscope.serialization;
 
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
+import com.alibaba.graphscope.stdcxx.FFIByteVectorFactory;
 import java.io.DataInput;
 import java.io.EOFException;
 import java.io.IOException;
@@ -19,7 +20,7 @@ public class FFIByteVectorInputStream extends InputStream
     private char chararr[] = new char[80];
 
     public FFIByteVectorInputStream() {
-        vector = null;
+        vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
         offset = 0;
         size = 0;
     }
