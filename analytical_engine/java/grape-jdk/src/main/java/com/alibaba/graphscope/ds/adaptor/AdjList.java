@@ -3,6 +3,11 @@ package com.alibaba.graphscope.ds.adaptor;
 import com.alibaba.graphscope.ds.GrapeNbr;
 import java.util.Iterator;
 
+/**
+ * This interface define the neighboring vertices and edge data for a vertex.
+ * @param <VID_T> vertex id type.
+ * @param <EDATA_T> edge data type.
+ */
 public interface AdjList<VID_T, EDATA_T> {
 
     String type();
@@ -37,9 +42,9 @@ public interface AdjList<VID_T, EDATA_T> {
         if (type().equals(GrapeAdjListAdaptor.TYPE)) {
             return () ->
                     new Iterator<Nbr<VID_T, EDATA_T>>() {
-                        GrapeNbr<VID_T, EDATA_T> beginPtr = (GrapeNbr<VID_T, EDATA_T>) begin();
-                        GrapeNbr<VID_T, EDATA_T> endPtr = (GrapeNbr<VID_T, EDATA_T>) end();
-                        GrapeNbrAdaptor<VID_T, EDATA_T> curPtr = new GrapeNbrAdaptor<>(beginPtr);
+                        GrapeNbrAdaptor<VID_T, EDATA_T> beginPtr = (GrapeNbrAdaptor<VID_T, EDATA_T>) begin();
+                        GrapeNbrAdaptor<VID_T, EDATA_T> endPtr = (GrapeNbrAdaptor<VID_T, EDATA_T>) end();
+                        GrapeNbrAdaptor<VID_T, EDATA_T> curPtr = (GrapeNbrAdaptor<VID_T, EDATA_T>) begin();
                         long currentAddress;
                         long endAddress;
                         long elementSize;
@@ -47,7 +52,7 @@ public interface AdjList<VID_T, EDATA_T> {
                         {
                             this.currentAddress = beginPtr.getAddress();
                             this.endAddress = endPtr.getAddress();
-                            this.elementSize = beginPtr.elementSize();
+                            this.elementSize = beginPtr.getGrapeNbr().elementSize();
                         }
 
                         public boolean hasNext() {
