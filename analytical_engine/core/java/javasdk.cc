@@ -100,7 +100,7 @@ bool InitWellKnownClasses(JNIEnv* env) {
 
   class_loader_adapt2SimpleFragment_methodID = env->GetStaticMethodID(
       gs_class_loader_clz, "adapt2SimpleFragment",
-      "(Lcom/alibaba/graphscope/fragment/SimpleFragment;)Ljava/lang/Object;");
+      "(Ljava/lang/Object;)Lcom/alibaba/graphscope/fragment/SimpleFragment;");
   CHECK_NOTNULL(class_loader_adapt2SimpleFragment_methodID);
   return true;
 }
