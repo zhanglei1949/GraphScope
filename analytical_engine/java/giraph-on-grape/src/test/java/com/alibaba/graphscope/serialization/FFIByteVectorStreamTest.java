@@ -79,13 +79,13 @@ public class FFIByteVectorStreamTest {
             vector1.setRawInt(i * 4, i);
             vector2.setRawInt(i * 4, i + 10);
         }
+        FFIByteVectorInputStream inputStream2 = new FFIByteVectorInputStream();
+        inputStream2.digestVector(vector1);
+        inputStream2.digestVector(vector2);
 
-        inputStream.digestVector(vector1);
-        inputStream.digestVector(vector2);
-
-        Assert.assertTrue(inputStream.longAvailable() ==80);
+        Assert.assertTrue(inputStream2.longAvailable() ==80);
         for (int i = 0; i < 20; ++i){
-            Assert.assertTrue(inputStream.readInt() == i);
+            Assert.assertTrue(inputStream2.readInt() == i);
         }
     }
 
