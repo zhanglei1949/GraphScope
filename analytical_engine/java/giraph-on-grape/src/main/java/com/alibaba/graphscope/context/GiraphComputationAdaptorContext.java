@@ -62,7 +62,7 @@ public class GiraphComputationAdaptorContext implements
         innerVerticesNum = frag.getInnerVerticesNum();
 
         vertex = (VertexImpl<LongWritable, LongWritable, DoubleWritable>) VertexFactory
-            .<LongWritable, LongWritable, DoubleWritable>createDefaultVertex(frag);
+            .<LongWritable, LongWritable, DoubleWritable>createDefaultVertex(frag, this);
 
         giraphMessageManager = new GiraphDefaultMessageManager<>(frag, messageManager);
         userComputation.setGiraphMessageManager(giraphMessageManager);

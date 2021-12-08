@@ -6,6 +6,7 @@ import com.alibaba.fastffi.CXXValue;
 import com.alibaba.fastffi.FFIForeignType;
 import com.alibaba.fastffi.FFIPointerImpl;
 import com.alibaba.fastffi.FFISynthetic;
+import com.alibaba.fastffi.FFITypeAlias;
 import com.alibaba.fastffi.llvm4jni.runtime.JavaRuntime;
 
 /**
@@ -16,6 +17,7 @@ import com.alibaba.fastffi.llvm4jni.runtime.JavaRuntime;
     value = "std::vector<char>",
     factory = FFIByteVectorFactory.class
 )
+@FFITypeAlias("std::vector<char>")
 @FFISynthetic("com.alibaba.graphscope.stdcxx.StdVector")
 public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
 
