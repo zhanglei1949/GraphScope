@@ -128,8 +128,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
           env, java_frag_type_name_.c_str(), url_class_loader_object_,
           reinterpret_cast<jlong>(&fragment_));
       // wrap immutable or projected fragment as simple fragment
-      fragment_object_ = ImmutableFragment2Simple(env, url_class_loader_object_,
-                                                  fragment_object_impl_);
+      fragment_object_ = ImmutableFragment2Simple(env, fragment_object_impl_);
       mm_object_ = CreateFFIPointer(env, default_java_message_mananger_name_,
                                     url_class_loader_object_,
                                     reinterpret_cast<jlong>(&messages));

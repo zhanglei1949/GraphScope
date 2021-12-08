@@ -427,8 +427,8 @@ jclass LoadClassWithClassLoader(JNIEnv* env, const jobject& url_class_loader,
   }
   return result_class;
 }
-jobject ImmutableFragment2Simple(JNIEnv* env,
-                                 const jobject fragment_impl_obj) {
+
+jobject ImmutableFragment2Simple(JNIEnv* env,const jobject& fragment_impl_obj) {
   jobject res = (jobject) env->CallStaticObjectMethod(
       gs_class_loader_clz, class_loader_adapt2SimpleFragment_methodID,
       fragment_impl_obj);
