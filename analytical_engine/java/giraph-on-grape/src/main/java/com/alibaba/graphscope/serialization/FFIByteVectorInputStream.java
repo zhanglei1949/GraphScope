@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UTFDataFormatException;
+import java.util.Objects;
 
 public class FFIByteVectorInputStream extends InputStream
     implements DataInput {
@@ -39,7 +40,7 @@ public class FFIByteVectorInputStream extends InputStream
             size = this.vector.size();
         }
         else {
-            this.vector.appendVector(vector);
+            this.vector.appendVector(offset, vector);
             //offset will not change.
             size += vector.size();
         }
@@ -50,6 +51,14 @@ public class FFIByteVectorInputStream extends InputStream
      */
     public void reset(){
         offset = 0;
+    }
+
+    public void clear(){
+        if (Objects.nonNull(this.vector)){
+            this.vector.resize(0);
+            offset = 0;
+            size = 0;
+        }
     }
 
     public void setVector(FFIByteVector vector) {

@@ -209,6 +209,7 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
                         + size);
             } else {
                 //For messages send to local, we just do digest.
+                messagesIn.clear();
                 messagesIn.digestVector(messagesOut[i].getVector());
                 logger.info(
                     "In final step, Frag [" + fragId + "] digest msg to self of size: " + size);
