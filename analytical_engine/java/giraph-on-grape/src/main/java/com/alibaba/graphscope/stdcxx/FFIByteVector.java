@@ -248,7 +248,7 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
             System.out.println("Impossible ");
             return ;
         }
-        nativeSize(offset);
+        nativeResize(this.address, offset);
         size = offset;
     }
 
