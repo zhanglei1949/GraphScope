@@ -35,6 +35,7 @@ static constexpr const char* OPTION_EFILE = "efile";
 static constexpr const char* OPTION_VFILE = "vfile";
 static constexpr const char* OPTION_APP_CLASS = "app_class";
 static constexpr const char* OPTION_DRIVER_APP_CLASS = "java_driver_app";
+static constexpr const char* OPTION_LIB_PATH = "lib_path";
 
 static const std::string DEFAULT_JAVA_LOADER_CLASS =
     "com.alibaba.graphscope.loader.impl.FileLoader";
