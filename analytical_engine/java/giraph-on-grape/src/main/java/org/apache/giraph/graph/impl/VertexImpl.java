@@ -2,12 +2,16 @@ package org.apache.giraph.graph.impl;
 
 import com.alibaba.graphscope.context.GiraphComputationAdaptorContext;
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.utils.WritableFactory;
 import org.apache.giraph.conf.DefaultImmutableClassesGiraphConfigurable;
 import org.apache.giraph.edge.Edge;
 import org.apache.giraph.edge.MutableEdge;
 import org.apache.giraph.edge.MutableEdgesWrapper;
 import org.apache.giraph.edge.OutEdges;
 import org.apache.giraph.graph.Vertex;
+import org.apache.giraph.graph.VertexDataManager;
+import org.apache.giraph.graph.VertexIdManager;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
@@ -23,10 +27,28 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
     private long lid;
     private GiraphComputationAdaptorContext giraphComputationContext;
 
+    private VertexDataManager<VDATA_T> vertexDataManager;
+    private VertexIdManager<OID_T> vertexIdManager;
+
+
     public VertexImpl(SimpleFragment fragment, GiraphComputationAdaptorContext ctx){
         this.fragment = fragment;
         lid = -1; //set to a negative value to ensure set lid to be called later.
         this.giraphComputationContext = ctx;
+    }
+
+    public void setVertexDataManager(VertexDataManager vertexDataManager){
+        this.vertexDataManager = vertexDataManager;
+    }
+    public VertexDataManager getVertexDataManager(){
+        return this.vertexDataManager;
+    }
+
+    public void setVertexIdManager(VertexIdManager vertexIdManager){
+        this.vertexIdManager = vertexIdManager;
+    }
+    public VertexIdManager getVertexIdManager(){
+        return this.vertexIdManager;
     }
 
     /**
@@ -62,7 +84,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public OID_T getId() {
-        return null;
+        return vertexIdManager.getId(lid);
     }
 
     /**
@@ -72,7 +94,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public VDATA_T getValue() {
-        return null;
+        return vertexDataManager.getVertexData(lid);
     }
 
     /**
@@ -82,7 +104,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public void setValue(VDATA_T value) {
-
+        vertexDataManager.setVertexData(lid, value);
     }
 
     /**

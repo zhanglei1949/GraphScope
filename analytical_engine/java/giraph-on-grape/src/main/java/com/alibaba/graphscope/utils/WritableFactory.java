@@ -13,6 +13,8 @@ public class WritableFactory {
     private static Class<? extends Writable> outMsgClass;
 
     private static Class<? extends WritableComparable> oidClass;
+    private static Class<? extends WritableComparable> vdataClass;
+
 
     public static void setInMsgClass(Class<? extends Writable> param){
         inMsgClass = param;
@@ -23,6 +25,10 @@ public class WritableFactory {
     public static void setOidClass(Class<? extends WritableComparable> param){
         oidClass = param;
     }
+    public static void setVdataClass(Class<? extends WritableComparable> param){
+        vdataClass = param;
+    }
+
 
     public static WritableComparable newOid(){
         if (oidClass == null){
@@ -62,6 +68,22 @@ public class WritableFactory {
         }
         try {
             return outMsgClass.newInstance();
+        } catch (InstantiationException e) {
+            logger.error(e.getMessage());
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            logger.error(e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static Writable newVData(){
+        if (vdataClass == null){
+            logger.error("Set oid class first");
+        }
+        try {
+            return vdataClass.newInstance();
         } catch (InstantiationException e) {
             logger.error(e.getMessage());
             e.printStackTrace();

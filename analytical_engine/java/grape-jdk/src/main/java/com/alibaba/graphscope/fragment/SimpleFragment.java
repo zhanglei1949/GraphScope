@@ -249,4 +249,22 @@ public interface SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> {
     @FFINameAlias("GetOutgoingAdjList")
     @CXXValue
     AdjList<VID_T, EDATA_T> getOutgoingAdjList(@CXXReference Vertex<VID_T> vertex);
+
+    /**
+     * Get the data on vertex.
+     *
+     * @param vertex querying vertex.
+     * @return vertex data
+     */
+    @FFINameAlias("GetData")
+    VDATA_T getData(@CXXReference Vertex<VID_T> vertex);
+
+    /**
+     * Update vertex data with a new value.
+     *
+     * @param vertex querying vertex.
+     * @param vdata new vertex data.
+     */
+    @FFINameAlias("SetData")
+    void setData(@CXXReference Vertex<VID_T> vertex, @CXXReference VDATA_T vdata);
 }

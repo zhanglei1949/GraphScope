@@ -13,11 +13,16 @@ import com.alibaba.graphscope.utils.GrapeReflectionUtils;
 import com.alibaba.graphscope.utils.WritableFactory;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.rmi.server.ObjID;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import org.apache.giraph.graph.AbstractComputation;
+import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexFactory;
+import org.apache.giraph.graph.VertexIdManager;
+import org.apache.giraph.graph.impl.VertexDataManagerImpl;
+import org.apache.giraph.graph.impl.VertexIdManagerImpl;
 import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -37,6 +42,15 @@ public class GiraphComputationAdaptorContext implements
     private static Logger logger = LoggerFactory.getLogger(GiraphComputationAdaptorContext.class);
     private long innerVerticesNum;
     private GiraphMessageManager<LongWritable, LongWritable, DoubleWritable, LongWritable, LongWritable> giraphMessageManager;
+
+    /**
+     * Manages the vertex original id.
+     */
+    private VertexIdManager vertexIdManager;
+    /**
+     * Manages the vertex data.
+     */
+    private VertexDataManager vertexDataManager;
 
     public AbstractComputation<LongWritable, LongWritable, DoubleWritable, LongWritable, LongWritable> getUserComputation() {
         return userComputation;
@@ -62,8 +76,7 @@ public class GiraphComputationAdaptorContext implements
         innerVertices = frag.innerVertices();
         innerVerticesNum = frag.getInnerVerticesNum();
 
-        vertex = (VertexImpl<LongWritable, LongWritable, DoubleWritable>) VertexFactory
-            .<LongWritable, LongWritable, DoubleWritable>createDefaultVertex(frag, this);
+
 
         giraphMessageManager = new GiraphDefaultMessageManager<>(frag, messageManager);
         userComputation.setGiraphMessageManager(giraphMessageManager);
@@ -73,6 +86,15 @@ public class GiraphComputationAdaptorContext implements
 
         //halt array to mark active
         halted = new BitSet((int) frag.getInnerVerticesNum());
+
+        //Init vertex data/oid manager
+        vertexDataManager = new VertexDataManagerImpl<LongWritable>(frag, innerVertices);
+        vertexIdManager = new VertexIdManagerImpl<LongWritable>(frag, innerVertices);
+
+        vertex = (VertexImpl<LongWritable, LongWritable, DoubleWritable>) VertexFactory
+            .<LongWritable, LongWritable, DoubleWritable>createDefaultVertex(frag, this);
+        vertex.setVertexIdManager(vertexIdManager);
+        vertex.setVertexDataManager(vertexDataManager);
     }
 
     @Override
@@ -107,10 +129,9 @@ public class GiraphComputationAdaptorContext implements
         }
         WritableFactory.setOidClass((Class<? extends WritableComparable>) clzList.get(0));
         WritableFactory.setInMsgClass((Class<? extends Writable>) clzList.get(3));
-        if (typeParams.length == 4){
+        if (typeParams.length == 4) {
             WritableFactory.setOutMsgClass((Class<? extends Writable>) clzList.get(3));
-        }
-        else {
+        } else {
             WritableFactory.setOutMsgClass((Class<? extends Writable>) clzList.get(4));
         }
     }

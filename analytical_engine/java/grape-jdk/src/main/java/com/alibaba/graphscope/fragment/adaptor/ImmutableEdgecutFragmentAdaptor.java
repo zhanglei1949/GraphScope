@@ -183,4 +183,26 @@ public class ImmutableEdgecutFragmentAdaptor<OID_T, VID_T, VDATA_T, EDATA_T>
     public AdjList<VID_T, EDATA_T> getOutgoingAdjList(Vertex<VID_T> vertex) {
         return new GrapeAdjListAdaptor<>(fragment.getOutgoingAdjList(vertex));
     }
+
+    /**
+     * Get the data on vertex.
+     *
+     * @param vertex querying vertex.
+     * @return vertex data
+     */
+    @Override
+    public VDATA_T getData(Vertex<VID_T> vertex) {
+        return fragment.getData(vertex);
+    }
+
+    /**
+     * Update vertex data with a new value.
+     *
+     * @param vertex querying vertex.
+     * @param vdata new vertex data.
+     */
+    @Override
+    public void setData(Vertex<VID_T> vertex, VDATA_T vdata) {
+        fragment.setData(vertex, vdata);
+    }
 }
