@@ -30,7 +30,6 @@ import com.alibaba.fastffi.CXXReference;
 import com.alibaba.fastffi.CXXTemplate;
 import com.alibaba.fastffi.FFIGen;
 import com.alibaba.fastffi.FFINameAlias;
-import com.alibaba.fastffi.FFISkip;
 import com.alibaba.fastffi.FFITypeAlias;
 import com.alibaba.graphscope.app.DefaultAppBase;
 import com.alibaba.graphscope.ds.Vertex;
@@ -40,7 +39,6 @@ import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.fragment.adaptor.ArrowProjectedAdaptor;
 import com.alibaba.graphscope.fragment.adaptor.ImmutableEdgecutFragmentAdaptor;
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
-import com.alibaba.graphscope.utils.CppClassName;
 
 /**
  * The default message manager, used in serial apps {@link DefaultAppBase} and {@link
@@ -57,11 +55,8 @@ import com.alibaba.graphscope.utils.CppClassName;
 })
 public interface DefaultMessageManager extends MessageManagerBase {
 
-    default <FRAG_T extends SimpleFragment> void sendToFragment(
-        @CXXReference FRAG_T frag, @CXXReference FFIByteVector msg) {
-        if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
-            sendToImmutableFragment(frag.fid(), msg);
-        }
+    default void sendToFragment(int fid, @CXXReference FFIByteVector msg) {
+        sendToImmutableFragment(fid, msg);
     }
 
     default <FRAG_T extends SimpleFragment, MSG_T> boolean getMessage(
@@ -127,11 +122,11 @@ public interface DefaultMessageManager extends MessageManagerBase {
     /**
      * Send a message to Immutable fragment.
      *
-     * @param msg      msg to send
+     * @param msg     msg to send
      * @param <MSG_T> msg type
      */
     @FFINameAlias("SendToFragment")
-    @CXXTemplate(cxx = "std::vector<char>",  java = "com.alibaba.graphscope.stdcxx.FFIByteVector")
+    @CXXTemplate(cxx = "std::vector<char>", java = "com.alibaba.graphscope.stdcxx.FFIByteVector")
     <MSG_T> void sendToImmutableFragment(int dst_fid,
         @CXXReference MSG_T msg);
 
@@ -149,10 +144,11 @@ public interface DefaultMessageManager extends MessageManagerBase {
     /**
      * Get message into target MSG_T.
      *
-     * @param msg     received msg.
+     * @param msg received msg.
      * @return
      */
-    @FFINameAlias("GetMessage") boolean getPureMessage(@CXXReference @FFITypeAlias("std::vector<char>") FFIByteVector msg);
+    @FFINameAlias("GetMessage") boolean getPureMessage(
+        @CXXReference @FFITypeAlias("std::vector<char>") FFIByteVector msg);
 
     /**
      * Get the message received for specified vertex during last super step.
