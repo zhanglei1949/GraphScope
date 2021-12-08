@@ -193,9 +193,11 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
 
     /**
      * Make sure all messages has been sent.
+     * Clean outputstream buffer
      */
     @Override
     public void finishMessageSending() {
+        this.messagesIn.reset();
         for (int i = 0; i < fragmentNum; ++i) {
             long size = messagesOut[i].bytesWriten();
             messagesOut[i].finishSetting();
@@ -211,6 +213,7 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
                 logger.info(
                     "In final step, Frag [" + fragId + "] digest msg to self of size: " + size);
             }
+            messagesOut[i].reset();
         }
     }
 

@@ -44,6 +44,10 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
         this.fragment = fragment;
     }
 
+    public void incStep(){
+        curStep ++;
+    }
+
     /**
      * Prepare for computation. This method is executed exactly once prior to {@link
      * #compute(Vertex, Iterable)} being called for any of the vertices in the partition.

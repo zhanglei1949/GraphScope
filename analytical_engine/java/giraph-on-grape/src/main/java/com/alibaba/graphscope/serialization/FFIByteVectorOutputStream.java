@@ -21,6 +21,9 @@ public class FFIByteVectorOutputStream extends OutputStream
         vector.resize(size);
     }
 
+    /**
+     * Reset actually reset the write position, the size kept unchanged.
+     */
     public void reset(){
         offset = 0;
     }
