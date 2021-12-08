@@ -17,12 +17,12 @@ public class GrapeAdjListAdaptor<VID_T, EDATA_T> implements AdjList<VID_T, EDATA
 
     @Override
     public Nbr<VID_T, EDATA_T> begin() {
-        return (Nbr<VID_T, EDATA_T>) adjList.begin();
+        return new GrapeNbrAdaptor<>(adjList.begin());
     }
 
     @Override
     public Nbr<VID_T, EDATA_T> end() {
-        return (Nbr<VID_T, EDATA_T>) adjList.end();
+        return new GrapeNbrAdaptor<>(adjList.end());
     }
 
     @Override
