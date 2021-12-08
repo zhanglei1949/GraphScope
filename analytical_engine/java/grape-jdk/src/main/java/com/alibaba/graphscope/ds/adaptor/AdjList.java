@@ -1,6 +1,7 @@
 package com.alibaba.graphscope.ds.adaptor;
 
 import java.util.Iterator;
+import java.util.Objects;
 
 /**
  * This interface define the neighboring vertices and edge data for a vertex.
@@ -48,13 +49,18 @@ public interface AdjList<VID_T, EDATA_T> {
                                 (GrapeNbrAdaptor<VID_T, EDATA_T>) end();
                         GrapeNbrAdaptor<VID_T, EDATA_T> curPtr =
                                 (GrapeNbrAdaptor<VID_T, EDATA_T>) begin();
-                        long currentAddress;
-                        long endAddress;
-                        long elementSize;
+                        long currentAddress = 0;
+                        long endAddress = 0;
+                        long elementSize = 0;
 
+                        //There are cases where begin() and end() nbrs are null.
                         {
-                            this.currentAddress = beginPtr.getAddress();
-                            this.endAddress = endPtr.getAddress();
+                            if (Objects.nonNull(beginPtr.getGrapeNbr()) && beginPtr.getAddress() > 0){
+                                this.currentAddress = beginPtr.getAddress();
+                            }
+                            if (Objects.nonNull(endPtr.getGrapeNbr()) && endPtr.getAddress() > 0){
+                                this.endAddress = endPtr.getAddress();
+                            }
                             this.elementSize = beginPtr.getGrapeNbr().elementSize();
                         }
 
