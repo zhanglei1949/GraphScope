@@ -2,6 +2,11 @@ package com.alibaba.graphscope.ds.adaptor;
 
 import com.alibaba.graphscope.ds.GrapeAdjList;
 
+/**
+ * Wrap a grape nbr into one object that fit Nbr interface.
+ * @param <VID_T> vertex id type.
+ * @param <EDATA_T> edge data type.
+ */
 public class GrapeAdjListAdaptor<VID_T, EDATA_T> implements AdjList<VID_T, EDATA_T> {
     public static final String TYPE = "GrapeAdjList";
     private GrapeAdjList<VID_T, EDATA_T> adjList;

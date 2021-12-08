@@ -36,12 +36,13 @@ public class GiraphComputationAdaptorContext implements
     public VertexImpl<LongWritable, LongWritable, DoubleWritable> vertex;
     private static Logger logger = LoggerFactory.getLogger(GiraphComputationAdaptorContext.class);
     private long innerVerticesNum;
-    private GiraphMessageManager<LongWritable, LongWritable, DoubleWritable,LongWritable,LongWritable> giraphMessageManager;
+    private GiraphMessageManager<LongWritable, LongWritable, DoubleWritable, LongWritable, LongWritable> giraphMessageManager;
 
-    public AbstractComputation<LongWritable,LongWritable,DoubleWritable,LongWritable,LongWritable> getUserComputation(){
+    public AbstractComputation<LongWritable, LongWritable, DoubleWritable, LongWritable, LongWritable> getUserComputation() {
         return userComputation;
     }
-    public GiraphMessageManager<LongWritable, LongWritable, DoubleWritable,LongWritable,LongWritable> getGiraphMessageManager(){
+
+    public GiraphMessageManager<LongWritable, LongWritable, DoubleWritable, LongWritable, LongWritable> getGiraphMessageManager() {
         return giraphMessageManager;
     }
 
@@ -71,7 +72,7 @@ public class GiraphComputationAdaptorContext implements
         initWritableFactory(userComputation);
 
         //halt array to mark active
-        halted = new BitSet((int)frag.getInnerVerticesNum());
+        halted = new BitSet((int) frag.getInnerVerticesNum());
     }
 
     @Override
@@ -81,38 +82,48 @@ public class GiraphComputationAdaptorContext implements
 
     /**
      * User app extends abstract computation, so we use reflection to find it type parameters.
+     * Notice that user can extend {@link AbstractComputation} and ${@link
+     * org.apache.giraph.graph.BasicComputation}, we need to take both of them into consideration.
+     *
      * @param userComputation instance OF USER app
      */
-    private void initWritableFactory(AbstractComputation userComputation){
+    private void initWritableFactory(AbstractComputation userComputation) {
         Class<? extends AbstractComputation> userComputationClz = userComputation.getClass();
         Type genericType = userComputationClz.getGenericSuperclass();
         // System.out.println(genericType[0].getTypeName());
         if (!(genericType instanceof ParameterizedType)) {
             logger.error("not parameterize type");
-            return ;
+            return;
         }
         Type[] typeParams = ((ParameterizedType) genericType).getActualTypeArguments();
-        if (typeParams.length != 5){
-            logger.error("number of params doesn't match, should be 5, acutual is" + typeParams.length);
-            return ;
+        if (typeParams.length > 5 || typeParams.length < 4) {
+            logger.error(
+                "number of params doesn't match, should be 5, acutual is" + typeParams.length);
+            return;
         }
         List<Class<?>> clzList = new ArrayList<>(5);
-        for (int i = 0; i < typeParams.length; ++i){
+        for (int i = 0; i < typeParams.length; ++i) {
             clzList.add((Class<?>) typeParams[i]);
         }
         WritableFactory.setOidClass((Class<? extends WritableComparable>) clzList.get(0));
         WritableFactory.setInMsgClass((Class<? extends Writable>) clzList.get(3));
+        if (typeParams.length == 4){
+            WritableFactory.setOutMsgClass((Class<? extends Writable>) clzList.get(3));
+        }
+        else {
+            WritableFactory.setOutMsgClass((Class<? extends Writable>) clzList.get(4));
+        }
     }
 
-    public void haltVertex(long lid){
-        halted.set((int)lid);
+    public void haltVertex(long lid) {
+        halted.set((int) lid);
     }
 
-    public boolean isHalted(long lid){
-        return halted.get((int)lid);
+    public boolean isHalted(long lid) {
+        return halted.get((int) lid);
     }
 
-    public boolean allHalted(){
+    public boolean allHalted() {
         return halted.cardinality() == innerVerticesNum;
     }
 }
