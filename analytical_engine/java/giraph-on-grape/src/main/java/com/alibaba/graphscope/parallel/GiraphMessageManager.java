@@ -20,6 +20,13 @@ public interface GiraphMessageManager<OID_T extends WritableComparable,VDATA_T e
     Iterable<IN_MSG_T> getMessages(long lid);
 
     /**
+     * Check any message available on this vertex.
+     * @param lid local id
+     * @return true if recevied messages.
+     */
+    boolean messageAvailable(long lid);
+
+    /**
      * Send msg to all neighbors of vertex.
      * @param vertex querying vertex
      * @param message message to send.
@@ -30,4 +37,11 @@ public interface GiraphMessageManager<OID_T extends WritableComparable,VDATA_T e
      * Make sure all messages has been sent.
      */
     void finishMessageSending();
+
+
+    /**
+     * Check any messages to self.
+     * @return true if messages sent to self.
+     */
+    boolean anyMessageToSelf();
 }

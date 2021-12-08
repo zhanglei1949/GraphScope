@@ -36,4 +36,8 @@ public class MessageIterable<MSG_T extends Writable> implements Iterable<MSG_T> 
     public void clear(){
         msgs.clear();
     }
+
+    public int size(){
+        return msgs.size();
+    }
 }

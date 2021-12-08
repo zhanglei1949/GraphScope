@@ -75,6 +75,11 @@ public class GiraphComputationAdaptor implements
         //wait msg send finish.
         giraphMessageManager.finishMessageSending();
 
+        //We can not judge whether to proceed by messages sent and check halted array.
+        if (giraphMessageManager.anyMessageToSelf()){
+            messageManager.ForceContinue();
+        }
+
         //do aggregation.
     }
 
@@ -106,6 +111,9 @@ public class GiraphComputationAdaptor implements
         try {
             for (Vertex<Long> grapeVertex : ctx.innerVertices) {
                 int lid = grapeVertex.GetValue().intValue();
+                if (giraphMessageManager.messageAvailable(lid)){
+                    ctx.activateVertex(lid); //set halted[lid] to false;
+                }
                 if (!ctx.isHalted(lid)) {
                     ctx.vertex.setLocalId(lid);
                     userComputation.compute(ctx.vertex, giraphMessageManager.getMessages(lid));
@@ -118,11 +126,8 @@ public class GiraphComputationAdaptor implements
         //2. send msg
         giraphMessageManager.finishMessageSending();
 
-        if (!ctx.allHalted()) {
+        if (giraphMessageManager.anyMessageToSelf()) {
             messageManager.ForceContinue();
-            ;
-        } else {
-            logger.info("All halted.");
         }
 
     }
