@@ -136,12 +136,10 @@ void CreateAndQuery(std::string params) {
   std::string user_app_class = getFromPtree<std::string>(pt, OPTION_APP_CLASS);
   std::string driver_app_class =
       getFromPtree<std::string>(pt, OPTION_DRIVER_APP_CLASS);
-  if (user_app_class.find("MaxCompute") != std::string::npos) {
-    std::string frag_name = QUOTE(GRAPH_TYPE);
-    Query<GRAPH_TYPE>(comm_spec, fragment, driver_app_class, frag_name, params);
-  } else {
-    VLOG(1) << "Unrecoginized app: " << user_app_class;
-  }
+
+//  std::string frag_name = QUOTE(GRAPH_TYPE);
+  std::string frag_name = getenv("GRAPH_TYPE");
+  Query<GRAPH_TYPE>(comm_spec, fragment, driver_app_class, frag_name, params);
 }
 
 void Finalize() {

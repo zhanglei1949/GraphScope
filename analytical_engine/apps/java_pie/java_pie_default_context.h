@@ -100,9 +100,10 @@ class JavaPIEDefaultContext : public grape::ContextBase {
         // Create a gs class loader obj which has same classPath with parent
         // classLoader.
         std::string gs_classLoader_cp;
-        if (getenv("GS_CLASSLOADER_CP")) {
+        if (getenv("USER_JAR_PATH")) {
           gs_classLoader_cp = getenv("USER_JAR_PATH");
         }
+	VLOG(1) << "Created class loader with cp: " << gs_classLoader_cp;
         jobject gs_class_loader_obj = CreateClassLoader(env, gs_classLoader_cp);
         CHECK_NOTNULL(gs_class_loader_obj);
         url_class_loader_object_ = env->NewGlobalRef(gs_class_loader_obj);
