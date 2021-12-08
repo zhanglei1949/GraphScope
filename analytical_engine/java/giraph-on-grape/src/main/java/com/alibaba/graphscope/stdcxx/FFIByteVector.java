@@ -180,6 +180,9 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
 
     public void resize(long arg0) {
         nativeResize(this.address, arg0);
+        //After resize, we need to update obj address and current size
+        objAddress = JavaRuntime.getLong(address);
+        size = arg0;
     }
 
     public static native void nativeResize(long var0, long var2);
