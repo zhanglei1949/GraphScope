@@ -10,7 +10,8 @@
     <logger name="com.alibaba.graphscope.serialization.FFIByteVectorOutputStream" level="info"/>
     <logger name="com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager" level="info"/>
     <logger name="com.alibaba.graphscope.app.GiraphComputationAdaptor" level="info"/>
-
+    <logger name="com.alibaba.graphscope.samples.MessageApp" level="info"/>
+    <logger name="com.alibaba.graphscope.samples.MaxApp" level="info"/>
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>

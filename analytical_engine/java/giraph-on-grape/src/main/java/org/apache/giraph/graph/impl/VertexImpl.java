@@ -131,7 +131,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      * Get a read-only view of the out-edges of this vertex. Note: edge objects returned by this
      * iterable may be invalidated as soon as the next element is requested. Thus, keeping a
      * reference to an edge almost always leads to undesired behavior. Accessing the edges with
-     * other methods (e.g., addEDATA_Tdge()) during iteration leads to undefined behavior.
+     * other methods (e.g., addEdge()) during iteration leads to undefined behavior.
      *
      * @return the out edges (sort order determined by subclass implementation).
      */
