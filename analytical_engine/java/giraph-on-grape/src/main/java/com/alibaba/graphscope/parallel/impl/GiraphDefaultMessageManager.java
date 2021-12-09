@@ -80,9 +80,12 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
         parallelClearReceiveMessages();
 
         FFIByteVector tmpVector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
+	logger.info("Frag [" + fragId +" tmp vector: " + tmpVector.getAddress());
         while (grapeMessageManager.getPureMessage(tmpVector)){
             //OutArchive will do the resize;
+	    logger.info("Frag [" + fragId + "before digest: " + tmpVector.getAddress());
             this.messagesIn.digestVector(tmpVector);
+	    logger.info("Frag [" + fragId + "after digest: " + tmpVector.getAddress());
         }
         //Parse messageIn and form into Iterable<message> for each vertex;
         logger.info("Frag [" + fragId + "] totally Received [" + messagesIn.longAvailable() + "] bytes, starting deserialization");

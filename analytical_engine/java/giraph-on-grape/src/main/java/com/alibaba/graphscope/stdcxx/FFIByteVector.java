@@ -8,6 +8,8 @@ import com.alibaba.fastffi.FFIPointerImpl;
 import com.alibaba.fastffi.FFISynthetic;
 import com.alibaba.fastffi.FFITypeAlias;
 import com.alibaba.fastffi.llvm4jni.runtime.JavaRuntime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is a FFIWrapper for std::vector. The code origins from the generated code via FFI and
@@ -20,6 +22,8 @@ import com.alibaba.fastffi.llvm4jni.runtime.JavaRuntime;
 @FFITypeAlias("std::vector<char>")
 @FFISynthetic("com.alibaba.graphscope.stdcxx.StdVector")
 public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
+
+    private static Logger logger = LoggerFactory.getLogger(FFIByteVector.class);
 
     public static final int SIZE = _elementSize$$$();
     //Actual starting address of data
@@ -157,9 +161,15 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
     public void appendVector(FFIByteVector vector){
 //        long curSize = size();
 //        resize(curSize + vector.size());
+	logger.info("appending: " + vector.getAddress() + ", " + vector.size());	
         int vecSize = (int) vector.size();
+        long oldSize = size;
+	logger.info("old size: " + oldSize + ", " + objAddress);
         ensure(size, vecSize);
-        JavaRuntime.copyMemory(vector.objAddress + 0, objAddress + size - vecSize , vecSize);
+	logger.info("new size: " + size + ", " + objAddress);
+	//CAUTION: vector.objAddress can be invalid when c++ call resize, call data make sure we are sfae.
+        JavaRuntime.copyMemory(vector.data() + 0, objAddress + oldSize, vecSize);
+	logger.info("finish copy");
     }
 
     @CXXOperator("[]")

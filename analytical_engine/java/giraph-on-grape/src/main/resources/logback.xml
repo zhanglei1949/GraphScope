@@ -1,26 +1,13 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<configuration scan="true" scanPeriod="60 second" debug="false">
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+　　　　　 <encoder>
+　　　　　　　　　<pattern>[%d{ISO8601}][%p][%t][%c:%L] %m%n</pattern>
+　　　　　 </encoder>
+　　　</appender>
 
-  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-
-    <encoder>
-      <Pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}] [PID:%process_id] [%5level] [%thread] %logger{0} %msg%n</Pattern>
-      <charset>UTF-8</charset>
-    </encoder>
-  </appender>
-
-<!--  <appender name="DEBUG" class="ch.qos.logback.core.FileAppender">-->
-<!--    <file>debug.log</file>-->
-<!--    <append>true</append>-->
-<!--    <filter class="ch.qos.logback.classic.filter.LevelFilter">-->
-<!--      <level>DEBUG</level>-->
-<!--      <onMatch>ACCEPT</onMatch>-->
-<!--      <onMismatch>DENY</onMismatch>-->
-<!--    </filter>-->
-<!--    <encoder>-->
-<!--      <Pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%5level] [%thread] %logger{0} %msg%n</Pattern>-->
-<!--      <charset>UTF-8</charset>-->
-<!--    </encoder>-->
-<!--  </appender>-->
-
+    <root level="info">
+        <appender-ref ref="STDOUT" />
+    </root>
 </configuration>
+
+

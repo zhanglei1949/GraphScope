@@ -102,14 +102,15 @@ class JavaPIEDefaultContext : public grape::ContextBase {
         // Create a gs class loader obj which has same classPath with parent
         // classLoader.
         std::string gs_classLoader_cp;
-        if (getenv("GS_CLASSLOADER_CP")) {
+        if (getenv("USER_JAR_PATH")) {
           gs_classLoader_cp = getenv("USER_JAR_PATH");
         }
+	VLOG(1) << "Created class loader with cp: " << gs_classLoader_cp;
         jobject gs_class_loader_obj = CreateClassLoader(env, gs_classLoader_cp);
         CHECK_NOTNULL(gs_class_loader_obj);
         url_class_loader_object_ = env->NewGlobalRef(gs_class_loader_obj);
       }
-      LoadUserLibrary(user_lib_path);
+      LoadUserLibrary(env, user_lib_path);
 
       CHECK(!app_class_name.empty());
       app_class_name_ = JavaClassNameDashToSlash(app_class_name);
@@ -215,7 +216,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
     CHECK_NOTNULL(context_class_jstring);
     return JString2String(env, context_class_jstring);
   }
-  void LoadUserLibrary(const std::string& user_library_name) {
+  void LoadUserLibrary(JNIEnv* env, const std::string& user_library_name) {
     // Before query make sure the jni lib is loaded
     if (!user_library_name.empty()) {
       // Since we load loadLibraryClass with urlClassLoader, the
@@ -240,7 +241,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
       }
       VLOG(1) << "Loaded specified user jni library: " << user_library_name;
     } else {
-      LOG(1) << "Skipping loadin jni lib since user_library_name none";
+      VLOG(1) << "Skipping loadin jni lib since user_library_name none";
     }
   }
 
