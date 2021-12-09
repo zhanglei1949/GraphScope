@@ -29,7 +29,7 @@ public class FFIByteVectorInputStream extends InputStream
         vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
         offset = 0;
 //        size = 0;
-        readableLimit = 0;
+        readableLimit = vector.size();
     }
 
     /**
