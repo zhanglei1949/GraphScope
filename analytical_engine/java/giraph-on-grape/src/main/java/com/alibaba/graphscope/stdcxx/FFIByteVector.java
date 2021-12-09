@@ -164,9 +164,14 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
 //        resize(curSize + vector.size());
         int vecSize = (int) vector.size();
         long oldSize = size;
-        ensure(size, vecSize);
+        
+	//We CAN"T call ensure here, since it will expand buffer larger than we want.
+//	ensure(size, vecSize);
+	resize(size + vecSize);
         //CAUTION: vector.objAddress can be invalid when c++ call resize, call data make sure we are sfae.
+        logger.info("before append vector, oldsize: " + oldSize + ", new size: " + size + ",vecsize: " + vecSize);
         JavaRuntime.copyMemory(vector.data() + 0, objAddress + oldSize, vecSize);
+        logger.info("after append vector, oldsize: " + oldSize + ", new size: " + size + ",vecsize: " + vecSize);
     }
 
     @CXXOperator("[]")

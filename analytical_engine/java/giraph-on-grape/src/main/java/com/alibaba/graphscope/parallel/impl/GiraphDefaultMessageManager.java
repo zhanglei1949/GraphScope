@@ -29,7 +29,7 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
     /**
      * If cached message exceeds this threshold, we will send them immediately.
      */
-    public static long THRESHOLD = 1024 * 16;
+    public static long THRESHOLD = 1024 * 512;
 
     private static Logger logger = LoggerFactory.getLogger(GiraphDefaultMessageManager.class);
 
