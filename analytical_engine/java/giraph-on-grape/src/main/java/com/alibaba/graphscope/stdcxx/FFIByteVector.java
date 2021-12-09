@@ -160,16 +160,21 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
      * vector.size()] to [readableLimit, readableLimit + vector.size()].
      * </p>
      *
-     * @param readAbleLimit The start pos of this copy action.
+     * @param readableLimit The start pos of this copy action.
      * @param vector        vector to be appended.
      */
-    public void appendVector(long readAbleLimit, FFIByteVector vector) {
+    public void appendVector(long readableLimit, FFIByteVector vector) {
 //        long curSize = size();
 //        resize(curSize + vector.size());
         int vecSize = (int) vector.size();
-        ensure(readAbleLimit, vecSize);
-        //CAUTION: vector.objAddress can be invalid when c++ call resize, call data make sure we are safe.
-        JavaRuntime.copyMemory(vector.data() + 0, objAddress + readAbleLimit, vecSize);
+        long oldSize = size;
+
+        ensure(readableLimit, vecSize);
+
+        //CAUTION: vector.objAddress can be invalid when c++ call resize, call data make sure we are sfae.
+        logger.info("before append vector, oldsize: " + oldSize + ", new size: " + size + ",vecsize: " + vecSize);
+        JavaRuntime.copyMemory(vector.data() + 0, objAddress + readableLimit, vecSize);
+        logger.info("after append vector, oldsize: " + oldSize + ", new size: " + size + ",vecsize: " + vecSize);
     }
 
     @CXXOperator("[]")
