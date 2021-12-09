@@ -17,6 +17,7 @@ import java.rmi.server.ObjID;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
+import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.graph.EdgeManager;
 import org.apache.giraph.graph.VertexDataManager;
@@ -79,12 +80,15 @@ public class GiraphComputationAdaptorContext implements
             logger.error("Empty app class");
             return;
         }
+
+        ImmutableClassesGiraphConfiguration configuration = new ImmutableClassesGiraphConfiguration();
+
         userComputation = GrapeReflectionUtils.loadAndCreate(userComputationClass);
+        userComputation.setConf(configuration);
+
         logger.info("Created user computation class: " + userComputation.getClass().getName());
         innerVertices = frag.innerVertices();
         innerVerticesNum = frag.getInnerVerticesNum();
-
-
 
         giraphMessageManager = new GiraphDefaultMessageManager<>(frag, messageManager);
         userComputation.setGiraphMessageManager(giraphMessageManager);

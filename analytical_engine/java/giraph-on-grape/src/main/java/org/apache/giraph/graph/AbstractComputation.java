@@ -171,7 +171,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
 
     @Override
     public void sendMessage(OID_T id, OUT_MSG_T message) {
-
+        giraphMessageManager.sendMessage(id, message);
     }
 
     @Override

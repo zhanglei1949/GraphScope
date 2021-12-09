@@ -1,5 +1,6 @@
 package com.alibaba.graphscope.parallel;
 
+import java.io.IOException;
 import org.apache.giraph.graph.Vertex;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -25,6 +26,13 @@ public interface GiraphMessageManager<OID_T extends WritableComparable,VDATA_T e
      * @return true if recevied messages.
      */
     boolean messageAvailable(long lid);
+
+    /**
+     * Send one message to dstOid.
+     * @param dstOid vertex to receive this message.
+     * @param message message.
+     */
+    void sendMessage(OID_T dstOid, OUT_MSG_T message);
 
     /**
      * Send msg to all neighbors of vertex.
