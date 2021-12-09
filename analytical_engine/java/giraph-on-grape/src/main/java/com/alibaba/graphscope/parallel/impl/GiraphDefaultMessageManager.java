@@ -99,7 +99,7 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
                 inMsg.readFields(messagesIn);
                 //TODO: only for testing
                 LongWritable inMsg2 = (LongWritable) inMsg;
-                logger.info("Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
+                logger.debug("Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
 
                 //store the msg
                 fragment.gid2Vertex(dstVertexGid, vertex);
@@ -184,9 +184,9 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
             e.printStackTrace();
         }
 
-        logger.info("After send messages from vertex: " + grapeVertex.GetValue() + " through all edges");
+        logger.debug("After send messages from vertex: " + grapeVertex.GetValue() + " through all edges");
         for (int i = 0; i < fragment.fnum(); ++i) {
-            logger.info("To frag[" + i + "]: " + messagesOut[i].bytesWriten());
+            logger.debug("To frag[" + i + "]: " + messagesOut[i].bytesWriten());
         }
     }
 
