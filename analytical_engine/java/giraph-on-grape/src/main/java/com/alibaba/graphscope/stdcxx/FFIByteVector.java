@@ -156,20 +156,17 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
     /**
      * This function copy another vector's memory after this vector. Shall be used in InputStream,
      * Make sure that there is no blank space in range (objectAddress, objectAddress + curSize).
+     *
      * @param vector vector to be appended.
      */
-    public void appendVector(FFIByteVector vector){
+    public void appendVector(FFIByteVector vector) {
 //        long curSize = size();
 //        resize(curSize + vector.size());
-	logger.info("appending: " + vector.getAddress() + ", " + vector.size());	
         int vecSize = (int) vector.size();
         long oldSize = size;
-	logger.info("old size: " + oldSize + ", " + objAddress);
         ensure(size, vecSize);
-	logger.info("new size: " + size + ", " + objAddress);
-	//CAUTION: vector.objAddress can be invalid when c++ call resize, call data make sure we are sfae.
+        //CAUTION: vector.objAddress can be invalid when c++ call resize, call data make sure we are sfae.
         JavaRuntime.copyMemory(vector.data() + 0, objAddress + oldSize, vecSize);
-	logger.info("finish copy");
     }
 
     @CXXOperator("[]")
@@ -211,7 +208,7 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
         }
 //        this.base = reserve(newCapacity);
 //        nativeReserve(address, newCapacity);
-        nativeResize(this.address,newSize);
+        nativeResize(this.address, newSize);
         this.objAddress = JavaRuntime.getLong(address);
         this.size = newSize;
     }
@@ -258,10 +255,10 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
         JavaRuntime.putDouble(objAddress + arg0, arg1);
     }
 
-    public void finishSetting(long offset){
-        if (offset > size){
+    public void finishSetting(long offset) {
+        if (offset > size) {
             System.out.println("Impossible ");
-            return ;
+            return;
         }
         nativeResize(this.address, offset);
         size = offset;

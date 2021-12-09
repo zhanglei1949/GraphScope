@@ -15,7 +15,6 @@ import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import com.alibaba.graphscope.utils.WritableFactory;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Objects;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.hadoop.io.LongWritable;
@@ -65,7 +64,7 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
         }
 
         this.receivedMessages = new MessageIterable[(int) fragment.getInnerVerticesNum()];
-        for (int i = 0; i < fragment.getInnerVerticesNum(); ++i){
+        for (int i = 0; i < fragment.getInnerVerticesNum(); ++i) {
             this.receivedMessages[i] = new MessageIterable<>();
         }
     }
@@ -80,15 +79,15 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
         parallelClearReceiveMessages();
 
         FFIByteVector tmpVector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
-	logger.info("Frag [" + fragId +" tmp vector: " + tmpVector.getAddress());
-        while (grapeMessageManager.getPureMessage(tmpVector)){
+        while (grapeMessageManager.getPureMessage(tmpVector)) {
             //OutArchive will do the resize;
-	    logger.info("Frag [" + fragId + "before digest: " + tmpVector.getAddress());
+            logger.info("Frag [" + fragId + "before digest: " + tmpVector.getAddress());
             this.messagesIn.digestVector(tmpVector);
-	    logger.info("Frag [" + fragId + "after digest: " + tmpVector.getAddress());
+            logger.info("Frag [" + fragId + "after digest: " + tmpVector.getAddress());
         }
         //Parse messageIn and form into Iterable<message> for each vertex;
-        logger.info("Frag [" + fragId + "] totally Received [" + messagesIn.longAvailable() + "] bytes, starting deserialization");
+        logger.info("Frag [" + fragId + "] totally Received [" + messagesIn.longAvailable()
+            + "] bytes, starting deserialization");
 
         com.alibaba.graphscope.ds.Vertex<Long> vertex = FFITypeFactoryhelper.newVertexLong();
         try {
@@ -106,9 +105,9 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
 
                 //store the msg
                 fragment.gid2Vertex(dstVertexGid, vertex);
-                if (vertex.GetValue() >= maxInnerVertexLid){
+                if (vertex.GetValue() >= maxInnerVertexLid) {
                     logger.error("Received one vertex id which exceeds inner vertex range.");
-                    return ;
+                    return;
                 }
                 receivedMessages[vertex.GetValue().intValue()].append((IN_MSG_T) inMsg);
             }
@@ -119,7 +118,7 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
 
     @Override
     public Iterable<IN_MSG_T> getMessages(long lid) {
-        return receivedMessages[(int)lid];
+        return receivedMessages[(int) lid];
     }
 
     /**
@@ -187,15 +186,15 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
             e.printStackTrace();
         }
 
-        logger.debug("After send messages from vertex: " + grapeVertex.GetValue() + " through all edges");
+        logger.debug(
+            "After send messages from vertex: " + grapeVertex.GetValue() + " through all edges");
         for (int i = 0; i < fragment.fnum(); ++i) {
             logger.debug("To frag[" + i + "]: " + messagesOut[i].bytesWriten());
         }
     }
 
     /**
-     * Make sure all messages has been sent.
-     * Clean outputstream buffer
+     * Make sure all messages has been sent. Clean outputstream buffer
      */
     @Override
     public void finishMessageSending() {
@@ -204,9 +203,9 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
             long size = messagesOut[i].bytesWriten();
             messagesOut[i].finishSetting();
 
-            if (size == 0){
-                logger.info("Message from frag[" + fragId + "] to frag [" + i + "] empty.");
-                continue ;
+            if (size == 0) {
+                logger.info("In final step,Message from frag[" + fragId + "] to frag [" + i + "] empty.");
+                continue;
             }
 
             if (i != fragId) {
@@ -245,8 +244,8 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
     /**
      * Clear the messageIterables in parallel.
      */
-    private void parallelClearReceiveMessages(){
-        for (int i = 0; i < maxInnerVertexLid; ++i){
+    private void parallelClearReceiveMessages() {
+        for (int i = 0; i < maxInnerVertexLid; ++i) {
             receivedMessages[i].clear();
         }
     }
