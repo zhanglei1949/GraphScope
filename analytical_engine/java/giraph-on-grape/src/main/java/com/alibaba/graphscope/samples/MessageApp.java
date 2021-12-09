@@ -1,7 +1,6 @@
 package com.alibaba.graphscope.samples;
 
 import java.io.IOException;
-import org.apache.giraph.edge.Edge;
 import org.apache.giraph.graph.BasicComputation;
 import org.apache.giraph.graph.Vertex;
 import org.apache.hadoop.io.DoubleWritable;
@@ -27,15 +26,17 @@ public class MessageApp extends
     @Override
     public void compute(Vertex<LongWritable, LongWritable, DoubleWritable> vertex,
         Iterable<LongWritable> messages) throws IOException {
-        if (getSuperstep() == 0)
-        for (LongWritable message : messages) {
-            if (message.get() != 123) {
-                logger.error("Vertex: " + vertex.getId().get() + "receive msg: " + message.get() +", which is impossible.");
-                break;
-            }
-        }
 
-        sendMessageToAllEdges(vertex, new LongWritable(123));
+        if (getSuperstep() == 0) {
+            for (LongWritable message : messages) {
+                if (message.get() != 123) {
+                    logger.error("Vertex: " + vertex.getId().get() + "receive msg: " + message.get()
+                        + ", which is impossible.");
+                    break;
+                }
+            }
+            sendMessageToAllEdges(vertex, new LongWritable(123));
+        }
         vertex.voteToHalt();
     }
 }
