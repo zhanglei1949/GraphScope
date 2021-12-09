@@ -76,6 +76,9 @@ public class GiraphComputationAdaptor implements
         //wait msg send finish.
         giraphMessageManager.finishMessageSending();
 
+	//increase super step
+	userComputation.incStep();
+
         //We can not judge whether to proceed by messages sent and check halted array.
         if (giraphMessageManager.anyMessageToSelf()){
             messageManager.ForceContinue();
@@ -126,6 +129,8 @@ public class GiraphComputationAdaptor implements
         } catch (IOException e) {
             e.printStackTrace();
         }
+	//increase super step
+	userComputation.incStep();
 
         //2. send msg
         giraphMessageManager.finishMessageSending();

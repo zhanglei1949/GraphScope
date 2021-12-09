@@ -27,14 +27,15 @@ public class MessageApp extends
     @Override
     public void compute(Vertex<LongWritable, LongWritable, DoubleWritable> vertex,
         Iterable<LongWritable> messages) throws IOException {
-        for (LongWritable message : messages) {
-            if (message.get() != 123) {
-                logger.error("Vertex: " + vertex.getId().get() + "receive msg: " + message.get() +", which is impossible.");
-                break;
-            }
-        }
-
+	if (getSuperstep() == 0){
+        	for (LongWritable message : messages) {
+	            if (message.get() != 123) {
+                	logger.error("Vertex: " + vertex.getId().get() + "receive msg: " + message.get() +", which is impossible.");
+                	break;
+            	}
+        	}
         sendMessageToAllEdges(vertex, new LongWritable(123));
+	}
         vertex.voteToHalt();
     }
 }
