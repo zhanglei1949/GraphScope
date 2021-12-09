@@ -13,8 +13,8 @@ public class WritableFactory {
     private static Class<? extends Writable> outMsgClass;
 
     private static Class<? extends WritableComparable> oidClass;
-    private static Class<? extends WritableComparable> vdataClass;
-    private static Class<? extends WritableComparable> edataClass;
+    private static Class<? extends Writable> vdataClass;
+    private static Class<? extends Writable> edataClass;
 
 
     public static void setInMsgClass(Class<? extends Writable> param){
@@ -26,10 +26,10 @@ public class WritableFactory {
     public static void setOidClass(Class<? extends WritableComparable> param){
         oidClass = param;
     }
-    public static void setVdataClass(Class<? extends WritableComparable> param){
+    public static void setVdataClass(Class<? extends Writable> param){
         vdataClass = param;
     }
-    public static void setEdataClass(Class<? extends WritableComparable> param){
+    public static void setEdataClass(Class<? extends Writable> param){
         edataClass = param;
     }
 

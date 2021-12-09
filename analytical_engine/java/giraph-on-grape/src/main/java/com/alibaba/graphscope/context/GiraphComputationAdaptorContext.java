@@ -138,6 +138,8 @@ public class GiraphComputationAdaptorContext implements
             clzList.add((Class<?>) typeParams[i]);
         }
         WritableFactory.setOidClass((Class<? extends WritableComparable>) clzList.get(0));
+        WritableFactory.setVdataClass((Class<? extends Writable>) clzList.get(1));
+        WritableFactory.setEdataClass((Class<? extends Writable>) clzList.get(2));
         WritableFactory.setInMsgClass((Class<? extends Writable>) clzList.get(3));
         if (typeParams.length == 4) {
             WritableFactory.setOutMsgClass((Class<? extends Writable>) clzList.get(3));

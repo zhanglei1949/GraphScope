@@ -26,11 +26,12 @@ public class VertexDataManagerImpl<VDATA_T extends Writable> implements VertexDa
     private SimpleFragment fragment;
     private VertexRange<Long> vertices;
     private List<VDATA_T> vertexDataList;
-    private long maxVertexLid = vertices.end().GetValue();
+    private long maxVertexLid;
 
     public VertexDataManagerImpl(SimpleFragment fragment, VertexRange<Long> vertices) {
         this.fragment = fragment;
         this.vertices = vertices;
+	this.maxVertexLid = vertices.end().GetValue();
         vertexDataList = new ArrayList<VDATA_T>((int) vertices.size());
         Vertex<Long> vertex = FFITypeFactoryhelper.newVertexLong();
         for (int i = 0; i < vertices.size(); ++i) {
