@@ -45,6 +45,11 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
     private FFIByteVectorInputStream messagesIn;
     private FFIByteVectorOutputStream[] messagesOut;
 
+    /**
+     * Temp vertex proxy for grape related api.
+     */
+    private com.alibaba.graphscope.ds.Vertex<Long> tmpVertex;
+
 
     public GiraphDefaultMessageManager(SimpleFragment fragment,
         DefaultMessageManager defaultMessageManager) {
@@ -67,6 +72,8 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
         for (int i = 0; i < fragment.getInnerVerticesNum(); ++i) {
             this.receivedMessages[i] = new MessageIterable<>();
         }
+        this.tmpVertex = FFITypeFactoryhelper.newVertexLong();
+        this.tmpVertex.SetValue(0L);
     }
 
     /**
@@ -81,7 +88,9 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
         FFIByteVector tmpVector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
         while (grapeMessageManager.getPureMessage(tmpVector)) {
             //OutArchive will do the resize;
-            logger.info("Frag [" + fragId + "]  digest message: " + tmpVector.getAddress() + ", msg size:" + tmpVector.size());
+            logger.info(
+                "Frag [" + fragId + "]  digest message: " + tmpVector.getAddress() + ", msg size:"
+                    + tmpVector.size());
             this.messagesIn.digestVector(tmpVector);
         }
         //Parse messageIn and form into Iterable<message> for each vertex;
@@ -117,10 +126,10 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
 
     @Override
     public Iterable<IN_MSG_T> getMessages(long lid) {
-	if (lid >= maxInnerVertexLid){
-	    logger.error("max lid: " + maxInnerVertexLid + ", " + lid + " execeds.");
-	    return null;
-	}
+        if (lid >= maxInnerVertexLid) {
+            logger.error("max lid: " + maxInnerVertexLid + ", " + lid + " execeds.");
+            return null;
+        }
         return receivedMessages[(int) lid];
     }
 
@@ -132,11 +141,41 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
      */
     @Override
     public boolean messageAvailable(long lid) {
-	if (lid >= maxInnerVertexLid){
-	    logger.error("max lid: " + maxInnerVertexLid + ", " + lid + " execeds.");
-	    return false;
-	}
+        if (lid >= maxInnerVertexLid) {
+            logger.error("max lid: " + maxInnerVertexLid + ", " + lid + " execeds.");
+            return false;
+        }
         return receivedMessages[(int) lid].size() > 0;
+    }
+
+    /**
+     * Send one message to dstOid.
+     *
+     * @param dstOid  vertex to receive this message.
+     * @param message message.
+     */
+    @Override
+    public void sendMessage(OID_T dstOid, OUT_MSG_T message) {
+        if (dstOid instanceof LongWritable){
+            LongWritable longOid = (LongWritable) dstOid;
+            tmpVertex.SetValue(longOid.get());
+            int dstfragId = fragment.getFragId(tmpVertex);
+            if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
+                messagesOut[dstfragId].finishSetting();
+                grapeMessageManager
+                    .sendToFragment(dstfragId, messagesOut[dstfragId].getVector());
+                messagesOut[dstfragId].reset();
+            }
+            try {
+                messagesOut[dstfragId].writeLong((Long) fragment.vertex2Gid(tmpVertex));
+                message.write(messagesOut[dstfragId]);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        else {
+            logger.error("Expect a longWritable oid");
+        }
     }
 
     /**
@@ -211,7 +250,8 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
             messagesOut[i].finishSetting();
 
             if (size == 0) {
-                logger.info("In final step,Message from frag[" + fragId + "] to frag [" + i + "] empty.");
+                logger.info(
+                    "In final step,Message from frag[" + fragId + "] to frag [" + i + "] empty.");
                 continue;
             }
 
