@@ -7,6 +7,7 @@ import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import com.alibaba.graphscope.utils.WritableFactory;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -39,11 +40,24 @@ public class VertexDataManagerImpl<VDATA_T extends Writable> implements VertexDa
 //            vertexDataList.add((VDATA_T) new LongWritable((Long) this.fragment.getData(vertex)));
             VDATA_T vdata = (VDATA_T) WritableFactory.newVData();
             //TODO: in the future vdata should be read from stream. Currently we use hacky method for test
+            Object fragmentData  = this.fragment.getData(vertex);
             if (vdata instanceof DoubleWritable){
-                ((DoubleWritable) vdata).set((Double) this.fragment.getData(vertex));
+                if (fragmentData instanceof Long){
+                    ((DoubleWritable) vdata).set(((Long) fragmentData).doubleValue());
+                }
+                else {
+                    logger.error("Expected fragment with long vertex data");
+                    return ;
+                }
             }
             else if (vdata instanceof LongWritable){
-                ((LongWritable) vdata).set((Long) this.fragment.getData(vertex));
+                if (fragmentData instanceof Long){
+                    ((LongWritable) vdata).set((Long) fragmentData);
+                }
+                else {
+                    logger.error("Expected fragment with long vertex data");
+                    return ;
+                }
             }
             vertexDataList.add(vdata);
         }
