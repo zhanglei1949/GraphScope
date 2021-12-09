@@ -154,19 +154,27 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
     }
 
     /**
-     * This function copy another vector's memory after this vector. Shall be used in InputStream,
-     * Make sure that there is no blank space in range (objectAddress, objectAddress + curSize).
+     * This function copy another vector's memory after this vector. Shall be used in InputStream.
+     * <p>
+     * Check whether there are enough spaces, and then copy [vector.data(), vector.data() +
+     * vector.size()] to [readableLimit, readableLimit + vector.size()].
+     * </p>
      *
-     * @param vector vector to be appended.
+     * @param readableLimit The start pos of this copy action.
+     * @param vector        vector to be appended.
      */
-    public void appendVector(FFIByteVector vector) {
+    public void appendVector(long readableLimit, FFIByteVector vector) {
 //        long curSize = size();
 //        resize(curSize + vector.size());
         int vecSize = (int) vector.size();
         long oldSize = size;
-        ensure(size, vecSize);
+
+        ensure(readableLimit, vecSize);
+
         //CAUTION: vector.objAddress can be invalid when c++ call resize, call data make sure we are sfae.
-        JavaRuntime.copyMemory(vector.data() + 0, objAddress + oldSize, vecSize);
+        logger.info("before append vector, oldsize: " + oldSize + ", new size: " + size + ",vecsize: " + vecSize);
+        JavaRuntime.copyMemory(vector.data() + 0, objAddress + readableLimit, vecSize);
+        logger.info("after append vector, oldsize: " + oldSize + ", new size: " + size + ",vecsize: " + vecSize);
     }
 
     @CXXOperator("[]")
@@ -196,6 +204,12 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
 
     public static native void nativeResize(long var0, long var2);
 
+    /**
+     * Ensure there at at least requiredSize after offset.
+     *
+     * @param offset offset to check
+     * @param requiredSize additional spaced needed.
+     */
     public void ensure(long offset, int requiredSize) {
         long minSize = requiredSize + offset;
         if (minSize <= size) {

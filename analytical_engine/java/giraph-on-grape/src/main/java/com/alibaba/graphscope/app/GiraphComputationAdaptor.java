@@ -14,6 +14,7 @@ import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.alibaba.graphscope.ds.VertexRange;
 
 /**
  * This adaptor bridges c++ driver app and Giraph Computation.
@@ -55,7 +56,7 @@ public class GiraphComputationAdaptor implements
         //TODO: remove this debug code
         VertexDataManager vertexDataManager = ctx.vertex.getVertexDataManager();
         VertexIdManager vertexIdManager = ctx.vertex.getVertexIdManager();
-        for (Vertex<Long> grapeVertex : ctx.innerVertices) {
+        for (Vertex<Long> grapeVertex : ctx.innerVertices.locals()) {
             if (grapeVertex.GetValue().intValue() < 10) {
                 logger.info(
                     "Vertex: " + grapeVertex.GetValue().intValue() + ", oid: " + vertexIdManager
@@ -65,7 +66,7 @@ public class GiraphComputationAdaptor implements
         }
 
         try {
-            for (Vertex<Long> grapeVertex : ctx.innerVertices) {
+            for (Vertex<Long> grapeVertex : ctx.innerVertices.locals()) {
                 ctx.vertex.setLocalId(grapeVertex.GetValue().intValue());
                 userComputation.compute(ctx.vertex, messages);
             }
@@ -109,7 +110,10 @@ public class GiraphComputationAdaptor implements
 
         //1. compute
         try {
-            for (Vertex<Long> grapeVertex : ctx.innerVertices) {
+	    logger.info("range: " + ctx.innerVertices.begin().GetValue() + " " + ctx.innerVertices.end().GetValue() + "addr: " + ctx.innerVertices.getAddress());
+	    VertexRange<Long> innerVertices = graph.innerVertices();
+	    logger.info("this range: " + innerVertices.begin().GetValue() + " " + innerVertices.end().GetValue() + "addr: " + innerVertices.getAddress());
+            for (Vertex<Long> grapeVertex : innerVertices.locals()) {
                 int lid = grapeVertex.GetValue().intValue();
                 if (giraphMessageManager.messageAvailable(lid)){
                     ctx.activateVertex(lid); //set halted[lid] to false;

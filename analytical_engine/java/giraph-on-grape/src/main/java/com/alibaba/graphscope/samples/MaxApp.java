@@ -25,9 +25,6 @@ public class MaxApp extends
         Iterable<LongWritable> messages) throws IOException {
         boolean changed = false;
         for (LongWritable message : messages) {
-            logger.info(
-                "step: [" + getSuperstep() + "] vertex: " + vertex.getId().get() + "received msg: "
-                    + message.get() + ", current vertex value: " + vertex.getValue().get());
             if (vertex.getValue().get() < message.get()) {
                 vertex.setValue(message);
                 changed = true;
