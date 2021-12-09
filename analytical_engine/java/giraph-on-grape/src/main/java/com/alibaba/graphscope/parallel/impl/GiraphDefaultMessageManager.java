@@ -118,6 +118,10 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
 
     @Override
     public Iterable<IN_MSG_T> getMessages(long lid) {
+	if (lid >= maxInnerVertexLid){
+	    logger.error("max lid: " + maxInnerVertexLid + ", " + lid + " execeds.");
+	    return null;
+	}
         return receivedMessages[(int) lid];
     }
 
@@ -129,6 +133,10 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
      */
     @Override
     public boolean messageAvailable(long lid) {
+	if (lid >= maxInnerVertexLid){
+	    logger.error("max lid: " + maxInnerVertexLid + ", " + lid + " execeds.");
+	    return false;
+	}
         return receivedMessages[(int) lid].size() > 0;
     }
 
