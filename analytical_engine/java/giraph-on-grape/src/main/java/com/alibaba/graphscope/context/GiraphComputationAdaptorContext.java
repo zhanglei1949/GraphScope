@@ -18,9 +18,11 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import org.apache.giraph.graph.AbstractComputation;
+import org.apache.giraph.graph.EdgeManager;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexFactory;
 import org.apache.giraph.graph.VertexIdManager;
+import org.apache.giraph.graph.impl.ImmutableEdgeManagerImpl;
 import org.apache.giraph.graph.impl.VertexDataManagerImpl;
 import org.apache.giraph.graph.impl.VertexIdManagerImpl;
 import org.apache.giraph.graph.impl.VertexImpl;
@@ -51,6 +53,12 @@ public class GiraphComputationAdaptorContext implements
      * Manages the vertex data.
      */
     private VertexDataManager vertexDataManager;
+
+    /**
+     * Edge manager. We can choose to use a immutable edge manager or others.
+     */
+    private EdgeManager edgeManager;
+
 
     public AbstractComputation<LongWritable, LongWritable, DoubleWritable, LongWritable, LongWritable> getUserComputation() {
         return userComputation;
@@ -90,11 +98,13 @@ public class GiraphComputationAdaptorContext implements
         //Init vertex data/oid manager
         vertexDataManager = new VertexDataManagerImpl<LongWritable>(frag, innerVertices);
         vertexIdManager = new VertexIdManagerImpl<LongWritable>(frag, innerVertices);
+        edgeManager = new ImmutableEdgeManagerImpl(frag);
 
         vertex = (VertexImpl<LongWritable, LongWritable, DoubleWritable>) VertexFactory
             .<LongWritable, LongWritable, DoubleWritable>createDefaultVertex(frag, this);
         vertex.setVertexIdManager(vertexIdManager);
         vertex.setVertexDataManager(vertexDataManager);
+        vertex.setEdgeManager(edgeManager);
     }
 
     @Override

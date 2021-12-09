@@ -2,12 +2,14 @@ package org.apache.giraph.graph.impl;
 
 import com.alibaba.graphscope.context.GiraphComputationAdaptorContext;
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import com.alibaba.graphscope.utils.WritableFactory;
 import org.apache.giraph.conf.DefaultImmutableClassesGiraphConfigurable;
 import org.apache.giraph.edge.Edge;
 import org.apache.giraph.edge.MutableEdge;
 import org.apache.giraph.edge.MutableEdgesWrapper;
 import org.apache.giraph.edge.OutEdges;
+import org.apache.giraph.graph.EdgeManager;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexIdManager;
@@ -25,16 +27,27 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
 
     private SimpleFragment fragment;
     private long lid;
+    /**
+     * Grape vertex used for accessing grape framework, not necessarily represent current vertex(lid)
+     * in usage.
+     */
+    private com.alibaba.graphscope.ds.Vertex<Long> grapeVertex;
     private GiraphComputationAdaptorContext giraphComputationContext;
 
     private VertexDataManager<VDATA_T> vertexDataManager;
     private VertexIdManager<OID_T> vertexIdManager;
+    /**
+     * EdgeManager manages all vertex's edges.
+     */
+    private EdgeManager<OID_T,EDATA_T> edgeManager;
 
 
     public VertexImpl(SimpleFragment fragment, GiraphComputationAdaptorContext ctx){
         this.fragment = fragment;
         lid = -1; //set to a negative value to ensure set lid to be called later.
         this.giraphComputationContext = ctx;
+        this.grapeVertex = FFITypeFactoryhelper.newVertexLong();
+        grapeVertex.SetValue(0L);
     }
 
     public void setVertexDataManager(VertexDataManager vertexDataManager){
@@ -49,6 +62,14 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
     }
     public VertexIdManager getVertexIdManager(){
         return this.vertexIdManager;
+    }
+
+    public void setEdgeManager(EdgeManager<OID_T, EDATA_T> edgeManager) {
+        this.edgeManager = edgeManager;
+    }
+
+    public EdgeManager<OID_T, EDATA_T> getEdgeManager(){
+        return this.edgeManager;
     }
 
     /**
@@ -137,7 +158,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public Iterable<Edge<OID_T, EDATA_T>> getEdges() {
-        return null;
+        return edgeManager.getEdges(lid);
     }
 
     /**
@@ -153,7 +174,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
     /**
      * Get an iterable of out-edges that can be modified in-place. This can mean changing the
      * current edge value or removing the current edge (by using the iterator version). Note:
-     * accessing the edges with other methods (e.g., addEDATA_Tdge()) during iteration leads to
+     * accessing the edges with other methods (e.g., addEdge()) during iteration leads to
      * undefined behavior.
      *
      * @return An iterable of mutable out-edges
@@ -169,7 +190,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      * call. Thus, keeping a reference to an edge value almost always leads to undesired behavior.
      *
      * @param targetVertexId Target vertex id
-     * @return EDATA_Tdge value (or null if missing)
+     * @return Edge value (or null if missing)
      */
     @Override
     public EDATA_T getEdgeValue(OID_T targetVertexId) {
@@ -181,7 +202,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      * with strict graphs.
      *
      * @param targetVertexId Target vertex id
-     * @param edgeValue      EDATA_Tdge value
+     * @param edgeValue      Edge value
      */
     @Override
     public void setEdgeValue(OID_T targetVertexId, EDATA_T edgeValue) {
@@ -205,7 +226,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
     /**
      * Add an edge for this vertex (happens immediately)
      *
-     * @param edge EDATA_Tdge to add
+     * @param edge Edge to add
      */
     @Override
     public void addEdge(Edge<OID_T, EDATA_T> edge) {
@@ -237,7 +258,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public void wakeUp() {
-
+        giraphComputationContext.activateVertex(lid);
     }
 
     /**
@@ -247,7 +268,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public boolean isHalted() {
-        return false;
+        return giraphComputationContext.isHalted(lid);
     }
 
     //Methods we need to adapt to grape

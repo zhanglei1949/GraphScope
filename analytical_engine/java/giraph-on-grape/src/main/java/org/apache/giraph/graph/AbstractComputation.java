@@ -2,10 +2,9 @@ package org.apache.giraph.graph;
 
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.GiraphMessageManager;
-import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
 import java.io.IOException;
 import java.util.Iterator;
-import org.apache.commons.math.ode.ODEIntegrator;
+import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.edge.Edge;
 import org.apache.giraph.edge.OutEdges;
 import org.apache.giraph.graph.impl.CommunicatorImpl;
@@ -18,34 +17,61 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Implement all methods in Computation other than compute, which left for user to define.
- * @param <OID_T> original vertex id.
- * @param <VDATA_T> vertex data type.
- * @param <EDATA_T> edata type.
- * @param <IN_MSG_T> incoming msg type.
+ *
+ * @param <OID_T>     original vertex id.
+ * @param <VDATA_T>   vertex data type.
+ * @param <EDATA_T>   edata type.
+ * @param <IN_MSG_T>  incoming msg type.
  * @param <OUT_MSG_T> outgoing msg type.
  */
 public abstract class AbstractComputation<OID_T extends WritableComparable,
     VDATA_T extends Writable,
     EDATA_T extends Writable,
     IN_MSG_T extends Writable,
-    OUT_MSG_T extends Writable> extends CommunicatorImpl implements Computation<OID_T,VDATA_T,EDATA_T,IN_MSG_T,OUT_MSG_T>{
+    OUT_MSG_T extends Writable> extends CommunicatorImpl implements
+    Computation<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T> {
+
     private static Logger logger = LoggerFactory.getLogger(AbstractComputation.class);
 
+    //In giraph, AbstractComputation extends DefaultImmutableClassesGiraphConfigurable, here we
+    //have already extedns CommunicatorImpl, as java forbidding extends from two classes, we use DefaultImmutableClassesGiraphConfiguration
+    //as a feild.
+    private ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf;
 
-    private GiraphMessageManager<OID_T,VDATA_T,EDATA_T, IN_MSG_T,OUT_MSG_T> giraphMessageManager;
+    /**
+     * Set the configuration.
+     * @param conf configuration instance to use
+     */
+    public void setConf(ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf) {
+        this.conf = conf;
+    }
+
+    /**
+     * Get the conf, used when user want to get a configured value.
+     * @return configuration.
+     */
+    public ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> getConf() {
+        return conf;
+    }
+
+    private GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T> giraphMessageManager;
     private SimpleFragment fragment;
     private int curStep = 0;
 
-    public void setGiraphMessageManager(GiraphMessageManager<OID_T,VDATA_T,EDATA_T,IN_MSG_T,OUT_MSG_T> giraphMessageManager){
+    public void setGiraphMessageManager(
+        GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T> giraphMessageManager) {
         this.giraphMessageManager = giraphMessageManager;
     }
 
-    public void setFragment(SimpleFragment fragment){
+    public void setFragment(SimpleFragment fragment) {
         this.fragment = fragment;
     }
 
-    public void incStep(){
-        curStep ++;
+    /**
+     * Called by our framework after each super step.
+     */
+    public void incStep() {
+        curStep++;
     }
 
     /**
@@ -133,7 +159,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
     }
 
     @Override
-    public void addEdgeRequest(OID_T sourceVertexId, Edge<OID_T,EDATA_T> edge) throws IOException {
+    public void addEdgeRequest(OID_T sourceVertexId, Edge<OID_T, EDATA_T> edge) throws IOException {
         logger.error("Not implemented");
     }
 
@@ -149,7 +175,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
     }
 
     @Override
-    public void sendMessageToAllEdges(Vertex<OID_T,VDATA_T,EDATA_T> vertex, OUT_MSG_T message) {
+    public void sendMessageToAllEdges(Vertex<OID_T, VDATA_T, EDATA_T> vertex, OUT_MSG_T message) {
         giraphMessageManager.sendMessageToAllEdges(vertex, message);
     }
 

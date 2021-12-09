@@ -14,6 +14,7 @@ public class WritableFactory {
 
     private static Class<? extends WritableComparable> oidClass;
     private static Class<? extends WritableComparable> vdataClass;
+    private static Class<? extends WritableComparable> edataClass;
 
 
     public static void setInMsgClass(Class<? extends Writable> param){
@@ -27,6 +28,9 @@ public class WritableFactory {
     }
     public static void setVdataClass(Class<? extends WritableComparable> param){
         vdataClass = param;
+    }
+    public static void setEdataClass(Class<? extends WritableComparable> param){
+        edataClass = param;
     }
 
 
@@ -46,9 +50,25 @@ public class WritableFactory {
         return null;
     }
 
+    public static String getOidClassName(){
+        if (oidClass == null){
+            logger.error("Set oid class first");
+            return "";
+        }
+        return oidClass.getName();
+    }
+
+    public static String getEdataClassName(){
+        if (edataClass == null){
+            logger.error("Set edata class first");
+            return "";
+        }
+        return edataClass.getName();
+    }
+
     public static Writable newInMsg(){
         if (inMsgClass == null){
-            logger.error("Set oid class first");
+            logger.error("Set in msg class first");
         }
         try {
             return inMsgClass.newInstance();
@@ -64,7 +84,7 @@ public class WritableFactory {
 
     public static Writable newOutMsg(){
         if (outMsgClass == null){
-            logger.error("Set oid class first");
+            logger.error("Set out msg class first");
         }
         try {
             return outMsgClass.newInstance();
@@ -80,10 +100,26 @@ public class WritableFactory {
 
     public static Writable newVData(){
         if (vdataClass == null){
-            logger.error("Set oid class first");
+            logger.error("Set vdata class first");
         }
         try {
             return vdataClass.newInstance();
+        } catch (InstantiationException e) {
+            logger.error(e.getMessage());
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            logger.error(e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static Writable newEData(){
+        if (edataClass == null){
+            logger.error("Set edata class first");
+        }
+        try {
+            return edataClass.newInstance();
         } catch (InstantiationException e) {
             logger.error(e.getMessage());
             e.printStackTrace();

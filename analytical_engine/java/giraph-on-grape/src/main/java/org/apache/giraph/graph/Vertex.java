@@ -95,7 +95,7 @@ public interface Vertex<OID_T extends WritableComparable,
      * Note: edge objects returned by this iterable may be invalidated as soon
      * as the next element is requested. Thus, keeping a reference to an edge
      * almost always leads to undesired behavior.
-     * Accessing the edges with other methods (e.g., addEDATA_Tdge()) during iteration
+     * Accessing the edges with other methods (e.g., addEdge()) during iteration
      * leads to undefined behavior.
      *
      * @return the out edges (sort order determined by subclass implementation).

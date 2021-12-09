@@ -34,7 +34,7 @@ import org.apache.hadoop.util.ReflectionUtils;
  */
 @SuppressWarnings("unchecked")
 public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
-    V extends Writable, E extends Writable> {
+    V extends Writable, E extends Writable> extends GiraphConfiguration{
     /** Holder for all the classes */
     private final GiraphClasses classes;
 
