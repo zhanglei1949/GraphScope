@@ -9,12 +9,18 @@ import java.io.InputStream;
 import java.io.UTFDataFormatException;
 import java.util.Objects;
 
+/**
+ * FFIByteVectorInput stream wrap a byte vector as a stream. One stream can accept appended bytes.
+ * We use one read offset to mark from where we start reading and read limit to mark how many bytes
+ * we can read.
+ */
 public class FFIByteVectorInputStream extends InputStream
     implements DataInput {
 
     private FFIByteVector vector;
     private long offset;
-    private long size;
+    private long readableLimit;
+//    private long size;
 
     private byte bytearr[] = new byte[80];
     private char chararr[] = new char[80];
@@ -22,43 +28,56 @@ public class FFIByteVectorInputStream extends InputStream
     public FFIByteVectorInputStream() {
         vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
         offset = 0;
-        size = 0;
+//        size = 0;
+        readableLimit = 0;
     }
 
+    /**
+     * When Use vector to initialize a input stream, we assume it is compact, i.e. vector.size ==
+     * readableBytes.
+     *
+     * @param vector vector to use.
+     */
     public FFIByteVectorInputStream(FFIByteVector vector) {
         this.vector = vector;
         offset = 0;
-        size = vector.size();
+//        size = vector.size();
+        readableLimit = vector.size();
     }
 
     /**
-     * Copy the memory.
+     * Copy the memory from input vector right after the readLimit of current Buffer. Note that readableLimit
+     * is not necessarily equal to this.vector.size(). FFIVector.resize() expand size in at most (3/2), but not all
+     * expanded space is filled.
      *
-     * @param vector
+     * @param vector additional memory to append to us.
      */
     public void digestVector(FFIByteVector vector) {
-        this.vector.appendVector(vector);
+        this.vector.appendVector(readableLimit, vector);
         //offset will not change.
-        size += vector.size();
+//        size += vector.size();
+        readableLimit += vector.size();
     }
 
     /**
-     * Reset to the first pos. size still the same.
+     * Reset to the first pos. byte still readable.
      */
-    public void reset() { offset = 0; }
+    public void reset() {
+        offset = 0;
+    }
 
     public void clear() {
         if (Objects.nonNull(this.vector)) {
             this.vector.resize(0);
             offset = 0;
-            size = 0;
+            readableLimit = 0;
         }
     }
 
     public void setVector(FFIByteVector vector) {
         this.vector = vector;
         this.offset = 0;
-        this.size = vector.size();
+        this.readableLimit = vector.size();
     }
 
 
@@ -172,7 +191,7 @@ public class FFIByteVectorInputStream extends InputStream
      */
     @Override
     public int skipBytes(int n) throws IOException {
-        int total = (int) Math.min(n, size - offset);
+        int total = (int) Math.min(n, readableLimit - offset);
         offset += total;
         return total;
     }
@@ -560,7 +579,7 @@ public class FFIByteVectorInputStream extends InputStream
 
     @Override
     public int read(byte b[], int off, int len) throws IOException {
-        if (offset == size) {
+        if (offset == readableLimit) {
             return -1;
         }
 
@@ -572,7 +591,7 @@ public class FFIByteVectorInputStream extends InputStream
             return 0;
         }
 
-        int num = (int) Math.min(size - offset, len);
+        int num = (int) Math.min(readableLimit - offset, len);
 
 //        UnsafeHolder.U.copyMemory(null, base + offset, b, off + baseOffset,
 //            num);
@@ -583,7 +602,7 @@ public class FFIByteVectorInputStream extends InputStream
     }
 
     public int read(char b[], int off, int len) throws IOException {
-        if (offset == size) {
+        if (offset == readableLimit) {
             return -1;
         }
 
@@ -595,32 +614,32 @@ public class FFIByteVectorInputStream extends InputStream
             return 0;
         }
 
-        int num = (int) Math.min((size - offset) / 2, len);
+        int num = (int) Math.min((readableLimit - offset) / 2, len);
 
 //        UnsafeHolder.U.copyMemory(null, base + offset, b, off + baseOffset,
 //            num);
 //        vector.getRawBytes(b, off, offset, num);
-        for (int i = 0; i < num; ++i){
-	    b[off + i] = vector.getRawChar(offset + i * 2);
-	}
+        for (int i = 0; i < num; ++i) {
+            b[off + i] = vector.getRawChar(offset + i * 2);
+        }
         offset += num * 2;
 
         return num;
     }
 
     private void ensureRemaining(int requiredBytes) throws IOException {
-        if (size - offset < requiredBytes) {
-            throw new IOException("ensureRemaining: Only " + (size - offset) +
+        if (readableLimit - offset < requiredBytes) {
+            throw new IOException("ensureRemaining: Only " + (readableLimit - offset) +
                 " bytes remaining, trying to read " + requiredBytes);
         }
     }
 
     @Override
     public int available() throws IOException {
-        return (size - offset) > 0 ? 1 : 0;
+        return (readableLimit - offset) > 0 ? 1 : 0;
     }
 
     public long longAvailable() {
-        return size - offset;
+        return readableLimit - offset;
     }
 }
