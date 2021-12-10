@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.impl.VertexImpl;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -108,8 +109,15 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
                 Writable inMsg = WritableFactory.newInMsg();
                 inMsg.readFields(messagesIn);
                 //TODO: only for testing
-                LongWritable inMsg2 = (LongWritable) inMsg;
-                logger.debug("Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
+                if (inMsg instanceof LongWritable){
+                    LongWritable inMsg2 = (LongWritable) inMsg;
+                    logger.debug("Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
+                }
+                else if (inMsg instanceof DoubleWritable){
+                    DoubleWritable inMsg2 = (DoubleWritable) inMsg;
+                    logger.debug("Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
+                }
+
 
                 //store the msg
                 fragment.gid2Vertex(dstVertexGid, vertex);
