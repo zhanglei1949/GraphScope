@@ -22,11 +22,17 @@ import org.apache.giraph.graph.BasicComputation;
 import org.apache.giraph.conf.LongConfOption;
 import org.apache.giraph.edge.Edge;
 import org.apache.giraph.graph.Vertex;
+import org.apache.giraph.io.formats.TextVertexOutputFormat;
+import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.FloatWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 
 import java.io.IOException;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,5 +90,81 @@ public class SimpleShortestPathsComputation extends BasicComputation<
             }
         }
         vertex.voteToHalt();
+    }
+
+    public static class SSSPWorkerContext extends WorkerContext{
+        private static final Logger LOG =
+            LoggerFactory.getLogger(SSSPWorkerContext.class);
+        /**
+         * Initialize the WorkerContext. This method is executed once on each Worker before the
+         * first superstep starts.
+         *
+         * @throws IllegalAccessException Thrown for getting the class
+         * @throws InstantiationException Expected instantiation in this method.
+         */
+        @Override
+        public void preApplication() throws InstantiationException, IllegalAccessException {
+            LOG.info("PreApplication");
+        }
+
+        /**
+         * Finalize the WorkerContext. This method is executed once on each Worker after the last
+         * superstep ends.
+         */
+        @Override
+        public void postApplication() {
+            LOG.info("PostApplication");
+        }
+
+        /**
+         * Execute user code. This method is executed once on each Worker before each superstep
+         * starts.
+         */
+        @Override
+        public void preSuperstep() {
+            LOG.info("PreSuperstep : " + getSuperstep());
+        }
+
+        /**
+         * Execute user code. This method is executed once on each Worker after each superstep
+         * ends.
+         */
+        @Override
+        public void postSuperstep() {
+            LOG.info("PostSuperstep: " + getSuperstep());
+        }
+    }
+
+    /**
+     * Simple VertexOutputFormat.
+     */
+    public static class SimpleSuperstepVertexOutputFormat extends
+        TextVertexOutputFormat<LongWritable, DoubleWritable, DoubleWritable> {
+
+        /**
+         * The factory method which produces the {@link TextVertexWriter} used by this output
+         * format.
+         *
+         * @param context the information about the task
+         * @return the text vertex writer to be used
+         */
+        @Override
+        public TextVertexWriter createVertexWriter(TaskAttemptContext context)
+            throws IOException, InterruptedException {
+            return new SimpleSuperstepVertexWriter();
+        }
+
+        /**
+         * Simple VertexWriter.
+         */
+        public class SimpleSuperstepVertexWriter extends TextVertexWriter {
+            @Override
+            public void writeVertex(Vertex<LongWritable, DoubleWritable,
+                DoubleWritable> vertex) throws IOException, InterruptedException {
+                getRecordWriter().write(
+                    new Text(vertex.getId().toString()),
+                    new Text(vertex.getValue().toString()));
+            }
+        }
     }
 }

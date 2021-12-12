@@ -19,6 +19,10 @@
 package org.apache.giraph.conf;
 
 import io.netty.buffer.ByteBufAllocator;
+import org.apache.giraph.graph.AbstractComputation;
+import org.apache.giraph.graph.Computation;
+import org.apache.giraph.io.VertexInputFormat;
+import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.conf.Configuration;
 
 /**
@@ -31,15 +35,9 @@ import org.apache.hadoop.conf.Configuration;
 public class GiraphConfiguration extends Configuration implements GiraphConstants {
 
     /**
-     * ByteBufAllocator to be used by netty
-     */
-    private ByteBufAllocator nettyBufferAllocator = null;
-
-    /**
      * Constructor that creates the configuration
      */
     public GiraphConfiguration() {
-//        configureHadoopSecurity();
     }
 
     /**
@@ -49,9 +47,66 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
      */
     public GiraphConfiguration(Configuration conf) {
         super(conf);
-//        configureHadoopSecurity();
     }
 
 
+    /**
+     * Set the worker context class (optional)
+     *
+     * @param workerContextClass Determines what code is executed on a each worker before and after
+     *     each superstep and computation
+     */
+    public final void setWorkerContextClass(Class<? extends WorkerContext> workerContextClass) {
+        WORKER_CONTEXT_CLASS.set(this, workerContextClass);
+    }
+
+    public  Class<? extends WorkerContext> getWorkerContextClass(){
+        return WORKER_CONTEXT_CLASS.get(this);
+    }
+
+    /**
+     * Set the computation class(user app).
+     *
+     * @param appClass User specified computation class.
+     */
+    public final void setComputationClass(Class<? extends AbstractComputation> appClass) {
+        COMPUTATION_CLASS.set(this, appClass);
+    }
+
+    /**
+     * Get the user's subclassed {@link Computation}
+     *
+     * @return User's computation class
+     */
+    public Class<? extends Computation> getComputationClass() {
+        return COMPUTATION_CLASS.get(this);
+    }
+
+    /**
+     * Set vertex input class.
+     *
+     * @param vertexInputFormatClass User specified computation class.
+     */
+    public final void setVertexInputFormatClass(Class<? extends VertexInputFormat> vertexInputFormatClass){
+        VERTEX_INPUT_FORMAT_CLASS.set(this, vertexInputFormatClass);
+    }
+
+    /**
+     * Set vertex input class.
+     *
+     * @param vertexInputFormatClass User specified computation class.
+     */
+    public final void getVertexInputFormatClass(Class<? extends VertexInputFormat> vertexInputFormatClass){
+        VERTEX_INPUT_FORMAT_CLASS.get(this);
+    }
+
+    /**
+     * Does the job have a {@link org.apache.giraph.io.VertexOutputFormat}?
+     *
+     * @return True iff a {@link org.apache.giraph.io.VertexOutputFormat} has been specified.
+     */
+    public boolean hasVertexOutputFormat() {
+        return VERTEX_OUTPUT_FORMAT_CLASS.get(this) != null;
+    }
 
 }

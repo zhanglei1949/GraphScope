@@ -6,6 +6,10 @@ import org.apache.hadoop.io.Writable;
 /**
  * Default implementation for communicator, which is able to aggregate, broadcast and reduce between
  * Computation instances.
+ *
+ * The functionality relies on c++ mpi comm. Make sure the comm is avaliable.
+ *
+ * In our project, Communicator is can only be hold by two class: WorkerContext and AbstractComputation.
  */
 public class CommunicatorImpl implements Communicator {
 

@@ -18,21 +18,60 @@
 
 package org.apache.giraph.worker;
 
+import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
+import org.apache.giraph.graph.Communicator;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * WorkerContext allows for the execution of user code on a per-worker basis. There's one
  * WorkerContext per worker.
+ *
+ * Giraph worker context is abstract. Our implementation should contains all necessary interfaces
+ * needed. see {@link org.apache.giraph.worker.impl.DefaultWorkerContext}
  */
 @SuppressWarnings("rawtypes")
-public interface WorkerContext
-    extends WorkerAggregator,Writable, WorkerIndexUsage<WritableComparable> {
+public abstract class WorkerContext
+    implements WorkerAggregator, Writable, WorkerIndexUsage<WritableComparable> {
+
+    private static Logger logger = LoggerFactory.getLogger(WorkerContext.class);
+
+    private SimpleFragment fragment;
+    private Communicator communicator;
+    /**
+     * Set to -1, so if not manually set, error will be reported.
+     */
+    private int curStep = -1;
+
+    public void setFragment(SimpleFragment fragment){
+        this.fragment = fragment;
+    }
+
+    /**
+     * This function doesn't exists in Giraph.WorkerContext. User shall not use this function
+     * @param communicator
+     */
+    public void setCommunicator(Communicator communicator){
+        this.communicator = communicator;
+    }
+
+    /**
+     * Make sure this function is called after each step.
+     * @param step
+     */
+    public void setCurStep(int step){
+        this.curStep = step;
+    }
+
     /**
      * Initialize the WorkerContext. This method is executed once on each Worker before the first
      * superstep starts.
@@ -40,18 +79,53 @@ public interface WorkerContext
      * @throws IllegalAccessException Thrown for getting the class
      * @throws InstantiationException Expected instantiation in this method.
      */
-    void preApplication() throws InstantiationException,IllegalAccessException;
+    public abstract void preApplication() throws InstantiationException,IllegalAccessException;
 
     /**
      * Finalize the WorkerContext. This method is executed once on each Worker after the last superstep
      * ends.
      */
-    void postApplication();
+    public abstract void postApplication();
 
     /**
      * Execute user code. This method is executed once on each Worker before each superstep starts.
      */
-    void preSuperstep();
+    public abstract void preSuperstep();
+
+    /**
+     * Get number of workers.
+     *
+     * We use fragment fnum to represent fragment number.
+     *
+     * @return Number of workers
+     */
+    @Override
+    public final int getWorkerCount() {
+        if (Objects.isNull(fragment)){
+            logger.error("Fragment null, please set fragment first");
+            return 0;
+        }
+        return fragment.fnum();
+    }
+    /**
+     * Get index for this worker
+     *
+     * @return Index of this worker
+     */
+    @Override
+    public final int getMyWorkerIndex() {
+        if (Objects.isNull(fragment)){
+            logger.error("Fragment null, please set fragment first");
+            return 0;
+        }
+        return fragment.fid();
+    }
+
+    @Override
+    public final int getWorkerForVertex(WritableComparable vertexId) {
+        logger.error("Not implemented");
+        return 0;
+    }
 
     /**
      * Get messages which other workers sent to this worker and clear them (can be called once per
@@ -59,7 +133,10 @@ public interface WorkerContext
      *
      * @return Messages received
      */
-    List<Writable> getAndClearMessagesFromOtherWorkers();
+    public List<Writable> getAndClearMessagesFromOtherWorkers(){
+        logger.error("Not implemented");
+        return null;
+    }
 
     /**
      * Send message to another worker
@@ -67,40 +144,59 @@ public interface WorkerContext
      * @param message     Message to send
      * @param workerIndex Index of the worker to send the message to
      */
-    void sendMessageToWorker(Writable message, int workerIndex);
+    public void sendMessageToWorker(Writable message, int workerIndex){
+        logger.error("Not implemented");
+    }
 
     /**
      * Execute user code. This method is executed once on each Worker after each superstep ends.
      */
-    void postSuperstep();
+    public abstract void postSuperstep();
 
     /**
      * Retrieves the current superstep.
      *
      * @return Current superstep
      */
-    long getSuperstep();
+    public long getSuperstep(){
+        return curStep;
+    }
 
     /**
      * Get the total (all workers) number of vertices that existed in the previous superstep.
      *
-     * @return Total number of vertices (-1 if first superstep)
+     * @return Total number of vertices (-1 if first superstep) (?)
      */
-    long getTotalNumVertices();
+    public final long getTotalNumVertices(){
+        if (Objects.isNull(fragment)){
+            logger.error("Fragment null, please set fragment first");
+            return 0;
+        }
+        return fragment.getTotalVerticesNum();
+    }
 
     /**
      * Get the total (all workers) number of edges that existed in the previous superstep.
      *
      * @return Total number of edges (-1 if first superstep)
      */
-    long getTotalNumEdges();
+    public final long getTotalNumEdges(){
+        if (Objects.isNull(fragment)){
+            logger.error("Fragment null, please set fragment first");
+            return 0;
+        }
+        return fragment.getEdgeNum();
+    }
 
     /**
      * Get the mapper context
      *
      * @return Mapper context
      */
-    Mapper.Context getContext();
+    public final Mapper.Context getContext(){
+        logger.error("No mapper context available");
+        return null;
+    }
 
     /**
      * Call this to log a line to command line of the job. Use in moderation - it's a synchronous
@@ -108,5 +204,67 @@ public interface WorkerContext
      *
      * @param line Line to print
      */
-    void logToCommandLine(String line);
+    public void logToCommandLine(String line){
+        logger.info(line);
+    }
+
+    @Override
+    public void write(DataOutput dataOutput) throws IOException {
+    }
+
+    @Override
+    public void readFields(DataInput dataInput) throws IOException {
+    }
+
+    /**
+     * Methods provided by CommunicatorImpl.
+     */
+
+    /**
+     * Reduce value by name.
+     * @param name key
+     * @param value value
+     */
+    @Override
+    public void reduce(String name, Object value) {
+        if (Objects.isNull(communicator)){
+            logger.error("Set communicator first");
+            return ;
+        }
+
+    }
+
+    @Override
+    public void reduceMerge(String name, Writable value) {
+        if (Objects.isNull(communicator)){
+            logger.error("Set communicator first");
+            return ;
+        }
+    }
+
+    @Override
+    public <B extends Writable> B getBroadcast(String name) {
+        if (Objects.isNull(communicator)){
+            logger.error("Set communicator first");
+            return null;
+        }
+        return null;
+    }
+
+    @Override
+    public <A extends Writable> void aggregate(String name, A value) {
+        if (Objects.isNull(communicator)){
+            logger.error("Set communicator first");
+            return ;
+        }
+    }
+
+    @Override
+    public <A extends Writable> A getAggregatedValue(String name) {
+        if (Objects.isNull(communicator)){
+            logger.error("Set communicator first");
+            return null;
+        }
+        return null;
+    }
 }
