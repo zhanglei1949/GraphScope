@@ -21,7 +21,11 @@ import static org.apache.giraph.conf.Constants.VERTEX_CLASS;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.giraph.graph.Computation;
 import org.apache.giraph.graph.Vertex;
+import org.apache.giraph.io.VertexInputFormat;
+import org.apache.giraph.io.VertexOutputFormat;
+import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
@@ -36,10 +40,32 @@ import org.apache.hadoop.io.WritableComparable;
 public class GiraphClasses<I extends WritableComparable,
     V extends Writable, E extends Writable> {
 
-    private Map<String, Class<?>> giraphTypes;
+    /** Generic types used to describe graph */
+    protected GiraphTypes<I, V, E> giraphTypes;
+
+    /** Vertex input format class - cached for fast access */
+    protected Class<? extends VertexInputFormat<I, V, E>>
+        vertexInputFormatClass;
+    /** Vertex output format class - cached for fast access */
+    protected Class<? extends VertexOutputFormat<I, V, E>>
+        vertexOutputFormatClass;
+
+    /** Computation class - cached for fast access */
+    protected Class<? extends Computation<I, V, E,
+            ? extends Writable, ? extends Writable>>
+        computationClass;
+    /** Worker context class - cached for fast access */
+    protected Class<? extends WorkerContext> workerContextClass;
+
+//    /** Edge input format class - cached for fast access */
+//    protected Class<? extends EdgeInputFormat<I, E>>
+//        edgeInputFormatClass;
+//    /** Edge output format class - cached for fast access */
+//    protected Class<? extends EdgeOutputFormat<I, V, E>>
+//        edgeOutputFormatClass;
 
     public GiraphClasses() {
-        giraphTypes = new HashMap<>();
+        giraphTypes = new GiraphTypes<I, V, E>();
     }
 
     /**
@@ -48,11 +74,67 @@ public class GiraphClasses<I extends WritableComparable,
      * @return Vertex implementation class
      */
     public Class<? extends Vertex> getVertexClass() {
-        return (Class<? extends Vertex>) giraphTypes.get(VERTEX_CLASS);
+        return giraphTypes.getVertexClass();
     }
 
-    public void setVertexClass(Class<? extends Vertex> vertexClass) {
-        giraphTypes.put(VERTEX_CLASS, vertexClass);
+    /**
+     * Check if VertexOutputFormat is set
+     *
+     * @return true if VertexOutputFormat is set
+     */
+    public boolean hasVertexOutputFormat() {
+        return vertexOutputFormatClass != null;
+    }
+
+    /**
+     * Get VertexOutputFormat set
+     *
+     * @return VertexOutputFormat
+     */
+    public Class<? extends VertexOutputFormat<I, V, E>>
+    getVertexOutputFormatClass() {
+        return vertexOutputFormatClass;
+    }
+
+    /**
+     * Set WorkerContext used
+     *
+     * @param workerContextClass WorkerContext class to set
+     * @return this
+     */
+    public GiraphClasses setWorkerContextClass(
+        Class<? extends WorkerContext> workerContextClass) {
+        this.workerContextClass = workerContextClass;
+        return this;
+    }
+
+    /**
+     * Check if WorkerContext is set
+     *
+     * @return true if WorkerContext is set
+     */
+    public boolean hasWorkerContextClass() {
+        return workerContextClass != null;
+    }
+
+    /**
+     * Get WorkerContext used
+     *
+     * @return WorkerContext
+     */
+    public Class<? extends WorkerContext> getWorkerContextClass() {
+        return workerContextClass;
+    }
+
+    /**
+     * Get Computation class
+     *
+     * @return Computation class.
+     */
+    public Class<? extends Computation<I, V, E,
+        ? extends Writable, ? extends Writable>>
+    getComputationClass() {
+        return computationClass;
     }
 
 }

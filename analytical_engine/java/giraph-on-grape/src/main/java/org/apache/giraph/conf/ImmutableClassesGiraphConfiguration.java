@@ -18,7 +18,13 @@
 
 package org.apache.giraph.conf;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import org.apache.giraph.graph.Computation;
 import org.apache.giraph.graph.Vertex;
+import org.apache.giraph.io.VertexOutputFormat;
+import org.apache.giraph.worker.WorkerContext;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -38,9 +44,15 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
     /** Holder for all the classes */
     private final GiraphClasses classes;
 
-    public ImmutableClassesGiraphConfiguration(){
+    private static String DEFAULT_WORKER_FILE_PREFIX= "giraph-on-grape";
+
+
+    public ImmutableClassesGiraphConfiguration(Configuration configuration){
+        super(configuration);
         classes = new GiraphClasses<I,V,E>();
     }
+
+
     /**
      * Create a vertex
      *
@@ -55,5 +67,59 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
             e.printStackTrace();
         }
         return null;
+    }
+
+    @Override
+    public boolean hasVertexOutputFormat() {
+        return classes.hasVertexOutputFormat();
+    }
+
+    /**
+     * Get the user's subclassed
+     * {@link org.apache.giraph.io.VertexOutputFormat}.
+     *
+     * @return User's vertex output format class
+     */
+    public Class<? extends VertexOutputFormat<I, V, E>>
+    getVertexOutputFormatClass() {
+        return classes.getVertexOutputFormatClass();
+    }
+
+    /**
+     * Create a user vertex output format class.
+     * Note: Giraph should only use WrappedVertexOutputFormat,
+     * which makes sure that Configuration parameters are set properly.
+     *
+     * @return Instantiated user vertex output format class
+     */
+    private VertexOutputFormat<I, V, E> createVertexOutputFormat() {
+        Class<? extends VertexOutputFormat<I, V, E>> klass =
+            getVertexOutputFormatClass();
+        return ReflectionUtils.newInstance(klass, this);
+    }
+
+    /**
+     * Generate the string for default work file to write data to. shall be unique for each run.
+     */
+    public String getDefaultWorkerFile(){
+        String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
+        return String.join("-", DEFAULT_WORKER_FILE_PREFIX, getComputationClass().getSimpleName(), timeStamp);
+    }
+
+    /**
+     * Get the user's subclassed WorkerContext.
+     *
+     * @return User's worker context class
+     */
+    @Override
+    public Class<? extends WorkerContext> getWorkerContextClass() {
+        return classes.getWorkerContextClass();
+    }
+
+    @Override
+    public Class<? extends Computation<I, V, E,
+            ? extends Writable, ? extends Writable>>
+    getComputationClass() {
+        return classes.getComputationClass();
     }
 }

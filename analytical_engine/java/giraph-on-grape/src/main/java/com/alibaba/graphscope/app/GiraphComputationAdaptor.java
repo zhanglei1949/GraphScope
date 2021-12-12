@@ -2,6 +2,7 @@ package com.alibaba.graphscope.app;
 
 import com.alibaba.graphscope.context.GiraphComputationAdaptorContext;
 import com.alibaba.graphscope.ds.Vertex;
+import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.GiraphMessageManager;
@@ -10,11 +11,11 @@ import java.io.IOException;
 import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexIdManager;
+import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.alibaba.graphscope.ds.VertexRange;
 
 /**
  * This adaptor bridges c++ driver app and Giraph Computation.
@@ -24,7 +25,7 @@ import com.alibaba.graphscope.ds.VertexRange;
  * </p>
  */
 public class GiraphComputationAdaptor implements
-    DefaultAppBase<Long, Long, Long, Double, GiraphComputationAdaptorContext> {
+    DefaultAppBase {
 
     private static Logger logger = LoggerFactory.getLogger(GiraphComputationAdaptor.class);
 
@@ -40,15 +41,25 @@ public class GiraphComputationAdaptor implements
      * @see DefaultMessageManager
      */
     @Override
-    public void PEval(SimpleFragment<Long, Long, Long, Double> graph,
-        DefaultContextBase<Long, Long, Long, Double> context,
+    public void PEval(SimpleFragment graph,
+        DefaultContextBase context,
         DefaultMessageManager messageManager) {
 
         GiraphComputationAdaptorContext ctx = (GiraphComputationAdaptorContext) context;
-        AbstractComputation<LongWritable, LongWritable, DoubleWritable, LongWritable, LongWritable> userComputation = ctx
+        AbstractComputation userComputation = ctx
             .getUserComputation();
-        GiraphMessageManager<LongWritable, LongWritable, DoubleWritable, LongWritable, LongWritable> giraphMessageManager = ctx
+        GiraphMessageManager giraphMessageManager = ctx
             .getGiraphMessageManager();
+        WorkerContext workerContext = ctx.getWorkerContext();
+        //Before computation, we execute preparation methods provided by user's worker context.
+        try {
+            workerContext.preApplication();
+        } catch (Exception e) {
+            logger.error("Exception in workerContext preApplication: " + e.getMessage());
+            return;
+        }
+
+        workerContext.preSuperstep();
 
         //In first round, there is no message, we pass an empty iterable.
         Iterable<LongWritable> messages = new MessageIterable<>();
@@ -73,14 +84,18 @@ public class GiraphComputationAdaptor implements
         } catch (IOException e) {
             e.printStackTrace();
         }
+        //PostStep should run before finish message sending
+        workerContext.postSuperstep();
+
         //wait msg send finish.
         giraphMessageManager.finishMessageSending();
 
-	//increase super step
-	userComputation.incStep();
+        //increase super step
+        userComputation.incStep();
+        workerContext.setCurStep(1);
 
         //We can not judge whether to proceed by messages sent and check halted array.
-        if (giraphMessageManager.anyMessageToSelf()){
+        if (giraphMessageManager.anyMessageToSelf()) {
             messageManager.ForceContinue();
         }
 
@@ -99,26 +114,34 @@ public class GiraphComputationAdaptor implements
      * @see DefaultMessageManager
      */
     @Override
-    public void IncEval(SimpleFragment<Long, Long, Long, Double> graph,
-        DefaultContextBase<Long, Long, Long, Double> context,
+    public void IncEval(SimpleFragment graph,
+        DefaultContextBase context,
         DefaultMessageManager messageManager) {
 
         GiraphComputationAdaptorContext ctx = (GiraphComputationAdaptorContext) context;
-        AbstractComputation<LongWritable, LongWritable, DoubleWritable, LongWritable, LongWritable> userComputation = ctx
+        AbstractComputation userComputation = ctx
             .getUserComputation();
-        GiraphMessageManager<LongWritable, LongWritable, DoubleWritable, LongWritable, LongWritable> giraphMessageManager = ctx
+        GiraphMessageManager giraphMessageManager = ctx
             .getGiraphMessageManager();
+        WorkerContext workerContext = ctx.getWorkerContext();
+        //Worker context
+        workerContext.preSuperstep();
+
         //0. receive messages
         giraphMessageManager.receiveMessages();
 
         //1. compute
         try {
-	    logger.info("range: " + ctx.innerVertices.begin().GetValue() + " " + ctx.innerVertices.end().GetValue() + "addr: " + ctx.innerVertices.getAddress());
-	    VertexRange<Long> innerVertices = graph.innerVertices();
-	    logger.info("this range: " + innerVertices.begin().GetValue() + " " + innerVertices.end().GetValue() + "addr: " + innerVertices.getAddress());
+            logger.info(
+                "range: " + ctx.innerVertices.begin().GetValue() + " " + ctx.innerVertices.end()
+                    .GetValue() + "addr: " + ctx.innerVertices.getAddress());
+            VertexRange<Long> innerVertices = graph.innerVertices();
+            logger.info(
+                "this range: " + innerVertices.begin().GetValue() + " " + innerVertices.end()
+                    .GetValue() + "addr: " + innerVertices.getAddress());
             for (Vertex<Long> grapeVertex : innerVertices.locals()) {
                 int lid = grapeVertex.GetValue().intValue();
-                if (giraphMessageManager.messageAvailable(lid)){
+                if (giraphMessageManager.messageAvailable(lid)) {
                     ctx.activateVertex(lid); //set halted[lid] to false;
                 }
                 if (!ctx.isHalted(lid)) {
@@ -129,8 +152,12 @@ public class GiraphComputationAdaptor implements
         } catch (IOException e) {
             e.printStackTrace();
         }
-	//increase super step
-	userComputation.incStep();
+        workerContext.postSuperstep();
+
+        //increase super step
+        userComputation.incStep();
+        //Also increase worker context.
+        workerContext.setCurStep((int) userComputation.getSuperstep());
 
         //2. send msg
         giraphMessageManager.finishMessageSending();

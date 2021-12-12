@@ -22,6 +22,7 @@ DEFINE_string(output_path, "", "output file path");
 DEFINE_string(aggregator_class, "", "aggregator class");
 DEFINE_string(combiner_class, "", "combiner for message processing");
 DEFINE_string(resolver_class, "", "resolver for graph loading");
+DEFINE_string(worker_context_class, "", "worker context");
 DEFINE_string(lib_path, "",
               "path for dynamic lib where the desired entry function exists");
 DEFINE_string(loading_thread_num, "",
@@ -70,6 +71,7 @@ std::string flags2JsonStr() {
   pt.put("efile", FLAGS_efile);
   pt.put("vfile", FLAGS_vfile);
   pt.put("java_driver_app", FLAGS_java_driver_app);
+  pt.put("worker_context_class", FLAGS_worker_context_class);
 
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, pt);

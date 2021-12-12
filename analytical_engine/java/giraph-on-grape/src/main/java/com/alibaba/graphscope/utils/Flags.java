@@ -5,5 +5,5 @@ package com.alibaba.graphscope.utils;
  * c++ flags.
  */
 public class Flags {
-    public static final String APP_CLASS = "app_class";
+
 }
