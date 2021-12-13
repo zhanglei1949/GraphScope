@@ -3,6 +3,7 @@ package org.apache.giraph.graph.impl;
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.serialization.FFIByteVectorInputStream;
 import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
@@ -77,15 +78,16 @@ public class VertexDataManagerImpl<VDATA_T extends Writable> implements VertexDa
         try {
             for (long i = 0; i < vertices.size(); ++i) {
                 vertex.SetValue(i);
-                if (conf.getGrapeOidClass().equals(Long.class)) {
+                if (conf.getGrapeVdataClass().equals(Long.class)) {
                     Long value = (Long) fragment.getData(vertex);
                     outputStream.writeLong(value);
                 }
-                else if (conf.getGrapeOidClass().equals(Integer.class)){
+                else if (conf.getGrapeVdataClass().equals(Integer.class)){
                     Integer value = (Integer) fragment.getData(vertex);
+		    logger.info(""+value);
                     outputStream.writeInt(value);
                 }
-                else if (conf.getGrapeOidClass().equals(Double.class)){
+                else if (conf.getGrapeVdataClass().equals(Double.class)){
                     Double value = (Double) fragment.getData(vertex);
                     outputStream.writeDouble(value);
                 }

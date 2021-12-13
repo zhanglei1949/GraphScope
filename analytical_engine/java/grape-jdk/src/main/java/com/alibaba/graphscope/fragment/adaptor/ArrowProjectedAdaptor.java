@@ -22,7 +22,7 @@ public class ArrowProjectedAdaptor<OID_T, VID_T, VDATA_T, EDATA_T>
         fragment = frag;
     }
 
-    public ArrowProjectedFragment getArrowProjectedFragment(){
+    public ArrowProjectedFragment getArrowProjectedFragment() {
         return fragment;
     }
 
