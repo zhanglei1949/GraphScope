@@ -1,15 +1,15 @@
+#include <dlfcn.h>
 #include <unistd.h>
 #include <memory>
 #include <string>
 #include <utility>
-#include <dlfcn.h>
 
 #include <gflags/gflags.h>
 #include <gflags/gflags_declare.h>
 #include <glog/logging.h>
+#include <boost/leaf/error.hpp>
 #include "boost/property_tree/json_parser.hpp"
 #include "boost/property_tree/ptree.hpp"
-#include <boost/leaf/error.hpp>
 
 #include "grape/config.h"
 
@@ -29,28 +29,32 @@ DEFINE_string(loading_thread_num, "",
               "number of threads will be used in loading the graph");
 DEFINE_string(efile, "", "path to efile");
 DEFINE_string(vfile, "", "path to vfile");
-DEFINE_string(java_driver_app, "com.alibaba.graphscope.app.GiraphComputationAdaptor","the driver app used in java");
+DEFINE_string(java_driver_app,
+              "com.alibaba.graphscope.app.GiraphComputationAdaptor",
+              "the driver app used in java");
+DEFINE_string(java_driver_context,
+              "com.alibaba.graphscope.context.GiraphComputationAdaptorContext",
+              "the driver context used in java");
 
 inline void* open_lib(const char* path) {
   void* handle = dlopen(path, RTLD_LAZY);
   auto* p_error_msg = dlerror();
   if (p_error_msg) {
-      LOG(ERROR) << "Error in open library: " <<path << p_error_msg;
-      return nullptr;
+    LOG(ERROR) << "Error in open library: " << path << p_error_msg;
+    return nullptr;
   }
   return handle;
 }
 
 inline void* get_func_ptr(const std::string& lib_path, void* handle,
-                                      const char* symbol) {
+                          const char* symbol) {
   auto* p_func = dlsym(handle, symbol);
   auto* p_error_msg = dlerror();
   if (p_error_msg) {
-      LOG(ERROR) << "Failed to get symbol" << symbol << " from " << p_error_msg;
+    LOG(ERROR) << "Failed to get symbol" << symbol << " from " << p_error_msg;
   }
   return p_func;
 }
-
 
 typedef void* RunT(std::string args);
 
@@ -66,12 +70,13 @@ std::string flags2JsonStr() {
   pt.put("aggregator_class", FLAGS_aggregator_class);
   pt.put("combiner_class", FLAGS_combiner_class);
   pt.put("resolver_class", FLAGS_resolver_class);
+  pt.put("worker_context_class", FLAGS_worker_context_class);
   pt.put("lib_path", FLAGS_lib_path);
   pt.put("loading_thread_num", FLAGS_loading_thread_num);
   pt.put("efile", FLAGS_efile);
   pt.put("vfile", FLAGS_vfile);
   pt.put("java_driver_app", FLAGS_java_driver_app);
-  pt.put("worker_context_class", FLAGS_worker_context_class);
+  pt.put("java_driver_context", FLAGS_java_driver_context);
 
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, pt);
@@ -84,8 +89,8 @@ class GiraphJobRunner {
       : lib_path_(lib_path), dl_handle_(nullptr), run_handle_(nullptr) {}
   bool Init() {
     dl_handle_ = open_lib(lib_path_.c_str());
-    if (!dl_handle_){
-       return false;
+    if (!dl_handle_) {
+      return false;
     }
     auto function_ptr = get_func_ptr(lib_path_, dl_handle_, "Run");
     if (function_ptr) {

@@ -93,7 +93,8 @@ class JavaPIEDefaultContext : public grape::ContextBase {
   }
 
   void Init(grape::DefaultMessageManager& messages,
-            const std::string& app_class_name, const std::string& frag_name,
+            const std::string& app_class_name,
+            const std::string& context_class_name, const std::string& frag_name,
             const std::string& user_lib_path, const std::string& params) {
     JNIEnvMark m;
     if (m.env()) {
@@ -105,7 +106,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
         if (getenv("USER_JAR_PATH")) {
           gs_classLoader_cp = getenv("USER_JAR_PATH");
         }
-	VLOG(1) << "Created class loader with cp: " << gs_classLoader_cp;
+        VLOG(1) << "Created class loader with cp: " << gs_classLoader_cp;
         jobject gs_class_loader_obj = CreateClassLoader(env, gs_classLoader_cp);
         CHECK_NOTNULL(gs_class_loader_obj);
         url_class_loader_object_ = env->NewGlobalRef(gs_class_loader_obj);
@@ -116,8 +117,9 @@ class JavaPIEDefaultContext : public grape::ContextBase {
       app_class_name_ = JavaClassNameDashToSlash(app_class_name);
       app_object_ =
           LoadAndCreate(env, url_class_loader_object_, app_class_name_);
-      std::string app_context_name = getContextNameFromAppClass(env);
-      context_class_name_ = JavaClassNameDashToSlash(app_context_name);
+      // std::string app_context_name = getContextNameFromAppClass(env);
+
+      context_class_name_ = JavaClassNameDashToSlash(context_class_name);
       // CHECK_NOTNULL(!initClassNames(app_class_name, app_context_name));
 
       context_object_ =
