@@ -19,6 +19,7 @@ package org.apache.giraph.conf;
 
 import static org.apache.giraph.conf.Constants.VERTEX_CLASS;
 
+import com.alibaba.graphscope.context.GiraphComputationAdaptorContext;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.giraph.graph.Computation;
@@ -29,6 +30,8 @@ import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Holder for classes used by Giraph.
@@ -40,6 +43,8 @@ import org.apache.hadoop.io.WritableComparable;
 @SuppressWarnings("unchecked")
 public class GiraphClasses<I extends WritableComparable,
     V extends Writable, E extends Writable> implements GiraphConstants{
+    private static Logger logger = LoggerFactory.getLogger(GiraphClasses.class);
+
 
     /** Generic types used to describe graph */
     protected GiraphTypes<I, V, E> giraphTypes;
@@ -84,6 +89,7 @@ public class GiraphClasses<I extends WritableComparable,
             (Class<? extends Computation<I, V, E,
                 ? extends Writable, ? extends Writable>>)
                 COMPUTATION_CLASS.get(conf);
+        logger.info("Setting computation class to: " + computationClass.getSimpleName());
 
 //        outEdgesClass = (Class<? extends OutEdges<I, E>>)
 //            VERTEX_EDGES_CLASS.get(conf);
