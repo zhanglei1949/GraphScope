@@ -26,6 +26,7 @@ import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.io.VertexInputFormat;
 import org.apache.giraph.io.VertexOutputFormat;
 import org.apache.giraph.worker.WorkerContext;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
@@ -38,7 +39,7 @@ import org.apache.hadoop.io.WritableComparable;
  */
 @SuppressWarnings("unchecked")
 public class GiraphClasses<I extends WritableComparable,
-    V extends Writable, E extends Writable> {
+    V extends Writable, E extends Writable> implements GiraphConstants{
 
     /** Generic types used to describe graph */
     protected GiraphTypes<I, V, E> giraphTypes;
@@ -66,6 +67,74 @@ public class GiraphClasses<I extends WritableComparable,
 
     public GiraphClasses() {
         giraphTypes = new GiraphTypes<I, V, E>();
+    }
+
+    /**
+     * Constructor that reads classes from a Configuration object.
+     *
+     * @param conf Configuration object to read from.
+     */
+    public GiraphClasses(Configuration conf) {
+        giraphTypes = GiraphTypes.readFrom(conf);
+//        computationFactoryClass =
+//            (Class<? extends ComputationFactory<I, V, E,
+//                ? extends Writable, ? extends Writable>>)
+//                COMPUTATION_FACTORY_CLASS.get(conf);
+        computationClass =
+            (Class<? extends Computation<I, V, E,
+                ? extends Writable, ? extends Writable>>)
+                COMPUTATION_CLASS.get(conf);
+
+//        outEdgesClass = (Class<? extends OutEdges<I, E>>)
+//            VERTEX_EDGES_CLASS.get(conf);
+//        inputOutEdgesClass = (Class<? extends OutEdges<I, E>>)
+//            INPUT_VERTEX_EDGES_CLASS.getWithDefault(conf, outEdgesClass);
+
+//        graphPartitionerFactoryClass =
+//            (Class<? extends GraphPartitionerFactory<I, V, E>>)
+//                GRAPH_PARTITIONER_FACTORY_CLASS.get(conf);
+
+        vertexInputFormatClass = (Class<? extends VertexInputFormat<I, V, E>>)
+            VERTEX_INPUT_FORMAT_CLASS.get(conf);
+        vertexOutputFormatClass = (Class<? extends VertexOutputFormat<I, V, E>>)
+            VERTEX_OUTPUT_FORMAT_CLASS.get(conf);
+//        edgeInputFormatClass = (Class<? extends EdgeInputFormat<I, E>>)
+//            EDGE_INPUT_FORMAT_CLASS.get(conf);
+//        edgeOutputFormatClass = (Class<? extends EdgeOutputFormat<I, V, E>>)
+//            EDGE_OUTPUT_FORMAT_CLASS.get(conf);
+//        mappingInputFormatClass = (Class<? extends MappingInputFormat<I, V, E,
+//            ? extends Writable>>)
+//            MAPPING_INPUT_FORMAT_CLASS.get(conf);
+
+//        aggregatorWriterClass = AGGREGATOR_WRITER_CLASS.get(conf);
+
+        // incoming messages shouldn't be used in first iteration at all
+        // but empty message stores are created, etc, so using NoMessage
+        // to enforce not a single message is read/written
+//        incomingMessageClasses = new DefaultMessageClasses(
+//            NoMessage.class,
+//            DefaultMessageValueFactory.class,
+//            null,
+//            MessageEncodeAndStoreType.BYTEARRAY_PER_PARTITION);
+//        outgoingMessageClasses = new DefaultMessageClasses(
+//            giraphTypes.getInitialOutgoingMessageValueClass(),
+//            OUTGOING_MESSAGE_VALUE_FACTORY_CLASS.get(conf),
+//            MESSAGE_COMBINER_CLASS.get(conf),
+//            MESSAGE_ENCODE_AND_STORE_TYPE.get(conf));
+
+//        vertexResolverClass = (Class<? extends VertexResolver<I, V, E>>)
+//            VERTEX_RESOLVER_CLASS.get(conf);
+//        vertexValueCombinerClass = (Class<? extends VertexValueCombiner<V>>)
+//            VERTEX_VALUE_COMBINER_CLASS.get(conf);
+        workerContextClass = WORKER_CONTEXT_CLASS.get(conf);
+//        masterComputeClass =  MASTER_COMPUTE_CLASS.get(conf);
+//        partitionClass = (Class<? extends Partition<I, V, E>>)
+//            PARTITION_CLASS.get(conf);
+//
+//        edgeInputFilterClass = (Class<? extends EdgeInputFilter<I, E>>)
+//            EDGE_INPUT_FILTER_CLASS.get(conf);
+//        vertexInputFilterClass = (Class<? extends VertexInputFilter<I, V, E>>)
+//            VERTEX_INPUT_FILTER_CLASS.get(conf);
     }
 
     /**
