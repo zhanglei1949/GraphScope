@@ -47,7 +47,7 @@ public class SimpleShortestPathsComputation extends BasicComputation<
     LongWritable, DoubleWritable, DoubleWritable, DoubleWritable> {
     /** The shortest paths id */
     public static final LongConfOption SOURCE_ID =
-        new LongConfOption("SimpleShortestPathsVertex.sourceId", 1,
+        new LongConfOption("SimpleShortestPathsVertex.sourceId", 6,
             "The shortest paths id");
     /** Class logger */
     private static final Logger LOG =
