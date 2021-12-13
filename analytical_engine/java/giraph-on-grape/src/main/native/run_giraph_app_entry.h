@@ -50,8 +50,9 @@ void Init(const std::string& params) {
 
 template <typename FRAG_T>
 void Query(grape::CommSpec& comm_spec, std::shared_ptr<FRAG_T> fragment,
-           const std::string& app_class, const std::string& frag_name,
-           const std::string user_lib_path,  const std::string& params_str) {
+           const std::string& app_class, const std::string& context_class,
+           const std::string& frag_name, const std::string user_lib_path,
+           const std::string& params_str) {
   auto app = std::make_shared<APP_TYPE>();
   auto worker = APP_TYPE::CreateWorker(app, fragment);
 
@@ -62,7 +63,7 @@ void Query(grape::CommSpec& comm_spec, std::shared_ptr<FRAG_T> fragment,
   MPI_Barrier(comm_spec.comm());
   double t = -GetCurrentTime();
 
-  worker->Query(app_class, frag_name, user_lib_path, params_str);
+  worker->Query(app_class, context_class, frag_name, user_lib_path, params_str);
 
   t += GetCurrentTime();
   VLOG(1) << "Query time" << t;
@@ -135,11 +136,14 @@ void CreateAndQuery(std::string params) {
   std::string user_app_class = getFromPtree<std::string>(pt, OPTION_APP_CLASS);
   std::string driver_app_class =
       getFromPtree<std::string>(pt, OPTION_DRIVER_APP_CLASS);
+  std::string driver_app_context =
+      getFromPtree<std::string>(pt, OPTION_DRIVER_CONTEXT_CLASS);
   std::string user_lib_path = getFromPtree<std::string>(pt, OPTION_LIB_PATH);
 
-//  std::string frag_name = QUOTE(GRAPH_TYPE);
+  //  std::string frag_name = QUOTE(GRAPH_TYPE);
   std::string frag_name = getenv("GRAPH_TYPE");
-  Query<GRAPH_TYPE>(comm_spec, fragment, driver_app_class, frag_name, user_lib_path, params);
+  Query<GRAPH_TYPE>(comm_spec, fragment, driver_app_class, driver_app_context,
+                    frag_name, user_lib_path, params);
 }
 
 void Finalize() {
