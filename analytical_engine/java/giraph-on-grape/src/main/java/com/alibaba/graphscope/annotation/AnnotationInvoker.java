@@ -97,6 +97,9 @@ import com.alibaba.graphscope.utils.CppClassName;
                         @CXXTemplate(
                                 cxx = {"uint64_t", "int64_t"},
                                 java = {"Long", "Long"}),
+                        @CXXTemplate(
+                            cxx = {"uint64_t", "float"},
+                            java = {"Long", "Float"}),
                     }),
             @FFIGen(
                     type = "com.alibaba.graphscope.ds.GrapeAdjList",
@@ -110,6 +113,9 @@ import com.alibaba.graphscope.utils.CppClassName;
                         @CXXTemplate(
                                 cxx = {"uint64_t", "int64_t"},
                                 java = {"Long", "Long"}),
+                        @CXXTemplate(
+                            cxx = {"uint64_t", "float"},
+                            java = {"Long", "Float"}),
                     }),
             @FFIGen(
                     type = "com.alibaba.graphscope.ds.GSVertexArray",
