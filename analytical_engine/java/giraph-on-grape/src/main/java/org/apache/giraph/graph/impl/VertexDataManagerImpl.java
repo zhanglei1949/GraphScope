@@ -85,6 +85,10 @@ public class VertexDataManagerImpl<VDATA_T extends Writable> implements VertexDa
                     Integer value = (Integer) fragment.getData(vertex);
                     outputStream.writeInt(value);
                 }
+                else if (conf.getGrapeOidClass().equals(Double.class)){
+                    Double value = (Double) fragment.getData(vertex);
+                    outputStream.writeDouble(value);
+                }
             }
             outputStream.finishSetting();
             logger.info("Vertex data stream size: " + outputStream.bytesWriten() + ", vertices: " + vertices.size());

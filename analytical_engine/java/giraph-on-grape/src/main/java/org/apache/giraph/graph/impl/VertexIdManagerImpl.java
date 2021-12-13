@@ -9,9 +9,12 @@ import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import jnr.ffi.annotations.In;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.VertexIdManager;
 import org.apache.hadoop.io.WritableComparable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The access of giraph oids shall be managed by this class.
@@ -20,6 +23,8 @@ import org.apache.hadoop.io.WritableComparable;
  */
 public class VertexIdManagerImpl<OID_T extends WritableComparable> implements
     VertexIdManager<OID_T> {
+
+    private static Logger logger = LoggerFactory.getLogger(VertexIdManagerImpl.class);
 
     private SimpleFragment fragment;
     private VertexRange<Long> vertices;
@@ -71,6 +76,13 @@ public class VertexIdManagerImpl<OID_T extends WritableComparable> implements
                 if (conf.getGrapeOidClass().equals(Long.class)) {
                     Long value = (Long) fragment.getId(vertex);
                     outputStream.writeLong(value);
+                }
+                else if (conf.getGrapeOidClass().equals(Integer.class)){
+                    Integer value = (Integer) fragment.getId(vertex);
+                    outputStream.writeInt(value);
+                }
+                else {
+                    logger.error("Unsupported oid class: " + conf.getGrapeOidClass().getName());
                 }
             }
         } catch (IOException e) {
