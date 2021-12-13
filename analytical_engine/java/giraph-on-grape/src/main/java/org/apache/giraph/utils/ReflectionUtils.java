@@ -209,10 +209,15 @@ public class ReflectionUtils {
     public static <T> Class<?>[] getTypeArgumentFromInterface(Class<T> baseClass,
         Class<? extends T> childClass) {
         Type type = childClass.getGenericInterfaces()[0];
+        Class<?> []classes;
         if (type instanceof ParameterizedType) {
             ParameterizedType parameterizedType = (ParameterizedType) type;
             Type[] typeParams = parameterizedType.getActualTypeArguments();
-            return (Class<?>[]) typeParams;
+            classes = new Class<?>[typeParams.length];
+            for (int i =0; i < typeParams.length; ++i){
+                classes[i] = (Class<?>) typeParams[i];
+            }
+            return classes;
         } else {
             throw new IllegalStateException("Not a parameterized type");
         }
