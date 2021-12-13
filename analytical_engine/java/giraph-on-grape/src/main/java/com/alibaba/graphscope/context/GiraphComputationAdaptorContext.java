@@ -160,7 +160,7 @@ public class GiraphComputationAdaptorContext implements
         //Output with vertexOutputClass
         //caution: do not use taskAttemptID
         TaskAttemptContext taskAttemptContext = new TaskAttemptContext(userComputation.getConf(), new TaskAttemptID());
-        String filePath = userComputation.getConf().getDefaultWorkerFile();
+        String filePath = userComputation.getConf().getDefaultWorkerFile() + "-frag-" + frag.fid();
         //TODO: remove this debug code
         try {
 	    logger.info("Writing output to: " + filePath);
@@ -169,7 +169,6 @@ public class GiraphComputationAdaptorContext implements
             Vertex<Long> grapeVertex = FFITypeFactoryhelper.newVertexLong();
 
             for (long i = 0; i < innerVerticesNum; ++i){
-                grapeVertex.SetValue(i);
                 bufferedWriter.write(vertexIdManager.getId(i) + "\t" + vertexDataManager.getVertexData(i));
             }
             bufferedWriter.close();
