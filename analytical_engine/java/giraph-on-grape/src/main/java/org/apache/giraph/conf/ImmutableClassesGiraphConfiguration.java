@@ -49,7 +49,7 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
 
     public ImmutableClassesGiraphConfiguration(Configuration configuration){
         super(configuration);
-        classes = new GiraphClasses<I,V,E>();
+        classes = new GiraphClasses<I,V,E>(configuration);
     }
 
 
@@ -122,4 +122,6 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
     getComputationClass() {
         return classes.getComputationClass();
     }
+
+
 }
