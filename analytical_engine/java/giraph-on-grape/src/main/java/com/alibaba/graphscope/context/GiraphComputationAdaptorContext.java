@@ -244,6 +244,6 @@ public class GiraphComputationAdaptorContext implements
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-        return new ImmutableClassesGiraphConfiguration<>(giraphConfiguration, fragment.getClass());
+        return new ImmutableClassesGiraphConfiguration<>(giraphConfiguration, fragment);
     }
 }

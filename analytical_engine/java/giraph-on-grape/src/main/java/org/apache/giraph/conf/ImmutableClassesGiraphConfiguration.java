@@ -50,10 +50,10 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
     private static String DEFAULT_WORKER_FILE_PREFIX= "giraph-on-grape";
 
 
-    public ImmutableClassesGiraphConfiguration(Configuration configuration, Class<? extends SimpleFragment> fragmentClass){
+    public ImmutableClassesGiraphConfiguration(Configuration configuration, SimpleFragment fragment){
         super(configuration);
         classes = new GiraphClasses<I,V,E>(configuration);
-        grapeClasses = new GrapeTypes(fragmentClass);
+        grapeClasses = new GrapeTypes(fragment);
     }
 
 
