@@ -27,7 +27,7 @@ public class ConfigurationUtils {
     public static void parseArgs(final GiraphConfiguration giraphConfiguration,
         JSONObject jsonObject)
         throws ClassNotFoundException {
-        if (jsonObject.containsKey(WORKER_CONTEXT_CLASS_STR)) {
+        if (!jsonObject.getString(WORKER_CONTEXT_CLASS_STR).isEmpty()) {
             giraphConfiguration.setWorkerContextClass(
                 (Class<? extends WorkerContext>) Class
                     .forName(jsonObject.getString(WORKER_CONTEXT_CLASS_STR))
@@ -39,20 +39,25 @@ public class ConfigurationUtils {
             logger.info("Setting worker context class: " + DefaultWorkerContext.class.getName());
         }
 
-        if (jsonObject.containsKey(APP_CLASS_STR)) {
+        if (!jsonObject.getString(APP_CLASS_STR).isEmpty()) {
             giraphConfiguration.setComputationClass(
                 (Class<? extends AbstractComputation>) Class
                     .forName(jsonObject.getString(APP_CLASS_STR))
             );
             logger.info("Setting app class: " + jsonObject.getString(APP_CLASS_STR));
+        }else {
+            logger.error("No computation class defined");
         }
 
-        if (jsonObject.containsKey(VERTEX_INPUT_FORMAT_CLASS_STR)) {
+        if (!jsonObject.getString(VERTEX_INPUT_FORMAT_CLASS_STR).isEmpty()) {
             giraphConfiguration.setVertexInputFormatClass(
                 (Class<? extends VertexInputFormat>) Class
                     .forName(jsonObject.getString(VERTEX_INPUT_FORMAT_CLASS_STR))
             );
             logger.info("Setting vertex input format class: " + jsonObject.getString(VERTEX_INPUT_FORMAT_CLASS_STR));
+        }
+        else {
+            logger.info("No vertex input class found, using default one.");
         }
     }
 }

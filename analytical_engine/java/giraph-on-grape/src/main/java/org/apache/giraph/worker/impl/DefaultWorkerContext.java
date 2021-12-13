@@ -18,17 +18,14 @@
 
 package org.apache.giraph.worker.impl;
 
-import com.alibaba.graphscope.fragment.SimpleFragment;
 import org.apache.giraph.worker.WorkerContext;
-import org.apache.hadoop.io.Writable;
 
 /**
  * A dummy implementation of {@link org.apache.giraph.worker.WorkerContext}. This is the default
- * implementation when no WorkerContext is defined by the user. It does
- * nothing.
+ * implementation when no WorkerContext is defined by the user. It does nothing.
  *
  * <p>
- *     If worker specifies their self-defined worker context, we will that.
+ * If worker specifies their self-defined worker context, we will that.
  * </p>
  */
 public class DefaultWorkerContext extends WorkerContext {
@@ -39,11 +36,14 @@ public class DefaultWorkerContext extends WorkerContext {
     }
 
     @Override
-    public void postApplication() { }
+    public void postApplication() {
+    }
 
     @Override
-    public void preSuperstep() { }
+    public void preSuperstep() {
+    }
 
     @Override
-    public void postSuperstep() { }
+    public void postSuperstep() {
+    }
 }

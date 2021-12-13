@@ -241,6 +241,7 @@ public class GiraphComputationAdaptorContext implements
         try {
             ConfigurationUtils.parseArgs(giraphConfiguration, params);
         } catch (ClassNotFoundException e) {
+            e.printStackTrace();
             logger.error(e.getMessage());
         }
         return new ImmutableClassesGiraphConfiguration<>(giraphConfiguration);
