@@ -1,6 +1,8 @@
 package org.apache.giraph.graph;
 
 import java.io.IOException;
+import org.apache.giraph.conf.ImmutableClassesGiraphConfigurable;
+import org.apache.giraph.conf.TypesHolder;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.giraph.worker.WorkerIndexUsage;
 import org.apache.hadoop.io.Writable;
@@ -21,7 +23,9 @@ public interface Computation<OID_T extends WritableComparable,
     EDATA_T extends Writable,
     IN_MSG_T extends Writable,
     OUT_MSG_T extends Writable>
-    extends Communicator, GraphManager<OID_T,VDATA_T,EDATA_T>, MessageSender<OID_T,VDATA_T,EDATA_T,OUT_MSG_T>, WorkerIndexUsage<OID_T> {
+    extends Communicator, GraphManager<OID_T,VDATA_T,EDATA_T>, MessageSender<OID_T,VDATA_T,EDATA_T,OUT_MSG_T>, WorkerIndexUsage<OID_T>,
+    TypesHolder<OID_T,VDATA_T,EDATA_T,IN_MSG_T,OUT_MSG_T>,
+    ImmutableClassesGiraphConfigurable<OID_T, VDATA_T, EDATA_T> {
 
     /**
      * Must be defined by user to do computation on a single Vertex.

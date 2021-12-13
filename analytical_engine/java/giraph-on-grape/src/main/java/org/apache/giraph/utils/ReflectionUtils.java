@@ -18,10 +18,14 @@
 
 package org.apache.giraph.utils;
 
+import com.alibaba.graphscope.app.ParallelPropertyAppBase;
 import java.lang.reflect.Modifier;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.jodah.typetools.TypeResolver;
 
 /**
  * Helper methods to get type arguments to generic classes.  Courtesy of
@@ -29,10 +33,12 @@ import org.apache.hadoop.mapreduce.Mapper;
  * generic classes, not interfaces.
  */
 public class ReflectionUtils {
+
     /**
      * Do not instantiate.
      */
-    private ReflectionUtils() { }
+    private ReflectionUtils() {
+    }
 
     /**
      * Get package path to the object given. Used with resources.
@@ -72,7 +78,7 @@ public class ReflectionUtils {
      * Instantiate a class, wrap exceptions
      *
      * @param theClass Class to instantiate
-     * @param <T> Type to instantiate
+     * @param <T>      Type to instantiate
      * @return Newly instantiated object
      */
     @SuppressWarnings("unchecked")
@@ -91,9 +97,9 @@ public class ReflectionUtils {
     /**
      * Instantiate classes that are ImmutableClassesGiraphConfigurable
      *
-     * @param theClass Class to instantiate
+     * @param theClass      Class to instantiate
      * @param configuration Giraph configuration, may be null
-     * @param <T> Type to instantiate
+     * @param <T>           Type to instantiate
      * @return Newly instantiated object with configuration set if possible
      */
     @SuppressWarnings("unchecked")
@@ -177,6 +183,38 @@ public class ReflectionUtils {
         if (Modifier.isAbstract(concrete.getModifiers())) {
             throw new IllegalStateException("verifyTypes: " +
                 "Type " + typeDesc + "can't be abstract class" + concrete);
+        }
+    }
+
+    /**
+     * Get the actual type arguments a child class has used to extend a generic base class.
+     *
+     * @param <T>        Type to evaluate.
+     * @param baseClass  the base class
+     * @param childClass the child class
+     * @return a list of the raw classes for the actual type arguments.
+     */
+    public static <T> Class<?>[] getTypeArguments(
+        Class<T> baseClass, Class<? extends T> childClass) {
+        return TypeResolver.resolveArguments(childClass, baseClass);
+    }
+
+    /**
+     * Get the actual argument a child class has to implement a generic interface.
+     * @param baseClass baseclass
+     * @param childClass child class
+     * @param <T> type to evaluation
+     * @return
+     */
+    public static <T> Class<?>[] getTypeArgumentFromInterface(Class<T> baseClass,
+        Class<? extends T> childClass) {
+        Type type = childClass.getGenericInterfaces()[0];
+        if (type instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType) type;
+            Type[] typeParams = parameterizedType.getActualTypeArguments();
+            return (Class<?>[]) typeParams;
+        } else {
+            throw new IllegalStateException("Not a parameterized type");
         }
     }
 }

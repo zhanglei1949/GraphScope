@@ -3,14 +3,14 @@ package org.apache.giraph.graph.impl;
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.serialization.FFIByteVectorInputStream;
+import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
-import com.alibaba.graphscope.utils.WritableFactory;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.VertexDataManager;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,38 +28,26 @@ public class VertexDataManagerImpl<VDATA_T extends Writable> implements VertexDa
     private VertexRange<Long> vertices;
     private List<VDATA_T> vertexDataList;
     private long maxVertexLid;
+    private ImmutableClassesGiraphConfiguration conf;
 
-    public VertexDataManagerImpl(SimpleFragment fragment, VertexRange<Long> vertices) {
+    public VertexDataManagerImpl(SimpleFragment fragment, VertexRange<Long> vertices,
+        ImmutableClassesGiraphConfiguration configuration) {
         this.fragment = fragment;
         this.vertices = vertices;
-	this.maxVertexLid = vertices.end().GetValue();
+        this.maxVertexLid = vertices.end().GetValue();
         vertexDataList = new ArrayList<VDATA_T>((int) vertices.size());
-        Vertex<Long> vertex = FFITypeFactoryhelper.newVertexLong();
-        for (int i = 0; i < vertices.size(); ++i) {
-            vertex.SetValue((long) i);
-//            vertexDataList.add((VDATA_T) new LongWritable((Long) this.fragment.getData(vertex)));
-            VDATA_T vdata = (VDATA_T) WritableFactory.newVData();
-            //TODO: in the future vdata should be read from stream. Currently we use hacky method for test
-            Object fragmentData  = this.fragment.getData(vertex);
-            if (vdata instanceof DoubleWritable){
-                if (fragmentData instanceof Long){
-                    ((DoubleWritable) vdata).set(((Long) fragmentData).doubleValue());
-                }
-                else {
-                    logger.error("Expected fragment with long vertex data");
-                    return ;
-                }
+        this.conf = configuration;
+
+        FFIByteVectorInputStream inputStream = generateVertexDataStream();
+
+        try {
+            for (int i = 0; i < vertices.size(); ++i) {
+                VDATA_T vdata = (VDATA_T) conf.createVertexValue();
+                vdata.readFields(inputStream);
+                vertexDataList.add(vdata);
             }
-            else if (vdata instanceof LongWritable){
-                if (fragmentData instanceof Long){
-                    ((LongWritable) vdata).set((Long) fragmentData);
-                }
-                else {
-                    logger.error("Expected fragment with long vertex data");
-                    return ;
-                }
-            }
-            vertexDataList.add(vdata);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -80,5 +68,22 @@ public class VertexDataManagerImpl<VDATA_T extends Writable> implements VertexDa
             logger.error("Querying lid out of range: " + lid + " max lid: " + lid);
             throw new RuntimeException("Vertex of range: " + lid + " max possible: " + lid);
         }
+    }
+
+    private FFIByteVectorInputStream generateVertexDataStream() {
+        FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
+        Vertex<Long> vertex = FFITypeFactoryhelper.newVertexLong();
+        try {
+            for (long i = 0; i < vertices.size(); ++i) {
+                vertex.SetValue(i);
+                if (conf.getGrapeOidClass().equals(Long.class)) {
+                    Long value = (Long) fragment.getData(vertex);
+                    outputStream.writeLong(value);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new FFIByteVectorInputStream(outputStream.getVector());
     }
 }

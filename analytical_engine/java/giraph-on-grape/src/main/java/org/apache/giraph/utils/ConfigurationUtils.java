@@ -1,13 +1,19 @@
 package org.apache.giraph.utils;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.graphscope.fragment.SimpleFragment;
 import org.apache.giraph.conf.GiraphConfiguration;
+import org.apache.giraph.conf.TypesHolder;
 import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.io.VertexInputFormat;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.giraph.worker.impl.DefaultWorkerContext;
+import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.giraph.conf.GiraphConstants.COMPUTATION_CLASS;
+import static org.apache.giraph.conf.GiraphConstants.TYPES_HOLDER_CLASS;
 
 public class ConfigurationUtils {
 
@@ -59,5 +65,42 @@ public class ConfigurationUtils {
         else {
             logger.info("No vertex input class found, using default one.");
         }
+
+        //Resolve SimpleFragment types.
+
+    }
+
+    /**
+     * Get a class which is parameterized by the graph types defined by user.
+     * The types holder is actually an interface that any class which holds all of
+     * Giraph types can implement. It is used with reflection to infer the Giraph
+     * types.
+     *
+     * The current order of type holders we try are:
+     * 1) The {@link TypesHolder} class directly.
+     * 2) The {@link org.apache.giraph.graph.Computation} class, as that holds all the types.
+     *
+     * @param conf Configuration
+     * @return {@link TypesHolder} or null if could not find one.
+     */
+    public static Class<? extends TypesHolder> getTypesHolderClass(
+        Configuration conf) {
+        Class<? extends TypesHolder> klass = TYPES_HOLDER_CLASS.get(conf);
+        if (klass != null) {
+            return klass;
+        }
+        klass = COMPUTATION_CLASS.get(conf);
+        return klass;
+    }
+
+    /**
+     * For input SimpleFragment, we check parse the type arguments, and set to giraphConfiguration.
+     *
+     * @param giraphConfiguration configuration to set.
+     * @param fragment          SimpleFragment obj.
+     */
+    public static void parseJavaFragment(final GiraphConfiguration giraphConfiguration,
+        SimpleFragment fragment) {
+
     }
 }

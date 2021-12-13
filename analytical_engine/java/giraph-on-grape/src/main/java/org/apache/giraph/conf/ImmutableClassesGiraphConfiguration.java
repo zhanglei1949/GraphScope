@@ -18,16 +18,17 @@
 
 package org.apache.giraph.conf;
 
+import com.alibaba.graphscope.fragment.SimpleFragment;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.apache.giraph.graph.Computation;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.io.VertexOutputFormat;
+import org.apache.giraph.utils.ReflectionUtils;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.util.ReflectionUtils;
 
 
 /**
@@ -43,13 +44,16 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
     V extends Writable, E extends Writable> extends GiraphConfiguration{
     /** Holder for all the classes */
     private final GiraphClasses classes;
+    /** holder for grape fragment class types */
+    private final GrapeTypes grapeClasses;
 
     private static String DEFAULT_WORKER_FILE_PREFIX= "giraph-on-grape";
 
 
-    public ImmutableClassesGiraphConfiguration(Configuration configuration){
+    public ImmutableClassesGiraphConfiguration(Configuration configuration, Class<? extends SimpleFragment> fragmentClass){
         super(configuration);
         classes = new GiraphClasses<I,V,E>(configuration);
+        grapeClasses = new GrapeTypes(fragmentClass);
     }
 
 
@@ -123,5 +127,56 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
         return classes.getComputationClass();
     }
 
+    /**
+     * Get the user's subclassed vertex index class.
+     *
+     * @return User's vertex index class
+     */
+    public Class<I> getVertexIdClass() {
+        return classes.getVertexIdClass();
+    }
 
+    public  I createVertexId(){
+        return (I) ReflectionUtils.newInstance(classes.getVertexIdClass());
+    }
+
+    public Class<V> getVertexValueClass(){
+        return classes.getVertexValueClass();
+    }
+
+    public V createVertexValue(){
+        return (V) ReflectionUtils.newInstance(classes.getVertexValueClass());
+    }
+
+    public Class<E> getEdgeValueClass(){
+        return classes.getEdgeValueClass();
+    }
+
+    public E createEdgeValue(){
+        return (E)ReflectionUtils.newInstance(classes.getEdgeValueClass());
+    }
+
+    public Writable createInComingMessageValue(){
+        return (Writable) ReflectionUtils.newInstance(classes.getIncomingMessageClass());
+    }
+
+    public Writable createOutgoingMessageValue(){
+        return (Writable) ReflectionUtils.newInstance(classes.getOutgoingMessageClass());
+    }
+
+    public Class<?> getGrapeOidClass(){
+        return grapeClasses.getOidClass();
+    }
+
+    public Class<?> getGrapeVidClass(){
+        return grapeClasses.getVidClass();
+    }
+
+    public Class<?> getGrapeVdataClass(){
+        return grapeClasses.getVdataClass();
+    }
+
+    public Class<?> getGrapeEdataClass(){
+        return grapeClasses.getEdataClass();
+    }
 }

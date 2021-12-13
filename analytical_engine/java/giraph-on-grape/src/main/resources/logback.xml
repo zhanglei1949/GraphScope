@@ -5,10 +5,10 @@
 　　　　　 </encoder>
 　　　</appender>
 
-    <logger name="com.alibaba.graphscope.stdcxx.FFIByteVector" level="info"/>
-    <logger name="com.alibaba.graphscope.serialization.FFIByteVectorInputStream" level="info"/>
-    <logger name="com.alibaba.graphscope.serialization.FFIByteVectorOutputStream" level="info"/>
-    <logger name="com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager" level="info"/>
+    <logger name="com.alibaba.graphscope.stdcxx.FFIByteVector" level="error"/>
+    <logger name="com.alibaba.graphscope.serialization.FFIByteVectorInputStream" level="error"/>
+    <logger name="com.alibaba.graphscope.serialization.FFIByteVectorOutputStream" level="error"/>
+    <logger name="com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager" level="error"/>
     <logger name="com.alibaba.graphscope.app.GiraphComputationAdaptor" level="info"/>
     <logger name="com.alibaba.graphscope.samples.MessageApp" level="info"/>
     <logger name="com.alibaba.graphscope.samples.MaxApp" level="info"/>

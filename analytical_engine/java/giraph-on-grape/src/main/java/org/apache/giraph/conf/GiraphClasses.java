@@ -17,11 +17,6 @@
  */
 package org.apache.giraph.conf;
 
-import static org.apache.giraph.conf.Constants.VERTEX_CLASS;
-
-import com.alibaba.graphscope.context.GiraphComputationAdaptorContext;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.giraph.graph.Computation;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.io.VertexInputFormat;
@@ -42,25 +37,36 @@ import org.slf4j.LoggerFactory;
  */
 @SuppressWarnings("unchecked")
 public class GiraphClasses<I extends WritableComparable,
-    V extends Writable, E extends Writable> implements GiraphConstants{
+    V extends Writable, E extends Writable> implements GiraphConstants {
+
     private static Logger logger = LoggerFactory.getLogger(GiraphClasses.class);
 
 
-    /** Generic types used to describe graph */
+    /**
+     * Generic types used to describe graph
+     */
     protected GiraphTypes<I, V, E> giraphTypes;
 
-    /** Vertex input format class - cached for fast access */
+    /**
+     * Vertex input format class - cached for fast access
+     */
     protected Class<? extends VertexInputFormat<I, V, E>>
         vertexInputFormatClass;
-    /** Vertex output format class - cached for fast access */
+    /**
+     * Vertex output format class - cached for fast access
+     */
     protected Class<? extends VertexOutputFormat<I, V, E>>
         vertexOutputFormatClass;
 
-    /** Computation class - cached for fast access */
+    /**
+     * Computation class - cached for fast access
+     */
     protected Class<? extends Computation<I, V, E,
-            ? extends Writable, ? extends Writable>>
+        ? extends Writable, ? extends Writable>>
         computationClass;
-    /** Worker context class - cached for fast access */
+    /**
+     * Worker context class - cached for fast access
+     */
     protected Class<? extends WorkerContext> workerContextClass;
 
 //    /** Edge input format class - cached for fast access */
@@ -69,6 +75,10 @@ public class GiraphClasses<I extends WritableComparable,
 //    /** Edge output format class - cached for fast access */
 //    protected Class<? extends EdgeOutputFormat<I, V, E>>
 //        edgeOutputFormatClass;
+    /** Incoming message classes */
+    protected MessageClasses<I, ? extends Writable> incomingMessageClasses;
+    /** Outgoing message classes */
+    protected MessageClasses<I, ? extends Writable> outgoingMessageClasses;
 
     public GiraphClasses() {
         giraphTypes = new GiraphTypes<I, V, E>();
@@ -85,6 +95,10 @@ public class GiraphClasses<I extends WritableComparable,
 //            (Class<? extends ComputationFactory<I, V, E,
 //                ? extends Writable, ? extends Writable>>)
 //                COMPUTATION_FACTORY_CLASS.get(conf);
+        logger.info(
+            "vertexId class: " + giraphTypes.getVertexIdClass().getName() + ", vertex value class: "
+                + giraphTypes.getVertexValueClass().getName() + ", edge value class: " + giraphTypes
+                .getEdgeValueClass().getName());
         computationClass =
             (Class<? extends Computation<I, V, E,
                 ? extends Writable, ? extends Writable>>)
@@ -210,6 +224,57 @@ public class GiraphClasses<I extends WritableComparable,
         ? extends Writable, ? extends Writable>>
     getComputationClass() {
         return computationClass;
+    }
+
+    public GiraphTypes<I, V, E> getGiraphTypes() {
+        return giraphTypes;
+    }
+
+    /**
+     * Get Vertex ID class
+     *
+     * @return Vertex ID class
+     */
+    public Class<I> getVertexIdClass() {
+        return giraphTypes.getVertexIdClass();
+    }
+
+
+    /**
+     * Get Vertex Value class
+     *
+     * @return Vertex Value class
+     */
+    public Class<V> getVertexValueClass() {
+        return giraphTypes.getVertexValueClass();
+    }
+
+    /**
+     * Get Edge Value class
+     *
+     * @return Edge Value class
+     */
+    public Class<E> getEdgeValueClass() {
+        return giraphTypes.getEdgeValueClass();
+    }
+
+
+    public MessageClasses<? extends WritableComparable, ? extends Writable>
+    getIncomingMessageClasses() {
+        return incomingMessageClasses;
+    }
+
+    public MessageClasses<? extends WritableComparable, ? extends Writable>
+    getOutgoingMessageClasses() {
+        return outgoingMessageClasses;
+    }
+
+    public Class<? extends Writable> getIncomingMessageClass(){
+        return giraphTypes.getIncomingMessageValueClass();
+    }
+
+    public Class<? extends  Writable> getOutgoingMessageClass(){
+        return giraphTypes.getOutgoingMessageValueClass();
     }
 
 }

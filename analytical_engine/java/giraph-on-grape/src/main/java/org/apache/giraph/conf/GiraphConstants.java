@@ -66,6 +66,11 @@ public interface GiraphConstants {
         ClassConfOption.create("giraph.outgoingMessageValueClass", null,
             Writable.class, "Outgoing message value class");
 
+    /** incoming message value class */
+    ClassConfOption<Writable> INCOMING_MESSAGE_VALUE_CLASS =
+        ClassConfOption.create("giraph.incomingMessageValueClass", null,
+            Writable.class, "Outgoing message value class");
+
     /** Worker context class */
     ClassConfOption<WorkerContext> WORKER_CONTEXT_CLASS =
         ClassConfOption.create("giraph.workerContextClass",
@@ -77,5 +82,11 @@ public interface GiraphConstants {
         ClassConfOption.create("giraph.computationClass",
             null, AbstractComputation.class,
             "User computation class");
+
+    /** TypesHolder, used if Computation not set - optional */
+    ClassConfOption<TypesHolder> TYPES_HOLDER_CLASS =
+        ClassConfOption.create("giraph.typesHolder", null,
+            TypesHolder.class,
+            "TypesHolder, used if Computation not set - optional");
 
 }

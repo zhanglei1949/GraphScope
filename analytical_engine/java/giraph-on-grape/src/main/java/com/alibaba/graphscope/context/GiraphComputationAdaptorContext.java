@@ -3,34 +3,19 @@ package com.alibaba.graphscope.context;
 
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.graphscope.app.DefaultContextBase;
-import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.GiraphMessageManager;
 import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
-import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
-import com.alibaba.graphscope.utils.GrapeReflectionUtils;
-import com.alibaba.graphscope.utils.WritableFactory;
-import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.OutputStream;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.rmi.server.ObjID;
-import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.List;
-import jdk.nashorn.internal.runtime.regexp.joni.Config;
 import org.apache.giraph.conf.GiraphConfiguration;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.graph.Communicator;
-import org.apache.giraph.graph.Computation;
 import org.apache.giraph.graph.EdgeManager;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexFactory;
@@ -43,12 +28,9 @@ import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.giraph.utils.ConfigurationUtils;
 import org.apache.giraph.utils.ReflectionUtils;
 import org.apache.giraph.worker.WorkerContext;
-import org.apache.giraph.worker.impl.DefaultWorkerContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.slf4j.Logger;
@@ -56,7 +38,8 @@ import org.slf4j.LoggerFactory;
 
 
 public class GiraphComputationAdaptorContext implements
-    DefaultContextBase{
+    DefaultContextBase {
+
     private static Logger logger = LoggerFactory.getLogger(GiraphComputationAdaptorContext.class);
 
     public VertexRange<Long> innerVertices;
@@ -67,7 +50,8 @@ public class GiraphComputationAdaptorContext implements
     public VertexImpl vertex;
     private GiraphMessageManager giraphMessageManager;
     /**
-     * Communicator used for aggregation. Both AbstractComputation instance and workerContext will hold it.
+     * Communicator used for aggregation. Both AbstractComputation instance and workerContext will
+     * hold it.
      */
     private Communicator communicator;
 
@@ -94,7 +78,7 @@ public class GiraphComputationAdaptorContext implements
         return giraphMessageManager;
     }
 
-    public WorkerContext getWorkerContext(){
+    public WorkerContext getWorkerContext() {
         return workerContext;
     }
 
@@ -108,19 +92,21 @@ public class GiraphComputationAdaptorContext implements
         /**
          * Construct a configuration obj.
          */
-        ImmutableClassesGiraphConfiguration immutableClassesGiraphConfiguration = generateConfiguration(jsonObject);
+        ImmutableClassesGiraphConfiguration conf = generateConfiguration(
+            jsonObject, frag);
 
-        userComputation = (AbstractComputation) ReflectionUtils.newInstance(immutableClassesGiraphConfiguration.getComputationClass());
-        workerContext = (WorkerContext) ReflectionUtils.newInstance(immutableClassesGiraphConfiguration.getWorkerContextClass());
+        userComputation = (AbstractComputation) ReflectionUtils
+            .newInstance(conf.getComputationClass());
+        workerContext = (WorkerContext) ReflectionUtils
+            .newInstance(conf.getWorkerContextClass());
 
-        userComputation.setConf(immutableClassesGiraphConfiguration);
+        userComputation.setConf(conf);
 
         logger.info("Created user computation class: " + userComputation.getClass().getName());
         innerVertices = frag.innerVertices();
         innerVerticesNum = frag.getInnerVerticesNum();
 
-        giraphMessageManager = new GiraphDefaultMessageManager<>(frag, messageManager);
-        userComputation.setGiraphMessageManager(giraphMessageManager);
+
 
         communicator = new CommunicatorImpl();
         userComputation.setCommunicator(communicator);
@@ -133,7 +119,7 @@ public class GiraphComputationAdaptorContext implements
         workerContext.setCurStep(0);
 
         //parse user computation class and set oid, vdata, edata, inMsgType and outMsgType;
-        initWritableFactory(userComputation);
+        //initWritableFactory(userComputation);
         //parse fragment class to get oid,vid,vdata, edata,
         //TODO: If we follow GAE-ODPSGraph, then we will catch oid, vdata, edata all as refstring or constBlob
 
@@ -141,15 +127,20 @@ public class GiraphComputationAdaptorContext implements
         halted = new BitSet((int) frag.getInnerVerticesNum());
 
         //Init vertex data/oid manager
-        vertexDataManager = new VertexDataManagerImpl<LongWritable>(frag, innerVertices);
-        vertexIdManager = new VertexIdManagerImpl<LongWritable>(frag, innerVertices);
-        edgeManager = new ImmutableEdgeManagerImpl(frag);
+        vertexDataManager = new VertexDataManagerImpl<LongWritable>(frag, innerVertices, conf);
+        vertexIdManager = new VertexIdManagerImpl<LongWritable>(frag, innerVertices, conf);
+        edgeManager = new ImmutableEdgeManagerImpl(frag, vertexIdManager, conf);
 
         vertex = (VertexImpl<LongWritable, LongWritable, DoubleWritable>) VertexFactory
             .<LongWritable, LongWritable, DoubleWritable>createDefaultVertex(frag, this);
         vertex.setVertexIdManager(vertexIdManager);
         vertex.setVertexDataManager(vertexDataManager);
         vertex.setEdgeManager(edgeManager);
+
+        //VertexIdManager is needed since we need oid <-> lid converting.
+        giraphMessageManager = new GiraphDefaultMessageManager<>(frag, messageManager,
+            conf);
+        userComputation.setGiraphMessageManager(giraphMessageManager);
     }
 
     /**
@@ -163,75 +154,62 @@ public class GiraphComputationAdaptorContext implements
 
         //Output with vertexOutputClass
         //caution: do not use taskAttemptID
-        TaskAttemptContext taskAttemptContext = new TaskAttemptContext(userComputation.getConf(), new TaskAttemptID());
+        TaskAttemptContext taskAttemptContext = new TaskAttemptContext(userComputation.getConf(),
+            new TaskAttemptID());
         String filePath = userComputation.getConf().getDefaultWorkerFile() + "-frag-" + frag.fid();
         //TODO: remove this debug code
         try {
-	    logger.info("Writing output to: " + filePath);
-            //            FileWriter fileWritter = new FileWriter(new File(filePath));
-//            BufferedWriter bufferedWriter = new BufferedWriter(fileWritter);
-//            Vertex<Long> grapeVertex = FFITypeFactoryhelper.newVertexLong();
-
-//            for (long i = 0; i < innerVerticesNum; ++i){
-//                bufferedWriter.write(vertexIdManager.getId(i) + "\t" + vertexDataManager.getVertexData(i));
-//            }
-//            bufferedWriter.close();
-            //OutputStream out = new BufferedOutputStream(new FileOutputStream(new File(filePath)));
-	    FileWriter fileWritter = new FileWriter(new File(filePath));
+            logger.info("Writing output to: " + filePath);
+            FileWriter fileWritter = new FileWriter(new File(filePath));
             BufferedWriter bufferedWriter = new BufferedWriter(fileWritter);
             //DataOutputStream dataOutputStream = new DataOutputStream(out);
             logger.info("inner vertices: " + innerVerticesNum + frag.innerVertices().size());
-            for (long i = 0; i < innerVerticesNum; ++i){
-//                bufferedWriter.write(vertexIdManager.getId(i) + "\t" + vertexDataManager.getVertexData(i));
-                //vertexIdManager.getId(i).write(dataOutputStream);
-                //dataOutputStream.writeUTF("\t");
-                //vertexDataManager.getVertexData(i).write(dataOutputStream);
-                //dataOutputStream.writeUTF("\n");
-               bufferedWriter.write(vertexIdManager.getId(i) + "\t" + vertexDataManager.getVertexData(i) + "\n"); 
+            for (long i = 0; i < innerVerticesNum; ++i) {
+                bufferedWriter.write(
+                    vertexIdManager.getId(i) + "\t" + vertexDataManager.getVertexData(i) + "\n");
             }
-	    bufferedWriter.close();
-        }
-        catch (Exception e){
+            bufferedWriter.close();
+        } catch (Exception e) {
             logger.error("Exception in writing out: " + e.getMessage());
         }
     }
 
-    /**
-     * TODO: remove this and use conf to create writables
-     * User app extends abstract computation, so we use reflection to find it type parameters.
-     * Notice that user can extend {@link AbstractComputation} and ${@link
-     * org.apache.giraph.graph.BasicComputation}, we need to take both of them into consideration.
-     *
-     * @param userComputation instance OF USER app
-     */
-    private void initWritableFactory(AbstractComputation userComputation) {
-        Class<? extends AbstractComputation> userComputationClz = userComputation.getClass();
-        Type genericType = userComputationClz.getGenericSuperclass();
-        // System.out.println(genericType[0].getTypeName());
-        if (!(genericType instanceof ParameterizedType)) {
-            logger.error("not parameterize type");
-            return;
-        }
-        Type[] typeParams = ((ParameterizedType) genericType).getActualTypeArguments();
-        if (typeParams.length > 5 || typeParams.length < 4) {
-            logger.error(
-                "number of params doesn't match, should be 5, acutual is" + typeParams.length);
-            return;
-        }
-        List<Class<?>> clzList = new ArrayList<>(5);
-        for (int i = 0; i < typeParams.length; ++i) {
-            clzList.add((Class<?>) typeParams[i]);
-        }
-        WritableFactory.setOidClass((Class<? extends WritableComparable>) clzList.get(0));
-        WritableFactory.setVdataClass((Class<? extends Writable>) clzList.get(1));
-        WritableFactory.setEdataClass((Class<? extends Writable>) clzList.get(2));
-        WritableFactory.setInMsgClass((Class<? extends Writable>) clzList.get(3));
-        if (typeParams.length == 4) {
-            WritableFactory.setOutMsgClass((Class<? extends Writable>) clzList.get(3));
-        } else {
-            WritableFactory.setOutMsgClass((Class<? extends Writable>) clzList.get(4));
-        }
-    }
+//    /**
+//     * TODO: remove this and use conf to create writables User app extends abstract computation, so
+//     * we use reflection to find it type parameters. Notice that user can extend {@link
+//     * AbstractComputation} and ${@link org.apache.giraph.graph.BasicComputation}, we need to take
+//     * both of them into consideration.
+//     *
+//     * @param userComputation instance OF USER app
+//     */
+//    private void initWritableFactory(AbstractComputation userComputation) {
+//        Class<? extends AbstractComputation> userComputationClz = userComputation.getClass();
+//        Type genericType = userComputationClz.getGenericSuperclass();
+//        // System.out.println(genericType[0].getTypeName());
+//        if (!(genericType instanceof ParameterizedType)) {
+//            logger.error("not parameterize type");
+//            return;
+//        }
+//        Type[] typeParams = ((ParameterizedType) genericType).getActualTypeArguments();
+//        if (typeParams.length > 5 || typeParams.length < 4) {
+//            logger.error(
+//                "number of params doesn't match, should be 5, acutual is" + typeParams.length);
+//            return;
+//        }
+//        List<Class<?>> clzList = new ArrayList<>(5);
+//        for (int i = 0; i < typeParams.length; ++i) {
+//            clzList.add((Class<?>) typeParams[i]);
+//        }
+//        WritableFactory.setOidClass((Class<? extends WritableComparable>) clzList.get(0));
+//        WritableFactory.setVdataClass((Class<? extends Writable>) clzList.get(1));
+//        WritableFactory.setEdataClass((Class<? extends Writable>) clzList.get(2));
+//        WritableFactory.setInMsgClass((Class<? extends Writable>) clzList.get(3));
+//        if (typeParams.length == 4) {
+//            WritableFactory.setOutMsgClass((Class<? extends Writable>) clzList.get(3));
+//        } else {
+//            WritableFactory.setOutMsgClass((Class<? extends Writable>) clzList.get(4));
+//        }
+//    }
 
     public void haltVertex(long lid) {
         halted.set((int) lid);
@@ -244,7 +222,8 @@ public class GiraphComputationAdaptorContext implements
     public boolean allHalted() {
         return halted.cardinality() == innerVerticesNum;
     }
-    public void activateVertex(long lid){
+
+    public void activateVertex(long lid) {
         halted.set((int) lid, false);
     }
 
@@ -254,15 +233,17 @@ public class GiraphComputationAdaptorContext implements
      *
      * @param params received params.
      */
-    private ImmutableClassesGiraphConfiguration generateConfiguration(JSONObject params){
+    private ImmutableClassesGiraphConfiguration generateConfiguration(JSONObject params,
+        SimpleFragment fragment) {
         Configuration configuration = new Configuration();
-        GiraphConfiguration giraphConfiguration =new GiraphConfiguration(configuration);
+        GiraphConfiguration giraphConfiguration = new GiraphConfiguration(configuration);
 
         try {
             ConfigurationUtils.parseArgs(giraphConfiguration, params);
+//            ConfigurationUtils.parseJavaFragment(giraphConfiguration, fragment);
         } catch (ClassNotFoundException e) {
-	    e.printStackTrace();
+            e.printStackTrace();
         }
-        return new ImmutableClassesGiraphConfiguration<>(giraphConfiguration);
+        return new ImmutableClassesGiraphConfiguration<>(giraphConfiguration, fragment.getClass());
     }
 }

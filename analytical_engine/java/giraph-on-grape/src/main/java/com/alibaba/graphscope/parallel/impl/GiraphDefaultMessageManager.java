@@ -15,7 +15,9 @@ import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import com.alibaba.graphscope.utils.WritableFactory;
 import java.io.IOException;
 import java.util.Iterator;
+import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.Vertex;
+import org.apache.giraph.graph.VertexIdManager;
 import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -27,6 +29,7 @@ import org.slf4j.LoggerFactory;
 public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable, IN_MSG_T extends Writable, OUT_MSG_T extends Writable> implements
     GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T> {
 
+    private ImmutableClassesGiraphConfiguration configuration;
     /**
      * If cached message exceeds this threshold, we will send them immediately.
      */
@@ -53,7 +56,7 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
 
 
     public GiraphDefaultMessageManager(SimpleFragment fragment,
-        DefaultMessageManager defaultMessageManager) {
+        DefaultMessageManager defaultMessageManager, ImmutableClassesGiraphConfiguration configuration) {
         this.fragment = fragment;
         this.fragmentNum = fragment.fnum();
         this.fragId = fragment.fid();
@@ -75,6 +78,8 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
         }
         this.tmpVertex = FFITypeFactoryhelper.newVertexLong();
         this.tmpVertex.SetValue(0L);
+
+        this.configuration = configuration;
     }
 
     /**
@@ -106,7 +111,8 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
                 }
                 long dstVertexGid = messagesIn.readLong();
 
-                Writable inMsg = WritableFactory.newInMsg();
+//                Writable inMsg = WritableFactory.newInMsg();
+                Writable inMsg = configuration.createInComingMessageValue();
                 inMsg.readFields(messagesIn);
                 //TODO: only for testing
                 if (inMsg instanceof LongWritable){
@@ -166,7 +172,9 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
     public void sendMessage(OID_T dstOid, OUT_MSG_T message) {
         if (dstOid instanceof LongWritable){
             LongWritable longOid = (LongWritable) dstOid;
-            tmpVertex.SetValue(longOid.get());
+            //Get lid from oid
+            fragment.getInnerVertex(longOid, tmpVertex);
+//            tmpVertex.SetValue(longOid.get());
             int dstfragId = fragment.getFragId(tmpVertex);
             if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
                 messagesOut[dstfragId].finishSetting();
