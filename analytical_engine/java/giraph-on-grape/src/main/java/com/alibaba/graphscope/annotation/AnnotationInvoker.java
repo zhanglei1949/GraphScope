@@ -122,8 +122,11 @@ import com.alibaba.graphscope.utils.CppClassName;
                     type = "com.alibaba.graphscope.fragment.ImmutableEdgecutFragment",
                     templates = {
                         @CXXTemplate(
-                                cxx = {"int64_t", "uint64_t", "int64_t", "double"},
-                                java = {"Long", "Long", "Long", "Double"})
+                                cxx = {"int64_t", "uint64_t", "double", "double"},
+                                java = {"Long", "Long", "Double", "Double"}),
+                        @CXXTemplate(
+                            cxx = {"int32_t", "uint64_t", "int32_t", "float"},
+                            java = {"Integer", "Long", "Integer", "Float"})
                     }),
             @FFIGen(
                     type = "com.alibaba.graphscope.context.ffi.FFIVertexDataContext",
@@ -131,14 +134,25 @@ import com.alibaba.graphscope.utils.CppClassName;
                         @CXXTemplate(
                                 cxx = {
                                     CppClassName.GRAPE_IMMUTABLE_FRAGMENT
-                                            + "<int64_t,uint64_t,int64_t,double>",
+                                            + "<int64_t,uint64_t,double,double>",
                                     "int64_t"
                                 },
                                 java = {
-                                    "com.alibaba.graphscope.fragment.ImmutableEdgecutFragment<Long,Long,Long,Double>",
+                                    "com.alibaba.graphscope.fragment.ImmutableEdgecutFragment<Long,Long,Double,Double>",
                                     "Long"
                                 },
                                 include = @CXXHead(GRAPE_FRAGMENT_IMMUTABLE_EDGECUT_FRAGMENT_H)),
+                        @CXXTemplate(
+                            cxx = {
+                                CppClassName.GRAPE_IMMUTABLE_FRAGMENT
+                                    + "<int32_t,uint64_t,int32_t,float>",
+                                "int64_t"
+                            },
+                            java = {
+                                "com.alibaba.graphscope.fragment.ImmutableEdgecutFragment<Integer,Long,Integer,Float>",
+                                "Long"
+                            },
+                            include = @CXXHead(GRAPE_FRAGMENT_IMMUTABLE_EDGECUT_FRAGMENT_H)),
                     }),
 //            @FFIGen(
 //                    type = "com.alibaba.graphscope.parallel.DefaultMessageManager",
@@ -232,13 +246,23 @@ import com.alibaba.graphscope.utils.CppClassName;
                                     @CXXTemplate(
                                             cxx = {
                                                 CppClassName.GRAPE_IMMUTABLE_FRAGMENT
-                                                        + "<int64_t,uint64_t,int64_t,jdouble>",
+                                                        + "<int64_t,uint64_t,double,double>",
                                                 DOUBLE_MSG
                                             },
                                             java = {
-                                                "com.alibaba.graphscope.fragment.ImmutableEdgecutFragment<Long,Long,Long,Double>",
+                                                "com.alibaba.graphscope.fragment.ImmutableEdgecutFragment<Long,Long,Double,Double>",
                                                 "com.alibaba.graphscope.parallel.message.DoubleMsg"
                                             }),
+                                    @CXXTemplate(
+                                        cxx = {
+                                            CppClassName.GRAPE_IMMUTABLE_FRAGMENT
+                                                + "<int32_t,uint64_t,int32_t,float>",
+                                            DOUBLE_MSG
+                                        },
+                                        java = {
+                                            "com.alibaba.graphscope.fragment.ImmutableEdgecutFragment<Integer,Long,Integer,Float>",
+                                            "com.alibaba.graphscope.parallel.message.DoubleMsg"
+                                        }),
                                 })
                     })
         })
