@@ -12,6 +12,9 @@
     <logger name="com.alibaba.graphscope.app.GiraphComputationAdaptor" level="info"/>
     <logger name="com.alibaba.graphscope.samples.MessageApp" level="info"/>
     <logger name="com.alibaba.graphscope.samples.MaxApp" level="info"/>
+    <logger name="com.alibaba.graphscope.samples.SimpleShortestPathsComputation" level="info"/>
+    <logger name="org.apache.giraph.utils.ConfigurationUtils" level="info"/>
+    <logger name="org.apache.giraph.conf.GiraphClasses" level="info"/>
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>

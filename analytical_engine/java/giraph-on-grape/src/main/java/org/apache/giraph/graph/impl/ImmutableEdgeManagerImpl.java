@@ -191,7 +191,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
 
                 @Override
                 public boolean hasNext() {
-                    return iterator().hasNext();
+                    return nbrIterator.hasNext();
                 }
 
                 @Override
