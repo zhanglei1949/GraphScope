@@ -66,7 +66,12 @@ void Query(grape::CommSpec& comm_spec, std::shared_ptr<FRAG_T> fragment,
   worker->Query(app_class, context_class, frag_name, user_lib_path, params_str);
 
   t += GetCurrentTime();
-  VLOG(1) << "Query time" << t;
+  VLOG(1) << "Query time: " << t;
+
+  std::ofstream unused_stream;
+  unused_stream.open("empty");
+  worker->Output(unused_stream);
+  unused_stream.close();
 }
 
 void CreateAndQuery(std::string params) {

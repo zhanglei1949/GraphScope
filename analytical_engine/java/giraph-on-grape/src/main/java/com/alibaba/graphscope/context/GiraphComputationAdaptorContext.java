@@ -163,6 +163,7 @@ public class GiraphComputationAdaptorContext implements
         String filePath = userComputation.getConf().getDefaultWorkerFile();
         //TODO: remove this debug code
         try {
+	    logger.info("Writing output to: " + filePath);
             FileWriter fileWritter = new FileWriter(new File(filePath));
             BufferedWriter bufferedWriter = new BufferedWriter(fileWritter);
             Vertex<Long> grapeVertex = FFITypeFactoryhelper.newVertexLong();
@@ -244,7 +245,6 @@ public class GiraphComputationAdaptorContext implements
             ConfigurationUtils.parseArgs(giraphConfiguration, params);
         } catch (ClassNotFoundException e) {
 	    e.printStackTrace();
-            logger.error(e.getMessage());
         }
         return new ImmutableClassesGiraphConfiguration<>(giraphConfiguration);
     }
