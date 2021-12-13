@@ -12,8 +12,7 @@ import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexIdManager;
 import org.apache.giraph.worker.WorkerContext;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +61,8 @@ public class GiraphComputationAdaptor implements
         workerContext.preSuperstep();
 
         //In first round, there is no message, we pass an empty iterable.
-        Iterable<LongWritable> messages = new MessageIterable<>();
+//        Iterable<LongWritable> messages = new MessageIterable<>();
+        Iterable<Writable> messages = new MessageIterable<>();
 
         //TODO: remove this debug code
         VertexDataManager vertexDataManager = ctx.vertex.getVertexDataManager();

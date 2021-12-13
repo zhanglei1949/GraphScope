@@ -180,6 +180,7 @@ public class GiraphComputationAdaptorContext implements
 	    FileWriter fileWritter = new FileWriter(new File(filePath));
             BufferedWriter bufferedWriter = new BufferedWriter(fileWritter);
             //DataOutputStream dataOutputStream = new DataOutputStream(out);
+            logger.info("inner vertices: " + innerVerticesNum + frag.innerVertices().size());
             for (long i = 0; i < innerVerticesNum; ++i){
 //                bufferedWriter.write(vertexIdManager.getId(i) + "\t" + vertexDataManager.getVertexData(i));
                 //vertexIdManager.getId(i).write(dataOutputStream);
@@ -188,6 +189,7 @@ public class GiraphComputationAdaptorContext implements
                 //dataOutputStream.writeUTF("\n");
                bufferedWriter.write(vertexIdManager.getId(i) + "\t" + vertexDataManager.getVertexData(i) + "\n"); 
             }
+	    bufferedWriter.close();
         }
         catch (Exception e){
             logger.error("Exception in writing out: " + e.getMessage());
