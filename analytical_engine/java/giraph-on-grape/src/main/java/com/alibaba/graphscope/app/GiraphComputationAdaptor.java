@@ -165,6 +165,5 @@ public class GiraphComputationAdaptor implements
         if (giraphMessageManager.anyMessageToSelf()) {
             messageManager.ForceContinue();
         }
-
     }
 }
