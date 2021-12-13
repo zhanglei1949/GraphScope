@@ -15,6 +15,8 @@
     <logger name="com.alibaba.graphscope.samples.SimpleShortestPathsComputation" level="info"/>
     <logger name="org.apache.giraph.utils.ConfigurationUtils" level="info"/>
     <logger name="org.apache.giraph.conf.GiraphClasses" level="info"/>
+    <logger name="org.apache.giraph.conf.GiraphTypes" level="info"/>
+    <logger name="org.apache.giraph.graph.impl.VertexDataManagerImpl" level="info"/>
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>

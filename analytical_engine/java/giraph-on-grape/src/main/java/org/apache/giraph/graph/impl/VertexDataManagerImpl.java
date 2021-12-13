@@ -9,6 +9,7 @@ import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import jnr.ffi.annotations.In;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.hadoop.io.Writable;
@@ -80,7 +81,13 @@ public class VertexDataManagerImpl<VDATA_T extends Writable> implements VertexDa
                     Long value = (Long) fragment.getData(vertex);
                     outputStream.writeLong(value);
                 }
+                else if (conf.getGrapeOidClass().equals(Integer.class)){
+                    Integer value = (Integer) fragment.getData(vertex);
+                    outputStream.writeInt(value);
+                }
             }
+            outputStream.finishSetting();
+            logger.info("Vertex data stream size: " + outputStream.bytesWriten() + ", vertices: " + vertices.size());
         } catch (IOException e) {
             e.printStackTrace();
         }
