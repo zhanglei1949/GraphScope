@@ -19,6 +19,10 @@ public class ImmutableEdgecutFragmentAdaptor<OID_T, VID_T, VDATA_T, EDATA_T>
         fragment = frag;
     }
 
+    public ImmutableEdgecutFragment getImmutableFragment(){
+        return fragment;
+    }
+
     @Override
     public String fragmentType() {
         return fragmentType;
