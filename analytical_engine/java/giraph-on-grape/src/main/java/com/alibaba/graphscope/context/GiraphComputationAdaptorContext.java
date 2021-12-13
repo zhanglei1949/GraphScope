@@ -12,9 +12,13 @@ import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import com.alibaba.graphscope.utils.GrapeReflectionUtils;
 import com.alibaba.graphscope.utils.WritableFactory;
+import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.OutputStream;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.rmi.server.ObjID;
@@ -163,14 +167,23 @@ public class GiraphComputationAdaptorContext implements
         String filePath = userComputation.getConf().getDefaultWorkerFile() + "-frag-" + frag.fid();
         //TODO: remove this debug code
         try {
-            FileWriter fileWritter = new FileWriter(new File(filePath));
-            BufferedWriter bufferedWriter = new BufferedWriter(fileWritter);
-            Vertex<Long> grapeVertex = FFITypeFactoryhelper.newVertexLong();
+//            FileWriter fileWritter = new FileWriter(new File(filePath));
+//            BufferedWriter bufferedWriter = new BufferedWriter(fileWritter);
+//            Vertex<Long> grapeVertex = FFITypeFactoryhelper.newVertexLong();
 
+//            for (long i = 0; i < innerVerticesNum; ++i){
+//                bufferedWriter.write(vertexIdManager.getId(i) + "\t" + vertexDataManager.getVertexData(i));
+//            }
+//            bufferedWriter.close();
+            OutputStream out = new BufferedOutputStream(new FileOutputStream(new File(filePath)));
+            DataOutputStream dataOutputStream = new DataOutputStream(out);
             for (long i = 0; i < innerVerticesNum; ++i){
-                bufferedWriter.write(vertexIdManager.getId(i) + "\t" + vertexDataManager.getVertexData(i));
+//                bufferedWriter.write(vertexIdManager.getId(i) + "\t" + vertexDataManager.getVertexData(i));
+                vertexIdManager.getId(i).write(dataOutputStream);
+                dataOutputStream.writeUTF("\t");
+                vertexDataManager.getVertexData(i).write(dataOutputStream);
+                dataOutputStream.writeUTF("\n");
             }
-            bufferedWriter.close();
         }
         catch (Exception e){
             logger.error("Exception in writing out: " + e.getMessage());
