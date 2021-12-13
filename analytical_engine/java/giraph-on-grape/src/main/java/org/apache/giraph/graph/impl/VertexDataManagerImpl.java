@@ -84,7 +84,6 @@ public class VertexDataManagerImpl<VDATA_T extends Writable> implements VertexDa
                 }
                 else if (conf.getGrapeVdataClass().equals(Integer.class)){
                     Integer value = (Integer) fragment.getData(vertex);
-		    logger.info(""+value);
                     outputStream.writeInt(value);
                 }
                 else if (conf.getGrapeVdataClass().equals(Double.class)){
