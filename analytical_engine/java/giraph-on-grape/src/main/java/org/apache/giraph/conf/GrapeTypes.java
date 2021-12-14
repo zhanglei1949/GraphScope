@@ -75,6 +75,6 @@ public class GrapeTypes {
     }
 
     public Class<?> getEdataClass() {
-        return getEdataClass();
+        return edataClass;
     }
 }
