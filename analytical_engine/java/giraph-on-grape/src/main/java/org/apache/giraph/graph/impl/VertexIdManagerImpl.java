@@ -1,7 +1,6 @@
 package org.apache.giraph.graph.impl;
 
 import com.alibaba.graphscope.ds.Vertex;
-import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.serialization.FFIByteVectorInputStream;
 import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
@@ -9,7 +8,6 @@ import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import jnr.ffi.annotations.In;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.VertexIdManager;
 import org.apache.hadoop.io.WritableComparable;
@@ -27,7 +25,7 @@ public class VertexIdManagerImpl<OID_T extends WritableComparable> implements
     private static Logger logger = LoggerFactory.getLogger(VertexIdManagerImpl.class);
 
     private SimpleFragment fragment;
-    private VertexRange<Long> vertices;
+    private long vertexNum;
     private List<OID_T> vertexIdList;
     private ImmutableClassesGiraphConfiguration conf;
 
@@ -35,23 +33,20 @@ public class VertexIdManagerImpl<OID_T extends WritableComparable> implements
      * To provide giraph users with all oids, we need to get all oids out of c++ memory, then let
      * java read the stream.
      *
-     * @param fragment fragment
-     * @param vertices vertex range covers
-     * @param conf     configuration to use.
+     * @param fragment  fragment
+     * @param vertexNum number of vertices
+     * @param conf      configuration to use.
      */
-    public VertexIdManagerImpl(SimpleFragment fragment, VertexRange<Long> vertices,
+    public VertexIdManagerImpl(SimpleFragment fragment, long vertexNum,
         ImmutableClassesGiraphConfiguration conf) {
         this.fragment = fragment;
-        this.vertices = vertices;
+        this.vertexNum = vertexNum;
         this.conf = conf;
-        vertexIdList = new ArrayList<OID_T>((int) vertices.size());
+        vertexIdList = new ArrayList<OID_T>((int) vertexNum);
 
-        Vertex<Long> vertex = FFITypeFactoryhelper.newVertexLong();
         FFIByteVectorInputStream inputStream = generateVertexIdStream();
-
-        Class<?> grapeOidClass = conf.getGrapeOidClass();
         try {
-            for (int i = 0; i < vertices.size(); ++i) {
+            for (int i = 0; i < vertexNum; ++i) {
                 WritableComparable oid = conf.createVertexId();
                 oid.readFields(inputStream);
                 vertexIdList.add((OID_T) oid);
@@ -71,19 +66,22 @@ public class VertexIdManagerImpl<OID_T extends WritableComparable> implements
         FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
         Vertex<Long> vertex = FFITypeFactoryhelper.newVertexLong();
         try {
-            for (long i = 0; i < vertices.size(); ++i) {
-                vertex.SetValue(i);
-                if (conf.getGrapeOidClass().equals(Long.class)) {
+            if (conf.getGrapeOidClass().equals(Long.class)) {
+                for (long i = 0; i < vertexNum; ++i) {
+                    vertex.SetValue(i);
                     Long value = (Long) fragment.getId(vertex);
                     outputStream.writeLong(value);
                 }
-                else if (conf.getGrapeOidClass().equals(Integer.class)){
+            } else if (conf.getGrapeOidClass().equals(Integer.class)) {
+                for (long i = 0; i < vertexNum; ++i) {
+                    vertex.SetValue(i);
                     Integer value = (Integer) fragment.getId(vertex);
                     outputStream.writeInt(value);
                 }
-                else {
-                    logger.error("Unsupported oid class: " + conf.getGrapeOidClass().getName());
-                }
+            }
+            // if grape oid class is user defined class
+            else {
+                logger.error("Unsupported oid class: " + conf.getGrapeOidClass().getName());
             }
         } catch (IOException e) {
             e.printStackTrace();

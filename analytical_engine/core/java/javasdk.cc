@@ -21,11 +21,14 @@ namespace gs {
 
 static constexpr const char* GRAPHSCOPE_CLASS_LOADER =
     "com/alibaba/graphscope/runtime/GraphScopeClassLoader";
+static constexpr const char* GIRAPH_COMPUTATION_FACTORY =
+    "com/alibaba/graphscope/factory/GiraphComputationFactory";
 static JavaVM* _jvm = NULL;
 // gs_class_loader_clz is the class in grape-runtime, providing basic
 // utilities for creating class loader and load classes with this
 // URLClassLoader.
 static jclass gs_class_loader_clz = NULL;
+static jclass adaptor_factory_clz = NULL;
 static jmethodID class_loader_create_ffipointer_methodID = NULL;
 static jmethodID class_loader_load_class_methodID = NULL;
 static jmethodID class_loader_load_communicator_class_methodID = NULL;
@@ -33,6 +36,8 @@ static jmethodID class_loader_load_and_create_methodID = NULL;
 static jmethodID class_loader_new_gs_class_loader_methodID = NULL;
 static jmethodID class_loader_new_simple_gs_class_loader_methodID = NULL;
 static jmethodID class_loader_adapt2SimpleFragment_methodID = NULL;
+static jmethodID adaptor_factory_create_giraph_adaptor_methodID = NULL;
+static jmethodID adaptor_factory_create_giraph_adaptor_context_methodID = NULL;
 static jclass system_class = NULL;
 static jmethodID gc_methodID = NULL;
 
@@ -60,6 +65,10 @@ bool InitWellKnownClasses(JNIEnv* env) {
   gs_class_loader_clz = env->FindClass(GRAPHSCOPE_CLASS_LOADER);
   CHECK_NOTNULL(gs_class_loader_clz);
   gs_class_loader_clz = (jclass) env->NewGlobalRef(gs_class_loader_clz);
+
+  adaptor_factory_clz = env->FindClass(GIRAPH_COMPUTATION_FACTORY);
+  CHECK_NOTNULL(adaptor_factory_clz);
+  adaptor_factory_clz = (jclass) env->NewGlobalRef(adaptor_factory_clz);
 
   class_loader_create_ffipointer_methodID = env->GetStaticMethodID(
       gs_class_loader_clz, "CreateFFIPointer",
@@ -102,6 +111,19 @@ bool InitWellKnownClasses(JNIEnv* env) {
       gs_class_loader_clz, "adapt2SimpleFragment",
       "(Ljava/lang/Object;)Lcom/alibaba/graphscope/fragment/SimpleFragment;");
   CHECK_NOTNULL(class_loader_adapt2SimpleFragment_methodID);
+
+  adaptor_factory_create_giraph_adaptor_methodID = env->GetStaticMethodID(
+      adaptor_factory_clz, "createGiraphComputationAdaptor",
+      "(Ljava/lang/String;Lcom/alibaba/graphscope/fragment/SimpleFragment;)Lcom/alibaba/"
+      "graphscope/app/GiraphComputationAdaptor;");
+  CHECK_NOTNULL(adaptor_factory_create_giraph_adaptor_methodID);
+
+  adaptor_factory_create_giraph_adaptor_context_methodID =
+      env->GetStaticMethodID(
+          adaptor_factory_clz, "createGiraphComputationAdaptorContext",
+          "(Ljava/lang/String;Lcom/alibaba/graphscope/fragment/SimpleFragment;)Lcom/alibaba/"
+          "graphscope/context/GiraphComputationAdaptorContext;");
+  CHECK_NOTNULL(adaptor_factory_create_giraph_adaptor_context_methodID);
   return true;
 }
 
@@ -428,10 +450,31 @@ jclass LoadClassWithClassLoader(JNIEnv* env, const jobject& url_class_loader,
   return result_class;
 }
 
-jobject ImmutableFragment2Simple(JNIEnv* env,const jobject& fragment_impl_obj) {
+jobject ImmutableFragment2Simple(JNIEnv* env,
+                                 const jobject& fragment_impl_obj) {
   jobject res = (jobject) env->CallStaticObjectMethod(
       gs_class_loader_clz, class_loader_adapt2SimpleFragment_methodID,
       fragment_impl_obj);
+  CHECK_NOTNULL(res);
+  return env->NewGlobalRef(res);
+}
+
+jobject CreateGiraphAdaptor(JNIEnv* env, const char* app_class_name,
+                            const jobject& fragment_obj) {
+  jobject res = (jobject) env->CallStaticObjectMethod(
+      adaptor_factory_clz, adaptor_factory_create_giraph_adaptor_methodID,
+      app_class_name_jstring, fragment_obj);
+  CHECK_NOTNULL(res);
+  return env->NewGlobalRef(res);
+}
+
+jobject CreateGiraphAdaptorContext(JNIEnv* env, const char* context_class_name,
+                                   const jobject& fragment_obj) {
+  jstring context_class_name_jstring = env->NewStringUTF(context_class_name);
+  jobject res = (jobject) env->CallStaticObjectMethod(
+      adaptor_factory_clz,
+      adaptor_factory_create_giraph_adaptor_context_methodID,
+      context_class_name_jstring, fragment_obj);
   CHECK_NOTNULL(res);
   return env->NewGlobalRef(res);
 }

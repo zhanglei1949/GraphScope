@@ -25,6 +25,8 @@ import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -72,12 +74,12 @@ public class GraphScopeClassLoader {
      * @throws IllegalAccessException if ClassScope can not get loaded libraries.
      */
     public static URLClassLoader newGraphScopeClassLoader(String classPath)
-            throws IllegalAccessException {
+        throws IllegalAccessException {
         String[] libraries = ClassScope.getLoadedLibraries(ClassLoader.getSystemClassLoader());
         //        log("Loaded lib: " + String.join(" ", libraries));
         logger.info("Loaded lib: " + String.join(" ", libraries));
         return new URLClassLoader(
-                classPath2URLArray(classPath), GraphScopeClassLoader.class.getClassLoader());
+            classPath2URLArray(classPath), GraphScopeClassLoader.class.getClassLoader());
     }
 
     /**
@@ -91,7 +93,7 @@ public class GraphScopeClassLoader {
         logger.info("Loaded lib: " + String.join(" ", libraries));
         // CAUTION: add '.' to avoid empty url.
         return new URLClassLoader(
-                classPath2URLArray("."), Thread.currentThread().getContextClassLoader());
+            classPath2URLArray("."), Thread.currentThread().getContextClassLoader());
     }
 
     /**
@@ -99,14 +101,14 @@ public class GraphScopeClassLoader {
      * class name could be fully-specified or dash-separated.
      *
      * @param classLoader
-     * @param className a/b/c/ or a.b.c
+     * @param className   a/b/c/ or a.b.c
      * @return a instance for loaded class.
      * @throws ClassNotFoundException if class can not be found in current path.
      * @throws InstantiationException if error in creating new instance.
      * @throws IllegalAccessException if error in creating new instance.
      */
     public static Object loadAndCreate(URLClassLoader classLoader, String className)
-            throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+        throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         logger.info("Load and create: " + formatting(className));
         Class<?> clz = classLoader.loadClass(formatting(className));
         return clz.newInstance();
@@ -117,44 +119,44 @@ public class GraphScopeClassLoader {
      *
      * @param classLoader The class loader with used to load java classes.
      * @param foreignName The foreign name for C++ object,shall be fully specified.
-     * @param address The address for C++ object.
+     * @param address     The address for C++ object.
      * @return a FFIPointer wrapper.
-     * @throws ClassNotFoundException if class can not be found in current path.
-     * @throws NoSuchMethodException if method for ffi type factory can not be found.
+     * @throws ClassNotFoundException    if class can not be found in current path.
+     * @throws NoSuchMethodException     if method for ffi type factory can not be found.
      * @throws InvocationTargetException if error in invoke the specific method.
-     * @throws IllegalAccessException if error in invoke the specific method.
-     * @throws InstantiationException if error in creating new instance.
+     * @throws IllegalAccessException    if error in invoke the specific method.
+     * @throws InstantiationException    if error in creating new instance.
      */
     public static Object CreateFFIPointer(
-            URLClassLoader classLoader, String foreignName, long address)
-            throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
-                    IllegalAccessException, InstantiationException {
+        URLClassLoader classLoader, String foreignName, long address)
+        throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException,
+        IllegalAccessException, InstantiationException {
         // FFITypeFactor class need to be ensure loaded in current classLoader,
         // don't make it static.
         Class<?> ffiTypeFactoryClass = classLoader.loadClass(FFI_TYPE_FACTORY_CLASS);
         logger.info(
-                "Creating FFIPointer, typename ["
-                        + foreignName
-                        + "], address ["
-                        + address
-                        + "]"
-                        + ", ffi type factor ["
-                        + ffiTypeFactoryClass);
+            "Creating FFIPointer, typename ["
+                + foreignName
+                + "], address ["
+                + address
+                + "]"
+                + ", ffi type factor ["
+                + ffiTypeFactoryClass);
         // a new classLoader contains new class path, we load the ffi.properties
         // here.
         Method loadClassLoaderMethod =
-                ffiTypeFactoryClass.getDeclaredMethod("loadClassLoader", ClassLoader.class);
+            ffiTypeFactoryClass.getDeclaredMethod("loadClassLoader", ClassLoader.class);
         loadClassLoaderMethod.invoke(null, classLoader);
 
         // To make FFITypeFactor use our classLoader to find desired type matching,
         // we load FFIType with our classLoader.
         Class<?> ffiTypeClass = classLoader.loadClass("com.alibaba.fastffi.FFIType");
         System.out.println(
-                "ffitype cl :" + ffiTypeClass.getClassLoader() + ", url cl: " + classLoader);
+            "ffitype cl :" + ffiTypeClass.getClassLoader() + ", url cl: " + classLoader);
 
         // First load class by FFITypeFactor
         Method getTypeMethod =
-                ffiTypeFactoryClass.getDeclaredMethod("getType", Class.class, String.class);
+            ffiTypeFactoryClass.getDeclaredMethod("getType", Class.class, String.class);
         Class<?> ffiJavaClass = (Class<?>) getTypeMethod.invoke(null, ffiTypeClass, foreignName);
         // The class loaded by FFITypeFactor's classLoader can not be directly used
         // by us. We load again with our class loader.
@@ -163,7 +165,7 @@ public class GraphScopeClassLoader {
             Constructor[] constructors = javaClass.getDeclaredConstructors();
             for (Constructor constructor : constructors) {
                 if (constructor.getParameterCount() == 1
-                        && constructor.getParameterTypes()[0].getName().equals("long")) {
+                    && constructor.getParameterTypes()[0].getName().equals("long")) {
                     logger.info("Desired constructor exists for " + javaClass.getName());
                     Object obj = constructor.newInstance(address);
                     logger.info("Successfully Construct " + obj);
@@ -180,12 +182,12 @@ public class GraphScopeClassLoader {
      * We now accept two kind of className, a/b/c or a.b.c are both ok.
      *
      * @param classLoader url class loader to utilized.
-     * @param className full name for java class.
+     * @param className   full name for java class.
      * @return loaded class.
      * @throws ClassNotFoundException if target class can not be found in current path.
      */
     public static Class<?> loadClass(URLClassLoader classLoader, String className)
-            throws ClassNotFoundException {
+        throws ClassNotFoundException {
         logger.info("Loading class " + className);
         return classLoader.loadClass(formatting(className));
     }
@@ -198,53 +200,103 @@ public class GraphScopeClassLoader {
      * @throws ClassNotFoundException if target class can not be found in current path.
      */
     public static Class<?> loadCommunicatorClass(URLClassLoader classLoader)
-            throws ClassNotFoundException {
+        throws ClassNotFoundException {
         return loadClass(classLoader, "com.alibaba.graphscope.communication.Communicator");
     }
 
     public static SimpleFragment adapt2SimpleFragment(Object fragmentImpl) {
         if (fragmentImpl instanceof ArrowProjectedFragment) {
             ArrowProjectedFragment projectedFragment = (ArrowProjectedFragment) fragmentImpl;
-            return new ArrowProjectedAdaptor(projectedFragment);
+            Class<?>[] classes = getTypeArgumentFromInterface(ArrowProjectedFragment.class, projectedFragment.getClass());
+            if (classes.length != 4){
+                logger.error("Expected 4 actural type arguments, received: " + classes.length);
+                return null;
+            }
+            return createArrowProjectedAdaptor(classes[0], classes[1], classes[2], classes[3], projectedFragment);
         } else if (fragmentImpl instanceof ImmutableEdgecutFragment) {
             ImmutableEdgecutFragment immutableEdgecutFragment =
-                    (ImmutableEdgecutFragment) fragmentImpl;
-            return new ImmutableEdgecutFragmentAdaptor(immutableEdgecutFragment);
+                (ImmutableEdgecutFragment) fragmentImpl;
+            Class<?>[] classes = getTypeArgumentFromInterface(ImmutableEdgecutFragment.class, immutableEdgecutFragment.getClass());
+            if (classes.length != 4){
+                logger.error("Expected 4 actural type arguments, received: " + classes.length);
+                return null;
+            }
+            return createImmutableFragmentAdaptor(classes[0], classes[1], classes[2], classes[3], immutableEdgecutFragment);
         } else {
             logger.info(
-                    "Provided fragment is neither a projected fragment nor a immutable fragment.");
+                "Provided fragment is neither a projected fragment nor a immutable fragment.");
             return null;
         }
     }
 
+    /**
+     * Create a parameterized arrowProjectedFragment Adaptor.
+     * @param oidClass oidclass
+     * @param vidClass vidclass
+     * @param vdataClass vertex data class
+     * @param edataClass edge data class
+     * @param fragment actual fragment obj
+     * @param <OID_T> oid
+     * @param <VID_T> vid
+     * @param <VDATA_T> vdata
+     * @param <EDATA_T> edata
+     * @return created adaptor.
+     */
+    private static <OID_T, VID_T, VDATA_T, EDATA_T> ArrowProjectedAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> createArrowProjectedAdaptor(
+        Class<? extends OID_T> oidClass, Class<? extends VID_T> vidClass, Class<? extends VDATA_T > vdataClass, Class<? extends EDATA_T> edataClass,
+        ArrowProjectedFragment<OID_T, VID_T, VDATA_T, EDATA_T> fragment) {
+        return new ArrowProjectedAdaptor<OID_T, VID_T, VDATA_T, EDATA_T>(fragment);
+    }
+
+    /**
+     * Create a parameterized immutableFragment Adaptor.
+     * @param oidClass oidclass
+     * @param vidClass vidclass
+     * @param vdataClass vertex data class
+     * @param edataClass edge data class
+     * @param fragment actual fragment obj
+     * @param <OID_T> oid
+     * @param <VID_T> vid
+     * @param <VDATA_T> vdata
+     * @param <EDATA_T> edata
+     * @return created adaptor.
+     */
+    private static <OID_T, VID_T, VDATA_T, EDATA_T> ImmutableEdgecutFragmentAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> createImmutableFragmentAdaptor(
+        Class<? extends OID_T> oidClass, Class<? extends VID_T> vidClass, Class<? extends VDATA_T > vdataClass, Class<? extends EDATA_T> edataClass,
+        ImmutableEdgecutFragment<OID_T, VID_T, VDATA_T, EDATA_T> fragment) {
+        return new ImmutableEdgecutFragmentAdaptor<>(fragment);
+    }
+
     private static String formatting(String className) {
-        if (!className.contains("/")) return className;
+        if (!className.contains("/")) {
+            return className;
+        }
         return className.replace("/", ".");
     }
 
     private static URL[] classPath2URLArray(String classPath) {
         if (Objects.isNull(classPath) || classPath.length() == 0) {
             System.err.println("Empty class Path!");
-            return new URL[] {};
+            return new URL[]{};
         }
         String[] splited = classPath.split(":");
         List<URL> res =
-                Arrays.stream(splited)
-                        .map(File::new)
-                        .map(
-                                file -> {
-                                    try {
-                                        return file.toURL();
-                                    } catch (MalformedURLException e) {
-                                        e.printStackTrace();
-                                    }
-                                    return null;
-                                })
-                        .collect(Collectors.toList());
+            Arrays.stream(splited)
+                .map(File::new)
+                .map(
+                    file -> {
+                        try {
+                            return file.toURL();
+                        } catch (MalformedURLException e) {
+                            e.printStackTrace();
+                        }
+                        return null;
+                    })
+                .collect(Collectors.toList());
         logger.info(
-                "Extracted URL"
-                        + String.join(
-                                ":", res.stream().map(URL::toString).collect(Collectors.toList())));
+            "Extracted URL"
+                + String.join(
+                ":", res.stream().map(URL::toString).collect(Collectors.toList())));
         URL[] ret = new URL[splited.length];
         for (int i = 0; i < splited.length; ++i) {
             ret[i] = res.get(i);
@@ -252,7 +304,32 @@ public class GraphScopeClassLoader {
         return ret;
     }
 
+    /**
+     * Get the actual argument a child class has to implement a generic interface.
+     * @param baseClass baseclass
+     * @param childClass child class
+     * @param <T> type to evaluation
+     * @return
+     */
+    public static <T> Class<?>[] getTypeArgumentFromInterface(Class<T> baseClass,
+        Class<? extends T> childClass) {
+        Type type = childClass.getGenericInterfaces()[0];
+        Class<?> []classes;
+        if (type instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType) type;
+            Type[] typeParams = parameterizedType.getActualTypeArguments();
+            classes = new Class<?>[typeParams.length];
+            for (int i =0; i < typeParams.length; ++i){
+                classes[i] = (Class<?>) typeParams[i];
+            }
+            return classes;
+        } else {
+            throw new IllegalStateException("Not a parameterized type");
+        }
+    }
+
     private static class ClassScope {
+
         private static java.lang.reflect.Field LIBRARIES = null;
 
         static {
@@ -273,9 +350,9 @@ public class GraphScopeClassLoader {
          * @throws IllegalAccessException
          */
         public static String[] getLoadedLibraries(final ClassLoader loader)
-                throws IllegalAccessException {
+            throws IllegalAccessException {
             final Vector<String> libraries = (Vector<String>) LIBRARIES.get(loader);
-            return libraries.toArray(new String[] {});
+            return libraries.toArray(new String[]{});
         }
     }
 }

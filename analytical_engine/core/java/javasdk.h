@@ -85,6 +85,13 @@ jclass LoadClassWithClassLoader(JNIEnv* env, const jobject& url_class_loader,
                                 const char* class_name);
 
 jobject ImmutableFragment2Simple(JNIEnv* env, const jobject& fragment_impl_obj);
+
+jobject CreateGiraphAdaptor(JNIEnv* env, const char* app_class_name,
+                            const jobject& fragment_obj);
+
+jobject CreateGiraphAdaptorContext(JNIEnv* env, const char* context_class_name,
+                                   const jobject& fragment_obj);
+
 }  // namespace gs
 #endif
 #endif  // ANALYTICAL_ENGINE_CORE_JAVA_JAVASDK_H_

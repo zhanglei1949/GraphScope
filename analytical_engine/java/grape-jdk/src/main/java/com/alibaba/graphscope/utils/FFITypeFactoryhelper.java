@@ -47,7 +47,8 @@ import org.slf4j.LoggerFactory;
 public class FFITypeFactoryhelper {
     private static Logger logger = LoggerFactory.getLogger(FFITypeFactoryhelper.class.getName());
     private static volatile Factory stdStrFactory;
-    private static volatile Vertex.Factory vertexFactory;
+    private static volatile Vertex.Factory vertexLongFactory;
+    private static volatile Vertex.Factory vertexIntegerFactory;
     private static volatile MessageInBuffer.Factory javaMsgInBufFactory;
     private static volatile EmptyType.Factory emptyTypeFactory;
     private static volatile VertexRange.Factory vertexRangeLongFactory;
@@ -88,14 +89,25 @@ public class FFITypeFactoryhelper {
     }
 
     public static Vertex.Factory getVertexLongFactory() {
-        if (vertexFactory == null) {
+        if (vertexLongFactory == null) {
             synchronized (Vertex.Factory.class) {
-                if (vertexFactory == null) {
-                    vertexFactory = FFITypeFactory.getFactory("grape::Vertex<uint64_t>");
+                if (vertexLongFactory == null) {
+                    vertexLongFactory = FFITypeFactory.getFactory("grape::Vertex<uint64_t>");
                 }
             }
         }
-        return vertexFactory;
+        return vertexLongFactory;
+    }
+
+    public static Vertex.Factory getVertexIntegerFactory() {
+        if (vertexIntegerFactory == null) {
+            synchronized (Vertex.Factory.class) {
+                if (vertexIntegerFactory == null) {
+                    vertexIntegerFactory = FFITypeFactory.getFactory("grape::Vertex<uint32_t>");
+                }
+            }
+        }
+        return vertexIntegerFactory;
     }
 
     public static VertexRange.Factory getVertexRangeLongFactory() {
@@ -170,6 +182,18 @@ public class FFITypeFactoryhelper {
 
     public static Vertex<Long> newVertexLong() {
         return getVertexLongFactory().create();
+    }
+
+    public static <T> Vertex<T> newVertex(Class<? extends T> vidClass) {
+        if (vidClass.equals(Long.class)) {
+            return getVertexLongFactory().create();
+        } else if (vidClass.equals(Integer.class)) {
+            return getVertexIntegerFactory().create();
+        } else {
+            throw new IllegalStateException(
+                    "Grape only support two kind of vertex, 32 bit and 64 bit, your are querying for: "
+                            + vidClass.getName());
+        }
     }
 
     /**

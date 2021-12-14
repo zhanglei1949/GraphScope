@@ -12,12 +12,10 @@ import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.stdcxx.FFIByteVectorFactory;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
-import com.alibaba.graphscope.utils.WritableFactory;
 import java.io.IOException;
 import java.util.Iterator;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.Vertex;
-import org.apache.giraph.graph.VertexIdManager;
 import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
@@ -39,8 +37,8 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
 
     private SimpleFragment fragment;
     private DefaultMessageManager grapeMessageManager;
-    private com.alibaba.graphscope.ds.Vertex<Long> grapeVertex;
-    private VertexRange<Long> innerVertices;
+    private com.alibaba.graphscope.ds.Vertex grapeVertex;
+    private VertexRange innerVertices;
     private long maxInnerVertexLid;
     private int fragmentNum;
     private int fragId;
@@ -49,22 +47,17 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
     private FFIByteVectorInputStream messagesIn;
     private FFIByteVectorOutputStream[] messagesOut;
 
-    /**
-     * Temp vertex proxy for grape related api.
-     */
-    private com.alibaba.graphscope.ds.Vertex<Long> tmpVertex;
-
-
     public GiraphDefaultMessageManager(SimpleFragment fragment,
-        DefaultMessageManager defaultMessageManager, ImmutableClassesGiraphConfiguration configuration) {
+        DefaultMessageManager defaultMessageManager,
+        ImmutableClassesGiraphConfiguration configuration) {
         this.fragment = fragment;
         this.fragmentNum = fragment.fnum();
         this.fragId = fragment.fid();
         this.innerVertices = fragment.innerVertices();
-        this.maxInnerVertexLid = this.innerVertices.end().GetValue();
+        this.maxInnerVertexLid = (long) this.innerVertices.end().GetValue();
 
         this.grapeMessageManager = defaultMessageManager;
-        this.grapeVertex = FFITypeFactoryhelper.newVertexLong();
+        this.grapeVertex = FFITypeFactoryhelper.newVertex(configuration.getGrapeVidClass());
         this.messagesIn = new FFIByteVectorInputStream();
 //        this.messagesOutToSelf = new FFIByteVectorOutputStream();
         this.messagesOut = new FFIByteVectorOutputStream[fragment.fnum()];
@@ -76,8 +69,6 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
         for (int i = 0; i < fragment.getInnerVerticesNum(); ++i) {
             this.receivedMessages[i] = new MessageIterable<>();
         }
-        this.tmpVertex = FFITypeFactoryhelper.newVertexLong();
-        this.tmpVertex.SetValue(0L);
 
         this.configuration = configuration;
     }
@@ -102,8 +93,12 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
         //Parse messageIn and form into Iterable<message> for each vertex;
         logger.info("Frag [" + fragId + "] totally Received [" + messagesIn.longAvailable()
             + "] bytes, starting deserialization");
+        if (configuration.getGrapeVidClass().equals(Long.class)) {
+            com.alibaba.graphscope.ds.Vertex<Long> longVertex = (com.alibaba.graphscope.ds.Vertex<Long>) grapeVertex;
+        } else {
 
-        com.alibaba.graphscope.ds.Vertex<Long> vertex = FFITypeFactoryhelper.newVertexLong();
+        }
+
         try {
             while (true) {
                 if (messagesIn.available() <= 0) {
@@ -115,23 +110,24 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
                 Writable inMsg = configuration.createInComingMessageValue();
                 inMsg.readFields(messagesIn);
                 //TODO: only for testing
-                if (inMsg instanceof LongWritable){
+                if (inMsg instanceof LongWritable) {
                     LongWritable inMsg2 = (LongWritable) inMsg;
-                    logger.debug("Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
-                }
-                else if (inMsg instanceof DoubleWritable){
+                    logger.debug(
+                        "Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
+                } else if (inMsg instanceof DoubleWritable) {
                     DoubleWritable inMsg2 = (DoubleWritable) inMsg;
-                    logger.debug("Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
+                    logger.debug(
+                        "Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
                 }
-
 
                 //store the msg
-                fragment.gid2Vertex(dstVertexGid, vertex);
-                if (vertex.GetValue() >= maxInnerVertexLid) {
+                fragment.gid2Vertex(dstVertexGid, grapeVertex);
+                com.alibaba.graphscope.ds.Vertex<Long> grapeVertex2 = (com.alibaba.graphscope.ds.Vertex<Long>) grapeVertex;
+                if (grapeVertex2.GetValue() >= maxInnerVertexLid) {
                     logger.error("Received one vertex id which exceeds inner vertex range.");
                     return;
                 }
-                receivedMessages[vertex.GetValue().intValue()].append((IN_MSG_T) inMsg);
+                receivedMessages[grapeVertex2.GetValue().intValue()].append((IN_MSG_T) inMsg);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -170,12 +166,12 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
      */
     @Override
     public void sendMessage(OID_T dstOid, OUT_MSG_T message) {
-        if (dstOid instanceof LongWritable){
+        if (dstOid instanceof LongWritable) {
             LongWritable longOid = (LongWritable) dstOid;
             //Get lid from oid
-            fragment.getInnerVertex(longOid, tmpVertex);
+            fragment.getInnerVertex(longOid, grapeVertex);
 //            tmpVertex.SetValue(longOid.get());
-            int dstfragId = fragment.getFragId(tmpVertex);
+            int dstfragId = fragment.getFragId(grapeVertex);
             if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
                 messagesOut[dstfragId].finishSetting();
                 grapeMessageManager
@@ -183,13 +179,12 @@ public class GiraphDefaultMessageManager<OID_T extends WritableComparable, VDATA
                 messagesOut[dstfragId].reset();
             }
             try {
-                messagesOut[dstfragId].writeLong((Long) fragment.vertex2Gid(tmpVertex));
+                messagesOut[dstfragId].writeLong((Long) fragment.vertex2Gid(grapeVertex));
                 message.write(messagesOut[dstfragId]);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-        else {
+        } else {
             logger.error("Expect a longWritable oid");
         }
     }

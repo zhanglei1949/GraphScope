@@ -17,7 +17,6 @@
  */
 package org.apache.giraph.conf;
 
-import com.alibaba.graphscope.samples.SimpleShortestPathsComputation;
 import org.apache.hadoop.conf.Configuration;
 
 import com.google.common.base.Objects;

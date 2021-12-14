@@ -37,12 +37,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class GiraphComputationAdaptorContext implements
-    DefaultContextBase {
+/**
+ * Generic adaptor context class. The type parameter OID,VID_VDATA_T,EDATA_T is irrelevant to
+ * User writables. They are type parameters for grape fragment. We need them to support multiple
+ * set of actual type parameters in one adaptor.
+ *
+ * @param <OID_T>
+ * @param <VID_T>
+ * @param <VDATA_T>
+ * @param <EDATA_T>
+ */
+public class GiraphComputationAdaptorContext<OID_T,VID_T,VDATA_T,EDATA_T> implements
+    DefaultContextBase<OID_T,VID_T,VDATA_T,EDATA_T> {
 
     private static Logger logger = LoggerFactory.getLogger(GiraphComputationAdaptorContext.class);
 
-    public VertexRange<Long> innerVertices;
     private long innerVerticesNum;
 
     private WorkerContext workerContext;
@@ -85,7 +94,7 @@ public class GiraphComputationAdaptorContext implements
     private BitSet halted;
 
     @Override
-    public void Init(SimpleFragment frag,
+    public void Init(SimpleFragment<OID_T,VID_T,VDATA_T,EDATA_T> frag,
         DefaultMessageManager messageManager,
         JSONObject jsonObject) {
 
@@ -97,16 +106,12 @@ public class GiraphComputationAdaptorContext implements
 
         userComputation = (AbstractComputation) ReflectionUtils
             .newInstance(conf.getComputationClass());
-        workerContext = (WorkerContext) ReflectionUtils
-            .newInstance(conf.getWorkerContextClass());
+
 
         userComputation.setConf(conf);
 
         logger.info("Created user computation class: " + userComputation.getClass().getName());
-        innerVertices = frag.innerVertices();
         innerVerticesNum = frag.getInnerVerticesNum();
-
-
 
         communicator = new CommunicatorImpl();
         userComputation.setCommunicator(communicator);
@@ -114,21 +119,20 @@ public class GiraphComputationAdaptorContext implements
          * Important, we don't provided any constructors for workerContext, so make sure all fields
          * has been carefully set.
          */
+        workerContext = (WorkerContext) ReflectionUtils
+            .newInstance(conf.getWorkerContextClass());
         workerContext.setCommunicator(communicator);
         workerContext.setFragment(frag);
         workerContext.setCurStep(0);
+        userComputation.setWorkerContext(workerContext);
 
-        //parse user computation class and set oid, vdata, edata, inMsgType and outMsgType;
-        //initWritableFactory(userComputation);
-        //parse fragment class to get oid,vid,vdata, edata,
-        //TODO: If we follow GAE-ODPSGraph, then we will catch oid, vdata, edata all as refstring or constBlob
 
         //halt array to mark active
         halted = new BitSet((int) frag.getInnerVerticesNum());
 
         //Init vertex data/oid manager
-        vertexDataManager = new VertexDataManagerImpl<LongWritable>(frag, innerVertices, conf);
-        vertexIdManager = new VertexIdManagerImpl<LongWritable>(frag, innerVertices, conf);
+        vertexDataManager = new VertexDataManagerImpl<LongWritable>(frag, innerVerticesNum, conf);
+        vertexIdManager = new VertexIdManagerImpl<LongWritable>(frag, innerVerticesNum, conf);
         edgeManager = new ImmutableEdgeManagerImpl(frag, vertexIdManager, conf);
 
         vertex = (VertexImpl<LongWritable, LongWritable, DoubleWritable>) VertexFactory
@@ -149,7 +153,7 @@ public class GiraphComputationAdaptorContext implements
      * @param frag The graph fragment contains the graph info.
      */
     @Override
-    public void Output(SimpleFragment frag) {
+    public void Output(SimpleFragment<OID_T,VID_T,VDATA_T,EDATA_T> frag) {
         workerContext.postApplication();
 
         //Output with vertexOutputClass
@@ -173,43 +177,6 @@ public class GiraphComputationAdaptorContext implements
             logger.error("Exception in writing out: " + e.getMessage());
         }
     }
-
-//    /**
-//     * TODO: remove this and use conf to create writables User app extends abstract computation, so
-//     * we use reflection to find it type parameters. Notice that user can extend {@link
-//     * AbstractComputation} and ${@link org.apache.giraph.graph.BasicComputation}, we need to take
-//     * both of them into consideration.
-//     *
-//     * @param userComputation instance OF USER app
-//     */
-//    private void initWritableFactory(AbstractComputation userComputation) {
-//        Class<? extends AbstractComputation> userComputationClz = userComputation.getClass();
-//        Type genericType = userComputationClz.getGenericSuperclass();
-//        // System.out.println(genericType[0].getTypeName());
-//        if (!(genericType instanceof ParameterizedType)) {
-//            logger.error("not parameterize type");
-//            return;
-//        }
-//        Type[] typeParams = ((ParameterizedType) genericType).getActualTypeArguments();
-//        if (typeParams.length > 5 || typeParams.length < 4) {
-//            logger.error(
-//                "number of params doesn't match, should be 5, acutual is" + typeParams.length);
-//            return;
-//        }
-//        List<Class<?>> clzList = new ArrayList<>(5);
-//        for (int i = 0; i < typeParams.length; ++i) {
-//            clzList.add((Class<?>) typeParams[i]);
-//        }
-//        WritableFactory.setOidClass((Class<? extends WritableComparable>) clzList.get(0));
-//        WritableFactory.setVdataClass((Class<? extends Writable>) clzList.get(1));
-//        WritableFactory.setEdataClass((Class<? extends Writable>) clzList.get(2));
-//        WritableFactory.setInMsgClass((Class<? extends Writable>) clzList.get(3));
-//        if (typeParams.length == 4) {
-//            WritableFactory.setOutMsgClass((Class<? extends Writable>) clzList.get(3));
-//        } else {
-//            WritableFactory.setOutMsgClass((Class<? extends Writable>) clzList.get(4));
-//        }
-//    }
 
     public void haltVertex(long lid) {
         halted.set((int) lid);

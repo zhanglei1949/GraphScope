@@ -113,24 +113,27 @@ class JavaPIEDefaultContext : public grape::ContextBase {
       }
       LoadUserLibrary(env, user_lib_path);
 
-      CHECK(!app_class_name.empty());
-      app_class_name_ = JavaClassNameDashToSlash(app_class_name);
-      app_object_ =
-          LoadAndCreate(env, url_class_loader_object_, app_class_name_);
-      // std::string app_context_name = getContextNameFromAppClass(env);
-
-      context_class_name_ = JavaClassNameDashToSlash(context_class_name);
-      // CHECK_NOTNULL(!initClassNames(app_class_name, app_context_name));
-
-      context_object_ =
-          LoadAndCreate(env, url_class_loader_object_, context_class_name_);
-
       java_frag_type_name_ = frag_name;
       fragment_object_impl_ = CreateFFIPointer(
           env, java_frag_type_name_.c_str(), url_class_loader_object_,
           reinterpret_cast<jlong>(&fragment_));
       // wrap immutable or projected fragment as simple fragment
       fragment_object_ = ImmutableFragment2Simple(env, fragment_object_impl_);
+
+      CHECK(!app_class_name.empty());
+      app_class_name_ = JavaClassNameDashToSlash(app_class_name);
+      // app_object_ =
+      //     LoadAndCreate(env, url_class_loader_object_, app_class_name_);
+      app_object_ = CreateGiraphAdaptor(env, app_class_name, fragment_object_);
+
+      context_class_name_ = JavaClassNameDashToSlash(context_class_name);
+      // CHECK_NOTNULL(!initClassNames(app_class_name, app_context_name));
+
+      // context_object_ =
+      //     LoadAndCreate(env, url_class_loader_object_, context_class_name_);
+      context_object_ =
+          CreateGiraphAdaptorContext(env, app_class_name, fragment_object_);
+
       mm_object_ = CreateFFIPointer(env, default_java_message_mananger_name_,
                                     url_class_loader_object_,
                                     reinterpret_cast<jlong>(&messages));

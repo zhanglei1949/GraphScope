@@ -5,10 +5,9 @@ import com.alibaba.graphscope.parallel.GiraphMessageManager;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Objects;
-import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
+import org.apache.giraph.conf.DefaultImmutableClassesGiraphConfigurable;
 import org.apache.giraph.edge.Edge;
 import org.apache.giraph.edge.OutEdges;
-import org.apache.giraph.graph.impl.CommunicatorImpl;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -29,40 +28,21 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
     VDATA_T extends Writable,
     EDATA_T extends Writable,
     IN_MSG_T extends Writable,
-    OUT_MSG_T extends Writable> implements
+    OUT_MSG_T extends Writable> extends
+    DefaultImmutableClassesGiraphConfigurable<OID_T, VDATA_T, EDATA_T> implements
     Computation<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T>, Communicator {
 
     private static Logger logger = LoggerFactory.getLogger(AbstractComputation.class);
 
-    //In giraph, AbstractComputation extends DefaultImmutableClassesGiraphConfigurable, here we
-    //have already extedns CommunicatorImpl, as java forbidding extends from two classes, we use DefaultImmutableClassesGiraphConfiguration
-    //as a feild.
-    private ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf;
-
     /**
-     * We hold a communicatorImpl rather that directly inherit from CommunicatorImpl.
-     * So CommunicatorImpl can also be reference in workerContext.
+     * We hold a communicatorImpl rather that directly inherit from CommunicatorImpl. So
+     * CommunicatorImpl can also be reference in workerContext.
      */
     private Communicator communicator;
     private GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T> giraphMessageManager;
     private SimpleFragment fragment;
     private int curStep = 0;
-
-    /**
-     * Set the configuration.
-     * @param conf configuration instance to use
-     */
-    public void setConf(ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf) {
-        this.conf = conf;
-    }
-
-    /**
-     * Get the conf, used when user want to get a configured value.
-     * @return configuration.
-     */
-    public ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> getConf() {
-        return conf;
-    }
+    private WorkerContext workerContext;
 
     public void setGiraphMessageManager(
         GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T> giraphMessageManager) {
@@ -73,11 +53,16 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
         this.fragment = fragment;
     }
 
-    public void setCommunicator(Communicator communicator){
+    public void setCommunicator(Communicator communicator) {
         this.communicator = communicator;
     }
-    public Communicator getCommunicator(){
+
+    public Communicator getCommunicator() {
         return this.communicator;
+    }
+
+    public void setWorkerContext(WorkerContext workerContext) {
+        this.workerContext = workerContext;
     }
 
     /**
@@ -152,7 +137,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public WorkerContext getWorkerContext() {
-        return null;
+        return workerContext;
     }
 
     @Override
@@ -242,9 +227,9 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public <A extends Writable> void aggregate(String name, A value) {
-        if (Objects.isNull(communicator)){
+        if (Objects.isNull(communicator)) {
             logger.error("Null communicator, set to a valid reference first.");
-            return ;
+            return;
         }
     }
 
@@ -256,7 +241,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public <A extends Writable> A getAggregatedValue(String name) {
-        if (Objects.isNull(communicator)){
+        if (Objects.isNull(communicator)) {
             logger.error("Null communicator, set to a valid reference first.");
             return null;
         }
@@ -271,7 +256,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public <B extends Writable> B getBroadcast(String name) {
-        if (Objects.isNull(communicator)){
+        if (Objects.isNull(communicator)) {
             logger.error("Null communicator, set to a valid reference first.");
             return null;
         }
@@ -286,9 +271,9 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public void reduce(String name, Object value) {
-        if (Objects.isNull(communicator)){
+        if (Objects.isNull(communicator)) {
             logger.error("Null communicator, set to a valid reference first.");
-            return ;
+            return;
         }
     }
 
@@ -300,9 +285,9 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public void reduceMerge(String name, Writable value) {
-        if (Objects.isNull(communicator)){
+        if (Objects.isNull(communicator)) {
             logger.error("Null communicator, set to a valid reference first.");
-            return ;
+            return;
         }
     }
 }

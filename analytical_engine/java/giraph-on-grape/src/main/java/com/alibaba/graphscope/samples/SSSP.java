@@ -25,13 +25,10 @@ import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.io.formats.TextVertexOutputFormat;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.FloatWritable;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 
 import java.io.IOException;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +40,7 @@ import org.slf4j.LoggerFactory;
 //    name = "Shortest paths",
 //    description = "Finds all shortest paths from a selected vertex"
 //)
-public class SimpleShortestPathsComputation extends BasicComputation<
+public class SSSP extends BasicComputation<
     LongWritable, DoubleWritable, DoubleWritable, DoubleWritable> {
     /** The shortest paths id */
     public static final LongConfOption SOURCE_ID =
@@ -51,7 +48,7 @@ public class SimpleShortestPathsComputation extends BasicComputation<
             "The shortest paths id");
     /** Class logger */
     private static final Logger LOG =
-        LoggerFactory.getLogger(SimpleShortestPathsComputation.class);
+        LoggerFactory.getLogger(SSSP.class);
 
     /**
      * Is this vertex the source id?

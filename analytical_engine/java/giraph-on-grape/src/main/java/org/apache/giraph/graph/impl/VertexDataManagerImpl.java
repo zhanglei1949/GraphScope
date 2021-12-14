@@ -3,14 +3,12 @@ package org.apache.giraph.graph.impl;
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.fragment.SimpleFragment;
-import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.serialization.FFIByteVectorInputStream;
 import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import jnr.ffi.annotations.In;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.hadoop.io.Writable;
@@ -27,23 +25,21 @@ public class VertexDataManagerImpl<VDATA_T extends Writable> implements VertexDa
     private static Logger logger = LoggerFactory.getLogger(VertexDataManagerImpl.class);
 
     private SimpleFragment fragment;
-    private VertexRange<Long> vertices;
     private List<VDATA_T> vertexDataList;
-    private long maxVertexLid;
+    private long vertexNum;
     private ImmutableClassesGiraphConfiguration conf;
 
-    public VertexDataManagerImpl(SimpleFragment fragment, VertexRange<Long> vertices,
+    public VertexDataManagerImpl(SimpleFragment fragment, long vertexNum,
         ImmutableClassesGiraphConfiguration configuration) {
         this.fragment = fragment;
-        this.vertices = vertices;
-        this.maxVertexLid = vertices.end().GetValue();
-        vertexDataList = new ArrayList<VDATA_T>((int) vertices.size());
+        this.vertexNum = vertexNum;
+        vertexDataList = new ArrayList<VDATA_T>((int) vertexNum);
         this.conf = configuration;
 
         FFIByteVectorInputStream inputStream = generateVertexDataStream();
 
         try {
-            for (int i = 0; i < vertices.size(); ++i) {
+            for (int i = 0; i < vertexNum; ++i) {
                 VDATA_T vdata = (VDATA_T) conf.createVertexValue();
                 vdata.readFields(inputStream);
                 vertexDataList.add(vdata);
@@ -51,6 +47,7 @@ public class VertexDataManagerImpl<VDATA_T extends Writable> implements VertexDa
         } catch (IOException e) {
             e.printStackTrace();
         }
+        inputStream.clear();
     }
 
     @Override
@@ -66,7 +63,7 @@ public class VertexDataManagerImpl<VDATA_T extends Writable> implements VertexDa
     }
 
     private void checkLid(long lid) {
-        if (lid >= maxVertexLid) {
+        if (lid >= vertexNum) {
             logger.error("Querying lid out of range: " + lid + " max lid: " + lid);
             throw new RuntimeException("Vertex of range: " + lid + " max possible: " + lid);
         }
@@ -76,23 +73,30 @@ public class VertexDataManagerImpl<VDATA_T extends Writable> implements VertexDa
         FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
         Vertex<Long> vertex = FFITypeFactoryhelper.newVertexLong();
         try {
-            for (long i = 0; i < vertices.size(); ++i) {
-                vertex.SetValue(i);
-                if (conf.getGrapeVdataClass().equals(Long.class)) {
+            //We need to form all vdata as a stream, so java writables can read from this stream.
+            if (conf.getGrapeVdataClass().equals(Long.class)) {
+                for (long i = 0; i < vertexNum; ++i) {
+                    vertex.SetValue(i);
                     Long value = (Long) fragment.getData(vertex);
                     outputStream.writeLong(value);
                 }
-                else if (conf.getGrapeVdataClass().equals(Integer.class)){
+            } else if (conf.getGrapeVdataClass().equals(Integer.class)) {
+                for (long i = 0; i < vertexNum; ++i) {
+                    vertex.SetValue(i);
                     Integer value = (Integer) fragment.getData(vertex);
                     outputStream.writeInt(value);
                 }
-                else if (conf.getGrapeVdataClass().equals(Double.class)){
+            }
+            else if (conf.getGrapeVdataClass().equals(Double.class)){
+                for (long i = 0; i < vertexNum; ++i) {
+                    vertex.SetValue(i);
                     Double value = (Double) fragment.getData(vertex);
                     outputStream.writeDouble(value);
                 }
             }
+            //else if (conf.getGrapeVdataClass().equals the userDefined class...
             outputStream.finishSetting();
-            logger.info("Vertex data stream size: " + outputStream.bytesWriten() + ", vertices: " + vertices.size());
+            logger.info("Vertex data stream size: " + outputStream.bytesWriten() + ", vertices: " + vertexNum);
         } catch (IOException e) {
             e.printStackTrace();
         }

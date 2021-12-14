@@ -8,6 +8,7 @@ import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.GiraphMessageManager;
 import com.alibaba.graphscope.parallel.MessageIterable;
 import java.io.IOException;
+import jnr.ffi.annotations.In;
 import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexIdManager;
@@ -23,8 +24,8 @@ import org.slf4j.LoggerFactory;
  * Using raw types since we are not aware of Computation type parameters at this time.
  * </p>
  */
-public class GiraphComputationAdaptor implements
-    DefaultAppBase {
+public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> implements
+    DefaultAppBase<OID_T,VID_T,VDATA_T,EDATA_T,GiraphComputationAdaptorContext<OID_T,VID_T,VDATA_T,EDATA_T>> {
 
     private static Logger logger = LoggerFactory.getLogger(GiraphComputationAdaptor.class);
 
@@ -40,8 +41,8 @@ public class GiraphComputationAdaptor implements
      * @see DefaultMessageManager
      */
     @Override
-    public void PEval(SimpleFragment graph,
-        DefaultContextBase context,
+    public void PEval(SimpleFragment<OID_T,VID_T,VDATA_T,EDATA_T> graph,
+        DefaultContextBase<OID_T,VID_T,VDATA_T,EDATA_T> context,
         DefaultMessageManager messageManager) {
 
         GiraphComputationAdaptorContext ctx = (GiraphComputationAdaptorContext) context;
@@ -67,18 +68,29 @@ public class GiraphComputationAdaptor implements
         //TODO: remove this debug code
         VertexDataManager vertexDataManager = ctx.vertex.getVertexDataManager();
         VertexIdManager vertexIdManager = ctx.vertex.getVertexIdManager();
-        for (Vertex<Long> grapeVertex : ctx.innerVertices.locals()) {
-            if (grapeVertex.GetValue().intValue() < 10) {
-                logger.info(
-                    "Vertex: " + grapeVertex.GetValue().intValue() + ", oid: " + vertexIdManager
-                        .getId(grapeVertex.GetValue()) + ", vdata: " + vertexDataManager
-                        .getVertexData(grapeVertex.GetValue()));
+        int cnt = 0;
+        for (Vertex<VID_T> grapeVertex : graph.innerVertices().locals()){
+            if (cnt > 5){
+                break;
             }
+            if (ctx.getUserComputation().getConf().getGrapeVidClass().equals(Long.class)){
+                Long lid = (Long) grapeVertex.GetValue();
+                logger.info("Vertex: " + grapeVertex.GetValue() + ", oid: " + vertexIdManager
+                    .getId(lid) + ", vdata: " + vertexDataManager
+                    .getVertexData(lid));
+            }
+            else if (ctx.getUserComputation().getConf().getGrapeVidClass().equals(Integer.class)){
+                Integer lid = (Integer) grapeVertex.GetValue();
+                logger.info("Vertex: " + grapeVertex.GetValue() + ", oid: " + vertexIdManager
+                    .getId(lid) + ", vdata: " + vertexDataManager
+                    .getVertexData(lid));
+            }
+            cnt += 1;
         }
 
         try {
-            for (Vertex<Long> grapeVertex : ctx.innerVertices.locals()) {
-                ctx.vertex.setLocalId(grapeVertex.GetValue().intValue());
+            for (long lid = 0; lid < graph.getInnerVerticesNum(); ++lid) {
+                ctx.vertex.setLocalId((int) lid);
                 userComputation.compute(ctx.vertex, messages);
             }
         } catch (IOException e) {
@@ -114,8 +126,8 @@ public class GiraphComputationAdaptor implements
      * @see DefaultMessageManager
      */
     @Override
-    public void IncEval(SimpleFragment graph,
-        DefaultContextBase context,
+    public void IncEval(SimpleFragment<OID_T,VID_T,VDATA_T,EDATA_T> graph,
+        DefaultContextBase<OID_T,VID_T,VDATA_T,EDATA_T> context,
         DefaultMessageManager messageManager) {
 
         GiraphComputationAdaptorContext ctx = (GiraphComputationAdaptorContext) context;
@@ -132,20 +144,12 @@ public class GiraphComputationAdaptor implements
 
         //1. compute
         try {
-            logger.info(
-                "range: " + ctx.innerVertices.begin().GetValue() + " " + ctx.innerVertices.end()
-                    .GetValue() + "addr: " + ctx.innerVertices.getAddress());
-            VertexRange<Long> innerVertices = graph.innerVertices();
-            logger.info(
-                "this range: " + innerVertices.begin().GetValue() + " " + innerVertices.end()
-                    .GetValue() + "addr: " + innerVertices.getAddress());
-            for (Vertex<Long> grapeVertex : innerVertices.locals()) {
-                int lid = grapeVertex.GetValue().intValue();
+            for (long lid = 0; lid < graph.getInnerVerticesNum(); ++lid) {
                 if (giraphMessageManager.messageAvailable(lid)) {
                     ctx.activateVertex(lid); //set halted[lid] to false;
                 }
                 if (!ctx.isHalted(lid)) {
-                    ctx.vertex.setLocalId(lid);
+                    ctx.vertex.setLocalId((int) lid);
                     userComputation.compute(ctx.vertex, giraphMessageManager.getMessages(lid));
                 }
             }
