@@ -9,6 +9,11 @@ import org.apache.giraph.io.VertexInputFormat;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.giraph.worker.impl.DefaultWorkerContext;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.FloatWritable;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,5 +107,22 @@ public class ConfigurationUtils {
     public static void parseJavaFragment(final GiraphConfiguration giraphConfiguration,
         SimpleFragment fragment) {
 
+    }
+
+    public static boolean checkTypeConsistency(Class<?> grapeTypeClass, Class<? extends Writable> giraphTypeClass){
+        if (grapeTypeClass.equals(Long.class)){
+            return giraphTypeClass.equals(LongWritable.class);
+        }
+        if (grapeTypeClass.equals(Integer.class)){
+            return giraphTypeClass.equals(IntWritable.class);
+        }
+        if (grapeTypeClass.equals(Double.class)){
+            return giraphTypeClass.equals(DoubleWritable.class);
+        }
+        if (grapeTypeClass.equals(Float.class)){
+            return giraphTypeClass.equals(FloatWritable.class);
+        }
+        logger.error("Unsupported grape type and giraph type: " + grapeTypeClass.getName() + ", " + giraphTypeClass.getName());
+        return false;
     }
 }

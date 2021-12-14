@@ -18,11 +18,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+
+ */
+
+/**
  * This adaptor bridges c++ driver app and Giraph Computation.
  *
  * <p>
  * Using raw types since we are not aware of Computation type parameters at this time.
  * </p>
+ *
+ * @param <OID_T> grape oid.
+ * @param <VID_T> grape vid.
+ * @param <VDATA_T> grape vdata.
+ * @param <EDATA_T> grape edata.
  */
 public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> implements
     DefaultAppBase<OID_T,VID_T,VDATA_T,EDATA_T,GiraphComputationAdaptorContext<OID_T,VID_T,VDATA_T,EDATA_T>> {

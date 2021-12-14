@@ -3,7 +3,7 @@ package com.alibaba.graphscope.context;
 
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.graphscope.app.DefaultContextBase;
-import com.alibaba.graphscope.ds.VertexRange;
+import com.alibaba.graphscope.factory.GiraphComputationFactory;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.GiraphMessageManager;
@@ -21,16 +21,11 @@ import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexFactory;
 import org.apache.giraph.graph.VertexIdManager;
 import org.apache.giraph.graph.impl.CommunicatorImpl;
-import org.apache.giraph.graph.impl.ImmutableEdgeManagerImpl;
-import org.apache.giraph.graph.impl.VertexDataManagerImpl;
-import org.apache.giraph.graph.impl.VertexIdManagerImpl;
 import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.giraph.utils.ConfigurationUtils;
 import org.apache.giraph.utils.ReflectionUtils;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.slf4j.Logger;
@@ -38,17 +33,17 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Generic adaptor context class. The type parameter OID,VID_VDATA_T,EDATA_T is irrelevant to
- * User writables. They are type parameters for grape fragment. We need them to support multiple
- * set of actual type parameters in one adaptor.
+ * Generic adaptor context class. The type parameter OID,VID_VDATA_T,EDATA_T is irrelevant to User
+ * writables. They are type parameters for grape fragment. We need them to support multiple set of
+ * actual type parameters in one adaptor.
  *
  * @param <OID_T>
  * @param <VID_T>
  * @param <VDATA_T>
  * @param <EDATA_T>
  */
-public class GiraphComputationAdaptorContext<OID_T,VID_T,VDATA_T,EDATA_T> implements
-    DefaultContextBase<OID_T,VID_T,VDATA_T,EDATA_T> {
+public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> implements
+    DefaultContextBase<OID_T, VID_T, VDATA_T, EDATA_T> {
 
     private static Logger logger = LoggerFactory.getLogger(GiraphComputationAdaptorContext.class);
 
@@ -83,7 +78,7 @@ public class GiraphComputationAdaptorContext<OID_T,VID_T,VDATA_T,EDATA_T> implem
         return userComputation;
     }
 
-    public GiraphMessageManager<LongWritable, LongWritable, DoubleWritable, LongWritable, LongWritable> getGiraphMessageManager() {
+    public GiraphMessageManager getGiraphMessageManager() {
         return giraphMessageManager;
     }
 
@@ -94,7 +89,7 @@ public class GiraphComputationAdaptorContext<OID_T,VID_T,VDATA_T,EDATA_T> implem
     private BitSet halted;
 
     @Override
-    public void Init(SimpleFragment<OID_T,VID_T,VDATA_T,EDATA_T> frag,
+    public void Init(SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> frag,
         DefaultMessageManager messageManager,
         JSONObject jsonObject) {
 
@@ -104,9 +99,16 @@ public class GiraphComputationAdaptorContext<OID_T,VID_T,VDATA_T,EDATA_T> implem
         ImmutableClassesGiraphConfiguration conf = generateConfiguration(
             jsonObject, frag);
 
+        if (checkConsistency(conf)) {
+            logger
+                .info("Okay, the type parameters in user computation is consistent with fragment");
+        } else {
+            throw new IllegalStateException(
+                "User computation type parameters not consistent with fragment types");
+        }
+
         userComputation = (AbstractComputation) ReflectionUtils
             .newInstance(conf.getComputationClass());
-
 
         userComputation.setConf(conf);
 
@@ -126,17 +128,27 @@ public class GiraphComputationAdaptorContext<OID_T,VID_T,VDATA_T,EDATA_T> implem
         workerContext.setCurStep(0);
         userComputation.setWorkerContext(workerContext);
 
-
         //halt array to mark active
         halted = new BitSet((int) frag.getInnerVerticesNum());
 
         //Init vertex data/oid manager
-        vertexDataManager = new VertexDataManagerImpl<LongWritable>(frag, innerVerticesNum, conf);
-        vertexIdManager = new VertexIdManagerImpl<LongWritable>(frag, innerVerticesNum, conf);
-        edgeManager = new ImmutableEdgeManagerImpl(frag, vertexIdManager, conf);
+        vertexDataManager = GiraphComputationFactory
+            .createDefaultVertexDataManager(conf.getVertexValueClass(), conf.getGrapeOidClass(), conf.getGrapeVidClass(),
+                conf.getGrapeVdataClass(), conf.getGrapeEdataClass(),frag, innerVerticesNum,
+                conf);
+        vertexIdManager = GiraphComputationFactory
+            .createDefaultVertexIdManager(conf.getVertexIdClass(), conf.getGrapeOidClass(), conf.getGrapeVidClass(),
+                conf.getGrapeVdataClass(), conf.getGrapeEdataClass(), frag, innerVerticesNum, conf);
 
-        vertex = (VertexImpl<LongWritable, LongWritable, DoubleWritable>) VertexFactory
-            .<LongWritable, LongWritable, DoubleWritable>createDefaultVertex(frag, this);
+//        edgeManager = new ImmutableEdgeManagerImpl(frag, vertexIdManager, conf);
+        edgeManager = GiraphComputationFactory
+            .createImmutableEdgeManagerImpl(conf.getVertexIdClass(),
+                conf.getEdgeValueClass(), conf.getGrapeOidClass(), conf.getGrapeVidClass(),
+                conf.getGrapeVdataClass(), conf.getGrapeEdataClass(), frag, vertexIdManager, conf);
+
+        vertex = VertexFactory
+            .createDefaultVertex(conf.getVertexIdClass(), conf.getVertexValueClass(),
+                conf.getEdgeValueClass(), this);
         vertex.setVertexIdManager(vertexIdManager);
         vertex.setVertexDataManager(vertexDataManager);
         vertex.setEdgeManager(edgeManager);
@@ -153,7 +165,7 @@ public class GiraphComputationAdaptorContext<OID_T,VID_T,VDATA_T,EDATA_T> implem
      * @param frag The graph fragment contains the graph info.
      */
     @Override
-    public void Output(SimpleFragment<OID_T,VID_T,VDATA_T,EDATA_T> frag) {
+    public void Output(SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> frag) {
         workerContext.postApplication();
 
         //Output with vertexOutputClass
@@ -212,5 +224,14 @@ public class GiraphComputationAdaptorContext<OID_T,VID_T,VDATA_T,EDATA_T> implem
             e.printStackTrace();
         }
         return new ImmutableClassesGiraphConfiguration<>(giraphConfiguration, fragment);
+    }
+
+    private boolean checkConsistency(ImmutableClassesGiraphConfiguration configuration) {
+        return ConfigurationUtils.checkTypeConsistency(configuration.getGrapeOidClass(),
+            configuration.getVertexIdClass()) &&
+            ConfigurationUtils.checkTypeConsistency(configuration.getGrapeEdataClass(),
+                configuration.getEdgeValueClass()) &&
+            ConfigurationUtils.checkTypeConsistency(configuration.getGrapeVdataClass(),
+                configuration.getVertexValueClass());
     }
 }

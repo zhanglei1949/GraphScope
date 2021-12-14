@@ -25,13 +25,8 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
 
     private static Logger logger = LoggerFactory.getLogger(VertexImpl.class);
 
-    private SimpleFragment fragment;
     private long lid;
-    /**
-     * Grape vertex used for accessing grape framework, not necessarily represent current vertex(lid)
-     * in usage.
-     */
-    private com.alibaba.graphscope.ds.Vertex<Long> grapeVertex;
+
     private GiraphComputationAdaptorContext giraphComputationContext;
 
     private VertexDataManager<VDATA_T> vertexDataManager;
@@ -42,12 +37,9 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
     private EdgeManager<OID_T,EDATA_T> edgeManager;
 
 
-    public VertexImpl(SimpleFragment fragment, GiraphComputationAdaptorContext ctx){
-        this.fragment = fragment;
+    public VertexImpl(GiraphComputationAdaptorContext ctx){
         lid = -1; //set to a negative value to ensure set lid to be called later.
         this.giraphComputationContext = ctx;
-        this.grapeVertex = FFITypeFactoryhelper.newVertexLong();
-        grapeVertex.SetValue(0L);
     }
 
     public void setVertexDataManager(VertexDataManager vertexDataManager){
