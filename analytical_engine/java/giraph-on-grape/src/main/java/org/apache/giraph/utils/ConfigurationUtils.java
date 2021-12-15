@@ -2,10 +2,14 @@ package org.apache.giraph.utils;
 
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import org.apache.giraph.combiner.MessageCombiner;
 import org.apache.giraph.conf.GiraphConfiguration;
+import org.apache.giraph.conf.GiraphConfigurationSettable;
+import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.conf.TypesHolder;
 import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.io.VertexInputFormat;
+import org.apache.giraph.master.MasterCompute;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.giraph.worker.impl.DefaultWorkerContext;
 import org.apache.hadoop.conf.Configuration;
@@ -18,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.giraph.conf.GiraphConstants.COMPUTATION_CLASS;
+import static org.apache.giraph.conf.GiraphConstants.MESSAGE_COMBINER_CLASS;
 import static org.apache.giraph.conf.GiraphConstants.TYPES_HOLDER_CLASS;
 
 public class ConfigurationUtils {
@@ -28,6 +33,8 @@ public class ConfigurationUtils {
     public static final String WORKER_CONTEXT_CLASS_STR = "worker_context_class";
 
     public static final String VERTEX_INPUT_FORMAT_CLASS_STR = "input_format_class";
+    public static final String MESSAGE_COMBINER_CLASS_STR = "message_combiner_class";
+    public static final String MASTER_COMPUTE_CLASS_STR = "master_compute_class";
 
     /**
      * Translate CLI arguments to GiraphRunner into Configuration Key-Value pairs.
@@ -71,7 +78,16 @@ public class ConfigurationUtils {
             logger.info("No vertex input class found, using default one.");
         }
 
-        //Resolve SimpleFragment types.
+        if (!jsonObject.getString(MESSAGE_COMBINER_CLASS_STR).isEmpty()){
+            giraphConfiguration.setMessageCombinerClass((Class<? extends MessageCombiner>) Class.forName(jsonObject.getString(MESSAGE_COMBINER_CLASS_STR)));
+            logger.info("Setting message combiner class to : " + jsonObject.getString(MESSAGE_COMBINER_CLASS_STR));
+        }
+
+        //master compute class
+        if (!jsonObject.getString(MASTER_COMPUTE_CLASS_STR).isEmpty()){
+            giraphConfiguration.setMasterComputeClass((Class<? extends MasterCompute>) Class.forName(jsonObject.getString(MASTER_COMPUTE_CLASS_STR)));
+            logger.info("Setting master compute class: " + jsonObject.getString(MASTER_COMPUTE_CLASS_STR));
+        }
 
     }
 
@@ -124,5 +140,24 @@ public class ConfigurationUtils {
         }
         logger.error("Unsupported grape type and giraph type: " + grapeTypeClass.getName() + ", " + giraphTypeClass.getName());
         return false;
+    }
+
+    /**
+     * Configure an object with an
+     * {@link org.apache.giraph.conf.ImmutableClassesGiraphConfiguration}
+     * if that objects supports it.
+     *
+     * @param object The object to configure
+     * @param configuration The configuration
+     */
+    public static void configureIfPossible(Object object,
+        ImmutableClassesGiraphConfiguration configuration) {
+        if (configuration != null) {
+            configuration.configureIfPossible(object);
+        } else if (object instanceof GiraphConfigurationSettable) {
+            throw new IllegalArgumentException(
+                "Trying to configure configurable object without value, " +
+                    object.getClass());
+        }
     }
 }

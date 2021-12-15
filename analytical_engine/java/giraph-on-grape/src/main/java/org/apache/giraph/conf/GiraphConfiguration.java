@@ -19,9 +19,11 @@
 package org.apache.giraph.conf;
 
 import io.netty.buffer.ByteBufAllocator;
+import org.apache.giraph.combiner.MessageCombiner;
 import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.graph.Computation;
 import org.apache.giraph.io.VertexInputFormat;
+import org.apache.giraph.master.MasterCompute;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.conf.Configuration;
 
@@ -107,6 +109,24 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
      */
     public boolean hasVertexOutputFormat() {
         return VERTEX_OUTPUT_FORMAT_CLASS.get(this) != null;
+    }
+
+    /**
+     * Set the message combiner class (optional)
+     *
+     * @param messageCombinerClass Determines how vertex messages are combined
+     */
+    public void setMessageCombinerClass(Class<? extends MessageCombiner> messageCombinerClass) {
+        MESSAGE_COMBINER_CLASS.set(this, messageCombinerClass);
+    }
+
+    /**
+     * Set the master class (optional)
+     *
+     * @param masterComputeClass Runs master computation
+     */
+    public final void setMasterComputeClass(Class<? extends MasterCompute> masterComputeClass) {
+        MASTER_COMPUTE_CLASS.set(this, masterComputeClass);
     }
 
 }

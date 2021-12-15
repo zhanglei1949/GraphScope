@@ -17,11 +17,17 @@
  */
 package org.apache.giraph.conf;
 
+import org.apache.giraph.factories.DefaultMessageValueFactory;
 import org.apache.giraph.graph.Computation;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.io.VertexInputFormat;
 import org.apache.giraph.io.VertexOutputFormat;
+import org.apache.giraph.master.DefaultMasterCompute;
+import org.apache.giraph.master.MasterCompute;
+import org.apache.giraph.master.SuperstepClasses;
+import org.apache.giraph.types.NoMessage;
 import org.apache.giraph.worker.WorkerContext;
+import org.apache.giraph.worker.impl.DefaultWorkerContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -68,6 +74,8 @@ public class GiraphClasses<I extends WritableComparable,
      * Worker context class - cached for fast access
      */
     protected Class<? extends WorkerContext> workerContextClass;
+    /** Master compute class - cached for fast access */
+    protected Class<? extends MasterCompute> masterComputeClass;
 
 //    /** Edge input format class - cached for fast access */
 //    protected Class<? extends EdgeInputFormat<I, E>>
@@ -82,6 +90,8 @@ public class GiraphClasses<I extends WritableComparable,
 
     public GiraphClasses() {
         giraphTypes = new GiraphTypes<I, V, E>();
+        masterComputeClass = DefaultMasterCompute.class;
+        workerContextClass = DefaultWorkerContext.class;
     }
 
     /**
@@ -147,7 +157,7 @@ public class GiraphClasses<I extends WritableComparable,
 //        vertexValueCombinerClass = (Class<? extends VertexValueCombiner<V>>)
 //            VERTEX_VALUE_COMBINER_CLASS.get(conf);
         workerContextClass = WORKER_CONTEXT_CLASS.get(conf);
-//        masterComputeClass =  MASTER_COMPUTE_CLASS.get(conf);
+        masterComputeClass =  MASTER_COMPUTE_CLASS.get(conf);
 //        partitionClass = (Class<? extends Partition<I, V, E>>)
 //            PARTITION_CLASS.get(conf);
 //
@@ -155,6 +165,17 @@ public class GiraphClasses<I extends WritableComparable,
 //            EDGE_INPUT_FILTER_CLASS.get(conf);
 //        vertexInputFilterClass = (Class<? extends VertexInputFilter<I, V, E>>)
 //            VERTEX_INPUT_FILTER_CLASS.get(conf);
+
+
+
+        incomingMessageClasses = new DefaultMessageClasses(
+            giraphTypes.getInitialIncomingMessageValueClass(),
+            DefaultMessageValueFactory.class,
+            null);
+        outgoingMessageClasses = new DefaultMessageClasses(
+            giraphTypes.getInitialOutgoingMessageValueClass(),
+            OUTGOING_MESSAGE_VALUE_FACTORY_CLASS.get(conf),
+            MESSAGE_COMBINER_CLASS.get(conf));
     }
 
     /**
@@ -275,6 +296,63 @@ public class GiraphClasses<I extends WritableComparable,
 
     public Class<? extends  Writable> getOutgoingMessageClass(){
         return giraphTypes.getOutgoingMessageValueClass();
+    }
+
+    /**
+     * Set Computation class held, and update message types
+     *
+     * @param computationClass Computation class to set
+     * @return this
+     */
+    public GiraphClasses setComputationClass(Class<? extends
+        Computation<I, V, E, ? extends Writable, ? extends Writable>>
+        computationClass) {
+        this.computationClass = computationClass;
+        return this;
+    }
+
+    /**
+     * Set incoming Message Value class held - messages which have been sent in
+     * the previous superstep and are processed in the current one
+     *
+     * @param incomingMessageClasses Message classes value to set
+     * @return this
+     */
+    public GiraphClasses setIncomingMessageClasses(
+        MessageClasses<I, ? extends Writable> incomingMessageClasses) {
+        this.incomingMessageClasses = incomingMessageClasses;
+        return this;
+    }
+
+    /**
+     * Set outgoing Message Value class held - messages which are going to be sent
+     * during current superstep
+     *
+     * @param outgoingMessageClasses Message classes value to set
+     * @return this
+     */
+    public GiraphClasses setOutgoingMessageClasses(
+        MessageClasses<I, ? extends Writable> outgoingMessageClasses) {
+        this.outgoingMessageClasses = outgoingMessageClasses;
+        return this;
+    }
+
+    /**
+     * Check if MasterCompute is set
+     *
+     * @return true MasterCompute is set
+     */
+    public boolean hasMasterComputeClass() {
+        return masterComputeClass != null;
+    }
+
+    /**
+     * Get MasterCompute used
+     *
+     * @return MasterCompute
+     */
+    public Class<? extends MasterCompute> getMasterComputeClass() {
+        return masterComputeClass;
     }
 
 }

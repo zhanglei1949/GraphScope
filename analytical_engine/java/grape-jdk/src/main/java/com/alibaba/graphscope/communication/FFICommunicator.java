@@ -49,4 +49,10 @@ public interface FFICommunicator extends FFIPointer {
 
     @FFINameAlias("Max")
     <MSG_T> void max(@FFIConst @CXXReference MSG_T msgIn, @CXXReference MSG_T msgOut);
+
+    @FFINameAlias("SendTo")
+    <MST_T> void sendTo(int dstFid, @FFIConst @CXXReference MST_T msgOut);
+
+    @FFINameAlias("RecvFrom")
+    <MSG_T> void receiveFrom(int srcFid, @CXXReference MSG_T msgIn);
 }

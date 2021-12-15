@@ -1,8 +1,10 @@
 package com.alibaba.graphscope.context;
 
 
+import com.alibaba.fastffi.FFITypeFactory;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.graphscope.app.DefaultContextBase;
+import com.alibaba.graphscope.communication.FFICommunicator;
 import com.alibaba.graphscope.factory.GiraphComputationFactory;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
@@ -12,16 +14,20 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.BitSet;
+import java.util.Objects;
 import org.apache.giraph.conf.GiraphConfiguration;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AbstractComputation;
+import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.Communicator;
 import org.apache.giraph.graph.EdgeManager;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexFactory;
 import org.apache.giraph.graph.VertexIdManager;
+import org.apache.giraph.graph.impl.AggregatorManagerImpl;
 import org.apache.giraph.graph.impl.CommunicatorImpl;
 import org.apache.giraph.graph.impl.VertexImpl;
+import org.apache.giraph.master.MasterCompute;
 import org.apache.giraph.utils.ConfigurationUtils;
 import org.apache.giraph.utils.ReflectionUtils;
 import org.apache.giraph.worker.WorkerContext;
@@ -50,6 +56,8 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
     private long innerVerticesNum;
 
     private WorkerContext workerContext;
+    /** Only executed by the master, in our case, the coordinator worker in mpi world*/
+    private MasterCompute masterCompute;
     private AbstractComputation userComputation;
     public VertexImpl vertex;
     private GiraphMessageManager giraphMessageManager;
@@ -73,6 +81,11 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
      */
     private EdgeManager edgeManager;
 
+    /**
+     * Aggregator manager.
+     */
+    private AggregatorManager aggregatorManager;
+
 
     public AbstractComputation getUserComputation() {
         return userComputation;
@@ -84,6 +97,18 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
 
     public WorkerContext getWorkerContext() {
         return workerContext;
+    }
+
+    public boolean hasMasterCompute(){
+        return Objects.nonNull(masterCompute);
+    }
+
+    public MasterCompute getMasterCompute(){
+        return masterCompute;
+    }
+
+    public AggregatorManager getAggregatorManager(){
+        return aggregatorManager;
     }
 
     private BitSet halted;
@@ -115,15 +140,16 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
         logger.info("Created user computation class: " + userComputation.getClass().getName());
         innerVerticesNum = frag.getInnerVerticesNum();
 
-        communicator = new CommunicatorImpl();
-        userComputation.setCommunicator(communicator);
+//        communicator = new CommunicatorImpl();
+//        userComputation.setCommunicator(communicator);
         /**
          * Important, we don't provided any constructors for workerContext, so make sure all fields
          * has been carefully set.
          */
-        workerContext = (WorkerContext) ReflectionUtils
-            .newInstance(conf.getWorkerContextClass());
-        workerContext.setCommunicator(communicator);
+//        workerContext = (WorkerContext) ReflectionUtils
+//            .newInstance(conf.getWorkerContextClass());
+        workerContext = conf.createWorkerContext();
+//        workerContext.setCommunicator(communicator);
         workerContext.setFragment(frag);
         workerContext.setCurStep(0);
         userComputation.setWorkerContext(workerContext);
@@ -157,6 +183,34 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
         giraphMessageManager = new GiraphDefaultMessageManager<>(frag, messageManager,
             conf);
         userComputation.setGiraphMessageManager(giraphMessageManager);
+
+        /** Aggregator manager, manages aggregation, reduce, broadcast */
+        aggregatorManager = new AggregatorManagerImpl(conf, frag.fid(), frag.fid());
+        userComputation.setAggregatorManager(aggregatorManager);
+        workerContext.setAggregatorManager(aggregatorManager);
+
+        /**
+         * Create master compute if master compute is specified.
+         */
+        if (conf.getMasterComputeClass() != null){
+            masterCompute = conf.createMasterCompute();
+            logger.info("Creating master compute class");
+            try {
+                masterCompute.initialize();
+                masterCompute.setFragment(frag);
+                masterCompute.setConf(conf);
+                masterCompute.setAggregatorManager(aggregatorManager);
+//                masterCompute.setOutgoingMessageClasses();
+            } catch (InstantiationException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+            logger.info("Finish master compute initialization.");
+        }
+        else {
+            logger.info("No master compute class specified");
+        }
     }
 
     /**
@@ -226,6 +280,11 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
         return new ImmutableClassesGiraphConfiguration<>(giraphConfiguration, fragment);
     }
 
+    /**
+     * Check whether user provided giraph app consistent with our fragment.
+     * @param configuration configuration
+     * @return true if consistent.
+     */
     private boolean checkConsistency(ImmutableClassesGiraphConfiguration configuration) {
         return ConfigurationUtils.checkTypeConsistency(configuration.getGrapeOidClass(),
             configuration.getVertexIdClass()) &&

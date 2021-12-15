@@ -25,6 +25,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.Communicator;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -46,22 +47,23 @@ public abstract class WorkerContext
     private static Logger logger = LoggerFactory.getLogger(WorkerContext.class);
 
     private SimpleFragment fragment;
-    private Communicator communicator;
+//    private Communicator communicator;
     /**
      * Set to -1, so if not manually set, error will be reported.
      */
     private int curStep = -1;
+    private AggregatorManager aggregatorManager;
 
     public void setFragment(SimpleFragment fragment){
         this.fragment = fragment;
     }
 
-    /**
-     * This function doesn't exists in Giraph.WorkerContext. User shall not use this function
-     * @param communicator
-     */
-    public void setCommunicator(Communicator communicator){
-        this.communicator = communicator;
+//    public void setCommunicator(Communicator communicator){
+//        this.communicator = communicator;
+//    }
+
+    public void setAggregatorManager(AggregatorManager aggregatorManager){
+        this.aggregatorManager = aggregatorManager;
     }
 
     /**
@@ -70,6 +72,10 @@ public abstract class WorkerContext
      */
     public void setCurStep(int step){
         this.curStep = step;
+    }
+
+    public void incStep(){
+        this.curStep += 1;
     }
 
     /**
@@ -227,7 +233,7 @@ public abstract class WorkerContext
      */
     @Override
     public void reduce(String name, Object value) {
-        if (Objects.isNull(communicator)){
+        if (Objects.isNull(aggregatorManager)){
             logger.error("Set communicator first");
             return ;
         }
@@ -236,7 +242,7 @@ public abstract class WorkerContext
 
     @Override
     public void reduceMerge(String name, Writable value) {
-        if (Objects.isNull(communicator)){
+        if (Objects.isNull(aggregatorManager)){
             logger.error("Set communicator first");
             return ;
         }
@@ -244,27 +250,29 @@ public abstract class WorkerContext
 
     @Override
     public <B extends Writable> B getBroadcast(String name) {
-        if (Objects.isNull(communicator)){
+        if (Objects.isNull(aggregatorManager)){
             logger.error("Set communicator first");
             return null;
         }
+        //TODO: fix
         return null;
     }
 
     @Override
     public <A extends Writable> void aggregate(String name, A value) {
-        if (Objects.isNull(communicator)){
+        if (Objects.isNull(aggregatorManager)){
             logger.error("Set communicator first");
             return ;
         }
+        aggregatorManager.aggregate(name, value);
     }
 
     @Override
     public <A extends Writable> A getAggregatedValue(String name) {
-        if (Objects.isNull(communicator)){
+        if (Objects.isNull(aggregatorManager)){
             logger.error("Set communicator first");
             return null;
         }
-        return null;
+        return aggregatorManager.getAggregatedValue(name);
     }
 }

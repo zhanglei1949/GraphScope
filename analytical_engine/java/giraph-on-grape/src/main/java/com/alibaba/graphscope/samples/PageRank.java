@@ -21,6 +21,9 @@ package com.alibaba.graphscope.samples;
 //import org.apache.giraph.aggregators.DoubleMaxAggregator;
 //import org.apache.giraph.aggregators.DoubleMinAggregator;
 //import org.apache.giraph.aggregators.LongSumAggregator;
+import org.apache.giraph.aggregators.DoubleMaxAggregator;
+import org.apache.giraph.aggregators.DoubleMinAggregator;
+import org.apache.giraph.aggregators.LongSumAggregator;
 import org.apache.giraph.edge.Edge;
 import org.apache.giraph.edge.EdgeFactory;
 import org.apache.giraph.graph.BasicComputation;
@@ -29,6 +32,7 @@ import org.apache.giraph.io.VertexReader;
 //import org.apache.giraph.io.formats.GeneratedVertexInputFormat;
 import org.apache.giraph.io.formats.TextVertexOutputFormat;
 //import org.apache.giraph.master.DefaultMasterCompute;
+import org.apache.giraph.master.DefaultMasterCompute;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.FloatWritable;
@@ -50,7 +54,7 @@ import org.slf4j.LoggerFactory;
 public class PageRank extends BasicComputation<LongWritable,
     DoubleWritable, DoubleWritable, DoubleWritable> {
     /** Number of supersteps for this test */
-    public static final int MAX_SUPERSTEPS = 30;
+    public static final int MAX_SUPERSTEPS = 5;
     /** Logger */
     private static final Logger LOG =
         LoggerFactory.getLogger(PageRank.class);
@@ -153,98 +157,20 @@ public class PageRank extends BasicComputation<LongWritable,
         public void postSuperstep() { }
     }
 
-//    /**
-//     * Master compute associated with {@link SimplePageRankComputation}.
-//     * It registers required aggregators.
-//     */
-//    public static class SimplePageRankMasterCompute extends
-//        DefaultMasterCompute {
-//        @Override
-//        public void initialize() throws InstantiationException,
-//            IllegalAccessException {
-//            registerAggregator(SUM_AGG, LongSumAggregator.class);
-//            registerPersistentAggregator(MIN_AGG, DoubleMinAggregator.class);
-//            registerPersistentAggregator(MAX_AGG, DoubleMaxAggregator.class);
-//        }
-//    }
-//
-//    /**
-//     * Simple VertexReader that supports {@link SimplePageRankComputation}
-//     */
-//    public static class SimplePageRankVertexReader extends
-//        GeneratedVertexReader<LongWritable, DoubleWritable, FloatWritable> {
-//        /** Class logger */
-//        private static final Logger LOG =
-//            Logger.getLogger(SimplePageRankVertexReader.class);
-//
-//        @Override
-//        public boolean nextVertex() {
-//            return totalRecords > recordsRead;
-//        }
-//
-//        @Override
-//        public Vertex<LongWritable, DoubleWritable, FloatWritable>
-//        getCurrentVertex() throws IOException {
-//            Vertex<LongWritable, DoubleWritable, FloatWritable> vertex =
-//                getConf().createVertex();
-//            LongWritable vertexId = new LongWritable(
-//                (inputSplit.getSplitIndex() * totalRecords) + recordsRead);
-//            DoubleWritable vertexValue = new DoubleWritable(vertexId.get() * 10d);
-//            long targetVertexId =
-//                (vertexId.get() + 1) %
-//                    (inputSplit.getNumSplits() * totalRecords);
-//            float edgeValue = vertexId.get() * 100f;
-//            List<Edge<LongWritable, FloatWritable>> edges = Lists.newLinkedList();
-//            edges.add(EdgeFactory.create(new LongWritable(targetVertexId),
-//                new FloatWritable(edgeValue)));
-//            vertex.initialize(vertexId, vertexValue, edges);
-//            ++recordsRead;
-//            if (LOG.isInfoEnabled()) {
-//                LOG.info("next: Return vertexId=" + vertex.getId().get() +
-//                    ", vertexValue=" + vertex.getValue() +
-//                    ", targetVertexId=" + targetVertexId + ", edgeValue=" + edgeValue);
-//            }
-//            return vertex;
-//        }
-//    }
-//
-//    /**
-//     * Simple VertexInputFormat that supports {@link SimplePageRankComputation}
-//     */
-//    public static class SimplePageRankVertexInputFormat extends
-//        GeneratedVertexInputFormat<LongWritable, DoubleWritable, FloatWritable> {
-//        @Override
-//        public VertexReader<LongWritable, DoubleWritable,
-//            FloatWritable> createVertexReader(InputSplit split,
-//            TaskAttemptContext context)
-//            throws IOException {
-//            return new SimplePageRankVertexReader();
-//        }
-//    }
-//
-//    /**
-//     * Simple VertexOutputFormat that supports {@link SimplePageRankComputation}
-//     */
-//    public static class SimplePageRankVertexOutputFormat extends
-//        TextVertexOutputFormat<LongWritable, DoubleWritable, FloatWritable> {
-//        @Override
-//        public TextVertexWriter createVertexWriter(TaskAttemptContext context)
-//            throws IOException, InterruptedException {
-//            return new SimplePageRankVertexWriter();
-//        }
-//
-//        /**
-//         * Simple VertexWriter that supports {@link SimplePageRankComputation}
-//         */
-//        public class SimplePageRankVertexWriter extends TextVertexWriter {
-//            @Override
-//            public void writeVertex(
-//                Vertex<LongWritable, DoubleWritable, FloatWritable> vertex)
-//                throws IOException, InterruptedException {
-//                getRecordWriter().write(
-//                    new Text(vertex.getId().toString()),
-//                    new Text(vertex.getValue().toString()));
-//            }
-//        }
-//    }
+    /**
+     * Master compute associated with {@link PageRank}.
+     * It registers required aggregators.
+     */
+    public static class SimplePageRankMasterCompute extends
+        DefaultMasterCompute {
+        @Override
+        public void initialize() throws InstantiationException,
+            IllegalAccessException {
+            registerAggregator(SUM_AGG, LongSumAggregator.class);
+            registerPersistentAggregator(MIN_AGG, DoubleMinAggregator.class);
+            registerPersistentAggregator(MAX_AGG, DoubleMaxAggregator.class);
+        }
+    }
+
+    //TODO： support pagerank vertexReader.
 }

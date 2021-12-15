@@ -19,8 +19,9 @@ DEFINE_string(app_class, "", "app class to run");
 DEFINE_string(input_vfile, "", "input vertex file");
 DEFINE_string(input_efile, "", "input edge file");
 DEFINE_string(output_path, "", "output file path");
+DEFINE_string(master_compute_class, "", "master compute class");
 DEFINE_string(aggregator_class, "", "aggregator class");
-DEFINE_string(combiner_class, "", "combiner for message processing");
+DEFINE_string(message_combiner_class, "", "combiner for message processing");
 DEFINE_string(resolver_class, "", "resolver for graph loading");
 DEFINE_string(worker_context_class, "", "worker context");
 DEFINE_string(lib_path, "",
@@ -67,8 +68,9 @@ std::string flags2JsonStr() {
   pt.put("input_vfile", FLAGS_input_vfile);
   pt.put("input_efile", FLAGS_input_efile);
   pt.put("output_path", FLAGS_output_path);
+  pt.put("master_compute_class", FLAGS_master_compute_class);
   pt.put("aggregator_class", FLAGS_aggregator_class);
-  pt.put("combiner_class", FLAGS_combiner_class);
+  pt.put("message_combiner_class", FLAGS_combiner_class);
   pt.put("resolver_class", FLAGS_resolver_class);
   pt.put("worker_context_class", FLAGS_worker_context_class);
   pt.put("lib_path", FLAGS_lib_path);

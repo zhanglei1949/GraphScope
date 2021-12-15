@@ -1,10 +1,15 @@
 package org.apache.giraph.conf;
 
+import org.apache.giraph.combiner.MessageCombiner;
+import org.apache.giraph.factories.DefaultMessageValueFactory;
+import org.apache.giraph.factories.MessageValueFactory;
 import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.giraph.io.VertexInputFormat;
 import org.apache.giraph.io.VertexOutputFormat;
+import org.apache.giraph.master.DefaultMasterCompute;
+import org.apache.giraph.master.MasterCompute;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.giraph.worker.impl.DefaultWorkerContext;
 import org.apache.hadoop.io.Writable;
@@ -88,5 +93,23 @@ public interface GiraphConstants {
         ClassConfOption.create("giraph.typesHolder", null,
             TypesHolder.class,
             "TypesHolder, used if Computation not set - optional");
+
+    /** Message combiner class - optional */
+    ClassConfOption<MessageCombiner> MESSAGE_COMBINER_CLASS =
+        ClassConfOption.create("giraph.messageCombinerClass", null,
+            MessageCombiner.class, "Message combiner class - optional");
+
+    /** Outgoing message value factory class - optional */
+    ClassConfOption<MessageValueFactory>
+        OUTGOING_MESSAGE_VALUE_FACTORY_CLASS =
+        ClassConfOption.create("giraph.outgoingMessageValueFactoryClass",
+            DefaultMessageValueFactory.class, MessageValueFactory.class,
+            "Outgoing message value factory class - optional");
+
+    /** Class for Master - optional */
+    ClassConfOption<MasterCompute> MASTER_COMPUTE_CLASS =
+        ClassConfOption.create("giraph.masterComputeClass",
+            DefaultMasterCompute.class, MasterCompute.class,
+            "Class for Master - optional");
 
 }

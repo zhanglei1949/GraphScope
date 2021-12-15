@@ -60,6 +60,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
         app_class_name_(NULL),
         context_class_name_(NULL),
         app_object_(NULL),
+        communicator_object_(NULL),
         context_object_(NULL),
         fragment_object_impl_(NULL),
         fragment_object_(NULL),
@@ -131,8 +132,8 @@ class JavaPIEDefaultContext : public grape::ContextBase {
 
       // context_object_ =
       //     LoadAndCreate(env, url_class_loader_object_, context_class_name_);
-      context_object_ =
-          CreateGiraphAdaptorContext(env, app_class_name, fragment_object_);
+      context_object_ = CreateGiraphAdaptorContext(env, context_class_name_,
+                                                   fragment_object_);
 
       mm_object_ = CreateFFIPointer(env, default_java_message_mananger_name_,
                                     url_class_loader_object_,

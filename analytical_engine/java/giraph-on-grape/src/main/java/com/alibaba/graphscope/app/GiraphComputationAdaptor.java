@@ -1,5 +1,6 @@
 package com.alibaba.graphscope.app;
 
+import com.alibaba.graphscope.communication.Communicator;
 import com.alibaba.graphscope.context.GiraphComputationAdaptorContext;
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.ds.VertexRange;
@@ -10,8 +11,10 @@ import com.alibaba.graphscope.parallel.MessageIterable;
 import java.io.IOException;
 import jnr.ffi.annotations.In;
 import org.apache.giraph.graph.AbstractComputation;
+import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexIdManager;
+import org.apache.giraph.master.MasterCompute;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
@@ -33,7 +36,7 @@ import org.slf4j.LoggerFactory;
  * @param <VDATA_T> grape vdata.
  * @param <EDATA_T> grape edata.
  */
-public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> implements
+public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Communicator implements
     DefaultAppBase<OID_T,VID_T,VDATA_T,EDATA_T,GiraphComputationAdaptorContext<OID_T,VID_T,VDATA_T,EDATA_T>> {
 
     private static Logger logger = LoggerFactory.getLogger(GiraphComputationAdaptor.class);
@@ -55,11 +58,17 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> implements
         DefaultMessageManager messageManager) {
 
         GiraphComputationAdaptorContext ctx = (GiraphComputationAdaptorContext) context;
+        /** In c++ PEVal, we initialized this class' parent class: Communicator, now we set to
+         * aggregator manager.
+         */
+        ctx.getAggregatorManager().setFFICommunicator(getFFICommunicator());
+
         AbstractComputation userComputation = ctx
             .getUserComputation();
         GiraphMessageManager giraphMessageManager = ctx
             .getGiraphMessageManager();
         WorkerContext workerContext = ctx.getWorkerContext();
+        AggregatorManager aggregatorManager = ctx.getAggregatorManager();
         //Before computation, we execute preparation methods provided by user's worker context.
         try {
             workerContext.preApplication();
@@ -69,6 +78,14 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> implements
         }
 
         workerContext.preSuperstep();
+        /** Execute master compute before super step*/
+        if (ctx.hasMasterCompute()){
+            MasterCompute masterCompute = ctx.getMasterCompute();
+            if (!masterCompute.isHalted()){
+                masterCompute.compute();
+                masterCompute.incSuperStep();
+            }
+        }
 
         //In first round, there is no message, we pass an empty iterable.
 //        Iterable<LongWritable> messages = new MessageIterable<>();
@@ -111,6 +128,9 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> implements
         //wait msg send finish.
         giraphMessageManager.finishMessageSending();
 
+        //Sync aggregators
+        aggregatorManager.postSuperstep();
+
         //increase super step
         userComputation.incStep();
         workerContext.setCurStep(1);
@@ -145,11 +165,21 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> implements
         GiraphMessageManager giraphMessageManager = ctx
             .getGiraphMessageManager();
         WorkerContext workerContext = ctx.getWorkerContext();
+        AggregatorManager aggregatorManager = ctx.getAggregatorManager();
         //Worker context
         workerContext.preSuperstep();
 
         //0. receive messages
         giraphMessageManager.receiveMessages();
+
+        /** execute master compute on master node if there is */
+        if (ctx.hasMasterCompute()){
+            MasterCompute masterCompute = ctx.getMasterCompute();
+            if (!masterCompute.isHalted()){
+                masterCompute.compute();
+                masterCompute.incSuperStep();
+            }
+        }
 
         //1. compute
         try {
@@ -167,13 +197,16 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> implements
         }
         workerContext.postSuperstep();
 
+        //2. send msg
+        giraphMessageManager.finishMessageSending();
+
+        //Sync aggregators
+        aggregatorManager.postSuperstep();
+
         //increase super step
         userComputation.incStep();
         //Also increase worker context.
-        workerContext.setCurStep((int) userComputation.getSuperstep());
-
-        //2. send msg
-        giraphMessageManager.finishMessageSending();
+        workerContext.incStep();
 
         if (giraphMessageManager.anyMessageToSelf()) {
             messageManager.ForceContinue();

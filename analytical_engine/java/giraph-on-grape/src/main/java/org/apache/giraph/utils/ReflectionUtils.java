@@ -222,4 +222,30 @@ public class ReflectionUtils {
             throw new IllegalStateException("Not a parameterized type");
         }
     }
+
+    /**
+     * Verify that found type matches the expected type. If types don't match an
+     * {@link IllegalStateException} will be thrown.
+     *
+     * @param concreteChild Concrete child type
+     * @param parent Parent type
+     * @param typeDesc String description of the type (for exception description)
+     * @param mainClass Class in which the actual type was found (for exception
+     *                  description)
+     */
+    public static void verifyTypes(Class<?> concreteChild, Class<?> parent,
+        String typeDesc, Class<?> mainClass) {
+        // unknown means object
+        if (parent == TypeResolver.Unknown.class) {
+            parent = Object.class;
+        }
+
+        verifyConcrete(concreteChild, typeDesc);
+
+        if (!parent.isAssignableFrom(concreteChild)) {
+            throw new IllegalStateException("verifyTypes: " + typeDesc + " types " +
+                "don't match, in " + mainClass.getName() + " " + concreteChild +
+                " expected, but " + parent + " found");
+        }
+    }
 }

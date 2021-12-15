@@ -240,6 +240,28 @@ import com.alibaba.graphscope.utils.CppClassName;
                                             java =
                                                     "com.alibaba.graphscope.parallel.message.LongMsg")
                                 }),
+                        @FFIFunGen(
+                            name = "sendTo",
+                            returnType = "void",
+                            parameterTypes = {"MSG_T"},
+                            templates = {
+                                @CXXTemplate(
+                                    cxx = "std::vector<char>",
+                                    java = "com.alibaba.graphscope.stdcxx.FFIByteVector"
+                                )
+                            }
+                        ),
+                        @FFIFunGen(
+                            name = "receiveFrom",
+                            returnType = "void",
+                            parameterTypes = {"MSG_T"},
+                            templates = {
+                                @CXXTemplate(
+                                    cxx = "std::vector<char>",
+                                    java = "com.alibaba.graphscope.stdcxx.FFIByteVector"
+                                )
+                            }
+                        ),
                     }),
             @FFIGen(
                     type = "com.alibaba.graphscope.parallel.MessageInBuffer",

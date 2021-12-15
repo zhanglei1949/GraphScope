@@ -184,6 +184,9 @@ public class GiraphTypes<I extends WritableComparable, V extends Writable,
     Class<? extends Writable> getInitialOutgoingMessageValueClass() {
         return outgoingMessageValueClass;
     }
+    Class<? extends Writable> getInitialIncomingMessageValueClass() {
+        return incomingMessageValueClass;
+    }
 
     public Class<I> getVertexIdClass() {
         return vertexIdClass;

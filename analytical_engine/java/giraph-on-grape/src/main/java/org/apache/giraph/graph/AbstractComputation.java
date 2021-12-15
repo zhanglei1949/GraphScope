@@ -38,11 +38,13 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      * We hold a communicatorImpl rather that directly inherit from CommunicatorImpl. So
      * CommunicatorImpl can also be reference in workerContext.
      */
-    private Communicator communicator;
+//    private Communicator communicator;
+        private AggregatorManager aggregatorManager;
     private GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T> giraphMessageManager;
     private SimpleFragment fragment;
     private int curStep = 0;
     private WorkerContext workerContext;
+//    private AggregatorManager aggregatorManager;
 
     public void setGiraphMessageManager(
         GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T> giraphMessageManager) {
@@ -53,16 +55,20 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
         this.fragment = fragment;
     }
 
-    public void setCommunicator(Communicator communicator) {
-        this.communicator = communicator;
-    }
+//    public void setCommunicator(Communicator communicator) {
+//        this.communicator = communicator;
+//    }
 
-    public Communicator getCommunicator() {
-        return this.communicator;
-    }
+//    public Communicator getCommunicator() {
+//        return this.communicator;
+//    }
 
     public void setWorkerContext(WorkerContext workerContext) {
         this.workerContext = workerContext;
+    }
+
+    public void setAggregatorManager(AggregatorManager aggregatorManager){
+        this.aggregatorManager = aggregatorManager;
     }
 
     /**
@@ -227,10 +233,11 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public <A extends Writable> void aggregate(String name, A value) {
-        if (Objects.isNull(communicator)) {
-            logger.error("Null communicator, set to a valid reference first.");
+        if (Objects.isNull(aggregatorManager)) {
+            logger.error("Null aggregator manager, set to a valid reference first.");
             return;
         }
+        aggregatorManager.aggregate(name, value);
     }
 
     /**
@@ -241,11 +248,11 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public <A extends Writable> A getAggregatedValue(String name) {
-        if (Objects.isNull(communicator)) {
-            logger.error("Null communicator, set to a valid reference first.");
+        if (Objects.isNull(aggregatorManager)) {
+            logger.error("Null aggregator manager, set to a valid reference first.");
             return null;
         }
-        return null;
+        return aggregatorManager.getAggregatedValue(name);
     }
 
     /**
@@ -256,10 +263,11 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public <B extends Writable> B getBroadcast(String name) {
-        if (Objects.isNull(communicator)) {
-            logger.error("Null communicator, set to a valid reference first.");
+        if (Objects.isNull(aggregatorManager)) {
+            logger.error("Null aggregator manager, set to a valid reference first.");
             return null;
         }
+        //TODO: get value broadcast from master
         return null;
     }
 
@@ -271,10 +279,11 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public void reduce(String name, Object value) {
-        if (Objects.isNull(communicator)) {
-            logger.error("Null communicator, set to a valid reference first.");
+        if (Objects.isNull(aggregatorManager)) {
+            logger.error("Null aggregator manager, set to a valid reference first.");
             return;
         }
+        //TODO: reduce value
     }
 
     /**
@@ -285,9 +294,10 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
     @Override
     public void reduceMerge(String name, Writable value) {
-        if (Objects.isNull(communicator)) {
-            logger.error("Null communicator, set to a valid reference first.");
+        if (Objects.isNull(aggregatorManager)) {
+            logger.error("Null aggregator manager, set to a valid reference first.");
             return;
         }
+        //TODO: reduce merge
     }
 }
