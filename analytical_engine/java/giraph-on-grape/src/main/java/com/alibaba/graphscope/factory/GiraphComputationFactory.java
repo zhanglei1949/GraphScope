@@ -3,8 +3,10 @@ package com.alibaba.graphscope.factory;
 import com.alibaba.graphscope.app.GiraphComputationAdaptor;
 import com.alibaba.graphscope.context.GiraphComputationAdaptorContext;
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.fragment.adaptor.ImmutableEdgecutFragmentAdaptor;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.concurrent.TimeUnit;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexIdManager;
@@ -30,8 +32,16 @@ public class GiraphComputationFactory {
      */
     public static GiraphComputationAdaptor createGiraphComputationAdaptor(String className,
         SimpleFragment fragment) {
-        Class<?>[] classes = getTypeArgumentFromInterface(SimpleFragment.class,
-            fragment.getClass());
+        Class<?>[] classes;
+        if (fragment instanceof ImmutableEdgecutFragmentAdaptor){
+            ImmutableEdgecutFragmentAdaptor adaptor = (ImmutableEdgecutFragmentAdaptor) fragment;
+            classes= getTypeArgumentFromInterface(SimpleFragment.class,
+                adaptor.getClass());
+        }
+        else {
+            logger.error("unsupported adaptor");
+            return null;
+        }
         if (classes.length != 4) {
             logger.error("Expected 4 type params, parsed: " + classes.length);
             return null;
