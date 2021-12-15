@@ -114,14 +114,14 @@ bool InitWellKnownClasses(JNIEnv* env) {
 
   adaptor_factory_create_giraph_adaptor_methodID = env->GetStaticMethodID(
       adaptor_factory_clz, "createGiraphComputationAdaptor",
-      "(Ljava/lang/String;Lcom/alibaba/graphscope/fragment/SimpleFragment;)Lcom/alibaba/"
+      "(Ljava/lang/String;Lcom/alibaba/graphscope/fragment/ImmutableEdgecutFragmentAdaptor;)Lcom/alibaba/"
       "graphscope/app/GiraphComputationAdaptor;");
   CHECK_NOTNULL(adaptor_factory_create_giraph_adaptor_methodID);
 
   adaptor_factory_create_giraph_adaptor_context_methodID =
       env->GetStaticMethodID(
           adaptor_factory_clz, "createGiraphComputationAdaptorContext",
-          "(Ljava/lang/String;Lcom/alibaba/graphscope/fragment//ImmutableEdgecutFragmentAdaptor;)Lcom/alibaba/"
+          "(Ljava/lang/String;Lcom/alibaba/graphscope/fragment/ImmutableEdgecutFragmentAdaptor;)Lcom/alibaba/"
           "graphscope/context/GiraphComputationAdaptorContext;");
   CHECK_NOTNULL(adaptor_factory_create_giraph_adaptor_context_methodID);
   return true;
