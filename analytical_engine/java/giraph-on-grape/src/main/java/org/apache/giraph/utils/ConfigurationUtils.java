@@ -45,7 +45,7 @@ public class ConfigurationUtils {
     public static void parseArgs(final GiraphConfiguration giraphConfiguration,
         JSONObject jsonObject)
         throws ClassNotFoundException {
-        if (!jsonObject.getString(WORKER_CONTEXT_CLASS_STR).isEmpty()) {
+        if (jsonObject.containsKey(WORKER_CONTEXT_CLASS_STR) && !jsonObject.getString(WORKER_CONTEXT_CLASS_STR).isEmpty()) {
             giraphConfiguration.setWorkerContextClass(
                 (Class<? extends WorkerContext>) Class
                     .forName(jsonObject.getString(WORKER_CONTEXT_CLASS_STR))
@@ -57,7 +57,7 @@ public class ConfigurationUtils {
             logger.info("Setting worker context class: " + DefaultWorkerContext.class.getName());
         }
 
-        if (!jsonObject.getString(APP_CLASS_STR).isEmpty()) {
+        if (jsonObject.containsKey(APP_CLASS_STR) && !jsonObject.getString(APP_CLASS_STR).isEmpty()) {
             giraphConfiguration.setComputationClass(
                 (Class<? extends AbstractComputation>) Class
                     .forName(jsonObject.getString(APP_CLASS_STR))
@@ -67,7 +67,7 @@ public class ConfigurationUtils {
             logger.error("No computation class defined");
         }
 
-        if (!jsonObject.getString(VERTEX_INPUT_FORMAT_CLASS_STR).isEmpty()) {
+        if (jsonObject.containsKey(VERTEX_INPUT_FORMAT_CLASS_STR) && !jsonObject.getString(VERTEX_INPUT_FORMAT_CLASS_STR).isEmpty()) {
             giraphConfiguration.setVertexInputFormatClass(
                 (Class<? extends VertexInputFormat>) Class
                     .forName(jsonObject.getString(VERTEX_INPUT_FORMAT_CLASS_STR))
@@ -78,13 +78,13 @@ public class ConfigurationUtils {
             logger.info("No vertex input class found, using default one.");
         }
 
-        if (!jsonObject.getString(MESSAGE_COMBINER_CLASS_STR).isEmpty()){
+        if (jsonObject.containsKey(MESSAGE_COMBINER_CLASS_STR) && !jsonObject.getString(MESSAGE_COMBINER_CLASS_STR).isEmpty()){
             giraphConfiguration.setMessageCombinerClass((Class<? extends MessageCombiner>) Class.forName(jsonObject.getString(MESSAGE_COMBINER_CLASS_STR)));
             logger.info("Setting message combiner class to : " + jsonObject.getString(MESSAGE_COMBINER_CLASS_STR));
         }
 
         //master compute class
-        if (!jsonObject.getString(MASTER_COMPUTE_CLASS_STR).isEmpty()){
+        if (jsonObject.containsKey(MASTER_COMPUTE_CLASS_STR) && !jsonObject.getString(MASTER_COMPUTE_CLASS_STR).isEmpty()){
             giraphConfiguration.setMasterComputeClass((Class<? extends MasterCompute>) Class.forName(jsonObject.getString(MASTER_COMPUTE_CLASS_STR)));
             logger.info("Setting master compute class: " + jsonObject.getString(MASTER_COMPUTE_CLASS_STR));
         }
