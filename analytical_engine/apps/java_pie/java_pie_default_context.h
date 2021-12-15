@@ -124,7 +124,9 @@ class JavaPIEDefaultContext : public grape::ContextBase {
       app_class_name_ = JavaClassNameDashToSlash(app_class_name);
       // app_object_ =
       //     LoadAndCreate(env, url_class_loader_object_, app_class_name_);
-      app_object_ = CreateGiraphAdaptor(env, app_class_name_, fragment_object_);
+
+      app_object_ =
+          CreateGiraphAdaptor(env, app_class_name_, fragment_object_impl_);
 
       context_class_name_ = JavaClassNameDashToSlash(context_class_name);
       // CHECK_NOTNULL(!initClassNames(app_class_name, app_context_name));
@@ -132,7 +134,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
       // context_object_ =
       //     LoadAndCreate(env, url_class_loader_object_, context_class_name_);
       context_object_ = CreateGiraphAdaptorContext(env, context_class_name_,
-                                                   fragment_object_);
+                                                   fragment_object_impl_);
 
       mm_object_ = CreateFFIPointer(env, default_java_message_mananger_name_,
                                     url_class_loader_object_,
