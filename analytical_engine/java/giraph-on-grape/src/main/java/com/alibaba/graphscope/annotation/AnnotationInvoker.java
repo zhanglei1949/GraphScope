@@ -26,6 +26,20 @@ import com.alibaba.fastffi.FFIFunGen;
 import com.alibaba.fastffi.FFIGen;
 import com.alibaba.fastffi.FFIGenBatch;
 import com.alibaba.graphscope.utils.CppClassName;
+import java.lang.annotation.Annotation;
+import java.util.List;
+import java.util.Set;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ElementVisitor;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.Name;
+import javax.lang.model.element.TypeParameterElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeMirror;
 
 /**
  * In <em>GRAPE-jdk</em>, we split programming interfaces from actual implementation. As the
@@ -204,27 +218,27 @@ import com.alibaba.graphscope.utils.CppClassName;
                                 parameterTypes = {"MSG_T"},
                                 templates = {
                                     @CXXTemplate(
-                                            cxx = DOUBLE_MSG,
+                                            cxx = {DOUBLE_MSG},
                                             java =
-                                                    "com.alibaba.graphscope.parallel.message.DoubleMsg"),
+                                                {"com.alibaba.graphscope.parallel.message.DoubleMsg"}),
                                     @CXXTemplate(
-                                            cxx = LONG_MSG,
+                                            cxx = {LONG_MSG},
                                             java =
-                                                    "com.alibaba.graphscope.parallel.message.LongMsg")
+                                                {"com.alibaba.graphscope.parallel.message.LongMsg"})
                                 }),
                         @FFIFunGen(
                                 name = "min",
                                 returnType = "void",
-                                parameterTypes = {"MSG_T"},
+                                parameterTypes = { "MSG_T"},
                                 templates = {
                                     @CXXTemplate(
-                                            cxx = DOUBLE_MSG,
-                                            java =
-                                                    "com.alibaba.graphscope.parallel.message.DoubleMsg"),
+                                        cxx = {DOUBLE_MSG},
+                                        java =
+                                            {"com.alibaba.graphscope.parallel.message.DoubleMsg"}),
                                     @CXXTemplate(
-                                            cxx = LONG_MSG,
-                                            java =
-                                                    "com.alibaba.graphscope.parallel.message.LongMsg")
+                                        cxx = {LONG_MSG},
+                                        java =
+                                            { "com.alibaba.graphscope.parallel.message.LongMsg"})
                                 }),
                         @FFIFunGen(
                                 name = "max",
@@ -232,13 +246,13 @@ import com.alibaba.graphscope.utils.CppClassName;
                                 parameterTypes = {"MSG_T"},
                                 templates = {
                                     @CXXTemplate(
-                                            cxx = DOUBLE_MSG,
-                                            java =
-                                                    "com.alibaba.graphscope.parallel.message.DoubleMsg"),
+                                        cxx = {DOUBLE_MSG},
+                                        java =
+                                            {"com.alibaba.graphscope.parallel.message.DoubleMsg"}),
                                     @CXXTemplate(
-                                            cxx = LONG_MSG,
-                                            java =
-                                                    "com.alibaba.graphscope.parallel.message.LongMsg")
+                                        cxx = {LONG_MSG},
+                                        java =
+                                            {"com.alibaba.graphscope.parallel.message.LongMsg"})
                                 }),
                         @FFIFunGen(
                             name = "sendTo",
@@ -246,7 +260,7 @@ import com.alibaba.graphscope.utils.CppClassName;
                             parameterTypes = {"MSG_T"},
                             templates = {
                                 @CXXTemplate(
-                                    cxx = "std::vector<char>",
+                                    cxx = {"int", "std::vector<char>"},
                                     java = "com.alibaba.graphscope.stdcxx.FFIByteVector"
                                 )
                             }
@@ -294,4 +308,5 @@ import com.alibaba.graphscope.utils.CppClassName;
                                 })
                     })
         })
-public class AnnotationInvoker {}
+public class AnnotationInvoker {
+}
