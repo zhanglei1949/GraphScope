@@ -49,9 +49,9 @@ public class GiraphComputationFactory {
      * @param fragment  simple fragment, which is parameterized.
      * @return created adaptor.
      */
-    public static GiraphComputationAdaptorContext createGiraphComputationAdaptorContext(
+    public static <OID_T, VID_T, VDATA_T, EDATA_T>GiraphComputationAdaptorContext createGiraphComputationAdaptorContext(
         String className,
-        SimpleFragment fragment) {
+        ImmutableEdgecutFragmentAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> fragment) {
         Class<?>[] classes = getTypeArgumentFromInterface(SimpleFragment.class,
             fragment.getClass());
         if (classes.length != 4) {
