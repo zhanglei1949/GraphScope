@@ -70,7 +70,7 @@ std::string flags2JsonStr() {
   pt.put("output_path", FLAGS_output_path);
   pt.put("master_compute_class", FLAGS_master_compute_class);
   pt.put("aggregator_class", FLAGS_aggregator_class);
-  pt.put("message_combiner_class", FLAGS_combiner_class);
+  pt.put("message_combiner_class", FLAGS_message_combiner_class);
   pt.put("resolver_class", FLAGS_resolver_class);
   pt.put("worker_context_class", FLAGS_worker_context_class);
   pt.put("lib_path", FLAGS_lib_path);

@@ -461,9 +461,16 @@ jobject ImmutableFragment2Simple(JNIEnv* env,
 
 jobject CreateGiraphAdaptor(JNIEnv* env, const char* app_class_name,
                             const jobject& fragment_obj) {
+  jstring app_class_name_jstring = env->NewStringUTF(app_class_name);
   jobject res = (jobject) env->CallStaticObjectMethod(
       adaptor_factory_clz, adaptor_factory_create_giraph_adaptor_methodID,
       app_class_name_jstring, fragment_obj);
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+    LOG(ERROR) << "Error in creating adaptor: " << app_class_name;
+    return NULL;
+  }
   CHECK_NOTNULL(res);
   return env->NewGlobalRef(res);
 }
@@ -475,6 +482,12 @@ jobject CreateGiraphAdaptorContext(JNIEnv* env, const char* context_class_name,
       adaptor_factory_clz,
       adaptor_factory_create_giraph_adaptor_context_methodID,
       context_class_name_jstring, fragment_obj);
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+    LOG(ERROR) << "Error in creating adaptor: " << context_class_name;
+    return NULL;
+  }
   CHECK_NOTNULL(res);
   return env->NewGlobalRef(res);
 }
