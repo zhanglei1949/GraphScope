@@ -134,7 +134,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
 
         userComputation = (AbstractComputation) ReflectionUtils
             .newInstance(conf.getComputationClass());
-
+	userComputation.setFragment(frag);
         userComputation.setConf(conf);
 
         logger.info("Created user computation class: " + userComputation.getClass().getName());
@@ -196,10 +196,10 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
             masterCompute = conf.createMasterCompute();
             logger.info("Creating master compute class");
             try {
+                masterCompute.setAggregatorManager(aggregatorManager);
                 masterCompute.initialize();
                 masterCompute.setFragment(frag);
                 masterCompute.setConf(conf);
-                masterCompute.setAggregatorManager(aggregatorManager);
 //                masterCompute.setOutgoingMessageClasses();
             } catch (InstantiationException e) {
                 e.printStackTrace();

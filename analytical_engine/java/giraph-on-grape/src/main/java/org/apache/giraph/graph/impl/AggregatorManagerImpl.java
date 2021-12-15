@@ -43,6 +43,7 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
         this.conf = conf;
         aggregators = new HashMap<>();
         this.workerId = workerId;
+	this.workerNum = workerNum;
     }
 
     @Override

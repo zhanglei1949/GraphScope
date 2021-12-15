@@ -260,7 +260,7 @@ import javax.lang.model.type.TypeMirror;
                             parameterTypes = {"MSG_T"},
                             templates = {
                                 @CXXTemplate(
-                                    cxx = {"int", "std::vector<char>"},
+                                    cxx = "std::vector<char>",
                                     java = "com.alibaba.graphscope.stdcxx.FFIByteVector"
                                 )
                             }
