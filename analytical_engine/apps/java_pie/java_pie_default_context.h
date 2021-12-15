@@ -125,7 +125,8 @@ class JavaPIEDefaultContext : public grape::ContextBase {
       app_class_name_ = JavaClassNameDashToSlash(app_class_name);
       // app_object_ =
       //     LoadAndCreate(env, url_class_loader_object_, app_class_name_);
-      app_object_ = CreateGiraphAdaptor(env, app_class_name, fragment_object_);
+      app_object_ =
+          CreateGiraphAdaptor(env, app_class_name, fragment_object_impl_);
 
       context_class_name_ = JavaClassNameDashToSlash(context_class_name);
       // CHECK_NOTNULL(!initClassNames(app_class_name, app_context_name));

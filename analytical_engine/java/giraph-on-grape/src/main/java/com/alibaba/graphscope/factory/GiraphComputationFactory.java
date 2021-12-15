@@ -6,7 +6,6 @@ import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.fragment.adaptor.ImmutableEdgecutFragmentAdaptor;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.concurrent.TimeUnit;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexIdManager;
@@ -30,18 +29,11 @@ public class GiraphComputationFactory {
      * @param fragment  simple fragment, which is parameterized.
      * @return created adaptor.
      */
-    public static GiraphComputationAdaptor createGiraphComputationAdaptor(String className,
-        SimpleFragment fragment) {
-        Class<?>[] classes;
-        if (fragment instanceof ImmutableEdgecutFragmentAdaptor){
-            ImmutableEdgecutFragmentAdaptor adaptor = (ImmutableEdgecutFragmentAdaptor) fragment;
-            classes= getTypeArgumentFromInterface(SimpleFragment.class,
-                adaptor.getClass());
-        }
-        else {
-            logger.error("unsupported adaptor");
-            return null;
-        }
+    public static <OID_T, VID_T, VDATA_T, EDATA_T> GiraphComputationAdaptor createGiraphComputationAdaptor(
+        String className,
+        ImmutableEdgecutFragmentAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> fragment) {
+        Class<?>[] classes = getTypeArgumentFromInterface(SimpleFragment.class,
+            fragment.getClass());
         if (classes.length != 4) {
             logger.error("Expected 4 type params, parsed: " + classes.length);
             return null;
@@ -70,22 +62,24 @@ public class GiraphComputationFactory {
             classes[3]);
     }
 
-    public static <VDATA_T extends Writable,GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> VertexDataManager<VDATA_T> createDefaultVertexDataManager(
+    public static <VDATA_T extends Writable, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> VertexDataManager<VDATA_T> createDefaultVertexDataManager(
         Class<? extends VDATA_T> vdataClass, Class<? extends GRAPE_OID_T> grapeOidClass,
         Class<? extends GRAPE_VID_T> grapeVidClass, Class<? extends GRAPE_VDATA_T> grapeVdataClass,
         Class<? extends GRAPE_EDATA_T> grapeEdataClass, SimpleFragment fragment, long vertexNum,
         ImmutableClassesGiraphConfiguration conf
     ) {
-        return new VertexDataManagerImpl<VDATA_T,GRAPE_OID_T,GRAPE_VID_T,GRAPE_VDATA_T,GRAPE_EDATA_T>(fragment, vertexNum, conf);
+        return new VertexDataManagerImpl<VDATA_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T>(
+            fragment, vertexNum, conf);
     }
 
-    public static <OID_T extends WritableComparable,GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> VertexIdManagerImpl<OID_T, GRAPE_OID_T,GRAPE_VID_T,GRAPE_VDATA_T,GRAPE_EDATA_T> createDefaultVertexIdManager(
+    public static <OID_T extends WritableComparable, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> VertexIdManagerImpl<OID_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> createDefaultVertexIdManager(
         Class<? extends OID_T> oidClass, Class<? extends GRAPE_OID_T> grapeOidClass,
         Class<? extends GRAPE_VID_T> grapeVidClass, Class<? extends GRAPE_VDATA_T> grapeVdataClass,
         Class<? extends GRAPE_EDATA_T> grapeEdataClass, SimpleFragment fragment, long vertexNum,
         ImmutableClassesGiraphConfiguration conf
     ) {
-        return new VertexIdManagerImpl<OID_T, GRAPE_OID_T,GRAPE_VID_T,GRAPE_VDATA_T,GRAPE_EDATA_T>(fragment, vertexNum, conf);
+        return new VertexIdManagerImpl<OID_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T>(
+            fragment, vertexNum, conf);
     }
 
     public static <OID_T extends WritableComparable,
