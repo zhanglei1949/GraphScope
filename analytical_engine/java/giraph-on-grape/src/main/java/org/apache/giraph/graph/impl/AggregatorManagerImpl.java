@@ -265,8 +265,10 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
                     else {
                         logger.info("worker: " + workerId + " sending size: " + outputStream.getVector().size() + " to worker 0");
                         communicator.sendTo(0, outputStream.getVector());
-                        communicator.receiveFrom(0, inputStream.getVector());
-                        logger.info("worker: " + workerId + " receive size: " + inputStream.getVector().size() + " from worker 0");
+                        FFIByteVector vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
+                        communicator.receiveFrom(0, vector);
+                        inputStream.setVector(vector);
+                        logger.info("worker: " + workerId + " receive size: " + inputStream.longAvailable() + " from worker 0");
                     }
                 }
                 else {
