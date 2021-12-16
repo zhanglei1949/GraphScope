@@ -217,6 +217,7 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
             aggregators.entrySet()) {
             if (!entry.getValue().isPersistent()){
                 logger.info("Aggregator: " + entry.getKey() + " is not persistent, reset before superstep");
+                entry.getValue().setCurrentValue(entry.getValue().getReduceOp().createInitialValue());
             }
         }
     }
