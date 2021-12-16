@@ -267,19 +267,21 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
                         communicator.sendTo(0, outputStream.getVector());
                         FFIByteVector vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
                         communicator.receiveFrom(0, vector);
-                        inputStream.setVector(vector);
+                        inputStream.digestVector(vector);
                         logger.info("worker: " + workerId + " receive size: " + inputStream.longAvailable() + " from worker 0");
                     }
                 }
                 else {
                     logger.info("only one worker, skip aggregating..");
                 }
-
+		//Reset
+                AggregatorWrapper wrapper = entry.getValue();
+                wrapper.setCurrentValue(wrapper.getReduceOp().createInitialValue());
 
                 //digest input stream
                 logger.info("worker: " + workerId + " aggregator: " + aggregatorKey+ " ,receive msg: " + inputStream.longAvailable());
-                AggregatorWrapper wrapper = entry.getValue();
                 Writable msg = ReflectionUtils.newInstance(wrapper.getCurrentValue().getClass());
+		logger.info("Parse aggregation msg in " + msg.getClass().getName());
                 //parse to writables
                 while (inputStream.longAvailable() > 0){
                     msg.readFields(inputStream);
@@ -394,7 +396,9 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
         }
 
         public void reduce(A value){
+	    logger.info("Before reduce: " + currentValue + ", " + value);
             currentValue = reduceOp.reduce(currentValue, value);
+	    logger.info("After reduce: " + currentValue);
         }
 
         @Override
