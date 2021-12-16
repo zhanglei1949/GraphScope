@@ -9,6 +9,8 @@ import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import java.io.IOException;
 import java.util.Iterator;
+import jnr.ffi.annotations.In;
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.edge.DefaultEdge;
 import org.apache.giraph.edge.Edge;
@@ -48,6 +50,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
      * Grape store edge by (lid, edata) we need a converter.
      */
     private VertexIdManager<OID_T> vertexIdManager;
+    private Vertex<GRAPE_VID_T> grapeVertex;
 
 
     public ImmutableEdgeManagerImpl(SimpleFragment<GRAPE_OID_T,GRAPE_VID_T,GRAPE_VDATA_T,GRAPE_EDATA_T> fragment, VertexIdManager<OID_T> idManager,
@@ -55,6 +58,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
         this.fragment = fragment;
         this.vertexIdManager = idManager;
         this.configuration = configuration;
+        grapeVertex = (Vertex<GRAPE_VID_T>) FFITypeFactoryhelper.newVertex(configuration.getGrapeVidClass());
     }
 
     /**
@@ -63,8 +67,10 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
      * @return the total number of outbound edges from this vertex
      */
     @Override
-    public int getNumEdges() {
-        return (int) fragment.getEdgeNum();
+    public int getNumEdges(long lid) {
+        Integer intLild = (int) lid;
+        grapeVertex.SetValue((GRAPE_VID_T) intLild);
+        return (int) (fragment.getOutgoingAdjList(grapeVertex).size() + fragment.getIncomingAdjList(grapeVertex).size());
     }
 
     /**
@@ -77,7 +83,6 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
      */
     @Override
     public Iterable<Edge<OID_T, EDATA_T>> getEdges(long lid) {
-//        curGrapeVertex.SetValue(lid);
         return new EdgeIterable((int) lid);
     }
 
@@ -89,6 +94,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
     @Override
     public void setEdges(Iterable<Edge<OID_T, EDATA_T>> edges) {
         logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     /**
@@ -102,7 +108,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
     @Override
     public Iterable<MutableEdge<OID_T, EDATA_T>> getMutableEdges() {
         logger.error("Not implemented");
-        return null;
+        throw new NotImplementedException();
     }
 
     /**
@@ -115,7 +121,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
      */
     @Override
     public EDATA_T getEdgeValue(OID_T targetVertexId) {
-        return null;
+        throw new NotImplementedException();
     }
 
     /**
@@ -128,6 +134,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
     @Override
     public void setEdgeValue(OID_T targetVertexId, EDATA_T edgeValue) {
         logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     /**
@@ -141,7 +148,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
      */
     @Override
     public Iterable<EDATA_T> getAllEdgeValues(OID_T targetVertexId) {
-        return null;
+        throw new NotImplementedException();
     }
 
     /**
@@ -151,7 +158,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
      */
     @Override
     public void addEdge(Edge<OID_T, EDATA_T> edge) {
-        logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     /**
@@ -161,7 +168,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
      */
     @Override
     public void removeEdges(OID_T targetVertexId) {
-        logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     //    /**
@@ -172,6 +179,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
     @Override
     public void unwrapMutableEdges() {
         logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     /**

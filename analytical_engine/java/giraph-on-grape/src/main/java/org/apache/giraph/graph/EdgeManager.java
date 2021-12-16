@@ -15,11 +15,11 @@ import org.apache.hadoop.io.WritableComparable;
  */
 public interface EdgeManager<OID_T extends WritableComparable, EDATA_T extends Writable> {
     /**
-     * Get the number of outgoing edges on this vertex.
+     * Get the number of outgoing edges on a vertex with its lid.
      *
      * @return the total number of outbound edges from this vertex
      */
-    int getNumEdges();
+    int getNumEdges(long lid);
 
     /**
      * Get a read-only view of the out-edges of this vertex. Note: edge objects returned by this

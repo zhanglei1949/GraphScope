@@ -4,6 +4,7 @@ import com.alibaba.graphscope.context.GiraphComputationAdaptorContext;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import com.alibaba.graphscope.utils.WritableFactory;
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.giraph.conf.DefaultImmutableClassesGiraphConfigurable;
 import org.apache.giraph.edge.Edge;
 import org.apache.giraph.edge.MutableEdge;
@@ -74,7 +75,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public void initialize(OID_T id, VDATA_T value, Iterable<Edge<OID_T, EDATA_T>> edges) {
-
+        logger.error("Initialization not implemented");
     }
 
     /**
@@ -87,7 +88,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public void initialize(OID_T id, VDATA_T value) {
-
+        logger.error("Initialization not implemented");
     }
 
     /**
@@ -137,7 +138,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public int getNumEdges() {
-        return 0;
+        return edgeManager.getNumEdges(lid);
     }
 
     /**
@@ -160,7 +161,8 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public void setEdges(Iterable<Edge<OID_T, EDATA_T>> edges) {
-
+        logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     /**
@@ -173,7 +175,8 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public Iterable<MutableEdge<OID_T, EDATA_T>> getMutableEdges() {
-        return null;
+        logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     /**
@@ -186,7 +189,8 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public EDATA_T getEdgeValue(OID_T targetVertexId) {
-        return null;
+        logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     /**
@@ -198,7 +202,8 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public void setEdgeValue(OID_T targetVertexId, EDATA_T edgeValue) {
-
+        logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     /**
@@ -212,7 +217,8 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public Iterable<EDATA_T> getAllEdgeValues(OID_T targetVertexId) {
-        return null;
+        logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     /**
@@ -223,6 +229,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
     @Override
     public void addEdge(Edge<OID_T, EDATA_T> edge) {
         logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     /**
@@ -233,6 +240,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
     @Override
     public void removeEdges(OID_T targetVertexId) {
         logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     /**
@@ -242,7 +250,8 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      */
     @Override
     public void unwrapMutableEdges() {
-
+        logger.error("Not implemented");
+        throw new NotImplementedException();
     }
 
     /**
