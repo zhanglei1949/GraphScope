@@ -68,8 +68,8 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
      */
     @Override
     public int getNumEdges(long lid) {
-        Integer intLild = (int) lid;
-        grapeVertex.SetValue((GRAPE_VID_T) intLild);
+        int intLild = (int) lid;
+        grapeVertex.SetValue((GRAPE_VID_T) configuration.getGrapeVidClass().cast(intLild));
         return (int) (fragment.getOutgoingAdjList(grapeVertex).size() + fragment.getIncomingAdjList(grapeVertex).size());
     }
 
