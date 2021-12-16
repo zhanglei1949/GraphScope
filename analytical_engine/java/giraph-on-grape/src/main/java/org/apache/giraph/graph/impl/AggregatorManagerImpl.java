@@ -256,10 +256,7 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
                     }
                 }
                 else {
-                    FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
-                    value.write(outputStream);
-                    outputStream.finishSetting();
-                    inputStream.setVector(outputStream.getVector());
+                    logger.info("only one worker, skip aggregating..");
                 }
 
 
