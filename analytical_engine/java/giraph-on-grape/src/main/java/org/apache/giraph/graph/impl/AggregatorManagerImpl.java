@@ -211,6 +211,16 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
 
     }
 
+    @Override
+    public void preSuperstep(){
+        for (Entry<String, AggregatorWrapper<Writable>> entry :
+            aggregators.entrySet()) {
+            if (!entry.getValue().isPersistent()){
+                logger.info("Aggregator: " + entry.getKey() + " is not persistent, reset before superstep");
+            }
+        }
+    }
+
     /**
      * Synchronize aggregator values between workers after superstep.
      */

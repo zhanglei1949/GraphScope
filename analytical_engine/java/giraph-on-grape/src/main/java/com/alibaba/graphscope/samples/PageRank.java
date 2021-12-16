@@ -72,6 +72,7 @@ public class PageRank extends BasicComputation<LongWritable,
         if (getSuperstep() >= 1) {
             double sum = 0;
             for (DoubleWritable message : messages) {
+                LOG.info("vertex: " + vertex.getId()  + " Receive msg: " + message.get());
                 sum += message.get();
             }
             DoubleWritable vertexValue =
@@ -80,9 +81,6 @@ public class PageRank extends BasicComputation<LongWritable,
             aggregate(MAX_AGG, vertexValue);
             aggregate(MIN_AGG, vertexValue);
             aggregate(SUM_AGG, new LongWritable(1));
-            LOG.info(vertex.getId() + ": PageRank=" + vertexValue +
-                " max=" + getAggregatedValue(MAX_AGG) +
-                " min=" + getAggregatedValue(MIN_AGG));
         }
 
         if (getSuperstep() < MAX_SUPERSTEPS) {

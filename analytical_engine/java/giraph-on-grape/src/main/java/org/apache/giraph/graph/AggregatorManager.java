@@ -100,6 +100,8 @@ public interface AggregatorManager {
      */
     void broadcast(String name, Writable value);
 
+    void preSuperstep();
+
     /**
      * Synchronize aggregator values between workers after superstep.
      */
