@@ -87,6 +87,7 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Comm
             }
         }
 
+	aggregatorManager.preSuperstep();
         //In first round, there is no message, we pass an empty iterable.
 //        Iterable<LongWritable> messages = new MessageIterable<>();
         Iterable<Writable> messages = new MessageIterable<>();
@@ -166,6 +167,7 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Comm
             .getGiraphMessageManager();
         WorkerContext workerContext = ctx.getWorkerContext();
         AggregatorManager aggregatorManager = ctx.getAggregatorManager();
+
         //Worker context
         workerContext.preSuperstep();
 
@@ -180,6 +182,8 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Comm
                 masterCompute.incSuperStep();
             }
         }
+	//Clear non-persistent aggregator
+	aggregatorManager.preSuperstep();
 
         //1. compute
         try {

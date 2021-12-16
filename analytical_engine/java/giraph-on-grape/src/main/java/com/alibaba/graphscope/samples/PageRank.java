@@ -85,8 +85,16 @@ public class PageRank extends BasicComputation<LongWritable,
 
         if (getSuperstep() < MAX_SUPERSTEPS) {
             long edges = vertex.getNumEdges();
-            sendMessageToAllEdges(vertex,
-                new DoubleWritable(vertex.getValue().get() / edges));
+            if (edges > 0){
+                sendMessageToAllEdges(vertex,
+                    new DoubleWritable(vertex.getValue().get() / edges));
+                LOG.info("vertex: " + vertex.getId() + "set to other vertices num: " + edges + " value: " + vertex.getValue());
+            }
+            else {
+                sendMessageToAllEdges(vertex, new DoubleWritable(1.0/ getTotalNumVertices()));
+                LOG.info("vertex: " + vertex.getId() + "set to other vertices num: " + edges + " base: " + 1.0 / getTotalNumVertices());
+            }
+
         } else {
             vertex.voteToHalt();
         }

@@ -185,7 +185,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
         userComputation.setGiraphMessageManager(giraphMessageManager);
 
         /** Aggregator manager, manages aggregation, reduce, broadcast */
-        aggregatorManager = new AggregatorManagerImpl(conf, frag.fid(), frag.fid());
+        aggregatorManager = new AggregatorManagerImpl(conf, frag.fid(), frag.fnum());
         userComputation.setAggregatorManager(aggregatorManager);
         workerContext.setAggregatorManager(aggregatorManager);
 
