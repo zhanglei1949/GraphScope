@@ -231,29 +231,40 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
 
             FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream();
             try {
-                if (workerId == 0){
-                    for (int src_worker = 1; src_worker < workerNum; ++src_worker){
-                        FFIByteVector vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
-                        communicator.receiveFrom(src_worker, vector);
-                        logger.info("Receive from src_worker: " + src_worker + ", size : " + vector.size());
-                        inputStream.digestVector(vector);
-                        vector.clear();
+                if (workerNum > 1){
+                    if (workerId == 0){
+                        for (int src_worker = 1; src_worker < workerNum; ++src_worker){
+                            FFIByteVector vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
+                            communicator.receiveFrom(src_worker, vector);
+                            logger.info("Receive from src_worker: " + src_worker + ", size : " + vector.size());
+                            inputStream.digestVector(vector);
+                            vector.clear();
+                        }
+                        //Send what received to all worker
+                        for (int dstWroker = 1; dstWroker < workerNum; ++dstWroker){
+                            communicator.sendTo(dstWroker, inputStream.getVector());
+                        }
                     }
-                    //Send what received to all worker
-                    for (int dstWroker = 1; dstWroker < workerNum; ++dstWroker){
-                        communicator.sendTo(dstWroker, inputStream.getVector());
+                    else {
+                        FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
+                        value.write(outputStream);
+                        outputStream.finishSetting();
+                        logger.info("worker: " + workerId + " sending size: " + outputStream.getVector().size() + " to worker 0");
+                        communicator.sendTo(0, outputStream.getVector());
+                        communicator.receiveFrom(0, inputStream.getVector());
+                        logger.info("worker: " + workerId + " receive size: " + inputStream.getVector().size() + " from worker 0");
                     }
                 }
                 else {
                     FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
                     value.write(outputStream);
                     outputStream.finishSetting();
-                    communicator.sendTo(0, outputStream.getVector());
-                    communicator.receiveFrom(0, inputStream.getVector());
+                    inputStream.setVector(outputStream.getVector());
                 }
 
+
                 //digest input stream
-                logger.info("worker: " + workerId + "aggregator: " + aggregatorKey+ " receive msg: " + inputStream.longAvailable());
+                logger.info("worker: " + workerId + " aggregator: " + aggregatorKey+ " ,receive msg: " + inputStream.longAvailable());
                 AggregatorWrapper wrapper = entry.getValue();
                 Writable msg = ReflectionUtils.newInstance(wrapper.getCurrentValue().getClass());
                 //parse to writables
