@@ -240,10 +240,16 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
             Preconditions.checkState(value != null);
 
 
+            /** after aggregation, all data will be available in this stream */
             FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream();
+            /** a temp stream for us to write data into byte array */
+            FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
             try {
                 if (workerNum > 1){
+                    value.write(outputStream);
+                    outputStream.finishSetting();
                     if (workerId == 0){
+                        inputStream.digestVector(outputStream.getVector());
                         for (int src_worker = 1; src_worker < workerNum; ++src_worker){
                             FFIByteVector vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
                             communicator.receiveFrom(src_worker, vector);
@@ -257,9 +263,6 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
                         }
                     }
                     else {
-                        FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
-                        value.write(outputStream);
-                        outputStream.finishSetting();
                         logger.info("worker: " + workerId + " sending size: " + outputStream.getVector().size() + " to worker 0");
                         communicator.sendTo(0, outputStream.getVector());
                         communicator.receiveFrom(0, inputStream.getVector());
@@ -287,7 +290,6 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
             catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
     }
 
