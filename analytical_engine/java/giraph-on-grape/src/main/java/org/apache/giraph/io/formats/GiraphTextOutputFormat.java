@@ -42,12 +42,6 @@ public abstract class GiraphTextOutputFormat
     extends TextOutputFormat<Text, Text> {
 
     private static Logger logger = LoggerFactory.getLogger(GiraphTextOutputFormat.class);
-    private ImmutableClassesGiraphConfiguration conf;
-
-    public void setConf(ImmutableClassesGiraphConfiguration conf){
-        this.conf = conf;
-    }
-
 
     /**
      * This function returns a record writer according to provided configuration. Giraph write file
@@ -64,27 +58,27 @@ public abstract class GiraphTextOutputFormat
     public RecordWriter<Text, Text> getRecordWriter(TaskAttemptContext job)
         throws IOException, InterruptedException {
         String extension = "";
-        String outputFileName = String
-            .join("-", conf.getDefaultWorkerFile(), "frag", String.valueOf(conf.getWorkerId()));
+//        String outputFileName = String
+//            .join("-", conf.getDefaultWorkerFile(), "frag", String.valueOf(conf.getWorkerId()));
 
         String subdir = getSubdir();
         String outputFileFullPath;
         if (!subdir.isEmpty()) {
             if (checkDirExits(subdir)) {
-                outputFileFullPath = String.join("/", subdir, outputFileName);
+                outputFileFullPath = String.join("/", subdir, getOutputFileName());
             } else {
                 logger.error("Sub dir: " + subdir +" doesn't exists, or is not a directory");
                 return null;
             }
         } else {
-            outputFileFullPath = String.join("/", System.getProperty("user.dir") , outputFileName);
+            outputFileFullPath = String.join("/", System.getProperty("user.dir") , getOutputFileName());
         }
 
         String separator = "\t";
 
         logger.info("Create record writer destination: " + outputFileFullPath);
 
-        DataOutputStream outputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(outputFileName)));
+        DataOutputStream outputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(outputFileFullPath)));
         return new LineRecordWriter<Text,Text>(outputStream, separator);
     }
 
@@ -95,6 +89,8 @@ public abstract class GiraphTextOutputFormat
      * @return the subdirectory to be created under the output path
      */
     protected abstract String getSubdir();
+
+    protected abstract String getOutputFileName();
 
     private boolean checkDirExits(String file){
         File f = new File(file);

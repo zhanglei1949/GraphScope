@@ -32,8 +32,11 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.giraph.conf.GiraphConstants.VERTEX_OUTPUT_FORMAT_SUBDIR;
+import static org.apache.giraph.conf.GiraphConstants.VERTEX_OUTPUT_PATH;
 
 
 /**
@@ -48,13 +51,22 @@ import static org.apache.giraph.conf.GiraphConstants.VERTEX_OUTPUT_FORMAT_SUBDIR
 public abstract class TextVertexOutputFormat<I extends WritableComparable,
     V extends Writable, E extends Writable>
     extends VertexOutputFormat<I, V, E> {
+
+    private static Logger logger = LoggerFactory.getLogger(TextVertexOutputFormat.class);
+
     /** Uses the TextOutputFormat to do everything */
     /** Giraph made this file protected here, so we need to provide this */
     protected GiraphTextOutputFormat textOutputFormat =
         new GiraphTextOutputFormat() {
             @Override
             protected String getSubdir() {
+		logger.info("" + (getConf() == null));		
                 return VERTEX_OUTPUT_FORMAT_SUBDIR.get(getConf());
+            }
+
+            @Override
+            protected String getOutputFileName() {
+                return VERTEX_OUTPUT_PATH.get(getConf()) + "-" +  getConf().getWorkerId();
             }
         };
 
@@ -98,7 +110,7 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
         @Override
         public void initialize(TaskAttemptContext context) throws IOException,
             InterruptedException {
-            lineRecordWriter = createLineRecordWriter(context, getConf());
+            lineRecordWriter = createLineRecordWriter(context);
             this.context = context;
         }
 
@@ -116,8 +128,7 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
          *           exception that can be thrown during creation
          */
         protected RecordWriter<Text, Text> createLineRecordWriter(
-            TaskAttemptContext context, ImmutableClassesGiraphConfiguration conf) throws IOException, InterruptedException {
-            textOutputFormat.setConf(conf);
+            TaskAttemptContext context) throws IOException, InterruptedException {
             return textOutputFormat.getRecordWriter(context);
         }
 
