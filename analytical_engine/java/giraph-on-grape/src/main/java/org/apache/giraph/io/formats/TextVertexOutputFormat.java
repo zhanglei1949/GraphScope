@@ -18,10 +18,11 @@
 
 package org.apache.giraph.io.formats;
 
-import java.io.IOException;
+import static org.apache.giraph.conf.GiraphConstants.VERTEX_OUTPUT_FORMAT_SUBDIR;
+import static org.apache.giraph.conf.GiraphConstants.VERTEX_OUTPUT_PATH;
 
+import java.io.IOException;
 import org.apache.commons.lang.NotImplementedException;
-import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.io.VertexOutputFormat;
 import org.apache.giraph.io.VertexWriter;
@@ -32,14 +33,12 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
-import static org.apache.giraph.conf.GiraphConstants.VERTEX_OUTPUT_FORMAT_SUBDIR;
-import static org.apache.giraph.conf.GiraphConstants.VERTEX_OUTPUT_PATH;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
- * Abstract class that users should subclass to use their own text based
- * vertex output format.
+ * Abstract class that users should subclass to use their own text based vertex output format.
  *
  * @param <I> Vertex index value
  * @param <V> Vertex value
@@ -49,8 +48,13 @@ import static org.apache.giraph.conf.GiraphConstants.VERTEX_OUTPUT_PATH;
 public abstract class TextVertexOutputFormat<I extends WritableComparable,
     V extends Writable, E extends Writable>
     extends VertexOutputFormat<I, V, E> {
+
+    private static Logger logger = LoggerFactory.getLogger(TextVertexOutputFormat.class);
+
     /** Uses the TextOutputFormat to do everything */
-    /** Giraph made this file protected here, so we need to provide this */
+    /**
+     * Giraph made this file protected here, so we need to provide this
+     */
     protected GiraphTextOutputFormat textOutputFormat =
         new GiraphTextOutputFormat() {
             @Override
@@ -60,7 +64,7 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
 
             @Override
             protected String getOutputFileName() {
-                return VERTEX_OUTPUT_PATH.get(getConf()) + "-" +  getConf().getWorkerId();
+                return VERTEX_OUTPUT_PATH.get(getConf()) + "-" + getConf().getWorkerId();
             }
         };
 
@@ -77,28 +81,29 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
     }
 
     /**
-     * The factory method which produces the {@link TextVertexWriter} used by this
-     * output format.
+     * The factory method which produces the {@link TextVertexWriter} used by this output format.
      *
-     * @param context
-     *          the information about the task
-     * @return
-     *         the text vertex writer to be used
+     * @param context the information about the task
+     * @return the text vertex writer to be used
      */
     @Override
     public abstract TextVertexWriter createVertexWriter(TaskAttemptContext
         context) throws IOException, InterruptedException;
 
     /**
-     * Abstract class to be implemented by the user based on their specific
-     * vertex output.  Easiest to ignore the key value separator and only use
-     * key instead.
+     * Abstract class to be implemented by the user based on their specific vertex output.  Easiest
+     * to ignore the key value separator and only use key instead.
      */
     protected abstract class TextVertexWriter
         extends VertexWriter<I, V, E> {
-        /** Internal line record writer */
+
+        /**
+         * Internal line record writer
+         */
         private RecordWriter<Text, Text> lineRecordWriter;
-        /** Context passed to initialize */
+        /**
+         * Context passed to initialize
+         */
         private TaskAttemptContext context;
 
         @Override
@@ -109,17 +114,13 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
         }
 
         /**
-         * Create the line record writer. Override this to use a different
-         * underlying record writer (useful for testing).
+         * Create the line record writer. Override this to use a different underlying record writer
+         * (useful for testing).
          *
-         * @param context
-         *          the context passed to initialize
-         * @return
-         *         the record writer to be used
-         * @throws IOException
-         *           exception that can be thrown during creation
-         * @throws InterruptedException
-         *           exception that can be thrown during creation
+         * @param context the context passed to initialize
+         * @return the record writer to be used
+         * @throws IOException          exception that can be thrown during creation
+         * @throws InterruptedException exception that can be thrown during creation
          */
         protected RecordWriter<Text, Text> createLineRecordWriter(
             TaskAttemptContext context) throws IOException, InterruptedException {
@@ -152,8 +153,7 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
     }
 
     /**
-     * Abstract class to be implemented by the user to write a line for each
-     * vertex.
+     * Abstract class to be implemented by the user to write a line for each vertex.
      */
     protected abstract class TextVertexWriterToEachLine extends TextVertexWriter {
 
@@ -168,11 +168,9 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
         /**
          * Writes a line for the given vertex.
          *
-         * @param vertex
-         *          the current vertex for writing
+         * @param vertex the current vertex for writing
          * @return the text line to be written
-         * @throws IOException
-         *           exception that can be thrown while writing
+         * @throws IOException exception that can be thrown while writing
          */
         protected abstract Text convertVertexToLine(Vertex<I, V, E> vertex)
             throws IOException;
