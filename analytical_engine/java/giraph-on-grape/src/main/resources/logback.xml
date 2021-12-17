@@ -19,6 +19,7 @@
     <logger name="com.alibaba.graphscope.samples.SSSP" level="info"/>
     <logger name="com.alibaba.graphscope.samples.PageRank" level="info"/>
     <logger name="com.alibaba.graphscope.factory.GiraphComputationFactory" level="info"/>
+    <logger name="org.apache.giraph.graph.impl.AggregatorManagerImpl" level="error"/>
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>

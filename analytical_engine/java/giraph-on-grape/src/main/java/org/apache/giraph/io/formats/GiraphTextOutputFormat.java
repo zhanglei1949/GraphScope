@@ -42,6 +42,11 @@ public abstract class GiraphTextOutputFormat
     extends TextOutputFormat<Text, Text> {
 
     private static Logger logger = LoggerFactory.getLogger(GiraphTextOutputFormat.class);
+    private ImmutableClassesGiraphConfiguration conf;
+
+    public void setConf(ImmutableClassesGiraphConfiguration conf){
+        this.conf = conf;
+    }
 
 
     /**
@@ -59,8 +64,6 @@ public abstract class GiraphTextOutputFormat
     public RecordWriter<Text, Text> getRecordWriter(TaskAttemptContext job)
         throws IOException, InterruptedException {
         String extension = "";
-        ImmutableClassesGiraphConfiguration conf = (ImmutableClassesGiraphConfiguration) job
-            .getConfiguration();
         String outputFileName = String
             .join("-", conf.getDefaultWorkerFile(), "frag", String.valueOf(conf.getWorkerId()));
 

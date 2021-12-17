@@ -21,6 +21,7 @@ package org.apache.giraph.io.formats;
 import java.io.IOException;
 
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.io.VertexOutputFormat;
 import org.apache.giraph.io.VertexWriter;
@@ -97,7 +98,7 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
         @Override
         public void initialize(TaskAttemptContext context) throws IOException,
             InterruptedException {
-            lineRecordWriter = createLineRecordWriter(context);
+            lineRecordWriter = createLineRecordWriter(context, getConf());
             this.context = context;
         }
 
@@ -115,7 +116,8 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
          *           exception that can be thrown during creation
          */
         protected RecordWriter<Text, Text> createLineRecordWriter(
-            TaskAttemptContext context) throws IOException, InterruptedException {
+            TaskAttemptContext context, ImmutableClassesGiraphConfiguration conf) throws IOException, InterruptedException {
+            textOutputFormat.setConf(conf);
             return textOutputFormat.getRecordWriter(context);
         }
 
