@@ -84,9 +84,9 @@ public class ConfigurationUtils {
         if (jsonObject.containsKey(VERTEX_OUTPUT_FORMAT_CLASS_STR) && !jsonObject.getString(VERTEX_OUTPUT_FORMAT_CLASS_STR).isEmpty()) {
             giraphConfiguration.setVertexInputFormatClass(
                 (Class<? extends VertexInputFormat>) Class
-                    .forName(jsonObject.getString(VERTEX_INPUT_FORMAT_CLASS_STR))
+                    .forName(jsonObject.getString(VERTEX_OUTPUT_FORMAT_CLASS_STR))
             );
-            logger.info("Setting vertex input format class: " + jsonObject.getString(VERTEX_INPUT_FORMAT_CLASS_STR));
+            logger.info("Setting vertex input format class: " + jsonObject.getString(VERTEX_OUTPUT_FORMAT_CLASS_STR));
         }
         else {
             logger.info("No vertex output format class found, using default one.");
