@@ -128,6 +128,11 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
 //    public final Class<? extends VertexOutputFormat> getVertexOutputFormatClass(){
 //        return VERTEX_OUTPUT_FORMAT_CLASS.get(this);
 //    }
+     public final void setVertexOutputFormatClass(
+            Class<? extends VertexOutputFormat> vertexOutputFormatClass) {
+        VERTEX_OUTPUT_FORMAT_CLASS.set(this, vertexOutputFormatClass);
+     }
+
 
     /**
      * Set the message combiner class (optional)

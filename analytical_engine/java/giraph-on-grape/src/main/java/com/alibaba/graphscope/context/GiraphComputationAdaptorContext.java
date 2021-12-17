@@ -232,6 +232,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
         //Output vertices.
         if (conf.hasVertexOutputFormat()){
             VertexOutputFormat vertexOutputFormat = conf.createWrappedVertexOutputFormat();
+	    vertexOutputFormat.setConf(conf);
             TaskAttemptContext taskAttemptContext = makeTaskAttemptContext(conf);
             vertexOutputFormat.preWriting(taskAttemptContext);
 

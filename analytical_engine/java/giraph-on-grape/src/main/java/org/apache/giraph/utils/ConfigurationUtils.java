@@ -9,6 +9,7 @@ import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.conf.TypesHolder;
 import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.io.VertexInputFormat;
+import org.apache.giraph.io.VertexOutputFormat;
 import org.apache.giraph.master.MasterCompute;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.giraph.worker.impl.DefaultWorkerContext;
@@ -82,8 +83,8 @@ public class ConfigurationUtils {
 
         //Vertex output format
         if (jsonObject.containsKey(VERTEX_OUTPUT_FORMAT_CLASS_STR) && !jsonObject.getString(VERTEX_OUTPUT_FORMAT_CLASS_STR).isEmpty()) {
-            giraphConfiguration.setVertexInputFormatClass(
-                (Class<? extends VertexInputFormat>) Class
+            giraphConfiguration.setVertexOutputFormatClass(
+                (Class<? extends VertexOutputFormat>) Class
                     .forName(jsonObject.getString(VERTEX_OUTPUT_FORMAT_CLASS_STR))
             );
             logger.info("Setting vertex input format class: " + jsonObject.getString(VERTEX_OUTPUT_FORMAT_CLASS_STR));

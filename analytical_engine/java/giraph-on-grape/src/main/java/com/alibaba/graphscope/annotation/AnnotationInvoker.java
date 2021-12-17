@@ -193,7 +193,7 @@ import javax.lang.model.type.TypeMirror;
                             }
                         ),
                         @FFIFunGen(
-                            name = "getMessage",
+                            name = "getPureMessage",
                             returnType = "boolean",
                             parameterTypes = {"MSG_T"},
                             templates = {

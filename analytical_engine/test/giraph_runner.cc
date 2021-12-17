@@ -62,8 +62,8 @@ typedef void* RunT(std::string args);
 // put all flags in a json str
 std::string flags2JsonStr() {
   boost::property_tree::ptree pt;
-  pt.put("vertex_input_format_class", FLAGS_input_format_class);
-  pt.put("vertex_output_format_class", FLAGS_output_format_class);
+  pt.put("vertex_input_format_class", FLAGS_vertex_input_format_class);
+  pt.put("vertex_output_format_class", FLAGS_vertex_output_format_class);
   pt.put("app_class", FLAGS_app_class);
   pt.put("input_vfile", FLAGS_input_vfile);
   pt.put("input_efile", FLAGS_input_efile);
