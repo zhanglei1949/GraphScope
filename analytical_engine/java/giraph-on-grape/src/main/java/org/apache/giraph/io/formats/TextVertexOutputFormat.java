@@ -34,6 +34,7 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 import static org.apache.giraph.conf.GiraphConstants.VERTEX_OUTPUT_FORMAT_SUBDIR;
+import static org.apache.giraph.conf.GiraphConstants.VERTEX_OUTPUT_PATH;
 
 
 /**
@@ -55,6 +56,11 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
             @Override
             protected String getSubdir() {
                 return VERTEX_OUTPUT_FORMAT_SUBDIR.get(getConf());
+            }
+
+            @Override
+            protected String getOutputFileName() {
+                return VERTEX_OUTPUT_PATH.get(getConf()) + "-" +  getConf().getWorkerId();
             }
         };
 
@@ -98,7 +104,7 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
         @Override
         public void initialize(TaskAttemptContext context) throws IOException,
             InterruptedException {
-            lineRecordWriter = createLineRecordWriter(context, getConf());
+            lineRecordWriter = createLineRecordWriter(context);
             this.context = context;
         }
 
@@ -116,8 +122,7 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
          *           exception that can be thrown during creation
          */
         protected RecordWriter<Text, Text> createLineRecordWriter(
-            TaskAttemptContext context, ImmutableClassesGiraphConfiguration conf) throws IOException, InterruptedException {
-            textOutputFormat.setConf(conf);
+            TaskAttemptContext context) throws IOException, InterruptedException {
             return textOutputFormat.getRecordWriter(context);
         }
 

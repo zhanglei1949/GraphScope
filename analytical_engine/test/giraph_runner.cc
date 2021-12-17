@@ -18,7 +18,7 @@ DEFINE_string(vertex_output_format_class, "", "java class defines the output for
 DEFINE_string(app_class, "", "app class to run");
 DEFINE_string(input_vfile, "", "input vertex file");
 DEFINE_string(input_efile, "", "input edge file");
-DEFINE_string(output_path, "", "output file path");
+DEFINE_string(vertex_output_path, "", "output file path");
 DEFINE_string(master_compute_class, "", "master compute class");
 DEFINE_string(aggregator_class, "", "aggregator class");
 DEFINE_string(message_combiner_class, "", "combiner for message processing");
@@ -67,7 +67,7 @@ std::string flags2JsonStr() {
   pt.put("app_class", FLAGS_app_class);
   pt.put("input_vfile", FLAGS_input_vfile);
   pt.put("input_efile", FLAGS_input_efile);
-  pt.put("output_path", FLAGS_output_path);
+  pt.put("vertex_output_path", FLAGS_vertex_output_path);
   pt.put("master_compute_class", FLAGS_master_compute_class);
   pt.put("aggregator_class", FLAGS_aggregator_class);
   pt.put("message_combiner_class", FLAGS_message_combiner_class);

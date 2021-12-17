@@ -165,4 +165,12 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
         VERTEX_OUTPUT_FORMAT_SUBDIR.set(this, path);
     }
 
+    /**
+     * The the path where we output.
+     * @param path output path.
+     */
+    public final void setVertexOutputPath(String path){
+        VERTEX_OUTPUT_PATH.set(this, path);
+    }
+
 }

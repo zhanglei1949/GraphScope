@@ -35,6 +35,7 @@ public class ConfigurationUtils {
     public static final String VERTEX_INPUT_FORMAT_CLASS_STR = "vertex_input_format_class";
     public static final String VERTEX_OUTPUT_FORMAT_CLASS_STR = "vertex_output_format_class";
     public static final String VERTEX_OUTPUT_FORMAT_SUBDIR_STR = "vertex_output_format_subdir";
+    public static final String VERTEX_OUTPUT_PATH_STR = "vertex_output_path";
     public static final String MESSAGE_COMBINER_CLASS_STR = "message_combiner_class";
     public static final String MASTER_COMPUTE_CLASS_STR = "master_compute_class";
 
@@ -99,6 +100,11 @@ public class ConfigurationUtils {
         }
         else {
             logger.info("No vertex output format subdir specified, output to current dir");
+        }
+        //Vertex output path
+        if (jsonObject.containsKey(VERTEX_OUTPUT_PATH_STR) && !jsonObject.getString(VERTEX_OUTPUT_PATH_STR).isEmpty()){
+            giraphConfiguration.setVertexOutputPath(jsonObject.getString(VERTEX_OUTPUT_PATH_STR));
+            logger.info("Setting output path to: " + jsonObject.getString(VERTEX_OUTPUT_PATH_STR));
         }
 
         if (jsonObject.containsKey(MESSAGE_COMBINER_CLASS_STR) && !jsonObject.getString(MESSAGE_COMBINER_CLASS_STR).isEmpty()){
