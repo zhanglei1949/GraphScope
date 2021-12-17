@@ -18,20 +18,22 @@
 
 package org.apache.giraph.io.formats;
 
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
-
-import org.apache.hadoop.conf.Configuration;
+import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.hadoop.util.ReflectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The text output format used for Giraph text writing.
@@ -39,10 +41,13 @@ import org.apache.hadoop.util.ReflectionUtils;
 public abstract class GiraphTextOutputFormat
     extends TextOutputFormat<Text, Text> {
 
+    private static Logger logger = LoggerFactory.getLogger(GiraphTextOutputFormat.class);
+
+
     /**
      * This function returns a record writer according to provided configuration. Giraph write file
      * to hdfs.
-     *
+     * <p>
      * In Giraph-on-grape, we write to local file system.
      *
      * @param job shall be null.
@@ -53,21 +58,46 @@ public abstract class GiraphTextOutputFormat
     @Override
     public RecordWriter<Text, Text> getRecordWriter(TaskAttemptContext job)
         throws IOException, InterruptedException {
-//        Configuration configuration = job.getConfiguration();
-        /**
-         * In Giraph, they use job meta to determine the default file name.
-         * We here name the file with appClassName + processId + time.
-         */
-//        String defaultFileName = configuration
-//        return new LineRecordWriter<>();
-        return null;
+        String extension = "";
+        ImmutableClassesGiraphConfiguration conf = (ImmutableClassesGiraphConfiguration) job
+            .getConfiguration();
+        String outputFileName = String
+            .join("-", conf.getDefaultWorkerFile(), "frag", String.valueOf(conf.getWorkerId()));
+
+        String subdir = getSubdir();
+        String outputFileFullPath;
+        if (!subdir.isEmpty()) {
+            if (checkDirExits(subdir)) {
+                outputFileFullPath = String.join("/", subdir, outputFileName);
+            } else {
+                logger.error("Sub dir: " + subdir +" doesn't exists, or is not a directory");
+                return null;
+            }
+        } else {
+            outputFileFullPath = String.join("/", System.getProperty("user.dir") , outputFileName);
+        }
+
+        String separator = "\t";
+
+        logger.info("Create record writer destination: " + outputFileFullPath);
+
+        DataOutputStream outputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(outputFileName)));
+        return new LineRecordWriter<Text,Text>(outputStream, separator);
     }
 
     /**
-     * This function is used to provide an additional path level to keep
-     * different text outputs into different directories.
+     * This function is used to provide an additional path level to keep different text outputs into
+     * different directories.
      *
-     * @return  the subdirectory to be created under the output path
+     * @return the subdirectory to be created under the output path
      */
     protected abstract String getSubdir();
+
+    private boolean checkDirExits(String file){
+        File f = new File(file);
+        if (f.exists() && f.isDirectory()){
+            return true;
+        }
+        return false;
+    }
 }

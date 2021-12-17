@@ -23,6 +23,7 @@ import org.apache.giraph.combiner.MessageCombiner;
 import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.graph.Computation;
 import org.apache.giraph.io.VertexInputFormat;
+import org.apache.giraph.io.VertexOutputFormat;
 import org.apache.giraph.master.MasterCompute;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.conf.Configuration;
@@ -98,8 +99,8 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
      *
      * @param vertexInputFormatClass User specified computation class.
      */
-    public final void getVertexInputFormatClass(Class<? extends VertexInputFormat> vertexInputFormatClass){
-        VERTEX_INPUT_FORMAT_CLASS.get(this);
+    public final Class<? extends VertexInputFormat> getVertexInputFormatClass(Class<? extends VertexInputFormat> vertexInputFormatClass){
+       return VERTEX_INPUT_FORMAT_CLASS.get(this);
     }
 
     /**
@@ -110,6 +111,23 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
     public boolean hasVertexOutputFormat() {
         return VERTEX_OUTPUT_FORMAT_CLASS.get(this) != null;
     }
+
+//    /**
+//     * Set vertex output format class.
+//     *
+//     * @param vertexOutputFormatClass User specified computation class.
+//     */
+//    public final void setVertexOutputFormatClass(Class<? extends VertexOutputFormat> vertexOutputFormatClass){
+//        VERTEX_OUTPUT_FORMAT_CLASS.set(this, vertexOutputFormatClass);
+//    }
+
+//    /**
+//     * Set vertex input class.
+//     *
+//     */
+//    public final Class<? extends VertexOutputFormat> getVertexOutputFormatClass(){
+//        return VERTEX_OUTPUT_FORMAT_CLASS.get(this);
+//    }
 
     /**
      * Set the message combiner class (optional)
@@ -127,6 +145,24 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
      */
     public final void setMasterComputeClass(Class<? extends MasterCompute> masterComputeClass) {
         MASTER_COMPUTE_CLASS.set(this, masterComputeClass);
+    }
+
+    /**
+     * Does the job have a {@link VertexOutputFormat} subdir?
+     *
+     * @return True iff a {@link VertexOutputFormat} subdir has been specified.
+     */
+    public boolean hasVertexOutputFormatSubdir() {
+        return !VERTEX_OUTPUT_FORMAT_SUBDIR.get(this).isEmpty();
+    }
+
+    /**
+     * Set the vertex output format path
+     *
+     * @param path path where the vertices will be written
+     */
+    public final void setVertexOutputFormatSubdir(String path) {
+        VERTEX_OUTPUT_FORMAT_SUBDIR.set(this, path);
     }
 
 }

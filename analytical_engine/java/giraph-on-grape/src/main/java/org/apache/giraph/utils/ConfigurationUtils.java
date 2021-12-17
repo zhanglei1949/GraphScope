@@ -32,7 +32,9 @@ public class ConfigurationUtils {
     public static final String APP_CLASS_STR = "app_class";
     public static final String WORKER_CONTEXT_CLASS_STR = "worker_context_class";
 
-    public static final String VERTEX_INPUT_FORMAT_CLASS_STR = "input_format_class";
+    public static final String VERTEX_INPUT_FORMAT_CLASS_STR = "vertex_input_format_class";
+    public static final String VERTEX_OUTPUT_FORMAT_CLASS_STR = "vertex_output_format_class";
+    public static final String VERTEX_OUTPUT_FORMAT_SUBDIR_STR = "vertex_output_format_subdir";
     public static final String MESSAGE_COMBINER_CLASS_STR = "message_combiner_class";
     public static final String MASTER_COMPUTE_CLASS_STR = "master_compute_class";
 
@@ -75,7 +77,28 @@ public class ConfigurationUtils {
             logger.info("Setting vertex input format class: " + jsonObject.getString(VERTEX_INPUT_FORMAT_CLASS_STR));
         }
         else {
-            logger.info("No vertex input class found, using default one.");
+            logger.info("No vertex input format class found, using default one.");
+        }
+
+        //Vertex output format
+        if (jsonObject.containsKey(VERTEX_OUTPUT_FORMAT_CLASS_STR) && !jsonObject.getString(VERTEX_OUTPUT_FORMAT_CLASS_STR).isEmpty()) {
+            giraphConfiguration.setVertexInputFormatClass(
+                (Class<? extends VertexInputFormat>) Class
+                    .forName(jsonObject.getString(VERTEX_INPUT_FORMAT_CLASS_STR))
+            );
+            logger.info("Setting vertex input format class: " + jsonObject.getString(VERTEX_INPUT_FORMAT_CLASS_STR));
+        }
+        else {
+            logger.info("No vertex output format class found, using default one.");
+        }
+
+        //Vertex subdir
+        if (jsonObject.containsKey(VERTEX_OUTPUT_FORMAT_SUBDIR_STR) && !jsonObject.getString(VERTEX_OUTPUT_FORMAT_SUBDIR_STR).isEmpty()){
+            giraphConfiguration.setVertexOutputFormatSubdir(jsonObject.getString(VERTEX_OUTPUT_FORMAT_SUBDIR_STR));
+            logger.info("Setting vertex output format subdir to " + jsonObject.getString(VERTEX_OUTPUT_FORMAT_SUBDIR_STR));
+        }
+        else {
+            logger.info("No vertex output format subdir specified, output to current dir");
         }
 
         if (jsonObject.containsKey(MESSAGE_COMBINER_CLASS_STR) && !jsonObject.getString(MESSAGE_COMBINER_CLASS_STR).isEmpty()){

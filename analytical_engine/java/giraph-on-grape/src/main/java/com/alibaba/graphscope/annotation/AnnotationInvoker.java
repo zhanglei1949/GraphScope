@@ -174,41 +174,40 @@ import javax.lang.model.type.TypeMirror;
                             },
                             include = @CXXHead(GRAPE_FRAGMENT_IMMUTABLE_EDGECUT_FRAGMENT_H)),
                     }),
-//            @FFIGen(
-//                    type = "com.alibaba.graphscope.parallel.DefaultMessageManager",
-//                    functionTemplates = {
-//                        @FFIFunGen(
-//                            name = "sendToImmutableFragment",
-//                            returnType = "void",
-//                            parameterTypes = {"FRAG_T"},
-//                            templates = {
-//                                @CXXTemplate(
-//                                    cxx = {
-//                                        CppClassName.GRAPE_IMMUTABLE_FRAGMENT
-//                                            + "<int64_t,uint64_t,int64_t,double>"
-//                                    },
-//                                    java = {
-//                                        "com.alibaba.graphscope.fragment.ImmutableEdgecutFragment<Long,Long,Long,Double>"
-//                                    }
-//                                )
-//                            }
-//                        ),
-//                        @FFIFunGen(
-//                            name = "getPureMessage",
-//                            returnType = "boolean",
-//                            parameterTypes = {"MSG_T"},
-//                            templates = {
-//                                @CXXTemplate(
-//                                    cxx = {
-//                                        "std::vector<char>"
-//                                    },
-//                                    java = {
-//                                        "com.alibaba.graphscope.stdcxx.FFIByteVector"
-//                                    }
-//                                )
-//                            }
-//                        ),
-//                    }),
+            @FFIGen(
+                    type = "com.alibaba.graphscope.parallel.DefaultMessageManager",
+                    functionTemplates = {
+                        @FFIFunGen(
+                            name = "sendToFragment",
+                            returnType = "void",
+                            parameterTypes = {"MSG_T"},
+                            templates = {
+                                @CXXTemplate(
+                                    cxx = {
+                                        "std::vector<char>"
+                                    },
+                                    java = {
+                                        "com.alibaba.graphscope.stdcxx.FFIByteVector"
+                                    }
+                                )
+                            }
+                        ),
+                        @FFIFunGen(
+                            name = "getMessage",
+                            returnType = "boolean",
+                            parameterTypes = {"MSG_T"},
+                            templates = {
+                                @CXXTemplate(
+                                    cxx = {
+                                        "std::vector<char>"
+                                    },
+                                    java = {
+                                        "com.alibaba.graphscope.stdcxx.FFIByteVector"
+                                    }
+                                )
+                            }
+                        ),
+                    }),
             @FFIGen(
                     type = "com.alibaba.graphscope.communication.FFICommunicator",
                     functionTemplates = {

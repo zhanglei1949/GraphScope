@@ -1,6 +1,8 @@
 package com.alibaba.graphscope.context;
 
 
+import static org.apache.giraph.job.HadoopUtils.makeTaskAttemptContext;
+
 import com.alibaba.fastffi.FFITypeFactory;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.graphscope.app.DefaultContextBase;
@@ -13,6 +15,7 @@ import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.BitSet;
 import java.util.Objects;
 import org.apache.giraph.conf.GiraphConfiguration;
@@ -21,12 +24,15 @@ import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.Communicator;
 import org.apache.giraph.graph.EdgeManager;
+import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexFactory;
 import org.apache.giraph.graph.VertexIdManager;
 import org.apache.giraph.graph.impl.AggregatorManagerImpl;
 import org.apache.giraph.graph.impl.CommunicatorImpl;
 import org.apache.giraph.graph.impl.VertexImpl;
+import org.apache.giraph.io.VertexOutputFormat;
+import org.apache.giraph.io.VertexWriter;
 import org.apache.giraph.master.MasterCompute;
 import org.apache.giraph.utils.ConfigurationUtils;
 import org.apache.giraph.utils.ReflectionUtils;
@@ -221,27 +227,67 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
     @Override
     public void Output(SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> frag) {
         workerContext.postApplication();
+        ImmutableClassesGiraphConfiguration conf = userComputation.getConf();
+        String filePath = conf.getDefaultWorkerFile() + "-frag-" + frag.fid();
+        //Output vertices.
+        if (conf.hasVertexOutputFormat()){
+            VertexOutputFormat vertexOutputFormat = conf.createWrappedVertexOutputFormat();
+            TaskAttemptContext taskAttemptContext = makeTaskAttemptContext(conf);
+            vertexOutputFormat.preWriting(taskAttemptContext);
 
-        //Output with vertexOutputClass
-        //caution: do not use taskAttemptID
-        TaskAttemptContext taskAttemptContext = new TaskAttemptContext(userComputation.getConf(),
-            new TaskAttemptID());
-        String filePath = userComputation.getConf().getDefaultWorkerFile() + "-frag-" + frag.fid();
-        //TODO: remove this debug code
-        try {
-            logger.info("Writing output to: " + filePath);
-            FileWriter fileWritter = new FileWriter(new File(filePath));
-            BufferedWriter bufferedWriter = new BufferedWriter(fileWritter);
-            //DataOutputStream dataOutputStream = new DataOutputStream(out);
-            logger.info("inner vertices: " + innerVerticesNum + frag.innerVertices().size());
-            for (long i = 0; i < innerVerticesNum; ++i) {
-                bufferedWriter.write(
-                    vertexIdManager.getId(i) + "\t" + vertexDataManager.getVertexData(i) + "\n");
+            {
+                try {
+                    VertexWriter vertexWriter = vertexOutputFormat.createVertexWriter(taskAttemptContext);
+
+                    vertexWriter.setConf(conf);
+                    vertexWriter.initialize(taskAttemptContext);
+
+                    //write vertex
+                    Vertex vertex = conf.createVertex();
+                    if (conf.getVertexIdClass().equals(VertexImpl.class)){
+                        logger.info("Cast to vertexImpl to output");
+                        VertexImpl vertexImp = (VertexImpl) vertex;
+                        vertexImp.setVertexIdManager(vertexIdManager);
+                        vertexImp.setVertexDataManager(vertexDataManager);
+                        vertexImp.setEdgeManager(edgeManager);
+                        vertexImp.setConf(conf);
+                        for (long i = 0; i < innerVerticesNum; ++i) {
+                            vertexImp.setLocalId((int)i);
+                            vertexWriter.writeVertex(vertexImp);
+                        }
+                    }
+
+                    vertexWriter.close(taskAttemptContext);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
             }
-            bufferedWriter.close();
-        } catch (Exception e) {
-            logger.error("Exception in writing out: " + e.getMessage());
+
+            vertexOutputFormat.postWriting(taskAttemptContext);
+
+
         }
+        else {
+            logger.info("No vertex output class specified, output using default output logic");
+
+            try {
+                logger.info("Writing output to: " + filePath);
+                FileWriter fileWritter = new FileWriter(new File(filePath));
+                BufferedWriter bufferedWriter = new BufferedWriter(fileWritter);
+                logger.debug("inner vertices: " + innerVerticesNum + frag.innerVertices().size());
+                for (long i = 0; i < innerVerticesNum; ++i) {
+                    bufferedWriter.write(
+                        vertexIdManager.getId(i) + "\t" + vertexDataManager.getVertexData(i) + "\n");
+                }
+                bufferedWriter.close();
+            } catch (Exception e) {
+                logger.error("Exception in writing out: " + e.getMessage());
+            }
+        }
+
     }
 
     public void haltVertex(long lid) {

@@ -29,8 +29,10 @@ static constexpr const char* VERIFY_CLASSES_SIGN =
     "(Ljava/lang/String;Ljava/lang/String;)V";
 
 static constexpr const char* OPTION_LOADING_THREAD_NUM = "loading_thread_num";
-static constexpr const char* OPTION_INPUT_FORMAT_CLASS = "input_format_class";
-static constexpr const char* OPTION_OUTPUT_FORMAT_CLASS = "output_format_class";
+static constexpr const char* OPTION_VERTEX_INPUT_FORMAT_CLASS =
+    "vertex_input_format_class";
+static constexpr const char* OPTION_VERTEX_OUTPUT_FORMAT_CLASS =
+    "vertex_output_format_class";
 static constexpr const char* OPTION_EFILE = "efile";
 static constexpr const char* OPTION_VFILE = "vfile";
 static constexpr const char* OPTION_APP_CLASS = "app_class";

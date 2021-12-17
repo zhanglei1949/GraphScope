@@ -20,6 +20,7 @@ package org.apache.giraph.io.formats;
 
 import java.io.IOException;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.io.VertexOutputFormat;
 import org.apache.giraph.io.VertexWriter;
@@ -59,12 +60,13 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
     @Override
     public void checkOutputSpecs(JobContext context)
         throws IOException, InterruptedException {
+        throw new NotImplementedException();
     }
 
     @Override
     public OutputCommitter getOutputCommitter(TaskAttemptContext context)
         throws IOException, InterruptedException {
-        return null;
+        throw new NotImplementedException();
     }
 
     /**
@@ -114,8 +116,7 @@ public abstract class TextVertexOutputFormat<I extends WritableComparable,
          */
         protected RecordWriter<Text, Text> createLineRecordWriter(
             TaskAttemptContext context) throws IOException, InterruptedException {
-//            return textOutputFormat.getRecordWriter(context);
-            return null;
+            return textOutputFormat.getRecordWriter(context);
         }
 
         @Override

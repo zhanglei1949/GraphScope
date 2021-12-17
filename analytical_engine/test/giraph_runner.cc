@@ -13,8 +13,8 @@
 
 #include "grape/config.h"
 
-DEFINE_string(input_format_class, "", "java class defines the input format");
-DEFINE_string(output_format_class, "", "java class defines the output format");
+DEFINE_string(vertex_input_format_class, "", "java class defines the input format");
+DEFINE_string(vertex_output_format_class, "", "java class defines the output format");
 DEFINE_string(app_class, "", "app class to run");
 DEFINE_string(input_vfile, "", "input vertex file");
 DEFINE_string(input_efile, "", "input edge file");
@@ -62,8 +62,8 @@ typedef void* RunT(std::string args);
 // put all flags in a json str
 std::string flags2JsonStr() {
   boost::property_tree::ptree pt;
-  pt.put("input_format_class", FLAGS_input_format_class);
-  pt.put("output_format_class", FLAGS_output_format_class);
+  pt.put("vertex_input_format_class", FLAGS_input_format_class);
+  pt.put("vertex_output_format_class", FLAGS_output_format_class);
   pt.put("app_class", FLAGS_app_class);
   pt.put("input_vfile", FLAGS_input_vfile);
   pt.put("input_efile", FLAGS_input_efile);

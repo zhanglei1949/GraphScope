@@ -26,6 +26,7 @@ import org.apache.giraph.factories.MessageValueFactory;
 import org.apache.giraph.graph.Computation;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.io.VertexOutputFormat;
+import org.apache.giraph.io.internal.WrappedVertexOutputFormat;
 import org.apache.giraph.master.MasterCompute;
 import org.apache.giraph.master.SuperstepClasses;
 import org.apache.giraph.utils.ReflectionUtils;
@@ -50,6 +51,8 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
     private final GiraphClasses classes;
     /** holder for grape fragment class types */
     private final GrapeTypes grapeClasses;
+    private int workerId;
+    private int workerNum;
 
     private static String DEFAULT_WORKER_FILE_PREFIX= "giraph-on-grape";
 
@@ -58,6 +61,8 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
         super(configuration);
         classes = new GiraphClasses<I,V,E>(configuration);
         grapeClasses = new GrapeTypes(fragment);
+        workerId = fragment.fid();
+        workerNum = fragment.fnum();
     }
 
     /**
@@ -92,6 +97,31 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
     public boolean hasVertexOutputFormat() {
         return classes.hasVertexOutputFormat();
     }
+
+    /**
+     * Create a wrapper for user vertex output format,
+     * which makes sure that Configuration parameters are set properly in all
+     * methods related to this format.
+     *
+     * @return Wrapper around user vertex output format
+     */
+    public WrappedVertexOutputFormat<I, V, E> createWrappedVertexOutputFormat() {
+        WrappedVertexOutputFormat<I, V, E> wrappedVertexOutputFormat =
+            new WrappedVertexOutputFormat<I, V, E>(createVertexOutputFormat());
+        configureIfPossible(wrappedVertexOutputFormat);
+        return wrappedVertexOutputFormat;
+    }
+
+//    /**
+//     * Get the user's subclassed
+//     * {@link org.apache.giraph.io.VertexOutputFormat}.
+//     *
+//     * @return User's vertex output format class
+//     */
+//    public Class<? extends VertexOutputFormat<I, V, E>>
+//    getVertexOutputFormatClass() {
+//        return classes.getVertexOutputFormatClass();
+//    }
 
     /**
      * Get the user's subclassed
@@ -316,5 +346,13 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
      */
     public MasterCompute createMasterCompute() {
         return ReflectionUtils.newInstance(getMasterComputeClass(), this);
+    }
+
+    public int getWorkerId(){
+        return workerId;
+    }
+
+    public int getWorkerNum(){
+        return workerNum;
     }
 }

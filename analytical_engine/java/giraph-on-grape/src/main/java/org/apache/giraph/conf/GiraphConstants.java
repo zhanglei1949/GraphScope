@@ -40,7 +40,12 @@ public interface GiraphConstants {
         ClassConfOption.create("giraph.vertexInputFormatClass", null,
             VertexInputFormat.class, "VertexInputFormat class");
 
-    /** vertexOutputFormat sub-directory */
+    /** vertexOutputFormat sub-directory
+     * In Giraph, the output is to hdfs, they use the parent directory of default parent directory,
+     * and use sub directory as sub.
+     *
+     * In our project, we deem this configuration as ABSOLUTE path.
+     * */
     StrConfOption VERTEX_OUTPUT_FORMAT_SUBDIR =
         new StrConfOption("giraph.vertex.output.subdir", "",
             "VertexOutputFormat sub-directory");

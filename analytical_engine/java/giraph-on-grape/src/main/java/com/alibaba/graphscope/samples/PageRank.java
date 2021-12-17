@@ -21,30 +21,20 @@ package com.alibaba.graphscope.samples;
 //import org.apache.giraph.aggregators.DoubleMaxAggregator;
 //import org.apache.giraph.aggregators.DoubleMinAggregator;
 //import org.apache.giraph.aggregators.LongSumAggregator;
+
+import java.io.IOException;
 import org.apache.giraph.aggregators.DoubleMaxAggregator;
 import org.apache.giraph.aggregators.DoubleMinAggregator;
 import org.apache.giraph.aggregators.LongSumAggregator;
-import org.apache.giraph.edge.Edge;
-import org.apache.giraph.edge.EdgeFactory;
 import org.apache.giraph.graph.BasicComputation;
 import org.apache.giraph.graph.Vertex;
-import org.apache.giraph.io.VertexReader;
-//import org.apache.giraph.io.formats.GeneratedVertexInputFormat;
 import org.apache.giraph.io.formats.TextVertexOutputFormat;
-//import org.apache.giraph.master.DefaultMasterCompute;
 import org.apache.giraph.master.DefaultMasterCompute;
 import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-
-import com.google.common.collect.Lists;
-
-import java.io.IOException;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,16 +43,27 @@ import org.slf4j.LoggerFactory;
  */
 public class PageRank extends BasicComputation<LongWritable,
     DoubleWritable, DoubleWritable, DoubleWritable> {
-    /** Number of supersteps for this test */
+
+    /**
+     * Number of supersteps for this test
+     */
     public static final int MAX_SUPERSTEPS = 5;
-    /** Logger */
+    /**
+     * Logger
+     */
     private static final Logger LOG =
         LoggerFactory.getLogger(PageRank.class);
-    /** Sum aggregator name */
+    /**
+     * Sum aggregator name
+     */
     private static String SUM_AGG = "sum";
-    /** Min aggregator name */
+    /**
+     * Min aggregator name
+     */
     private static String MIN_AGG = "min";
-    /** Max aggregator name */
+    /**
+     * Max aggregator name
+     */
     private static String MAX_AGG = "max";
 
     @Override
@@ -72,7 +73,7 @@ public class PageRank extends BasicComputation<LongWritable,
         if (getSuperstep() >= 1) {
             double sum = 0;
             for (DoubleWritable message : messages) {
-                LOG.info("vertex: " + vertex.getId()  + " Receive msg: " + message.get());
+                LOG.debug("vertex: " + vertex.getId() + " Receive msg: " + message.get());
                 sum += message.get();
             }
             DoubleWritable vertexValue =
@@ -85,14 +86,17 @@ public class PageRank extends BasicComputation<LongWritable,
 
         if (getSuperstep() < MAX_SUPERSTEPS) {
             long edges = vertex.getNumEdges();
-            if (edges > 0){
+            if (edges > 0) {
                 sendMessageToAllEdges(vertex,
                     new DoubleWritable(vertex.getValue().get() / edges));
-                LOG.info("vertex: " + vertex.getId() + "set to other vertices num: " + edges + " value: " + vertex.getValue());
-            }
-            else {
-                sendMessageToAllEdges(vertex, new DoubleWritable(1.0/ getTotalNumVertices()));
-                LOG.info("vertex: " + vertex.getId() + "set to other vertices num: " + edges + " base: " + 1.0 / getTotalNumVertices());
+                LOG.debug(
+                    "vertex: " + vertex.getId() + "set to other vertices num: " + edges + " value: "
+                        + vertex.getValue());
+            } else {
+                sendMessageToAllEdges(vertex, new DoubleWritable(1.0 / getTotalNumVertices()));
+                LOG.debug(
+                    "vertex: " + vertex.getId() + "set to other vertices num: " + edges + " base: "
+                        + 1.0 / getTotalNumVertices());
             }
 
         } else {
@@ -105,11 +109,18 @@ public class PageRank extends BasicComputation<LongWritable,
      */
     public static class SimplePageRankWorkerContext extends
         WorkerContext {
-        /** Final max value for verification for local jobs */
+
+        /**
+         * Final max value for verification for local jobs
+         */
         private static double FINAL_MAX;
-        /** Final min value for verification for local jobs */
+        /**
+         * Final min value for verification for local jobs
+         */
         private static double FINAL_MIN;
-        /** Final sum value for verification for local jobs */
+        /**
+         * Final sum value for verification for local jobs
+         */
         private static long FINAL_SUM;
 
         public static double getFinalMax() {
@@ -160,21 +171,48 @@ public class PageRank extends BasicComputation<LongWritable,
         }
 
         @Override
-        public void postSuperstep() { }
+        public void postSuperstep() {
+        }
     }
 
     /**
-     * Master compute associated with {@link PageRank}.
-     * It registers required aggregators.
+     * Master compute associated with {@link PageRank}. It registers required aggregators.
      */
     public static class SimplePageRankMasterCompute extends
         DefaultMasterCompute {
+
         @Override
         public void initialize() throws InstantiationException,
             IllegalAccessException {
             registerAggregator(SUM_AGG, LongSumAggregator.class);
             registerPersistentAggregator(MIN_AGG, DoubleMinAggregator.class);
             registerPersistentAggregator(MAX_AGG, DoubleMaxAggregator.class);
+        }
+    }
+
+    /**
+     * Simple VertexOutputFormat that supports {@link PageRank}
+     */
+    public static class SimplePageRankVertexOutputFormat extends
+        TextVertexOutputFormat<LongWritable, DoubleWritable, DoubleWritable> {
+        @Override
+        public TextVertexWriter createVertexWriter(TaskAttemptContext context)
+            throws IOException, InterruptedException {
+            return new SimplePageRankVertexWriter();
+        }
+
+        /**
+         * Simple VertexWriter that supports {@link PageRank}
+         */
+        public class SimplePageRankVertexWriter extends TextVertexWriter {
+            @Override
+            public void writeVertex(
+                Vertex<LongWritable, DoubleWritable, DoubleWritable> vertex)
+                throws IOException, InterruptedException {
+                getRecordWriter().write(
+                    new Text(vertex.getId().toString()),
+                    new Text(vertex.getValue().toString()));
+            }
         }
     }
 
