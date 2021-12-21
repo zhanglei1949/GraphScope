@@ -6,6 +6,8 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.apache.giraph.comm.netty.NettyClient;
+import org.apache.giraph.comm.requests.AggregatorMessage;
+import org.apache.giraph.comm.requests.NettyMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,10 +43,15 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
     public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         // Server is supposed to send nothing, but if it sends something, discard it.
         logger.info("Client receive msg from server");
-        if (msg instanceof ByteBuf) {
-            ByteBuf buf = (ByteBuf) msg;
-            int response = buf.readInt();
-            logger.info("response: " + response);
+        if (msg instanceof NettyMessage) {
+            NettyMessage message = (NettyMessage) msg;
+            if (message instanceof AggregatorMessage) {
+                AggregatorMessage aggregatorMessage = (AggregatorMessage) message;
+                logger.info("client: aggregator message: " + aggregatorMessage.getMessageType().name());
+            }
+            else {
+                logger.error("not a aggregator message");
+            }
         } else {
             logger.error("Expect a byte buffer");
         }

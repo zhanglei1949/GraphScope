@@ -41,8 +41,11 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
             NettyMessage message = (NettyMessage) msg;
             if (message instanceof AggregatorMessage) {
                 AggregatorMessage aggregatorMessage = (AggregatorMessage) message;
-                logger.info("aggregator message: " + aggregatorMessage.getMessageType().name());
+                logger.info("server: aggregator message: " + aggregatorMessage.getMessageType().name());
                 aggregatorManager.acceptAggregatorMessage(aggregatorMessage);
+            }
+            else {
+                logger.error("Not a aggregator message");
             }
         } else {
             logger.error("Expect a netty message.");
