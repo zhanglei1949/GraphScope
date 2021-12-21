@@ -12,10 +12,15 @@ import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.GiraphMessageManager;
 import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
+import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
+import com.alibaba.graphscope.stdcxx.FFIByteVector;
+import com.alibaba.graphscope.stdcxx.FFIByteVectorFactory;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.BitSet;
 import java.util.Objects;
 import org.apache.giraph.conf.GiraphConfiguration;
@@ -29,6 +34,7 @@ import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexFactory;
 import org.apache.giraph.graph.VertexIdManager;
 import org.apache.giraph.graph.impl.AggregatorManagerImpl;
+import org.apache.giraph.graph.impl.AggregatorManagerNettyImpl;
 import org.apache.giraph.graph.impl.CommunicatorImpl;
 import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.giraph.io.VertexOutputFormat;
@@ -72,6 +78,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
      * hold it.
      */
     private Communicator communicator;
+    private FFICommunicator ffiCommunicator;
 
     /**
      * Manages the vertex original id.
@@ -191,7 +198,11 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
         userComputation.setGiraphMessageManager(giraphMessageManager);
 
         /** Aggregator manager, manages aggregation, reduce, broadcast */
-        aggregatorManager = new AggregatorManagerImpl(conf, frag.fid(), frag.fnum());
+
+//        String masterWorkerIp = getMasterWorkerIp(frag.fid(), frag.fnum());
+
+//        aggregatorManager = new AggregatorManagerImpl(conf, frag.fid(), frag.fnum());
+        aggregatorManager = new AggregatorManagerNettyImpl(conf, frag.fid(), frag.fnum());
         userComputation.setAggregatorManager(aggregatorManager);
         workerContext.setAggregatorManager(aggregatorManager);
 
@@ -340,4 +351,6 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> imp
             ConfigurationUtils.checkTypeConsistency(configuration.getGrapeVdataClass(),
                 configuration.getVertexValueClass());
     }
+
+
 }

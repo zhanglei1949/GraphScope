@@ -56,6 +56,7 @@
     <odps.sdk.version>0.36.4</odps.sdk.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j-api.version>1.7.25</slf4j-api.version>
+    <dep.netty.version>4.1.36.Final</dep.netty.version>
   </properties>
   <dependencyManagement>
     <dependencies>

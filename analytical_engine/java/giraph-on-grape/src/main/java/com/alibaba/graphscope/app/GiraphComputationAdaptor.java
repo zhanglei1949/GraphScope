@@ -61,7 +61,7 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Comm
         /** In c++ PEVal, we initialized this class' parent class: Communicator, now we set to
          * aggregator manager.
          */
-        ctx.getAggregatorManager().setFFICommunicator(getFFICommunicator());
+        ctx.getAggregatorManager().init(getFFICommunicator());
 
         AbstractComputation userComputation = ctx
             .getUserComputation();
