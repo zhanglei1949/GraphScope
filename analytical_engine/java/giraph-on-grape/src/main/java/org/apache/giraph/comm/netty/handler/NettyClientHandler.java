@@ -31,12 +31,22 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        //content.release();
+        logger.info("channelClosed: Closed the channel on " +
+            ctx.channel().remoteAddress());
+
+        ctx.fireChannelInactive();
     }
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         // Server is supposed to send nothing, but if it sends something, discard it.
+        if (msg instanceof ByteBuf) {
+            ByteBuf buf = (ByteBuf) msg;
+            int response = buf.readInt();
+            logger.info("response: " + response);
+        } else {
+            logger.error("Expect a byte buffer");
+        }
     }
 
     @Override
@@ -58,8 +68,8 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
         @Override
         public void operationComplete(ChannelFuture future) {
             if (future.isSuccess()) {
-                    //generateTraffic();
-                    logger.info("successfully send msg times: " + counter);
+                //generateTraffic();
+                logger.info("successfully send msg times: " + counter);
             } else {
                 future.cause().printStackTrace();
                 future.channel().close();

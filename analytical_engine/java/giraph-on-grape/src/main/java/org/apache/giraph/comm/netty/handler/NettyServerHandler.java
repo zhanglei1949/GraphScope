@@ -15,6 +15,7 @@
  */
 package org.apache.giraph.comm.netty.handler;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.apache.hadoop.io.DoubleWritable;
@@ -49,6 +50,10 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
         else {
             logger.error("Expect a writable instance.");
         }
+        // Send the response with the request id
+        ByteBuf buffer = ctx.alloc().buffer(4);
+        buffer.writeInt(1);
+        ctx.write(buffer);
     }
 
     @Override
