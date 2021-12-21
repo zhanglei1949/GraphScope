@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
  */
 public class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
 
-    private ByteBuf content;
+//    private ByteBuf content;
     private ChannelHandlerContext ctx;
     private static Logger logger = LoggerFactory.getLogger(NettyClientHandler.class);
 
@@ -23,10 +23,10 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
         this.ctx = ctx;
 
         // Initialize the message.
-        content = ctx.alloc().directBuffer(NettyClient.SIZE).writeZero(NettyClient.SIZE);
+        //content = ctx.alloc().directBuffer(NettyClient.SIZE).writeZero(NettyClient.SIZE);
 
         // Send the initial messages.
-        generateTraffic();
+        //generateTraffic();
     }
 
     @Override
@@ -57,20 +57,12 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
         ctx.close();
     }
 
-    long counter;
-
-    private void generateTraffic() {
-        // Flush the outbound buffer to the socket.
-        // Once flushed, generate the same amount of traffic again.
-        ctx.writeAndFlush(content.retainedDuplicate()).addListener(trafficGenerator);
-    }
-
     private final ChannelFutureListener trafficGenerator = new ChannelFutureListener() {
         @Override
         public void operationComplete(ChannelFuture future) {
             if (future.isSuccess()) {
                 //generateTraffic();
-                logger.info("successfully send msg times: " + counter);
+                logger.info("successfully send msg times: ");
             } else {
                 future.cause().printStackTrace();
                 future.channel().close();
