@@ -19,8 +19,9 @@
 package org.apache.giraph.comm.netty;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -32,7 +33,6 @@ import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.handler.NettyServerHandler;
 import org.apache.giraph.comm.netty.handler.RequestDecoder;
 import org.apache.giraph.comm.netty.handler.RequestEncoder;
-import org.apache.giraph.conf.GiraphConstants;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.utils.ThreadUtils;
 import org.slf4j.Logger;
@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
  * This server uses Netty and will implement all Giraph communication
  */
 public class NettyServer {
+
     private static Logger logger = LoggerFactory.getLogger(NettyServer.class);
 
 
@@ -54,7 +55,7 @@ public class NettyServer {
      */
     private final EventLoopGroup workerGroup;
     private int maxPoolSize;
-    private ChannelFuture channelFuture;
+    private Channel channel;
     private ImmutableClassesGiraphConfiguration conf;
 
     public NettyServer(ImmutableClassesGiraphConfiguration conf, WorkerInfo workerInfo,
@@ -73,6 +74,8 @@ public class NettyServer {
                 "netty-server-worker-%d", exceptionHandler));
         try {
             ServerBootstrap b = new ServerBootstrap();
+            b.childOption(ChannelOption.SO_KEEPALIVE, true);
+            b.childOption(ChannelOption.TCP_NODELAY, true);
             b.group(bossGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))
@@ -87,7 +90,7 @@ public class NettyServer {
                 });
 
             // Bind and start to accept incoming connections.
-            channelFuture = b.bind(workerInfo.getInitPort()).sync();
+            channel = b.bind(workerInfo.getInitPort()).sync().channel();
 
             // Wait until the server socket is closed.
             // In this example, this does not happen, but you can do that to gracefully
@@ -99,11 +102,16 @@ public class NettyServer {
         }
     }
 
-    public void close(){
-	logger.info("closing server");
+    public void close() {
+        try {
+            channel.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        logger.info("closing server");
         workerGroup.shutdownGracefully();
         bossGroup.shutdownGracefully();
-	logger.info("close thread groups");
+        logger.info("close thread groups");
         //try {
         //    channelFuture.channel().closeFuture().sync();
         //} catch (InterruptedException e) {

@@ -1,13 +1,16 @@
 package org.apache.giraph.comm.netty;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import java.util.Objects;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.handler.NettyClientHandler;
 import org.apache.giraph.comm.netty.handler.RequestDecoder;
@@ -33,7 +36,8 @@ public class NettyClient {
 
     private WorkerInfo workerInfo;
     private EventLoopGroup workGroup;
-    private ChannelFuture channelFuture;
+//    private ChannelFuture channelFuture;
+    private Channel channel;
     private ImmutableClassesGiraphConfiguration conf;
 
     public NettyClient(ImmutableClassesGiraphConfiguration conf, WorkerInfo workerInfo,
@@ -46,6 +50,8 @@ public class NettyClient {
                 "netty-client-worker-%d", exceptionHandler));
         try {
             Bootstrap b = new Bootstrap();
+            b.option(ChannelOption.SO_KEEPALIVE,true);
+            b.option(ChannelOption.TCP_NODELAY, true);
             b.group(workGroup)
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<SocketChannel>() {
@@ -59,7 +65,7 @@ public class NettyClient {
                 });
 
             // Make the connection attempt.
-            channelFuture = b.connect(workerInfo.getHost(), workerInfo.getInitPort()).sync();
+            channel = b.connect(workerInfo.getHost(), workerInfo.getInitPort()).sync().channel();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -70,6 +76,14 @@ public class NettyClient {
     }
 
     public void close(){
+        try {
+            if (!Objects.isNull(channel)){
+                channel.close();
+            }
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
         workGroup.shutdownGracefully();
 //        try {
 //            channelFuture.channel().closeFuture().sync();
