@@ -65,7 +65,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
         String[] res = getMasterWorkerIp(workerId, workerNum);
         if (workerId == 0) {
             this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(), res);
-            server = new NettyServer(workerInfo, new UncaughtExceptionHandler() {
+            server = new NettyServer(conf, workerInfo, new UncaughtExceptionHandler() {
                 @Override
                 public void uncaughtException(Thread t, Throwable e) {
                     logger.error(t.getId() + ": " + e.toString());
@@ -74,7 +74,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
         }
         else {
             this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(), res);
-            client = new NettyClient(workerInfo, new UncaughtExceptionHandler() {
+            client = new NettyClient(conf, workerInfo, new UncaughtExceptionHandler() {
                 @Override
                 public void uncaughtException(Thread t, Throwable e) {
                     logger.error(t.getId() + ": " + e.toString());

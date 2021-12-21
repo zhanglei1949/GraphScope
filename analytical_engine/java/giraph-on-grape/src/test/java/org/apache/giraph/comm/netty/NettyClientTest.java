@@ -1,9 +1,12 @@
 package org.apache.giraph.comm.netty;
 
+import static org.mockito.Mockito.mock;
+
 import java.lang.Thread.UncaughtExceptionHandler;
 import org.apache.giraph.comm.WorkerInfo;
+import org.apache.giraph.comm.requests.SimpleWritableRequest;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
-import org.apache.giraph.graph.impl.AggregatorManagerNettyImpl;
+import org.apache.hadoop.io.LongWritable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,16 +21,19 @@ public class NettyClientTest {
     private ImmutableClassesGiraphConfiguration configuration;
     private WorkerInfo workerInfo;
 
+
     @Before
     public void prepare(){
+        ImmutableClassesGiraphConfiguration conf = mock(ImmutableClassesGiraphConfiguration.class);
+//        when(conf.)
         workerInfo = new WorkerInfo(0,1, "0.0.0.0", 30000, null);
-        server = new NettyServer(workerInfo, new UncaughtExceptionHandler() {
+        server = new NettyServer(conf, workerInfo, new UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
                 logger.error(t.getId() + ": " + e.toString());
             }
         });
-        client = new NettyClient(workerInfo, new UncaughtExceptionHandler() {
+        client = new NettyClient(conf,workerInfo, new UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
                 logger.error(t.getId() + ": " + e.toString());
@@ -37,7 +43,10 @@ public class NettyClientTest {
 
     @Test
     public void test(){
-        client.sendMessage();
+        for (int i = 0; i < 10; ++i){
+            SimpleWritableRequest writable = new SimpleWritableRequest(new LongWritable(i));
+            client.sendMessage(writable);
+        }
     }
 
     @After

@@ -93,6 +93,7 @@ public class RequestEncoder extends ChannelOutboundHandlerAdapter {
         output.close();
 
         // Set the correct size at the end
+        logger.info("number of bytes: "+ (buf.writerIndex() - SIZE_OF_INT));
         buf.setInt(0, buf.writerIndex() - SIZE_OF_INT);
         if (logger.isDebugEnabled()) {
             logger.debug("write: Client " + request.getClientId() + ", " +

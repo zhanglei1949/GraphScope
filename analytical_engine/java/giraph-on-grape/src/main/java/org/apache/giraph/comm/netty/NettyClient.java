@@ -10,6 +10,9 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.handler.NettyClientHandler;
+import org.apache.giraph.comm.netty.handler.RequestDecoder;
+import org.apache.giraph.comm.netty.handler.RequestEncoder;
+import org.apache.giraph.comm.requests.WritableRequest;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.utils.ThreadUtils;
 import org.slf4j.Logger;
@@ -31,10 +34,12 @@ public class NettyClient {
     private WorkerInfo workerInfo;
     private EventLoopGroup workGroup;
     private ChannelFuture channelFuture;
+    private ImmutableClassesGiraphConfiguration conf;
 
-    public NettyClient( WorkerInfo workerInfo,
+    public NettyClient(ImmutableClassesGiraphConfiguration conf, WorkerInfo workerInfo,
         final Thread.UncaughtExceptionHandler exceptionHandler) {
         this.workerInfo = workerInfo;
+        this.conf = conf;
 
         workGroup = new NioEventLoopGroup(4,
             ThreadUtils.createThreadFactory(
@@ -47,6 +52,8 @@ public class NettyClient {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline p = ch.pipeline();
+                        p.addLast(new RequestEncoder(conf));
+                        p.addLast(new RequestDecoder(conf));
                         p.addLast(new NettyClientHandler());
                     }
                 });
@@ -58,7 +65,7 @@ public class NettyClient {
         }
     }
 
-    public void sendMessage(){
+    public void sendMessage(WritableRequest request){
 
     }
 

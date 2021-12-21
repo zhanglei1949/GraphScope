@@ -76,6 +76,8 @@ public class RequestDecoder extends ChannelInboundHandlerAdapter {
 
         // Decode the request
         ByteBuf buf = (ByteBuf) msg;
+        int numberOfBytes =buf.readInt();
+        logger.info("Number of bytes: " + numberOfBytes);
         int enumValue = buf.readByte();
         RequestType type = RequestType.values()[enumValue];
         Class<? extends WritableRequest> requestClass = type.getRequestClass();

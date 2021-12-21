@@ -17,15 +17,38 @@ package org.apache.giraph.comm.netty.handler;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Writable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handles a server-side channel.
  */
 public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
+    private static Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         // discard
+        if (msg instanceof Writable){
+            Writable writable = (Writable) msg;
+            if (writable instanceof LongWritable){
+                LongWritable longWritable = (LongWritable) writable;
+                logger.info("Received msg: " + longWritable.get());
+            }
+            else if (writable instanceof DoubleWritable){
+                DoubleWritable doubleWritable = (DoubleWritable) writable;
+                logger.info("Received msg: " + doubleWritable.get());
+            }
+            else {
+                logger.error("Not allowed type");
+            }
+        }
+        else {
+            logger.error("Expect a writable instance.");
+        }
     }
 
     @Override

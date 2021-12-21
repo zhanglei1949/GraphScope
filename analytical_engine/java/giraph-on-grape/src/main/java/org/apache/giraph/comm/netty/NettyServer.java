@@ -30,6 +30,8 @@ import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.handler.NettyServerHandler;
+import org.apache.giraph.comm.netty.handler.RequestDecoder;
+import org.apache.giraph.comm.netty.handler.RequestEncoder;
 import org.apache.giraph.conf.GiraphConstants;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.utils.ThreadUtils;
@@ -53,9 +55,11 @@ public class NettyServer {
     private final EventLoopGroup workerGroup;
     private int maxPoolSize;
     private ChannelFuture channelFuture;
+    private ImmutableClassesGiraphConfiguration conf;
 
-    public NettyServer( WorkerInfo workerInfo,
+    public NettyServer(ImmutableClassesGiraphConfiguration conf, WorkerInfo workerInfo,
         final Thread.UncaughtExceptionHandler exceptionHandler) {
+        this.conf = conf;
 
 //        maxPoolSize = GiraphConstants.NETTY_SERVER_THREADS.get(conf);
         maxPoolSize = 4;
@@ -76,6 +80,8 @@ public class NettyServer {
                     @Override
                     public void initChannel(SocketChannel ch) {
                         ChannelPipeline p = ch.pipeline();
+                        p.addLast(new RequestEncoder(conf));
+                        p.addLast(new RequestDecoder(conf));
                         p.addLast(new NettyServerHandler());
                     }
                 });

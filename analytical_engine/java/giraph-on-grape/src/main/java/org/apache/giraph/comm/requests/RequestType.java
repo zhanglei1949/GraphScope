@@ -1,7 +1,7 @@
 package org.apache.giraph.comm.requests;
 
 public enum RequestType {
-    SIMPLE_WRITABLE(SimpleWritable.class);
+    SIMPLE_WRITABLE(SimpleWritableRequest.class);
 
     private Class<? extends WritableRequest> requestClass;
 private    RequestType(Class<? extends WritableRequest> clz){
