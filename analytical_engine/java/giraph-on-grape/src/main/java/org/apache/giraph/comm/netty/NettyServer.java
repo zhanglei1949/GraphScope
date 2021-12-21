@@ -19,21 +19,26 @@
 package org.apache.giraph.comm.netty;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.util.concurrent.ImmediateEventExecutor;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.handler.NettyServerHandler;
-import org.apache.giraph.comm.netty.handler.RequestDecoder;
-import org.apache.giraph.comm.netty.handler.RequestEncoder;
+import org.apache.giraph.comm.requests.NettyMessageDecoder;
+import org.apache.giraph.comm.requests.NettyMessageEncoder;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
+import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.utils.ThreadUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,17 +60,22 @@ public class NettyServer {
      */
     private final EventLoopGroup workerGroup;
     private int maxPoolSize;
-    private Channel channel;
     private ImmutableClassesGiraphConfiguration conf;
+    /**
+     * Accepted channels
+     */
+    private final ChannelGroup accepted = new DefaultChannelGroup(
+        ImmediateEventExecutor.INSTANCE);
 
-    public NettyServer(ImmutableClassesGiraphConfiguration conf, WorkerInfo workerInfo,
+    public NettyServer(ImmutableClassesGiraphConfiguration conf,
+        AggregatorManager aggregatorManager, WorkerInfo workerInfo,
         final Thread.UncaughtExceptionHandler exceptionHandler) {
         this.conf = conf;
 
 //        maxPoolSize = GiraphConstants.NETTY_SERVER_THREADS.get(conf);
-        maxPoolSize = 4;
+        maxPoolSize = 1;
 
-        bossGroup = new NioEventLoopGroup(4,
+        bossGroup = new NioEventLoopGroup(1,
             ThreadUtils.createThreadFactory(
                 "netty-server-boss-%d", exceptionHandler));
 
@@ -83,14 +93,23 @@ public class NettyServer {
                     @Override
                     public void initChannel(SocketChannel ch) {
                         ChannelPipeline p = ch.pipeline();
-                        p.addLast(new RequestEncoder(conf));
-                        p.addLast(new RequestDecoder(conf));
-                        p.addLast(new NettyServerHandler());
+                        p.addLast(new ChannelInboundHandlerAdapter() {
+                            @Override
+                            public void channelActive(ChannelHandlerContext ctx)
+                                throws Exception {
+                                accepted.add(ctx.channel());
+                                ctx.fireChannelActive();
+                            }
+                        });
+                        p.addLast(new NettyMessageEncoder());
+                        p.addLast(new NettyMessageDecoder());
+                        p.addLast(new NettyServerHandler(aggregatorManager));
                     }
                 });
 
             // Bind and start to accept incoming connections.
-            channel = b.bind(workerInfo.getInitPort()).sync().channel();
+//            channel = ;
+            accepted.add(b.bind(workerInfo.getInitPort()).sync().channel());
 
             // Wait until the server socket is closed.
             // In this example, this does not happen, but you can do that to gracefully
@@ -104,7 +123,7 @@ public class NettyServer {
 
     public void close() {
         try {
-            channel.close();
+            accepted.close();
         } catch (Exception e) {
             e.printStackTrace();
         }

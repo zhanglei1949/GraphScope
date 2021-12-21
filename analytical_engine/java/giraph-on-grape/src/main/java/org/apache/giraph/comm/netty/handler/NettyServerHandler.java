@@ -15,13 +15,11 @@
  */
 package org.apache.giraph.comm.netty.handler;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import org.apache.giraph.comm.requests.SimpleLongWritableRequest;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Writable;
+import org.apache.giraph.comm.requests.AggregatorMessage;
+import org.apache.giraph.comm.requests.NettyMessage;
+import org.apache.giraph.graph.AggregatorManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,21 +27,26 @@ import org.slf4j.LoggerFactory;
  * Handles a server-side channel.
  */
 public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
+
     private static Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
+    private AggregatorManager aggregatorManager;
+
+    public NettyServerHandler(AggregatorManager aggregatorManager) {
+        this.aggregatorManager = aggregatorManager;
+    }
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if(msg instanceof SimpleLongWritableRequest){
-            SimpleLongWritableRequest longWritableRequest = (SimpleLongWritableRequest) msg;
-            logger.info("receive msg: " + ((SimpleLongWritableRequest<?, ?, ?>) msg).writable.get());
+        if (msg instanceof NettyMessage) {
+            NettyMessage message = (NettyMessage) msg;
+            if (message instanceof AggregatorMessage) {
+                AggregatorMessage aggregatorMessage = (AggregatorMessage) message;
+                logger.info("aggregator message: " + aggregatorMessage.getMessageType().name());
+                aggregatorManager.acceptAggregatorMessage(aggregatorMessage);
+            }
+        } else {
+            logger.error("Expect a netty message.");
         }
-        else {
-            logger.error("Expect a writable instance.");
-        }
-        // Send the response with the request id
-        ByteBuf buffer = ctx.alloc().buffer(4);
-        buffer.writeInt(1);
-        ctx.write(buffer);
     }
 
     @Override

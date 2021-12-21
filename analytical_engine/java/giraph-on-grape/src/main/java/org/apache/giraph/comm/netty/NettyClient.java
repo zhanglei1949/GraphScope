@@ -13,9 +13,9 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import java.util.Objects;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.handler.NettyClientHandler;
-import org.apache.giraph.comm.netty.handler.RequestDecoder;
-import org.apache.giraph.comm.netty.handler.RequestEncoder;
-import org.apache.giraph.comm.requests.WritableRequest;
+import org.apache.giraph.comm.requests.NettyMessage;
+import org.apache.giraph.comm.requests.NettyMessageDecoder;
+import org.apache.giraph.comm.requests.NettyMessageEncoder;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.utils.ThreadUtils;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class NettyClient {
 
     private WorkerInfo workerInfo;
     private EventLoopGroup workGroup;
-//    private ChannelFuture channelFuture;
+    //    private ChannelFuture channelFuture;
     private Channel channel;
     private ImmutableClassesGiraphConfiguration conf;
 
@@ -45,12 +45,12 @@ public class NettyClient {
         this.workerInfo = workerInfo;
         this.conf = conf;
 
-        workGroup = new NioEventLoopGroup(4,
+        workGroup = new NioEventLoopGroup(1,
             ThreadUtils.createThreadFactory(
                 "netty-client-worker-%d", exceptionHandler));
         try {
             Bootstrap b = new Bootstrap();
-            b.option(ChannelOption.SO_KEEPALIVE,true);
+            b.option(ChannelOption.SO_KEEPALIVE, true);
             b.option(ChannelOption.TCP_NODELAY, true);
             b.group(workGroup)
                 .channel(NioSocketChannel.class)
@@ -58,8 +58,8 @@ public class NettyClient {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline p = ch.pipeline();
-                        p.addLast(new RequestEncoder(conf));
-                        p.addLast(new RequestDecoder(conf));
+                        p.addLast(new NettyMessageEncoder());
+                        p.addLast(new NettyMessageDecoder());
                         p.addLast(new NettyClientHandler());
                     }
                 });
@@ -71,7 +71,7 @@ public class NettyClient {
         }
     }
 
-    public void sendMessage(WritableRequest request){
+    public void sendMessage(NettyMessage request) {
         ChannelFuture channelFuture = channel.writeAndFlush(request);
         try {
             channelFuture.await();
@@ -80,13 +80,12 @@ public class NettyClient {
         }
     }
 
-    public void close(){
+    public void close() {
         try {
-            if (!Objects.isNull(channel)){
+            if (!Objects.isNull(channel)) {
                 channel.close();
             }
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
         workGroup.shutdownGracefully();

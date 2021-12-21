@@ -2,6 +2,8 @@ package org.apache.giraph.graph;
 
 import com.alibaba.graphscope.communication.FFICommunicator;
 import org.apache.giraph.aggregators.Aggregator;
+import org.apache.giraph.comm.requests.AggregatorMessage;
+import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.reducers.ReduceOperation;
 import org.apache.hadoop.io.Writable;
 
@@ -112,4 +114,10 @@ public interface AggregatorManager {
      * @param communicator communicator.
      */
     void init(FFICommunicator communicator);
+
+    /**
+     * Accept a message from other worker, aggregate to me.
+     * @param aggregatorMessage received message.
+     */
+    void acceptAggregatorMessage(AggregatorMessage aggregatorMessage);
 }

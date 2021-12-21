@@ -6,12 +6,18 @@ import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.stdcxx.FFIByteVectorFactory;
 import com.google.common.base.Preconditions;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufOutputStream;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.unix.PreferredDirectByteBufAllocator;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -19,6 +25,8 @@ import org.apache.giraph.aggregators.Aggregator;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.NettyClient;
 import org.apache.giraph.comm.netty.NettyServer;
+import org.apache.giraph.comm.requests.AggregatorMessage;
+import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.Communicator;
@@ -34,6 +42,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
     private static Logger logger = LoggerFactory.getLogger(AggregatorManagerNettyImpl.class);
 
     private HashMap<String, AggregatorWrapper<Writable>> aggregators;
+    private ByteBufAllocator allocator;
 //    private HashMap<String,Aggregator> unPersistentAggregators;
     /**
      * Conf
@@ -57,6 +66,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
         communicator = null;
         masterIp = null;
         workerInfo = null;
+        allocator = new PreferredDirectByteBufAllocator();
     }
 
     @Override
@@ -64,16 +74,17 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
         this.communicator = communicator;
         String[] res = getMasterWorkerIp(workerId, workerNum);
         if (workerId == 0) {
-            this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(), res);
-            server = new NettyServer(conf, workerInfo, new UncaughtExceptionHandler() {
+            this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(),
+                res);
+            server = new NettyServer(conf, this, workerInfo, new UncaughtExceptionHandler() {
                 @Override
                 public void uncaughtException(Thread t, Throwable e) {
                     logger.error(t.getId() + ": " + e.toString());
                 }
             });
-        }
-        else {
-            this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(), res);
+        } else {
+            this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(),
+                res);
             client = new NettyClient(conf, workerInfo, new UncaughtExceptionHandler() {
                 @Override
                 public void uncaughtException(Thread t, Throwable e) {
@@ -81,6 +92,16 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 }
             });
         }
+    }
+
+    /**
+     * Accept a message from other worker, aggregate to me.
+     *
+     * @param aggregatorMessage received message.
+     */
+    @Override
+    public void acceptAggregatorMessage(AggregatorMessage aggregatorMessage) {
+
     }
 
     /**
@@ -274,14 +295,43 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
             }
             Preconditions.checkState(value != null);
             //TODO: netty implemented.
-            if (workerId > 0){
-                if (Objects.isNull(client)){
+            if (workerNum <= 1) {
+                logger.info("only one worker, skip aggregating..");
+                if (!entry.getValue().isPersistent()) {
+                    AggregatorWrapper wrapper = entry.getValue();
+                    wrapper.setCurrentValue(wrapper.getReduceOp().createInitialValue());
+                }
+                return;
+            }
+            if (workerId > 0) {
+                if (Objects.isNull(client)) {
                     logger.error("No client found.");
-                    return ;
+                    return;
                 }
 
-            }
-            else {
+                ByteBufOutputStream outputStream = new ByteBufOutputStream(allocator.directBuffer());
+                try {
+                    value.write(outputStream);
+                    outputStream.flush();
+                    outputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                ByteBuf buf = outputStream.buffer();
+                AggregatorMessage msg;
+                if (buf.hasArray()){
+                    logger.info("has array");
+                    msg = new AggregatorMessage(aggregatorKey, buf.array());
+
+                }
+                else {
+                    logger.info("no array");
+                    byte [] bytes = new byte[buf.readableBytes()];
+                    buf.getBytes(buf.readerIndex(), bytes);
+                    msg = new AggregatorMessage(aggregatorKey, bytes);
+                }
+                client.sendMessage(msg);
+            } else {
 
             }
         }
@@ -492,16 +542,15 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 logger.error("Still has message after read utf8");
             }
             FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
-            try{
+            try {
                 outputStream.writeUTF(selfIp);
-            }
-            catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             outputStream.finishSetting();
             communicator.sendTo(0, outputStream.getVector());
             logger.info("worker[" + workerId + "] finish sending");
-            return new String []{coordinatorIp};
+            return new String[]{coordinatorIp};
         }
     }
 

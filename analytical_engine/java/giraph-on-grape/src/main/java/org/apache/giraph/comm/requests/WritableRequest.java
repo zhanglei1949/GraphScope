@@ -45,26 +45,22 @@ public abstract class WritableRequest<I extends WritableComparable,
 
     /** Configuration */
     protected ImmutableClassesGiraphConfiguration<I, V, E> conf;
-    /** Client id */
-    private int clientId = -1;
-    /** Request id */
-    private long requestId = -1;
 
-    public int getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(int clientId) {
-        this.clientId = clientId;
-    }
-
-    public long getRequestId() {
-        return requestId;
-    }
-
-    public void setRequestId(long requestId) {
-        this.requestId = requestId;
-    }
+//    public int getClientId() {
+//        return clientId;
+//    }
+//
+//    public void setClientId(int clientId) {
+//        this.clientId = clientId;
+//    }
+//
+//    public long getRequestId() {
+//        return requestId;
+//    }
+//
+//    public void setRequestId(long requestId) {
+//        this.requestId = requestId;
+//    }
 
     /**
      * Get the size of the request in serialized form. The number returned by
@@ -75,17 +71,17 @@ public abstract class WritableRequest<I extends WritableComparable,
      * or WritableRequest.UNKNOWN_SIZE if the size is not known
      * or too expensive to calculate.
      */
-    public int getSerializedSize() {
-        // 4 for clientId, 8 for requestId
-        return 4 + 8;
-    }
+//    public int getSerializedSize() {
+//        // 4 for clientId, 8 for requestId
+//        return 4 + 8;
+//    }
 
     /**
      * Get the type of the request
      *
      * @return Request type
      */
-    public abstract RequestType getType();
+    public abstract NettyMessageType getType();
 
     /**
      * Serialize the request
@@ -113,15 +109,15 @@ public abstract class WritableRequest<I extends WritableComparable,
 
     @Override
     public final void readFields(DataInput input) throws IOException {
-        clientId = input.readInt();
-        requestId = input.readLong();
+//        clientId = input.readInt();
+//        requestId = input.readLong();
         readFieldsRequest(input);
     }
 
     @Override
     public final void write(DataOutput output) throws IOException {
-        output.writeInt(clientId);
-        output.writeLong(requestId);
+//        output.writeInt(clientId);
+//        output.writeLong(requestId);
         writeRequest(output);
     }
 }

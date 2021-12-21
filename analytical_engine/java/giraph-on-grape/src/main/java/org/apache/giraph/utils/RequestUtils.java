@@ -21,6 +21,7 @@ package org.apache.giraph.utils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import org.apache.giraph.comm.netty.handler.RequestDecoder;
+import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.comm.requests.WritableRequest;
 
 import java.io.IOException;
@@ -48,8 +49,8 @@ public class RequestUtils {
      * @return properly initialized writableRequest
      * @throws IOException
      */
-    public static WritableRequest decodeWritableRequest(ByteBuf buf,
-        WritableRequest request) throws IOException {
+    public static NettyMessage decodeNettyMessage(ByteBuf buf,
+        NettyMessage request) throws IOException {
         ByteBufInputStream input = new ByteBufInputStream(buf);
         request.readFields(input);
         return request;
