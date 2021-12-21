@@ -66,7 +66,7 @@ public class NettyClientTest {
 
     @After
     public void close() {
-        // server.close();
         client.close();
+        server.close();
     }
 }
