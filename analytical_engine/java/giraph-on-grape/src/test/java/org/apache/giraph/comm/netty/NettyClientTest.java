@@ -43,7 +43,7 @@ public class NettyClientTest {
 
     @Test
     public void test(){
-        for (int i = 0; i < 10; ++i){
+        for (int i = 0; i < 50; ++i){
             SimpleLongWritableRequest writable = new SimpleLongWritableRequest(new LongWritable(i));
             client.sendMessage(writable);
 
@@ -52,7 +52,7 @@ public class NettyClientTest {
 
     @After
     public void close(){
-        server.close();
+        //server.close();
         client.close();
     }
 
