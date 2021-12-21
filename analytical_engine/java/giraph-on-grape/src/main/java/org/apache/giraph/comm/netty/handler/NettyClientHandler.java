@@ -58,14 +58,8 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
         @Override
         public void operationComplete(ChannelFuture future) {
             if (future.isSuccess()) {
-                if (counter < 3){
-                    generateTraffic();
-                    counter += 1;
+                    //generateTraffic();
                     logger.info("successfully send msg times: " + counter);
-                }
-                else {
-                    future.channel().close();
-                }
             } else {
                 future.cause().printStackTrace();
                 future.channel().close();

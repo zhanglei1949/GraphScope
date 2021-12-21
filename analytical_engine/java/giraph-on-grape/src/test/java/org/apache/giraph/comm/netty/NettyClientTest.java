@@ -20,7 +20,7 @@ public class NettyClientTest {
 
     @Before
     public void prepare(){
-        workerInfo = new WorkerInfo(0,1, "127.0.0.1", 30000, null);
+        workerInfo = new WorkerInfo(0,1, "0.0.0.0", 30000, null);
         server = new NettyServer(workerInfo, new UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread t, Throwable e) {
@@ -42,8 +42,8 @@ public class NettyClientTest {
 
     @After
     public void close(){
-        client.close();
         server.close();
+        client.close();
     }
 
 }

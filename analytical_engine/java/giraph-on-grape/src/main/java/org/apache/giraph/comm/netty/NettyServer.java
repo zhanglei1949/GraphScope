@@ -90,19 +90,19 @@ public class NettyServer {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
-            workerGroup.shutdownGracefully();
-            bossGroup.shutdownGracefully();
         }
     }
 
     public void close(){
-        try {
-            channelFuture.channel().closeFuture().sync();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+	logger.info("closing server");
         workerGroup.shutdownGracefully();
         bossGroup.shutdownGracefully();
+	logger.info("close thread groups");
+        //try {
+        //    channelFuture.channel().closeFuture().sync();
+        //} catch (InterruptedException e) {
+        //    e.printStackTrace();
+        //}
 
         logger.info("Successfully close server");
     }

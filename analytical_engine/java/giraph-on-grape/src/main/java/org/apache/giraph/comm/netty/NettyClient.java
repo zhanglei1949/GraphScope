@@ -63,12 +63,12 @@ public class NettyClient {
     }
 
     public void close(){
-        try {
-            channelFuture.channel().closeFuture().sync();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         workGroup.shutdownGracefully();
+//        try {
+//            channelFuture.channel().closeFuture().sync();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
         logger.info("shut down client");
     }
 
