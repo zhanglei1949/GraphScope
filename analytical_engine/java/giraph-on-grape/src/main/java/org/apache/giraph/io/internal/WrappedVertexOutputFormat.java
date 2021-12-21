@@ -59,6 +59,11 @@ public class WrappedVertexOutputFormat<I extends WritableComparable,
         VertexOutputFormat<I, V, E> vertexOutputFormat) {
         originalOutputFormat = vertexOutputFormat;
     }
+    @Override
+    public void setConf(ImmutableClassesGiraphConfiguration<I,V,E> conf){
+        super.setConf(conf);
+        originalOutputFormat.setConf(conf);
+    }
 
     @Override
     public VertexWriter<I, V, E> createVertexWriter(
