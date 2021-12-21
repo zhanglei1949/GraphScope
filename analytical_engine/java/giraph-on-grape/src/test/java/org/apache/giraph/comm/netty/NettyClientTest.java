@@ -4,7 +4,7 @@ import static org.mockito.Mockito.mock;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import org.apache.giraph.comm.WorkerInfo;
-import org.apache.giraph.comm.requests.SimpleWritableRequest;
+import org.apache.giraph.comm.requests.SimpleLongWritableRequest;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.hadoop.io.LongWritable;
 import org.junit.After;
@@ -44,7 +44,7 @@ public class NettyClientTest {
     @Test
     public void test(){
         for (int i = 0; i < 10; ++i){
-            SimpleWritableRequest writable = new SimpleWritableRequest(new LongWritable(i));
+            SimpleLongWritableRequest writable = new SimpleLongWritableRequest(new LongWritable(i));
             client.sendMessage(writable);
 
         }
