@@ -20,7 +20,6 @@ package org.apache.giraph.utils;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
-import org.apache.giraph.comm.netty.handler.RequestDecoder;
 import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.comm.requests.WritableRequest;
 

@@ -43,6 +43,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                 AggregatorMessage aggregatorMessage = (AggregatorMessage) message;
                 logger.info("aggregator message: " + aggregatorMessage.getMessageType().name());
                 aggregatorManager.acceptAggregatorMessage(aggregatorMessage);
+		ctx.writeAndFlush(aggregatorMessage);
             }
         } else {
             logger.error("Expect a netty message.");

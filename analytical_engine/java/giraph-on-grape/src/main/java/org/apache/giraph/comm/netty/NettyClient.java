@@ -78,6 +78,7 @@ public class NettyClient {
         ChannelFuture channelFuture = channel.writeAndFlush(request);
         try {
             channelFuture.await();
+	    logger.info("send msg: " + request);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
