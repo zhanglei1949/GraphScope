@@ -46,6 +46,7 @@ public class NettyClientTest {
         for (int i = 0; i < 10; ++i){
             SimpleWritableRequest writable = new SimpleWritableRequest(new LongWritable(i));
             client.sendMessage(writable);
+
         }
     }
 
