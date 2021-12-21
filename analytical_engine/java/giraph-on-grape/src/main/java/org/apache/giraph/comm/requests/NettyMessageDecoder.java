@@ -3,39 +3,52 @@ package org.apache.giraph.comm.requests;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.util.ReferenceCountUtil;
+import java.util.List;
 import org.apache.giraph.utils.ReflectionUtils;
 import org.apache.giraph.utils.RequestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NettyMessageDecoder extends ChannelInboundHandlerAdapter {
+public class NettyMessageDecoder extends ByteToMessageDecoder {
 
     private static Logger logger = LoggerFactory.getLogger(NettyMessageDecoder.class);
 
+    /**
+     * Decode the from one {@link ByteBuf} to an other. This method will be called till either the
+     * input {@link ByteBuf} has nothing to read when return from this method or till nothing was
+     * read from the input {@link ByteBuf}.
+     *
+     * @param ctx the {@link ChannelHandlerContext} which this {@link ByteToMessageDecoder} belongs
+     *            to
+     * @param in  the {@link ByteBuf} from which to read data
+     * @param out the {@link List} to which decoded messages should be added
+     * @throws Exception is thrown if an error occurs
+     */
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg)
+    protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
         throws Exception {
-        if (!(msg instanceof ByteBuf)) {
-            throw new IllegalStateException("decode: Got illegal message " + msg);
+        if (in.readableBytes() < 5){
+            return ;
         }
+        in.markReaderIndex();
 
         // Decode the request
-        ByteBuf buf = (ByteBuf) msg;
-        int enumValue = buf.readByte();
+        int enumValue = in.readByte();
         NettyMessageType type = NettyMessageType.values()[enumValue];
         Class<? extends NettyMessage> messageClass = type.getRequestClass();
-        NettyMessage message =
-            ReflectionUtils.newInstance(messageClass);
-        message = RequestUtils.decodeNettyMessage(buf, message);
+
 
         if (logger.isDebugEnabled()) {
-            logger.debug("decode: Client " + message.getMessageType() + ", with size " +
-                buf.writerIndex() + " took ");
+            logger.debug("decode: Client " + messageClass.getName() + ", with size " +
+                in.readableBytes());
         }
-        ReferenceCountUtil.release(buf);
-        // fire writableRequest object to upstream handlers
-        ctx.fireChannelRead(message);
+        NettyMessage message =
+            ReflectionUtils.newInstance(messageClass);
+        message = RequestUtils.decodeNettyMessage(in, message);
+
+        out.add(message);
     }
 
 }
