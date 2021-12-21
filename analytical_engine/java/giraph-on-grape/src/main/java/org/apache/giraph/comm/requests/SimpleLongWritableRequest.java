@@ -3,18 +3,21 @@ package org.apache.giraph.comm.requests;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
-public class SimpleWritableRequest<I extends WritableComparable,
+public class SimpleLongWritableRequest<I extends WritableComparable,
     V extends Writable, E extends Writable> extends WritableRequest<I,V,E>{
 
-    private Writable writable;
 
-    public SimpleWritableRequest(Writable value){
+    public LongWritable writable;
+
+    public SimpleLongWritableRequest(){
+        writable = new LongWritable();
+    }
+
+    public SimpleLongWritableRequest(LongWritable value){
         writable = value;
     }
 
@@ -50,15 +53,6 @@ public class SimpleWritableRequest<I extends WritableComparable,
 
     @Override
     public int getSerializedSize(){
-        if (writable.getClass().equals(DoubleWritable.class)){
-            return 8;
-        }
-        else if (writable.getClass().equals(LongWritable.class)){
-            return 8;
-        }
-        else if (writable.getClass().equals(IntWritable.class)){
-            return 4;
-        }
-        return 0;
+        return 8;
     }
 }
