@@ -355,4 +355,5 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
     public int getWorkerNum(){
         return workerNum;
     }
+
 }

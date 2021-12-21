@@ -107,5 +107,9 @@ public interface AggregatorManager {
      */
     void postSuperstep();
 
-    void setFFICommunicator(FFICommunicator communicator);
+    /**
+     * Init the manager with Grape::Communicator, the actual logic depends on implementation.
+     * @param communicator communicator.
+     */
+    void init(FFICommunicator communicator);
 }

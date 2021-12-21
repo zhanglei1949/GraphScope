@@ -1,5 +1,7 @@
 package org.apache.giraph.conf;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import org.apache.giraph.combiner.MessageCombiner;
 import org.apache.giraph.factories.DefaultMessageValueFactory;
 import org.apache.giraph.factories.MessageValueFactory;
@@ -146,5 +148,170 @@ public interface GiraphConstants {
         ClassConfOption.create("giraph.masterComputeClass",
             DefaultMasterCompute.class, MasterCompute.class,
             "Class for Master - optional");
+
+    /**
+     * Number of channels used per server
+     */
+    IntConfOption CHANNELS_PER_SERVER =
+        new IntConfOption("giraph.channelsPerServer", 1,
+            "Number of channels used per server");
+
+    /**
+     * Client send buffer size
+     */
+    IntConfOption CLIENT_SEND_BUFFER_SIZE =
+        new IntConfOption("giraph.clientSendBufferSize", 512 * ONE_KB,
+            "Client send buffer size");
+
+    /**
+     * Client receive buffer size
+     */
+    IntConfOption CLIENT_RECEIVE_BUFFER_SIZE =
+        new IntConfOption("giraph.clientReceiveBufferSize", 32 * ONE_KB,
+            "Client receive buffer size");
+
+    /**
+     * Server send buffer size
+     */
+    IntConfOption SERVER_SEND_BUFFER_SIZE =
+        new IntConfOption("giraph.serverSendBufferSize", 32 * ONE_KB,
+            "Server send buffer size");
+
+    /**
+     * Server receive buffer size
+     */
+    IntConfOption SERVER_RECEIVE_BUFFER_SIZE =
+        new IntConfOption("giraph.serverReceiveBufferSize", 512 * ONE_KB,
+            "Server receive buffer size");
+    /**
+     * TCP backlog (defaults to number of workers)
+     */
+    IntConfOption TCP_BACKLOG = new IntConfOption("giraph.tcpBacklog", 1,
+        "TCP backlog (defaults to number of workers)");
+
+    /**
+     * Use netty pooled memory buffer allocator
+     */
+    BooleanConfOption NETTY_USE_POOLED_ALLOCATOR = new BooleanConfOption(
+        "giraph.useNettyPooledAllocator", false, "Should netty use pooled " +
+        "memory allocator?");
+
+    /**
+     * Use direct memory buffers in netty
+     */
+    BooleanConfOption NETTY_USE_DIRECT_MEMORY = new BooleanConfOption(
+        "giraph.useNettyDirectMemory", false, "Should netty use direct " +
+        "memory buffers");
+
+    /**
+     * How big to make the encoder buffer?
+     */
+    IntConfOption NETTY_REQUEST_ENCODER_BUFFER_SIZE =
+        new IntConfOption("giraph.nettyRequestEncoderBufferSize", 32 * ONE_KB,
+            "How big to make the encoder buffer?");
+
+    /**
+     * Netty client threads
+     */
+    IntConfOption NETTY_CLIENT_THREADS =
+        new IntConfOption("giraph.nettyClientThreads", 4, "Netty client threads");
+
+    /**
+     * Netty server threads
+     */
+    IntConfOption NETTY_SERVER_THREADS =
+        new IntConfOption("giraph.nettyServerThreads", 16,
+            "Netty server threads");
+
+    /**
+     * Use the execution handler in netty on the client?
+     */
+    BooleanConfOption NETTY_CLIENT_USE_EXECUTION_HANDLER =
+        new BooleanConfOption("giraph.nettyClientUseExecutionHandler", true,
+            "Use the execution handler in netty on the client?");
+
+    /**
+     * Netty client execution threads (execution handler)
+     */
+    IntConfOption NETTY_CLIENT_EXECUTION_THREADS =
+        new IntConfOption("giraph.nettyClientExecutionThreads", 8,
+            "Netty client execution threads (execution handler)");
+
+    /**
+     * Where to place the netty client execution handle?
+     */
+    StrConfOption NETTY_CLIENT_EXECUTION_AFTER_HANDLER =
+        new StrConfOption("giraph.nettyClientExecutionAfterHandler",
+            "request-encoder",
+            "Where to place the netty client execution handle?");
+
+    /**
+     * Use the execution handler in netty on the server?
+     */
+    BooleanConfOption NETTY_SERVER_USE_EXECUTION_HANDLER =
+        new BooleanConfOption("giraph.nettyServerUseExecutionHandler", true,
+            "Use the execution handler in netty on the server?");
+
+    /**
+     * Netty server execution threads (execution handler)
+     */
+    IntConfOption NETTY_SERVER_EXECUTION_THREADS =
+        new IntConfOption("giraph.nettyServerExecutionThreads", 8,
+            "Netty server execution threads (execution handler)");
+
+    /**
+     * Where to place the netty server execution handle?
+     */
+    StrConfOption NETTY_SERVER_EXECUTION_AFTER_HANDLER =
+        new StrConfOption("giraph.nettyServerExecutionAfterHandler",
+            "requestFrameDecoder",
+            "Where to place the netty server execution handle?");
+
+    /**
+     * Netty simulate a first request closed
+     */
+    BooleanConfOption NETTY_SIMULATE_FIRST_REQUEST_CLOSED =
+        new BooleanConfOption("giraph.nettySimulateFirstRequestClosed", false,
+            "Netty simulate a first request closed");
+
+    /**
+     * Netty simulate a first response failed
+     */
+    BooleanConfOption NETTY_SIMULATE_FIRST_RESPONSE_FAILED =
+        new BooleanConfOption("giraph.nettySimulateFirstResponseFailed", false,
+            "Netty simulate a first response failed");
+
+    /**
+     * Netty - set which compression to use
+     */
+    StrConfOption NETTY_COMPRESSION_ALGORITHM =
+        new StrConfOption("giraph.nettyCompressionAlgorithm", "",
+            "Which compression algorithm to use in netty");
+    /**
+     * Msecs to wait between waiting for all requests to finish
+     */
+    IntConfOption WAITING_REQUEST_MSECS =
+        new IntConfOption("giraph.waitingRequestMsecs", SECONDS.toMillis(15),
+            "Msecs to wait between waiting for all requests to finish");
+
+    /**
+     * Maximum number of simultaneous worker tasks started by this job (int).
+     */
+    String MAX_WORKERS = "giraph.maxWorkers";
+    /**
+     * Initial port to start using for the IPC communication
+     */
+    IntConfOption IPC_INITIAL_PORT =
+        new IntConfOption("giraph.ipcInitialPort", 30000,
+            "Initial port to start using for the IPC communication");
+
+    /**
+     * Maximum bind attempts for different IPC ports
+     */
+    IntConfOption MAX_IPC_PORT_BIND_ATTEMPTS =
+        new IntConfOption("giraph.maxIpcPortBindAttempts", 20,
+            "Maximum bind attempts for different IPC ports");
+    IntConfOption BASE_SERVER_PORT = new IntConfOption("giraph.baseServerPort", 30000,
+        "The base port for server to communicate");
 
 }

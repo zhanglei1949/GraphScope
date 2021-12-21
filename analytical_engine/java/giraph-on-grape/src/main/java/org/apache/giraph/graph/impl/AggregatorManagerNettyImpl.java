@@ -9,24 +9,29 @@ import com.google.common.base.Preconditions;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Objects;
 import org.apache.giraph.aggregators.Aggregator;
+import org.apache.giraph.comm.WorkerInfo;
+import org.apache.giraph.comm.netty.NettyClient;
+import org.apache.giraph.comm.netty.NettyServer;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.Communicator;
 import org.apache.giraph.master.AggregatorReduceOperation;
 import org.apache.giraph.reducers.ReduceOperation;
-import org.apache.giraph.utils.ReflectionUtils;
 import org.apache.giraph.utils.WritableUtils;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AggregatorManagerImpl implements AggregatorManager, Communicator {
+public class AggregatorManagerNettyImpl implements AggregatorManager, Communicator {
 
-    private static Logger logger = LoggerFactory.getLogger(AggregatorManagerImpl.class);
+    private static Logger logger = LoggerFactory.getLogger(AggregatorManagerNettyImpl.class);
 
     private HashMap<String, AggregatorWrapper<Writable>> aggregators;
 //    private HashMap<String,Aggregator> unPersistentAggregators;
@@ -34,25 +39,48 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
      * Conf
      */
     private final ImmutableClassesGiraphConfiguration<?, ?, ?> conf;
+    private NettyClient client;
+    private NettyServer server;
+    private WorkerInfo workerInfo;
     private int workerId;
     private int workerNum;
-
-    /**
-     * Java wrapper for grape mpi comm
-     */
     private FFICommunicator communicator;
+    private String masterIp;
 
-    public AggregatorManagerImpl(ImmutableClassesGiraphConfiguration<?, ?, ?> conf, int workerId,
-        int workerNum) {
+    public AggregatorManagerNettyImpl(final ImmutableClassesGiraphConfiguration<?, ?, ?> conf,
+        int workerId, int workerNum) {
+        //TODO: for coordinator, get ip and broadcast to all other nodes.
         this.conf = conf;
-        aggregators = new HashMap<>();
         this.workerId = workerId;
         this.workerNum = workerNum;
+        aggregators = new HashMap<>();
+        communicator = null;
+        masterIp = null;
+        workerInfo = null;
     }
 
     @Override
     public void init(FFICommunicator communicator) {
         this.communicator = communicator;
+        String[] res = getMasterWorkerIp(workerId, workerNum);
+        if (workerId == 0) {
+            this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(), res);
+            server = new NettyServer(workerInfo, new UncaughtExceptionHandler() {
+                @Override
+                public void uncaughtException(Thread t, Throwable e) {
+                    logger.error(t.getId() + ": " + e.toString());
+                }
+            });
+        }
+        else {
+            this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(), res);
+            client = new NettyClient(workerInfo, new UncaughtExceptionHandler() {
+                @Override
+                public void uncaughtException(Thread t, Throwable e) {
+                    logger.error(t.getId() + ": " + e.toString());
+                }
+            });
+        }
     }
 
     /**
@@ -188,7 +216,8 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
      * @param globalInitialValue Global initial value
      */
     @Override
-    public <S, R extends Writable> void registerReducer(String name, ReduceOperation<S, R> reduceOp,
+    public <S, R extends Writable> void registerReducer(String
+        name, ReduceOperation<S, R> reduceOp,
         R globalInitialValue) {
 
     }
@@ -220,8 +249,8 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
         for (Entry<String, AggregatorWrapper<Writable>> entry :
             aggregators.entrySet()) {
             if (!entry.getValue().isPersistent()) {
-                logger.info(
-                    "Aggregator: " + entry.getKey() + " is not persistent, reset before superstep");
+                logger.info("Aggregator: " + entry.getKey()
+                    + " is not persistent, reset before superstep");
                 entry.getValue()
                     .setCurrentValue(entry.getValue().getReduceOp().createInitialValue());
             }
@@ -244,71 +273,16 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
                 return;
             }
             Preconditions.checkState(value != null);
-
-            /** after aggregation, all data will be available in this stream */
-            FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream();
-            /** a temp stream for us to write data into byte array */
-            FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
-            try {
-                if (workerNum > 1) {
-                    value.write(outputStream);
-                    outputStream.finishSetting();
-                    if (workerId == 0) {
-                        inputStream.digestVector(outputStream.getVector());
-                        for (int src_worker = 1; src_worker < workerNum; ++src_worker) {
-                            FFIByteVector vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE
-                                .create();
-                            communicator.receiveFrom(src_worker, vector);
-                            logger.info(
-                                "Receive from src_worker: " + src_worker + ", size : " + vector
-                                    .size());
-                            inputStream.digestVector(vector);
-                            vector.clear();
-                        }
-                        //Send what received to all worker
-                        for (int dstWroker = 1; dstWroker < workerNum; ++dstWroker) {
-                            communicator.sendTo(dstWroker, inputStream.getVector());
-                        }
-                    } else {
-                        logger.info(
-                            "worker: " + workerId + " sending size: " + outputStream.getVector()
-                                .size() + " to worker 0");
-                        communicator.sendTo(0, outputStream.getVector());
-                        FFIByteVector vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE
-                            .create();
-                        communicator.receiveFrom(0, vector);
-                        inputStream.digestVector(vector);
-                        logger.info(
-                            "worker: " + workerId + " receive size: " + inputStream.longAvailable()
-                                + " from worker 0");
-                    }
-                } else {
-                    logger.info("only one worker, skip aggregating..");
+            //TODO: netty implemented.
+            if (workerId > 0){
+                if (Objects.isNull(client)){
+                    logger.error("No client found.");
+                    return ;
                 }
-                //Reset
-                AggregatorWrapper wrapper = entry.getValue();
-                wrapper.setCurrentValue(wrapper.getReduceOp().createInitialValue());
 
-                //digest input stream
-                logger.info(
-                    "worker: " + workerId + " aggregator: " + aggregatorKey + " ,receive msg: "
-                        + inputStream.longAvailable());
-                Writable msg = ReflectionUtils.newInstance(wrapper.getCurrentValue().getClass());
-                logger.info("Parse aggregation msg in " + msg.getClass().getName());
-                //parse to writables
-                while (inputStream.longAvailable() > 0) {
-                    msg.readFields(inputStream);
-                    //apply aggregator on received writables.
-                    wrapper.reduce(msg);
-                    logger.info(
-                        "worker: " + workerId + "aggregator: " + aggregatorKey + " reduce: " + msg
-                            + ", to" + wrapper.getCurrentValue());
-                }
-                logger.info(
-                    "worker: " + workerId + "aggregator: " + aggregatorKey + " after aggregation: "
-                        + wrapper.getCurrentValue());
-            } catch (IOException e) {
-                e.printStackTrace();
+            }
+            else {
+
             }
         }
     }
@@ -344,10 +318,11 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
 //        initAggregatorValues.clear();
     }
 
-    private <A extends Writable> boolean registerAggregator(String name,
-        Class<? extends Aggregator<A>> aggregatorClass, boolean persistent) {
+    private <A extends Writable> boolean registerAggregator(String name, Class<? extends
+        Aggregator<A>> aggregatorClass, boolean persistent) {
         if (aggregators.containsKey(name)) {
-            logger.error("Name: " + name + " has already been registered " + aggregators.get(name));
+            logger.error(
+                "Name: " + name + " has already been registered " + aggregators.get(name));
             return false;
         }
         AggregatorWrapper<A> aggregatorWrapper = (AggregatorWrapper<A>) aggregators.get(name);
@@ -364,7 +339,6 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
             name, (AggregatorWrapper<Writable>) aggregatorWrapper);
         return true;
     }
-
 
     private class AggregatorWrapper<A extends Writable> implements Writable {
 
@@ -447,6 +421,87 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
                 AggregatorReduceOperation.class, conf);
             reduceOp.readFields(in);
             currentValue = null;
+        }
+    }
+
+    private String[] getMasterWorkerIp(int fid, int fnum) {
+        if (Objects.isNull(communicator)) {
+            logger.error("Please set communicator first");
+            return null;
+        }
+        String selfIp = "";
+        try {
+            selfIp = InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            logger.error("Failed to get master host address");
+            return null;
+        }
+
+        if (fid == 0) {
+
+            logger.info("Master host: " + selfIp);
+            FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
+            try {
+                outputStream.writeUTF(selfIp);
+            } catch (IOException e) {
+                e.printStackTrace();
+                logger.info("Error in writing output.");
+                return null;
+            }
+            outputStream.finishSetting();
+            //Send what received to all worker
+            for (int dstWroker = 1; dstWroker < fnum; ++dstWroker) {
+                communicator.sendTo(dstWroker, outputStream.getVector());
+            }
+            logger.info("master finish sending");
+            //Receive slaves' ips.
+            FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream();
+            for (int srcWorker = 1; srcWorker < fnum; ++srcWorker) {
+                FFIByteVector vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
+                communicator.receiveFrom(srcWorker, vector);
+                inputStream.digestVector(vector);
+            }
+            String[] res = new String[fnum];
+            res[0] = selfIp;
+            try {
+                for (int i = 1; i < fnum; ++i) {
+                    res[i] = inputStream.readUTF();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            logger.info("Master got all ips: " + String.join(",", res));
+            return res;
+        } else {
+            String coordinatorIp = null;
+            FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream();
+            FFIByteVector vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE
+                .create();
+            communicator.receiveFrom(0, vector);
+            inputStream.digestVector(vector);
+            logger.info(
+                "worker: " + workerId + " receive size: " + inputStream.longAvailable()
+                    + " from worker 0");
+            try {
+                coordinatorIp = inputStream.readUTF();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (inputStream.longAvailable() > 0) {
+                logger.error("Still has message after read utf8");
+            }
+            FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
+            try{
+                outputStream.writeUTF(selfIp);
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+            outputStream.finishSetting();
+            communicator.sendTo(0, outputStream.getVector());
+            logger.info("worker[" + workerId + "] finish sending");
+            return new String []{coordinatorIp};
         }
     }
 

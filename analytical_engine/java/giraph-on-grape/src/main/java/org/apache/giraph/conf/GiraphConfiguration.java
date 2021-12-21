@@ -19,6 +19,10 @@
 package org.apache.giraph.conf;
 
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.UnpooledByteBufAllocator;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import org.apache.giraph.combiner.MessageCombiner;
 import org.apache.giraph.graph.AbstractComputation;
 import org.apache.giraph.graph.Computation;
@@ -36,6 +40,11 @@ import org.apache.hadoop.conf.Configuration;
  * configuration.
  */
 public class GiraphConfiguration extends Configuration implements GiraphConstants {
+
+    /**
+     * ByteBufAllocator to be used by netty
+     */
+    private ByteBufAllocator nettyBufferAllocator = null;
 
     /**
      * Constructor that creates the configuration
@@ -57,13 +66,13 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
      * Set the worker context class (optional)
      *
      * @param workerContextClass Determines what code is executed on a each worker before and after
-     *     each superstep and computation
+     *                           each superstep and computation
      */
     public final void setWorkerContextClass(Class<? extends WorkerContext> workerContextClass) {
         WORKER_CONTEXT_CLASS.set(this, workerContextClass);
     }
 
-    public  Class<? extends WorkerContext> getWorkerContextClass(){
+    public Class<? extends WorkerContext> getWorkerContextClass() {
         return WORKER_CONTEXT_CLASS.get(this);
     }
 
@@ -90,7 +99,8 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
      *
      * @param vertexInputFormatClass User specified computation class.
      */
-    public final void setVertexInputFormatClass(Class<? extends VertexInputFormat> vertexInputFormatClass){
+    public final void setVertexInputFormatClass(
+        Class<? extends VertexInputFormat> vertexInputFormatClass) {
         VERTEX_INPUT_FORMAT_CLASS.set(this, vertexInputFormatClass);
     }
 
@@ -99,8 +109,9 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
      *
      * @param vertexInputFormatClass User specified computation class.
      */
-    public final Class<? extends VertexInputFormat> getVertexInputFormatClass(Class<? extends VertexInputFormat> vertexInputFormatClass){
-       return VERTEX_INPUT_FORMAT_CLASS.get(this);
+    public final Class<? extends VertexInputFormat> getVertexInputFormatClass(
+        Class<? extends VertexInputFormat> vertexInputFormatClass) {
+        return VERTEX_INPUT_FORMAT_CLASS.get(this);
     }
 
     /**
@@ -172,10 +183,48 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
 
     /**
      * The the path where we output.
+     *
      * @param path output path.
      */
-    public final void setVertexOutputPath(String path){
+    public final void setVertexOutputPath(String path) {
         VERTEX_OUTPUT_PATH.set(this, path);
+    }
+
+    /**
+     * Used by netty client and server to create ByteBufAllocator
+     *
+     * @return ByteBufAllocator
+     */
+    public ByteBufAllocator getNettyAllocator() {
+        if (nettyBufferAllocator == null) {
+            if (NETTY_USE_POOLED_ALLOCATOR.get(this)) { // Use pooled allocator
+                nettyBufferAllocator =
+                    new PooledByteBufAllocator(NETTY_USE_DIRECT_MEMORY.get(this));
+            } else { // Use un-pooled allocator
+                // Note: Current default settings create un-pooled heap allocator
+                nettyBufferAllocator =
+                    new UnpooledByteBufAllocator(NETTY_USE_DIRECT_MEMORY.get(this));
+            }
+        }
+        return nettyBufferAllocator;
+    }
+
+
+    public int getNettyServerExecutionThreads() {
+        return NETTY_SERVER_EXECUTION_THREADS.get(this);
+    }
+
+    /**
+     * Return local host name by default. Or local host IP if preferIP option is set.
+     *
+     * @return local host name or IP
+     */
+    public String getLocalHostOrIp() throws UnknownHostException {
+            return InetAddress.getLocalHost().getHostAddress();
+    }
+
+    public int getInitServerPort(){
+        return BASE_SERVER_PORT.get(this);
     }
 
 }
