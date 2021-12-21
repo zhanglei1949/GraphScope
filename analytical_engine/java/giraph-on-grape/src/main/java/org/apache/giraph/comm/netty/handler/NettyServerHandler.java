@@ -18,6 +18,7 @@ package org.apache.giraph.comm.netty.handler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import org.apache.giraph.comm.requests.SimpleLongWritableRequest;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
@@ -32,20 +33,9 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        // discard
-        if (msg instanceof Writable){
-            Writable writable = (Writable) msg;
-            if (writable instanceof LongWritable){
-                LongWritable longWritable = (LongWritable) writable;
-                logger.info("Received msg: " + longWritable.get());
-            }
-            else if (writable instanceof DoubleWritable){
-                DoubleWritable doubleWritable = (DoubleWritable) writable;
-                logger.info("Received msg: " + doubleWritable.get());
-            }
-            else {
-                logger.error("Not allowed type");
-            }
+        if(msg instanceof SimpleLongWritableRequest){
+            SimpleLongWritableRequest longWritableRequest = (SimpleLongWritableRequest) msg;
+            logger.info("receive msg: " + ((SimpleLongWritableRequest<?, ?, ?>) msg).writable.get());
         }
         else {
             logger.error("Expect a writable instance.");
