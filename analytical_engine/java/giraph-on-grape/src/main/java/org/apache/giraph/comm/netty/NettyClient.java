@@ -72,7 +72,7 @@ public class NettyClient {
     }
 
     public void sendMessage(WritableRequest request){
-
+	channel.writeAndFlush(request);
     }
 
     public void close(){
