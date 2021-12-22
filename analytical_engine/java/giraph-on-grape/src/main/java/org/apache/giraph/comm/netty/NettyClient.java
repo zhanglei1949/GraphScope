@@ -10,15 +10,12 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-
+import java.util.Objects;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.handler.NettyClientHandler;
-import org.apache.giraph.comm.netty.handler.NettyServerHandler;
-import org.apache.giraph.comm.requests.AggregatorMessage;
 import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.comm.requests.NettyMessageDecoder;
 import org.apache.giraph.comm.requests.NettyMessageEncoder;
-import org.apache.giraph.comm.requests.WritableRequest;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.utils.ThreadUtils;
@@ -26,13 +23,15 @@ import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Objects;
-
-/** The implementation class which do responsible for all netty-related stuff. */
+/**
+ * The implementation class which do responsible for all netty-related stuff.
+ */
 public class NettyClient {
 
     private static Logger logger = LoggerFactory.getLogger(NettyClient.class);
-    /** 30 seconds to connect by default */
+    /**
+     * 30 seconds to connect by default
+     */
     public static final int MAX_CONNECTION_MILLISECONDS_DEFAULT = 30 * 1000;
 
     public static final int SIZE = 256;
@@ -46,55 +45,62 @@ public class NettyClient {
     private NettyClientHandler handler;
 
     public NettyClient(
-            ImmutableClassesGiraphConfiguration conf,
-            AggregatorManager aggregatorManager,
-            WorkerInfo workerInfo,
-            final Thread.UncaughtExceptionHandler exceptionHandler) {
+        ImmutableClassesGiraphConfiguration conf,
+        AggregatorManager aggregatorManager,
+        WorkerInfo workerInfo,
+        final Thread.UncaughtExceptionHandler exceptionHandler) {
         this.workerInfo = workerInfo;
         this.conf = conf;
         this.aggregatorManager = aggregatorManager;
         workGroup =
-                new NioEventLoopGroup(
-                        1,
-                        ThreadUtils.createThreadFactory(
-                                "netty-client-worker-%d", exceptionHandler));
-        try {
-            Bootstrap b = new Bootstrap();
-            b.option(ChannelOption.SO_KEEPALIVE, true);
-            b.option(ChannelOption.TCP_NODELAY, true);
-            b.group(workGroup)
-                    .channel(NioSocketChannel.class)
-                    .handler(
-                            new ChannelInitializer<SocketChannel>() {
-                                @Override
-                                protected void initChannel(SocketChannel ch) throws Exception {
-                                    ChannelPipeline p = ch.pipeline();
-                                    p.addLast(new NettyMessageEncoder());
-                                    p.addLast(new NettyMessageDecoder());
-                                    p.addLast(new NettyClientHandler(aggregatorManager));
-                                }
-                            });
+            new NioEventLoopGroup(
+                1,
+                ThreadUtils.createThreadFactory(
+                    "netty-client-worker-%d", exceptionHandler));
 
-            // Make the connection attempt.
-            channel = b.connect(workerInfo.getHost(), workerInfo.getInitPort()).sync().channel();
+        Bootstrap b = new Bootstrap();
+        b.option(ChannelOption.SO_KEEPALIVE, true);
+        b.option(ChannelOption.TCP_NODELAY, true);
+        b.group(workGroup)
+            .channel(NioSocketChannel.class)
+            .handler(
+                new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    protected void initChannel(SocketChannel ch) throws Exception {
+                        ChannelPipeline p = ch.pipeline();
+                        p.addLast(new NettyMessageEncoder());
+                        p.addLast(new NettyMessageDecoder());
+                        p.addLast(new NettyClientHandler(aggregatorManager));
+                    }
+                });
 
-            handler = (NettyClientHandler) channel.pipeline().last();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        // Make the connection attempt.
+        int failureTime = 0;
+        while (failureTime < 10) {
+            try {
+                logger.info("try for " + failureTime + " times");
+                channel = b.connect(workerInfo.getHost(), workerInfo.getInitPort()).sync()
+                    .channel();
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+                failureTime += 1;
+            }
         }
+        handler = (NettyClientHandler) channel.pipeline().last();
     }
 
     public void sendMessage(NettyMessage request) {
         ChannelFuture channelFuture = channel.writeAndFlush(request);
         try {
             channelFuture.await();
-	    logger.info("send msg: " + request);
+            logger.info("send msg: " + request);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    public Writable getAggregatedMessage(String aggregatorId){
+    public Writable getAggregatedMessage(String aggregatorId) {
         return handler.getAggregatedMessage(aggregatorId);
     }
 
