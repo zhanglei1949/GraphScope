@@ -4,11 +4,18 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.util.concurrent.Promise;
 import java.io.ByteArrayInputStream;
 import java.io.DataInput;
 import java.io.DataInputStream;
+import java.io.IOException;
+import java.nio.BufferOverflowException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Future;
+import org.apache.giraph.comm.netty.NettyClient;
 import org.apache.giraph.comm.requests.AggregatorMessage;
 import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.graph.AggregatorManager;
@@ -20,17 +27,18 @@ import org.slf4j.LoggerFactory;
 /**
  * Handles a client-side channel.
  */
-public class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
+public class NettyClientHandler extends SimpleChannelInboundHandler<NettyMessage> {
 
     //    private ByteBuf content;
     private ChannelHandlerContext ctx;
     private static Logger logger = LoggerFactory.getLogger(NettyClientHandler.class);
-    private Map<String, Writable> result;
+
     private AggregatorManager aggregatorManager;
+    private BlockingQueue<Promise<NettyMessage>> messageList = new ArrayBlockingQueue<Promise<NettyMessage>>(10);
 
     public NettyClientHandler(AggregatorManager aggregatorManager) {
         this.aggregatorManager = aggregatorManager;
-        result = new HashMap<>();
+
     }
 
     @Override
@@ -39,7 +47,15 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        super.channelInactive(ctx);
+        synchronized (this){
+            Promise<NettyMessage> prom;
+            while ((prom = messageList.poll()) != null){
+                prom.setFailure(new IOException("Connection lost"));
+            }
+            messageList = null;
+        }
         logger.info("channelClosed: Closed the channel on " +
             ctx.channel().remoteAddress());
 
@@ -47,35 +63,41 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead0(ChannelHandlerContext ctx, NettyMessage msg) throws Exception {
         // Server is supposed to send nothing, but if it sends something, discard it.
         logger.info("Client receive msg from server");
-        if (msg instanceof NettyMessage) {
-            NettyMessage message = (NettyMessage) msg;
-            if (message instanceof AggregatorMessage) {
-                AggregatorMessage aggregatorMessage = (AggregatorMessage) message;
-                DataInput stream = new DataInputStream(new ByteArrayInputStream(aggregatorMessage.getData()));
-                Writable value = ReflectionUtils.newInstance(
-                    aggregatorManager.getAggregatedValue(aggregatorMessage.getAggregatorId())
-                        .getClass());
-                value.readFields(stream);
-                logger.info(
-                    "client: aggregator message: " + aggregatorMessage.getMessageType().name()
-                        + ",value: " + aggregatorMessage.getValue() + ", " + value.toString());
-            } else {
-                logger.error("not a aggregator message");
+        synchronized (this){
+            if (messageList != null){
+                messageList.poll().setSuccess(msg);
             }
-        } else {
-            logger.error("Expect a byte buffer");
+            else {
+                throw new IllegalStateException("message list null");
+            }
         }
     }
-
-    public Writable getAggregatedMessage(String aggregatorId) {
-        if (!result.containsKey(aggregatorId)) {
-            logger.error("result not available");
-            return null;
+    public Future<NettyMessage> sendMessage(NettyMessage request){
+        if (ctx == null){
+            throw new IllegalStateException("ctx empty");
         }
-        return result.get(aggregatorId);
+        return sendMessage(request, ctx.executor().newPromise());
+    }
+
+    public Future<NettyMessage> sendMessage(NettyMessage request, Promise<NettyMessage> promise){
+        synchronized (this){
+            if (messageList == null){
+                //connection closed
+                promise.setFailure(new IllegalStateException());
+            }
+            else if (messageList.offer(promise)){
+                logger.info("client send msg:" + request + ", "+ promise.toString());
+                ctx.writeAndFlush(request);
+            }
+            else {
+                //message rejected.
+                promise.setFailure(new BufferOverflowException());
+            }
+            return promise;
+        }
     }
 
     @Override

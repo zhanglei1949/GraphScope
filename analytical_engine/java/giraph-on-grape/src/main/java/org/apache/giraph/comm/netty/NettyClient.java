@@ -10,7 +10,10 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.handler.NettyClientHandler;
@@ -44,12 +47,14 @@ public class NettyClient {
     private ImmutableClassesGiraphConfiguration conf;
     private AggregatorManager aggregatorManager;
     private NettyClientHandler handler;
+    private Map<String, Writable> result;
 
     public NettyClient(
         ImmutableClassesGiraphConfiguration conf,
         AggregatorManager aggregatorManager,
         WorkerInfo workerInfo,
         final Thread.UncaughtExceptionHandler exceptionHandler) {
+        result = new HashMap<>();
         this.workerInfo = workerInfo;
         this.conf = conf;
         this.aggregatorManager = aggregatorManager;
@@ -105,19 +110,20 @@ public class NettyClient {
         return Objects.isNull(channel);
     }
 
-    public void sendMessage(NettyMessage request) {
-        ChannelFuture channelFuture = channel.writeAndFlush(request);
-        try {
-            channelFuture.await();
-            logger.info("send msg: " + request);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    public Future<NettyMessage> sendMessage(NettyMessage request) {
+//        ChannelFuture channelFuture = channel.writeAndFlush(request);
+//        try {
+//            channelFuture.await();
+//            logger.info("send msg: " + request);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+        return handler.sendMessage(request);
     }
 
-    public Writable getAggregatedMessage(String aggregatorId) {
-        return handler.getAggregatedMessage(aggregatorId);
-    }
+//    public Writable getAggregatedMessage(String aggregatorId) {
+//        return handler.getAggregatedMessage(aggregatorId);
+//    }
 
     public void close() {
         try {
