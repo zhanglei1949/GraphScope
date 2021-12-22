@@ -2,9 +2,13 @@ package org.apache.giraph.comm.netty;
 
 import static org.mockito.Mockito.mock;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.apache.giraph.aggregators.LongSumAggregator;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.requests.AggregatorMessage;
+import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.impl.AggregatorManagerNettyImpl;
@@ -60,14 +64,18 @@ public class NettyClientTest {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException, ExecutionException {
         for (int i = 0; i < 10; ++i) {
             //            SimpleLongWritableRequest writable = new SimpleLongWritableRequest(new
             // LongWritable(i));
 //            byte[] bytes = new byte[] {(byte) i, (byte) (i + 1), (byte) (i + 2)};
             byte[] bytes = new byte[] {(byte) 0, (byte) 0 , (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0 ,(byte) i};
             AggregatorMessage aggregatorMessage = new AggregatorMessage("sum", ""+i, bytes);
-            client.sendMessage(aggregatorMessage);
+            Future<NettyMessage> msg= client.sendMessage(aggregatorMessage);
+            while (!msg.isDone()){
+                TimeUnit.SECONDS.sleep(1);
+            }
+            logger.info(""+msg.get());
         }
     }
 

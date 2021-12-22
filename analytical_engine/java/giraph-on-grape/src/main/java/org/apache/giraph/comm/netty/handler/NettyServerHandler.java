@@ -23,6 +23,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import org.apache.giraph.comm.requests.AggregatorMessage;
 import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.graph.AggregatorManager;
@@ -41,12 +42,14 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
     private Map<String, Integer> aggregateTimes;
     private ByteBufAllocator allocator;
     private ByteBuf buffer;
+    private CountDownLatch aggregationLatch;
 
     public NettyServerHandler(AggregatorManager aggregatorManager) {
         this.aggregatorManager = (AggregatorManagerNettyImpl) aggregatorManager;
         this.aggregateTimes = new HashMap<>();
         this.allocator = new PooledByteBufAllocator();
         this.buffer = allocator.buffer();
+        aggregationLatch = new CountDownLatch(aggregatorManager.getNumWorkers() - 1);
     }
 
     @Override
@@ -71,13 +74,15 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                         + " times reduce, now broadcast");
 
                     aggregateTimes.put(aggregatorId, 0);
-                    logger.info("before countdown" + aggregatorManager.countDownLatch.getCount());
-                    aggregatorManager.countDownLatch.countDown();
-                    logger.info("after countdown" + aggregatorManager.countDownLatch.getCount());
+                    logger.info("before countdown" + aggregationLatch.getCount());
+                    aggregationLatch.countDown();
+                    logger.info("after countdown" + aggregationLatch.getCount());
 
                 }
                 logger.info("server waiting to send to client: " + aggregatorId);
-                aggregatorManager.countDownLatch.await();
+                if (aggregationLatch.getCount() > 0) {
+                    aggregationLatch.await();
+                }
                 logger.info("server waiting to send to client: " + aggregatorId + " completed");
                 Writable writable = aggregatorManager.getAggregatedValue(aggregatorId);
                 buffer.clear();
@@ -92,6 +97,14 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                     bytes);
                 logger.info("server send response to client: " + toSend);
                 ctx.writeAndFlush(toSend);
+                logger.info(
+                    "aggregator manager before countdown: " + aggregatorManager.countDownLatch
+                        .getCount());
+                aggregatorManager.countDownLatch.countDown();
+                logger.info(
+                    "aggregator manager after countdown: " + aggregatorManager.countDownLatch
+                        .getCount());
+
             } else {
                 logger.error("Not a aggregator message");
             }
