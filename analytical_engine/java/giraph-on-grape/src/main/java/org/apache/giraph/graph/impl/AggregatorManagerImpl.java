@@ -14,7 +14,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import org.apache.giraph.aggregators.Aggregator;
 import org.apache.giraph.comm.requests.AggregatorMessage;
-import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.Communicator;
@@ -65,6 +64,16 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
     @Override
     public void acceptAggregatorMessage(AggregatorMessage aggregatorMessage) {
 
+    }
+
+    @Override
+    public int getWorkerId() {
+        return workerId;
+    }
+
+    @Override
+    public int getNumWorkers() {
+        return workerNum;
     }
 
     /**

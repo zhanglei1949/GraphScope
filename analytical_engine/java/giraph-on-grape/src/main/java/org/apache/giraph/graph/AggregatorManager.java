@@ -12,6 +12,9 @@ import org.apache.hadoop.io.Writable;
  */
 public interface AggregatorManager {
 
+    int getWorkerId();
+    int getNumWorkers();
+
     /**
      * Register an aggregator with a unique name
      *

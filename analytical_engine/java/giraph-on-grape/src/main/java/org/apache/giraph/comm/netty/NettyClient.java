@@ -13,11 +13,16 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.handler.NettyClientHandler;
+import org.apache.giraph.comm.netty.handler.NettyServerHandler;
+import org.apache.giraph.comm.requests.AggregatorMessage;
 import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.comm.requests.NettyMessageDecoder;
 import org.apache.giraph.comm.requests.NettyMessageEncoder;
+import org.apache.giraph.comm.requests.WritableRequest;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
+import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.utils.ThreadUtils;
+import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,14 +42,17 @@ public class NettyClient {
     //    private ChannelFuture channelFuture;
     private Channel channel;
     private ImmutableClassesGiraphConfiguration conf;
+    private AggregatorManager aggregatorManager;
+    private NettyClientHandler handler;
 
     public NettyClient(
             ImmutableClassesGiraphConfiguration conf,
+            AggregatorManager aggregatorManager,
             WorkerInfo workerInfo,
             final Thread.UncaughtExceptionHandler exceptionHandler) {
         this.workerInfo = workerInfo;
         this.conf = conf;
-
+        this.aggregatorManager = aggregatorManager;
         workGroup =
                 new NioEventLoopGroup(
                         1,
@@ -63,12 +71,14 @@ public class NettyClient {
                                     ChannelPipeline p = ch.pipeline();
                                     p.addLast(new NettyMessageEncoder());
                                     p.addLast(new NettyMessageDecoder());
-                                    p.addLast(new NettyClientHandler());
+                                    p.addLast(new NettyClientHandler(aggregatorManager));
                                 }
                             });
 
             // Make the connection attempt.
             channel = b.connect(workerInfo.getHost(), workerInfo.getInitPort()).sync().channel();
+
+            handler = (NettyClientHandler) channel.pipeline().last();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -82,6 +92,10 @@ public class NettyClient {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    public Writable getAggregatedMessage(String aggregatorId){
+        return handler.getAggregatedMessage(aggregatorId);
     }
 
     public void close() {

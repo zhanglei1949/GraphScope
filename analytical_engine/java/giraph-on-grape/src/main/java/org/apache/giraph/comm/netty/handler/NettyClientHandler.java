@@ -1,13 +1,19 @@
 package org.apache.giraph.comm.netty.handler;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import org.apache.giraph.comm.netty.NettyClient;
+import java.io.ByteArrayInputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.giraph.comm.requests.AggregatorMessage;
 import org.apache.giraph.comm.requests.NettyMessage;
+import org.apache.giraph.graph.AggregatorManager;
+import org.apache.giraph.utils.ReflectionUtils;
+import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,19 +22,20 @@ import org.slf4j.LoggerFactory;
  */
 public class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
 
-//    private ByteBuf content;
+    //    private ByteBuf content;
     private ChannelHandlerContext ctx;
     private static Logger logger = LoggerFactory.getLogger(NettyClientHandler.class);
+    private Map<String, Writable> result;
+    private AggregatorManager aggregatorManager;
+
+    public NettyClientHandler(AggregatorManager aggregatorManager) {
+        this.aggregatorManager = aggregatorManager;
+        result = new HashMap<>();
+    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         this.ctx = ctx;
-
-        // Initialize the message.
-        //content = ctx.alloc().directBuffer(NettyClient.SIZE).writeZero(NettyClient.SIZE);
-
-        // Send the initial messages.
-        //generateTraffic();
     }
 
     @Override
@@ -47,14 +54,28 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<Object> {
             NettyMessage message = (NettyMessage) msg;
             if (message instanceof AggregatorMessage) {
                 AggregatorMessage aggregatorMessage = (AggregatorMessage) message;
-                logger.info("client: aggregator message: " + aggregatorMessage.getMessageType().name());
-            }
-            else {
+                DataInput stream = new DataInputStream(new ByteArrayInputStream(aggregatorMessage.getData()));
+                Writable value = ReflectionUtils.newInstance(
+                    aggregatorManager.getAggregatedValue(aggregatorMessage.getAggregatorId())
+                        .getClass());
+                value.readFields(stream);
+                logger.info(
+                    "client: aggregator message: " + aggregatorMessage.getMessageType().name()
+                        + ",value: " + aggregatorMessage.getValue() + ", " + value.toString());
+            } else {
                 logger.error("not a aggregator message");
             }
         } else {
             logger.error("Expect a byte buffer");
         }
+    }
+
+    public Writable getAggregatedMessage(String aggregatorId) {
+        if (!result.containsKey(aggregatorId)) {
+            logger.error("result not available");
+            return null;
+        }
+        return result.get(aggregatorId);
     }
 
     @Override

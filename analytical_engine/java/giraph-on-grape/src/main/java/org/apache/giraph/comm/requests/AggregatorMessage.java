@@ -15,19 +15,30 @@ public class AggregatorMessage extends ByteArrayMessage {
      * The position where this aggregator resides.
      */
     private String aggregatorId;
+    private String value;
 
     public AggregatorMessage() {
 
     }
 
-    public AggregatorMessage(String aggregatorId, byte[] valueBytes) {
+    public String getValue() {
+        return value;
+    }
+
+    public AggregatorMessage(String aggregatorId, String value,byte[] valueBytes) {
         this.aggregatorId = aggregatorId;
+        this.value = value;
         this.setData(valueBytes);
     }
 
     @Override
     public int getSerializedSize() {
-        return super.getSerializedSize() + aggregatorId.getBytes(StandardCharsets.UTF_8).length;
+        return super.getSerializedSize() + aggregatorId.getBytes(StandardCharsets.UTF_8).length + value.getBytes(
+            StandardCharsets.UTF_8).length;
+    }
+
+    public String getAggregatorId(){
+        return aggregatorId;
     }
 
     @Override
@@ -38,12 +49,18 @@ public class AggregatorMessage extends ByteArrayMessage {
     @Override
     public void readFields(DataInput input) throws IOException {
         aggregatorId = input.readUTF();
+        value = input.readUTF();
         super.readFields(input);
     }
 
     @Override
     public void write(DataOutput output) throws IOException {
         output.writeUTF(aggregatorId);
+        output.writeUTF(value);
         super.write(output);
+    }
+
+    public String toString(){
+        return "aggregatorMessage:id[" + aggregatorId + "], value" + value;
     }
 }

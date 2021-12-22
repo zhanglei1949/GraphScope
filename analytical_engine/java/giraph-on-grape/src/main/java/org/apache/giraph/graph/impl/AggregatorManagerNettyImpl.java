@@ -10,14 +10,14 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.unix.PreferredDirectByteBufAllocator;
+import java.io.ByteArrayInputStream;
 import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -26,12 +26,12 @@ import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.NettyClient;
 import org.apache.giraph.comm.netty.NettyServer;
 import org.apache.giraph.comm.requests.AggregatorMessage;
-import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.Communicator;
 import org.apache.giraph.master.AggregatorReduceOperation;
 import org.apache.giraph.reducers.ReduceOperation;
+import org.apache.giraph.utils.ReflectionUtils;
 import org.apache.giraph.utils.WritableUtils;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
@@ -66,7 +66,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
         communicator = null;
         masterIp = null;
         workerInfo = null;
-        allocator = new PreferredDirectByteBufAllocator();
+        allocator = new PooledByteBufAllocator();
     }
 
     @Override
@@ -82,15 +82,20 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                     logger.error(t.getId() + ": " + e.toString());
                 }
             });
+            logger.info(
+                "Worker 0 create server success on " + res[0] + ":" + conf.getInitServerPort());
         } else {
             this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(),
                 res);
-            client = new NettyClient(conf, workerInfo, new UncaughtExceptionHandler() {
+            client = new NettyClient(conf, this, workerInfo, new UncaughtExceptionHandler() {
                 @Override
                 public void uncaughtException(Thread t, Throwable e) {
                     logger.error(t.getId() + ": " + e.toString());
                 }
             });
+            logger.info(
+                "Worker " + workerId + " connected to server success on " + res[0] + ":" + conf
+                    .getInitServerPort());
         }
     }
 
@@ -101,7 +106,27 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
      */
     @Override
     public void acceptAggregatorMessage(AggregatorMessage aggregatorMessage) {
+        logger.info("In accepting the aggregated message");
+        DataInput input = new DataInputStream(
+            new ByteArrayInputStream(aggregatorMessage.getData()));
+        Writable value = ReflectionUtils.newInstance(
+            aggregators.get(aggregatorMessage.getAggregatorId()).getCurrentValue().getClass());
+        try {
+            value.readFields(input);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        aggregate(aggregatorMessage.getAggregatorId(), value);
+    }
 
+    @Override
+    public int getWorkerId() {
+        return workerId;
+    }
+
+    @Override
+    public int getNumWorkers() {
+        return workerNum;
     }
 
     /**
@@ -309,7 +334,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                     return;
                 }
 
-                ByteBufOutputStream outputStream = new ByteBufOutputStream(allocator.directBuffer());
+                ByteBufOutputStream outputStream = new ByteBufOutputStream(allocator.buffer());
                 try {
                     value.write(outputStream);
                     outputStream.flush();
@@ -319,22 +344,27 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 }
                 ByteBuf buf = outputStream.buffer();
                 AggregatorMessage msg;
-                if (buf.hasArray()){
+                if (buf.hasArray()) {
                     logger.info("has array");
-                    msg = new AggregatorMessage(aggregatorKey, buf.array());
-
-                }
-                else {
+                    msg = new AggregatorMessage(aggregatorKey, value.toString(), buf.array());
+                } else {
                     logger.info("no array");
-                    byte [] bytes = new byte[buf.readableBytes()];
+                    byte[] bytes = new byte[buf.readableBytes()];
                     buf.getBytes(buf.readerIndex(), bytes);
-                    msg = new AggregatorMessage(aggregatorKey, bytes);
+                    msg = new AggregatorMessage(aggregatorKey, value.toString(), bytes);
                 }
+                logger.info(
+                    "Client: " + workerId + "sending aggregate value" + aggregatorKey + ", " + value
+                        .toString());
                 client.sendMessage(msg);
+                Writable aggregatedValue = client.getAggregatedMessage(aggregatorKey);
+                logger.info("client: got aggregated value " + aggregatedValue);
+                //decode
             } else {
-
+                //do nothing.
             }
         }
+
     }
 
     //TODO: figure out how this works
