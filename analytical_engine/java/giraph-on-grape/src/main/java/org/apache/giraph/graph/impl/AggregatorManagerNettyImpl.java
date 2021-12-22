@@ -342,17 +342,20 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                logger.info("" + outputStream.writtenBytes());
                 ByteBuf buf = outputStream.buffer();
+                logger.info("buf: " + buf.readableBytes());
                 AggregatorMessage msg;
-                if (buf.hasArray()) {
-                    logger.info("has array");
-                    msg = new AggregatorMessage(aggregatorKey, value.toString(), buf.array());
-                } else {
-                    logger.info("no array");
-                    byte[] bytes = new byte[buf.readableBytes()];
-                    buf.getBytes(buf.readerIndex(), bytes);
-                    msg = new AggregatorMessage(aggregatorKey, value.toString(), bytes);
-                }
+//                if (buf.hasArray()) {
+//                    logger.info("has array");
+//                    msg = new AggregatorMessage(aggregatorKey, value.toString(), buf.array());
+//                } else {
+//                    logger.info("no array");
+                //TODO: optimize for no copy.
+                byte[] bytes = new byte[buf.readableBytes()];
+                buf.readBytes(bytes);
+                msg = new AggregatorMessage(aggregatorKey, value.toString(), bytes);
+//                }
                 logger.info(
                     "Client: " + workerId + "sending aggregate value" + aggregatorKey + ", " + value
                         .toString());

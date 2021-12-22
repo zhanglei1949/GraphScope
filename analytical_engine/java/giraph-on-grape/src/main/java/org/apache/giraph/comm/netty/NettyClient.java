@@ -11,6 +11,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.handler.NettyClientHandler;
 import org.apache.giraph.comm.requests.NettyMessage;
@@ -73,20 +74,30 @@ public class NettyClient {
                         p.addLast(new NettyClientHandler(aggregatorManager));
                     }
                 });
-
         // Make the connection attempt.
+        ChannelFuture future = b.connect(workerInfo.getHost(), workerInfo.getInitPort());
+
         int failureTime = 0;
-        while (failureTime < 10) {
-            try {
-                logger.info("try for " + failureTime + " times");
-                channel = b.connect(workerInfo.getHost(), workerInfo.getInitPort()).sync()
-                    .channel();
-                break;
-            } catch (Exception e) {
-                e.printStackTrace();
+        while (failureTime < 10){
+            if (!future.isSuccess() || !future.channel().isOpen()){
+                logger.info("failed for " + failureTime + " times");
+                try {
+                    TimeUnit.SECONDS.sleep(2);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 failureTime += 1;
             }
+            else {
+                logger.info("success for " + failureTime + " times");
+                channel = future.channel();;
+            }
         }
+        if (failureTime >= 10){
+            logger.error("connection failed");
+            return ;
+        }
+
         handler = (NettyClientHandler) channel.pipeline().last();
     }
 
