@@ -73,9 +73,9 @@ public class NettyServer {
         this.conf = conf;
 
 //        maxPoolSize = GiraphConstants.NETTY_SERVER_THREADS.get(conf);
-        maxPoolSize = 1;
+        maxPoolSize = 4;
 
-        bossGroup = new NioEventLoopGroup(1,
+        bossGroup = new NioEventLoopGroup(4,
             ThreadUtils.createThreadFactory(
                 "netty-server-boss-%d", exceptionHandler));
 

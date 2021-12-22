@@ -2,9 +2,13 @@ package org.apache.giraph.comm.netty;
 
 import static org.mockito.Mockito.mock;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.apache.giraph.aggregators.LongSumAggregator;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.requests.AggregatorMessage;
+import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.impl.AggregatorManagerNettyImpl;
@@ -34,11 +38,11 @@ public class NettyClientTest {
     @Before
     public void prepare() throws InstantiationException, IllegalAccessException {
         ImmutableClassesGiraphConfiguration conf = mock(ImmutableClassesGiraphConfiguration.class);
-        aggregatorManager = new AggregatorManagerNettyImpl(conf, 0,1);
+        aggregatorManager = new AggregatorManagerNettyImpl(conf, 0,2);
         aggregatorManager.registerAggregator("sum", LongSumAggregator.class);
         aggregatorManager.setAggregatedValue("sum", new LongWritable(0));
         //        when(conf.)
-        workerInfo = new WorkerInfo(0, 1, "172.17.0.14", 30000, null);
+        workerInfo = new WorkerInfo(0, 2, "172.17.0.14", 30000, null);
         server =
                 new NettyServer(
                         conf,
@@ -64,7 +68,7 @@ public class NettyClientTest {
     }
 
     @Test
-    public void test() throws InterruptedException, ExecutionException{
+    public void test() throws InterruptedException, ExecutionException {
         for (int i = 0; i < 10; ++i) {
             //            SimpleLongWritableRequest writable = new SimpleLongWritableRequest(new
             // LongWritable(i));

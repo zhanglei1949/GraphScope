@@ -23,6 +23,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import org.apache.giraph.comm.requests.AggregatorMessage;
 import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.graph.AggregatorManager;
@@ -30,6 +31,7 @@ import org.apache.giraph.graph.impl.AggregatorManagerNettyImpl;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Handles a server-side channel.
@@ -41,12 +43,14 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
     private Map<String, Integer> aggregateTimes;
     private ByteBufAllocator allocator;
     private ByteBuf buffer;
+    private CountDownLatch aggregationLatch;
 
     public NettyServerHandler(AggregatorManager aggregatorManager) {
         this.aggregatorManager = (AggregatorManagerNettyImpl) aggregatorManager;
-        this.aggregateTimes = new HashMap<>();
+        this.aggregateTimes = new ConcurrentHashMap<>();
         this.allocator = new PooledByteBufAllocator();
         this.buffer = allocator.buffer();
+        aggregationLatch = new CountDownLatch(1);
     }
 
     @Override
@@ -63,22 +67,25 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                 logger.info(
                     "server: aggregator message: " + aggregatorMessage.getMessageType().name()
                         + "value: " + aggregatorMessage.getValue() + "result: " + aggregatorManager
-                        .getAggregatedValue(aggregatorId));
+                        .getAggregatedValue(aggregatorId) + " counts: "+ aggregateTimes.get(aggregatorId)+ "/"+(aggregatorManager.getNumWorkers() - 1));
+
                 AggregatorMessage toSend = null;
-                if (aggregateTimes.get(aggregatorId) == aggregatorManager.getNumWorkers() - 1) {
+                if (aggregateTimes.get(aggregatorId) == 1) {
                     //send msg to worker.
                     logger.info("server received " + aggregateTimes.get(aggregatorId)
                         + " times reduce, now broadcast");
 
                     aggregateTimes.put(aggregatorId, 0);
-                    logger.info("before countdown" + aggregatorManager.countDownLatch.getCount());
-                    aggregatorManager.countDownLatch.countDown();
-                    logger.info("after countdown" + aggregatorManager.countDownLatch.getCount());
+ 			logger.info("before countdown" + aggregationLatch.getCount());
+                	aggregationLatch.countDown();
+                	logger.info("after countdown" + aggregationLatch.getCount());
 
                 }
-                logger.info("server waiting to send to client: " + aggregatorId);
-                if (aggregatorManager.countDownLatch.getCount() > 0){
-                    aggregatorManager.countDownLatch.await();
+		
+                logger.info("server waiting to send to client: " + aggregatorId +": " + aggregationLatch.getCount());
+
+                if (aggregationLatch.getCount() > 0) {
+                    aggregationLatch.await();
                 }
                 logger.info("server waiting to send to client: " + aggregatorId + " completed");
                 Writable writable = aggregatorManager.getAggregatedValue(aggregatorId);
@@ -94,6 +101,14 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                     bytes);
                 logger.info("server send response to client: " + toSend);
                 ctx.writeAndFlush(toSend);
+                logger.info(
+                    "aggregator manager before countdown: " + aggregatorManager.countDownLatch
+                        .getCount());
+                aggregatorManager.countDownLatch.countDown();
+                logger.info(
+                    "aggregator manager after countdown: " + aggregatorManager.countDownLatch
+                        .getCount());
+
             } else {
                 logger.error("Not a aggregator message");
             }

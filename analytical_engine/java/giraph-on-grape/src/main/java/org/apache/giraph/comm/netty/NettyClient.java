@@ -92,6 +92,11 @@ public class NettyClient {
 			e.printStackTrace();
 			failureTime +=1;
                 	logger.info("failed for " + failureTime + " times");
+                try {
+                    TimeUnit.SECONDS.sleep(2);
+                } catch (InterruptedException ee) {
+                    ee.printStackTrace();
+                }
 			continue ;
 		}
             if (!future.isSuccess() || !future.channel().isOpen()) {
