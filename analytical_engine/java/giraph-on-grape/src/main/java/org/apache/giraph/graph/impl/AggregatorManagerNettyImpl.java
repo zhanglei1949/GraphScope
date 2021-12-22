@@ -73,6 +73,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
     public void init(FFICommunicator communicator) {
         this.communicator = communicator;
         String[] res = getMasterWorkerIp(workerId, workerNum);
+	logger.info(String.join("," , res));
         if (workerId == 0) {
             this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(),
                 res);
@@ -342,19 +343,20 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-		logger.info(""+outputStream.writtenBytes());
+                logger.info("" + outputStream.writtenBytes());
                 ByteBuf buf = outputStream.buffer();
-		logger.info("buf: " + buf.readableBytes());
+                logger.info("buf: " + buf.readableBytes());
                 AggregatorMessage msg;
-                if (buf.hasArray()) {
-                    logger.info("has array");
-                    msg = new AggregatorMessage(aggregatorKey, value.toString(), buf.array());
-                } else {
-                    logger.info("no array");
-                    byte[] bytes = new byte[buf.readableBytes()];
-                    buf.getBytes(buf.readerIndex(), bytes);
-                    msg = new AggregatorMessage(aggregatorKey, value.toString(), bytes);
-                }
+//                if (buf.hasArray()) {
+//                    logger.info("has array");
+//                    msg = new AggregatorMessage(aggregatorKey, value.toString(), buf.array());
+//                } else {
+//                    logger.info("no array");
+                //TODO: optimize for no copy.
+                byte[] bytes = new byte[buf.readableBytes()];
+                buf.readBytes(bytes);
+                msg = new AggregatorMessage(aggregatorKey, value.toString(), bytes);
+//                }
                 logger.info(
                     "Client: " + workerId + "sending aggregate value" + aggregatorKey + ", " + value
                         .toString() + " " + msg.getSerializedSize());
