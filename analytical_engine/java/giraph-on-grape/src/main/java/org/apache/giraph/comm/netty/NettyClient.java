@@ -75,11 +75,12 @@ public class NettyClient {
                     }
                 });
         // Make the connection attempt.
-        ChannelFuture future = b.connect(workerInfo.getHost(), workerInfo.getInitPort());
+        ChannelFuture future;
 
         int failureTime = 0;
-        while (failureTime < 10){
-            if (!future.isSuccess() || !future.channel().isOpen()){
+        while (failureTime < 10) {
+            future = b.connect(workerInfo.getHost(), workerInfo.getInitPort());
+            if (!future.isSuccess() || !future.channel().isOpen()) {
                 logger.info("failed for " + failureTime + " times");
                 try {
                     TimeUnit.SECONDS.sleep(2);
@@ -87,18 +88,21 @@ public class NettyClient {
                     e.printStackTrace();
                 }
                 failureTime += 1;
-            }
-            else {
+            } else {
                 logger.info("success for " + failureTime + " times");
-                channel = future.channel();;
+                channel = future.channel();
             }
         }
-        if (failureTime >= 10){
+        if (failureTime >= 10) {
             logger.error("connection failed");
-            return ;
+            return;
         }
 
         handler = (NettyClientHandler) channel.pipeline().last();
+    }
+
+    public boolean isConnected() {
+        return Objects.isNull(channel);
     }
 
     public void sendMessage(NettyMessage request) {
