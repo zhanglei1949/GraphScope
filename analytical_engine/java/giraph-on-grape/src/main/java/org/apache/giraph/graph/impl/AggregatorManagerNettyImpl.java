@@ -21,11 +21,17 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.apache.giraph.aggregators.Aggregator;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.NettyClient;
 import org.apache.giraph.comm.netty.NettyServer;
 import org.apache.giraph.comm.requests.AggregatorMessage;
+import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.Communicator;
@@ -55,6 +61,8 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
     private int workerNum;
     private FFICommunicator communicator;
     private String masterIp;
+    public CountDownLatch countDownLatch;
+
 
     public AggregatorManagerNettyImpl(final ImmutableClassesGiraphConfiguration<?, ?, ?> conf,
         int workerId, int workerNum) {
@@ -67,6 +75,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
         masterIp = null;
         workerInfo = null;
         allocator = new PooledByteBufAllocator();
+        countDownLatch = new CountDownLatch(workerNum - 1);
     }
 
     @Override
@@ -318,6 +327,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
         //node. in byte vector.
         for (Entry<String, AggregatorWrapper<Writable>> entry :
             aggregators.entrySet()) {
+            countDownLatch = new CountDownLatch(workerNum - 1);
             String aggregatorKey = entry.getKey();
             Writable value = entry.getValue().getCurrentValue();
             if (value == null) {
@@ -365,11 +375,34 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 logger.info(
                     "Client: " + workerId + "sending aggregate value" + aggregatorKey + ", " + value
                         .toString() + " " + msg.getSerializedSize());
-                client.sendMessage(msg);
-                Writable aggregatedValue = client.getAggregatedMessage(aggregatorKey);
-                logger.info("client: got aggregated value " + aggregatedValue);
+
+                Future<NettyMessage> response = client.sendMessage(msg);
+                while (!response.isDone()){
+                    try {
+                        TimeUnit.SECONDS.sleep(2);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                try {
+                    NettyMessage received =response.get();
+                    logger.info("client received msg: " + received);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
+//                Writable aggregatedValue = client.getAggregatedMessage(aggregatorKey);
+
                 //decode
             } else {
+                logger.info("Server wait for worker request for aggregator: " + aggregatorKey);
+                try {
+                    countDownLatch.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                logger.info("server finish all task");
                 //do nothing.
             }
         }

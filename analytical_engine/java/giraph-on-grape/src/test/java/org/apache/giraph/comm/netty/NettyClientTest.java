@@ -14,6 +14,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.giraph.comm.requests.NettyMessage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 
@@ -60,14 +64,18 @@ public class NettyClientTest {
     }
 
     @Test
-    public void test() {
+    public void test() throws InterruptedException, ExecutionException{
         for (int i = 0; i < 10; ++i) {
             //            SimpleLongWritableRequest writable = new SimpleLongWritableRequest(new
             // LongWritable(i));
 //            byte[] bytes = new byte[] {(byte) i, (byte) (i + 1), (byte) (i + 2)};
             byte[] bytes = new byte[] {(byte) 0, (byte) 0 , (byte) 0, (byte) 0, (byte) 0, (byte) 0, (byte) 0 ,(byte) i};
             AggregatorMessage aggregatorMessage = new AggregatorMessage("sum", ""+i, bytes);
-            client.sendMessage(aggregatorMessage);
+            Future<NettyMessage> msg =client.sendMessage(aggregatorMessage);
+            while (!msg.isDone()){
+                TimeUnit.SECONDS.sleep(1);
+            }
+	    logger.info(""+msg.get());
         }
     }
 
