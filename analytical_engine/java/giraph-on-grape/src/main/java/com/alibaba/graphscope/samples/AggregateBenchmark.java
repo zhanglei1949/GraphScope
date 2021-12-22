@@ -49,9 +49,11 @@ public class AggregateBenchmark extends BasicComputation<LongWritable,
     @Override
     public void compute(Vertex<LongWritable, DoubleWritable, DoubleWritable> vertex,
         Iterable<DoubleWritable> messages) throws IOException {
-        aggregate(MAX_AGG, new DoubleWritable(getSuperstep()));
-        aggregate(MIN_AGG, new DoubleWritable(getSuperstep() + 1.0));
-        aggregate(SUM_AGG, new LongWritable(1));
+        if (vertex.getId().get() < 5){
+            aggregate(MAX_AGG, new DoubleWritable(getSuperstep()));
+            aggregate(MIN_AGG, new DoubleWritable(getSuperstep() + 1.0));
+            aggregate(SUM_AGG, new LongWritable(1));
+        }
 
         if (getSuperstep() >= MAX_SUPERSTEPS){
             vertex.voteToHalt();
