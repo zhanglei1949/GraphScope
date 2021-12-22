@@ -34,7 +34,7 @@ public class NettyClientTest {
         aggregatorManager.registerAggregator("sum", LongSumAggregator.class);
         aggregatorManager.setAggregatedValue("sum", new LongWritable(0));
         //        when(conf.)
-        workerInfo = new WorkerInfo(0, 1, "0.0.0.0", 30000, null);
+        workerInfo = new WorkerInfo(0, 1, "172.17.0.14", 30000, null);
         server =
                 new NettyServer(
                         conf,

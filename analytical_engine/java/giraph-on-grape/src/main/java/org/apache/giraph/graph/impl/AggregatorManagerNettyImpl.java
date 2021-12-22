@@ -338,11 +338,13 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 try {
                     value.write(outputStream);
                     outputStream.flush();
-                    outputStream.close();
+                //    outputStream.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+		logger.info(""+outputStream.writtenBytes());
                 ByteBuf buf = outputStream.buffer();
+		logger.info("buf: " + buf.readableBytes());
                 AggregatorMessage msg;
                 if (buf.hasArray()) {
                     logger.info("has array");
@@ -355,7 +357,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 }
                 logger.info(
                     "Client: " + workerId + "sending aggregate value" + aggregatorKey + ", " + value
-                        .toString());
+                        .toString() + " " + msg.getSerializedSize());
                 client.sendMessage(msg);
                 Writable aggregatedValue = client.getAggregatedMessage(aggregatorKey);
                 logger.info("client: got aggregated value " + aggregatedValue);
