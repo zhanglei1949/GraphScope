@@ -73,7 +73,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
     public void init(FFICommunicator communicator) {
         this.communicator = communicator;
         String[] res = getMasterWorkerIp(workerId, workerNum);
-	logger.info(String.join("," , res));
+        logger.info(String.join("," , res));
         if (workerId == 0) {
             this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(),
                 res);
@@ -94,9 +94,14 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                     logger.error(t.getId() + ": " + e.toString());
                 }
             });
-            logger.info(
-                "Worker " + workerId + " connected to server success on " + res[0] + ":" + conf
-                    .getInitServerPort());
+            if (client.isConnected()){
+                logger.info(
+                    "Worker " + workerId + " connected to server success on " + res[0] + ":" + conf
+                        .getInitServerPort());
+            }
+            else {
+                throw new IllegalStateException("client connection error");
+            }
         }
     }
 
