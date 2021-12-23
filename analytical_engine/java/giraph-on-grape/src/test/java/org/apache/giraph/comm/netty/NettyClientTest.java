@@ -65,7 +65,7 @@ public class NettyClientTest {
     @Test
     public void test() throws InterruptedException, ExecutionException {
         for (int i = 0; i < 10; ++i) {
-            NettyWritableMessage send = new NettyWritableMessage(new LongWritable(i), 100);
+            NettyWritableMessage send = new NettyWritableMessage(new LongWritable(i), 100, "sum");
             Future<NettyMessage> msg = client.sendMessage(send);
             while (!msg.isDone()) {}
 

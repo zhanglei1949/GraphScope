@@ -62,7 +62,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
             if (message instanceof NettyWritableMessage) {
                 NettyWritableMessage aggregatorMessage = (NettyWritableMessage) message;
 
-                aggregatorManager.acceptAggregatorMessage(aggregatorMessage);
+                aggregatorManager.acceptNettyMessage(aggregatorMessage);
                 String aggregatorId = aggregatorMessage.getAggregatorId();
                 logger.info(
                         "server thread: ["
