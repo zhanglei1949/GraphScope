@@ -18,20 +18,18 @@ import org.apache.giraph.comm.netty.NettyClient;
 import org.apache.giraph.comm.netty.NettyServer;
 import org.apache.giraph.comm.requests.AggregatorMessage;
 import org.apache.giraph.comm.requests.NettyMessage;
+import org.apache.giraph.comm.requests.NettyWritableMessage;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.Communicator;
 import org.apache.giraph.master.AggregatorReduceOperation;
 import org.apache.giraph.reducers.ReduceOperation;
-import org.apache.giraph.utils.ReflectionUtils;
 import org.apache.giraph.utils.WritableUtils;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.DataInput;
-import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
@@ -132,22 +130,11 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
      * @param aggregatorMessage received message.
      */
     @Override
-    public void acceptAggregatorMessage(AggregatorMessage aggregatorMessage) {
-        logger.info("In accepting the aggregated message");
-        DataInput input =
-                new DataInputStream(new ByteArrayInputStream(aggregatorMessage.getData()));
-        Writable value =
-                ReflectionUtils.newInstance(
-                        aggregators
-                                .get(aggregatorMessage.getAggregatorId())
-                                .getCurrentValue()
-                                .getClass());
-        try {
-            value.readFields(input);
-        } catch (IOException e) {
-            e.printStackTrace();
+    public void acceptNettyMessage(NettyMessage nettyMessage) {
+        if (nettyMessage instanceof NettyWritableMessage) {
+            NettyWritableMessage nettyWritableMessage = (NettyWritableMessage) nettyMessage;
+            aggregate(nettyWritableMessage.getId(), nettyWritableMessage.getData());
         }
-        aggregate(aggregatorMessage.getAggregatorId(), value);
     }
 
     @Override
