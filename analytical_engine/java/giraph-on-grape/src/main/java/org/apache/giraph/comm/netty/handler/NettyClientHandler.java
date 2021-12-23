@@ -91,10 +91,9 @@ public class NettyClientHandler extends SimpleChannelInboundHandler<NettyMessage
                                             logger.info(
                                                     "client +[ "
                                                             + id
-                                                            + "] received response, notify"
-                                                            + " aggregator manager");
+                                                            + "] finish sending");
                                             // aggregatorManager.notify();
-                                            promise.notifyAll();
+//                                            promise.notifyAll();
                                         } else {
                                             future.cause().printStackTrace();
                                             future.channel().close();

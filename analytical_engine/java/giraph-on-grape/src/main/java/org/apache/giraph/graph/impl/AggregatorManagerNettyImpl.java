@@ -388,21 +388,23 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                                 + msg.getSerializedSize());
 
                 Future<NettyMessage> response = client.sendMessage(msg);
-                try {
-                    logger.info("worker: " + workerId + " start waiting:");
-                    response.wait();
-                    logger.info("Worker: " + workerId + "woke up");
-                } catch (InterruptedException e1) {
+                //try {
+                    //logger.info("worker: " + workerId + " start waiting:");
+		    synchronized(response){
+                        //response.wait();
+		    }
+                    //logger.info("Worker: " + workerId + "woke up");
+                //} catch (InterruptedException e1) {
                     // TODO Auto-generated catch block
-                    e1.printStackTrace();
-                }
-                // while (!response.isDone()){
+                   // e1.printStackTrace();
+                //}
+                while (!response.isDone()){
                 //     try {
                 //         TimeUnit.SECONDS.sleep(2);
                 //     } catch (InterruptedException e) {
                 //         e.printStackTrace();
                 //     }
-                // }
+                }
                 try {
                     NettyMessage received = response.get();
                     logger.info("client received msg: " + received);
