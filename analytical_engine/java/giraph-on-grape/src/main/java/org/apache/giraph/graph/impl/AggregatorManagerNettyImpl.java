@@ -390,7 +390,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 Future<NettyMessage> response = client.sendMessage(msg);
                 try {
                     logger.info("worker: " + workerId + " start waiting:");
-                    this.wait();
+                    response.wait();
                     logger.info("Worker: " + workerId + "woke up");
                 } catch (InterruptedException e1) {
                     // TODO Auto-generated catch block
