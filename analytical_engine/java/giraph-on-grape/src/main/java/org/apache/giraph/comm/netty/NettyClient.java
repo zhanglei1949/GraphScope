@@ -10,11 +10,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.handler.NettyClientHandler;
 import org.apache.giraph.comm.requests.NettyMessage;
@@ -27,15 +23,17 @@ import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * The implementation class which do responsible for all netty-related stuff.
- */
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+/** The implementation class which do responsible for all netty-related stuff. */
 public class NettyClient {
 
     private static Logger logger = LoggerFactory.getLogger(NettyClient.class);
-    /**
-     * 30 seconds to connect by default
-     */
+    /** 30 seconds to connect by default */
     public static final int MAX_CONNECTION_MILLISECONDS_DEFAULT = 30 * 1000;
 
     public static final int SIZE = 256;
@@ -50,55 +48,55 @@ public class NettyClient {
     private Map<String, Writable> result;
 
     public NettyClient(
-        ImmutableClassesGiraphConfiguration conf,
-        AggregatorManager aggregatorManager,
-        WorkerInfo workerInfo,
-        final Thread.UncaughtExceptionHandler exceptionHandler) {
+            ImmutableClassesGiraphConfiguration conf,
+            AggregatorManager aggregatorManager,
+            WorkerInfo workerInfo,
+            final Thread.UncaughtExceptionHandler exceptionHandler) {
         result = new HashMap<>();
         this.workerInfo = workerInfo;
         this.conf = conf;
         this.aggregatorManager = aggregatorManager;
         workGroup =
-            new NioEventLoopGroup(
-                1,
-                ThreadUtils.createThreadFactory(
-                    "netty-client-worker-%d", exceptionHandler));
+                new NioEventLoopGroup(
+                        1,
+                        ThreadUtils.createThreadFactory(
+                                "netty-client-worker-%d", exceptionHandler));
 
         Bootstrap b = new Bootstrap();
         b.option(ChannelOption.SO_KEEPALIVE, true);
         b.option(ChannelOption.TCP_NODELAY, true);
         b.group(workGroup)
-            .channel(NioSocketChannel.class)
-            .handler(
-                new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    protected void initChannel(SocketChannel ch) throws Exception {
-                        ChannelPipeline p = ch.pipeline();
-                        p.addLast(new NettyMessageEncoder());
-                        p.addLast(new NettyMessageDecoder());
-                        p.addLast(new NettyClientHandler(aggregatorManager));
-                    }
-                });
+                .channel(NioSocketChannel.class)
+                .handler(
+                        new ChannelInitializer<SocketChannel>() {
+                            @Override
+                            protected void initChannel(SocketChannel ch) throws Exception {
+                                ChannelPipeline p = ch.pipeline();
+                                p.addLast(new NettyMessageEncoder());
+                                p.addLast(new NettyMessageDecoder());
+                                p.addLast(
+                                        new NettyClientHandler(
+                                                aggregatorManager, workerInfo.getWorkerId()));
+                            }
+                        });
         // Make the connection attempt.
         ChannelFuture future;
 
         int failureTime = 0;
         while (failureTime < 10) {
-	    try {
-
-            future = b.connect(workerInfo.getHost(), workerInfo.getInitPort()).sync();
-		}
-		catch (Exception e){
-			e.printStackTrace();
-			failureTime +=1;
-                	logger.info("failed for " + failureTime + " times");
+            try {
+                future = b.connect(workerInfo.getHost(), workerInfo.getInitPort()).sync();
+            } catch (Exception e) {
+                e.printStackTrace();
+                failureTime += 1;
+                logger.info("failed for " + failureTime + " times");
                 try {
                     TimeUnit.SECONDS.sleep(2);
                 } catch (InterruptedException ee) {
                     ee.printStackTrace();
                 }
-			continue ;
-		}
+                continue;
+            }
             if (!future.isSuccess() || !future.channel().isOpen()) {
                 logger.info("failed for " + failureTime + " times");
                 try {
@@ -109,8 +107,9 @@ public class NettyClient {
                 failureTime += 1;
             } else {
                 logger.info("success for " + failureTime + " times");
-                channel = future.channel();;
-		break;
+                channel = future.channel();
+                ;
+                break;
             }
         }
         if (failureTime >= 10) {
@@ -126,19 +125,8 @@ public class NettyClient {
     }
 
     public Future<NettyMessage> sendMessage(NettyMessage request) {
-//        ChannelFuture channelFuture = channel.writeAndFlush(request);
-//        try {
-//            channelFuture.await();
-//            logger.info("send msg: " + request);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
         return handler.sendMessage(request);
     }
-
-//    public Writable getAggregatedMessage(String aggregatorId) {
-//        return handler.getAggregatedMessage(aggregatorId);
-//    }
 
     public void close() {
         try {
@@ -149,11 +137,6 @@ public class NettyClient {
             e.printStackTrace();
         }
         workGroup.shutdownGracefully();
-        //        try {
-        //            channelFuture.channel().closeFuture().sync();
-        //        } catch (InterruptedException e) {
-        //            e.printStackTrace();
-        //        }
         logger.info("shut down client");
     }
 }

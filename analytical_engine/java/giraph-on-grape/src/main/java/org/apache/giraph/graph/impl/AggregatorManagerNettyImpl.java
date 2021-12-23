@@ -6,26 +6,12 @@ import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.stdcxx.FFIByteVectorFactory;
 import com.google.common.base.Preconditions;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.PooledByteBufAllocator;
-import java.io.ByteArrayInputStream;
-import java.io.DataInput;
-import java.io.DataInputStream;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.lang.Thread.UncaughtExceptionHandler;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+
 import org.apache.giraph.aggregators.Aggregator;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.NettyClient;
@@ -43,17 +29,31 @@ import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
 public class AggregatorManagerNettyImpl implements AggregatorManager, Communicator {
 
     private static Logger logger = LoggerFactory.getLogger(AggregatorManagerNettyImpl.class);
 
     private HashMap<String, AggregatorWrapper<Writable>> aggregators;
     private ByteBufAllocator allocator;
-//    private HashMap<String,Aggregator> unPersistentAggregators;
-    /**
-     * Conf
-     */
+    //    private HashMap<String,Aggregator> unPersistentAggregators;
+    /** Conf */
     private final ImmutableClassesGiraphConfiguration<?, ?, ?> conf;
+
     private NettyClient client;
     private NettyServer server;
     private WorkerInfo workerInfo;
@@ -63,10 +63,9 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
     private String masterIp;
     public CountDownLatch countDownLatch;
 
-
-    public AggregatorManagerNettyImpl(final ImmutableClassesGiraphConfiguration<?, ?, ?> conf,
-        int workerId, int workerNum) {
-        //TODO: for coordinator, get ip and broadcast to all other nodes.
+    public AggregatorManagerNettyImpl(
+            final ImmutableClassesGiraphConfiguration<?, ?, ?> conf, int workerId, int workerNum) {
+        // TODO: for coordinator, get ip and broadcast to all other nodes.
         this.conf = conf;
         this.workerId = workerId;
         this.workerNum = workerNum;
@@ -82,33 +81,46 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
     public void init(FFICommunicator communicator) {
         this.communicator = communicator;
         String[] res = getMasterWorkerIp(workerId, workerNum);
-        logger.info(String.join("," , res));
+        logger.info(String.join(",", res));
         if (workerId == 0) {
-            this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(),
-                res);
-            server = new NettyServer(conf, this, workerInfo, new UncaughtExceptionHandler() {
-                @Override
-                public void uncaughtException(Thread t, Throwable e) {
-                    logger.error(t.getId() + ": " + e.toString());
-                }
-            });
+            this.workerInfo =
+                    new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(), res);
+            server =
+                    new NettyServer(
+                            conf,
+                            this,
+                            workerInfo,
+                            new UncaughtExceptionHandler() {
+                                @Override
+                                public void uncaughtException(Thread t, Throwable e) {
+                                    logger.error(t.getId() + ": " + e.toString());
+                                }
+                            });
             logger.info(
-                "Worker 0 create server success on " + res[0] + ":" + conf.getInitServerPort());
+                    "Worker 0 create server success on " + res[0] + ":" + conf.getInitServerPort());
         } else {
-            this.workerInfo = new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(),
-                res);
-            client = new NettyClient(conf, this, workerInfo, new UncaughtExceptionHandler() {
-                @Override
-                public void uncaughtException(Thread t, Throwable e) {
-                    logger.error(t.getId() + ": " + e.toString());
-                }
-            });
-            if (client.isConnected()){
+            this.workerInfo =
+                    new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(), res);
+            client =
+                    new NettyClient(
+                            conf,
+                            this,
+                            workerInfo,
+                            new UncaughtExceptionHandler() {
+                                @Override
+                                public void uncaughtException(Thread t, Throwable e) {
+                                    logger.error(t.getId() + ": " + e.toString());
+                                }
+                            });
+            if (client.isConnected()) {
                 logger.info(
-                    "Worker " + workerId + " connected to server success on " + res[0] + ":" + conf
-                        .getInitServerPort());
-            }
-            else {
+                        "Worker "
+                                + workerId
+                                + " connected to server success on "
+                                + res[0]
+                                + ":"
+                                + conf.getInitServerPort());
+            } else {
                 throw new IllegalStateException("client connection error");
             }
         }
@@ -122,10 +134,14 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
     @Override
     public void acceptAggregatorMessage(AggregatorMessage aggregatorMessage) {
         logger.info("In accepting the aggregated message");
-        DataInput input = new DataInputStream(
-            new ByteArrayInputStream(aggregatorMessage.getData()));
-        Writable value = ReflectionUtils.newInstance(
-            aggregators.get(aggregatorMessage.getAggregatorId()).getCurrentValue().getClass());
+        DataInput input =
+                new DataInputStream(new ByteArrayInputStream(aggregatorMessage.getData()));
+        Writable value =
+                ReflectionUtils.newInstance(
+                        aggregators
+                                .get(aggregatorMessage.getAggregatorId())
+                                .getCurrentValue()
+                                .getClass());
         try {
             value.readFields(input);
         } catch (IOException e) {
@@ -147,26 +163,26 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
     /**
      * Register an aggregator with a unique name
      *
-     * @param name            aggregator name
+     * @param name aggregator name
      * @param aggregatorClass the class
      */
     @Override
-    public <A extends Writable> boolean registerAggregator(String name,
-        Class<? extends Aggregator<A>> aggregatorClass)
-        throws InstantiationException, IllegalAccessException {
+    public <A extends Writable> boolean registerAggregator(
+            String name, Class<? extends Aggregator<A>> aggregatorClass)
+            throws InstantiationException, IllegalAccessException {
         return registerAggregator(name, aggregatorClass, false);
     }
 
     /**
      * Register a persistent aggregator with a unique name.
      *
-     * @param name            aggregator name
+     * @param name aggregator name
      * @param aggregatorClass the implementation class
      */
     @Override
-    public <A extends Writable> boolean registerPersistentAggregator(String name,
-        Class<? extends Aggregator<A>> aggregatorClass)
-        throws InstantiationException, IllegalAccessException {
+    public <A extends Writable> boolean registerPersistentAggregator(
+            String name, Class<? extends Aggregator<A>> aggregatorClass)
+            throws InstantiationException, IllegalAccessException {
         return registerAggregator(name, aggregatorClass, true);
     }
 
@@ -202,29 +218,25 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
     /**
      * Reduce given value.
      *
-     * @param name  Name of the reducer
+     * @param name Name of the reducer
      * @param value Single value to reduce
      */
     @Override
-    public void reduce(String name, Object value) {
-
-    }
+    public void reduce(String name, Object value) {}
 
     /**
      * Reduce given partial value.
      *
-     * @param name  Name of the reducer
+     * @param name Name of the reducer
      * @param value Single value to reduce
      */
     @Override
-    public void reduceMerge(String name, Writable value) {
-
-    }
+    public void reduceMerge(String name, Writable value) {}
 
     /**
      * Set aggregated value. Can be used for initialization or reset.
      *
-     * @param name  name for the aggregator
+     * @param name name for the aggregator
      * @param value Value to be set.
      */
     @Override
@@ -241,7 +253,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
     /**
      * Add a new value. Needs to be commutative and associative
      *
-     * @param name  a unique name refer to an aggregator
+     * @param name a unique name refer to an aggregator
      * @param value Value to be aggregated.
      */
     @Override
@@ -258,30 +270,25 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
      * Register reducer to be reduced in the next worker computation, using given name and
      * operations.
      *
-     * @param name     Name of the reducer
+     * @param name Name of the reducer
      * @param reduceOp Reduce operations
      */
     @Override
-    public <S, R extends Writable> void registerReducer(String name,
-        ReduceOperation<S, R> reduceOp) {
-
-    }
+    public <S, R extends Writable> void registerReducer(
+            String name, ReduceOperation<S, R> reduceOp) {}
 
     /**
      * Register reducer to be reduced in the next worker computation, using given name and
      * operations, starting globally from globalInitialValue. (globalInitialValue is reduced only
      * once, each worker will still start from neutral initial value)
      *
-     * @param name               Name of the reducer
-     * @param reduceOp           Reduce operations
+     * @param name Name of the reducer
+     * @param reduceOp Reduce operations
      * @param globalInitialValue Global initial value
      */
     @Override
-    public <S, R extends Writable> void registerReducer(String
-        name, ReduceOperation<S, R> reduceOp,
-        R globalInitialValue) {
-
-    }
+    public <S, R extends Writable> void registerReducer(
+            String name, ReduceOperation<S, R> reduceOp, R globalInitialValue) {}
 
     /**
      * Get reduced value from previous worker computation.
@@ -297,36 +304,33 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
     /**
      * Broadcast given value to all workers for next computation.
      *
-     * @param name  Name of the broadcast object
+     * @param name Name of the broadcast object
      * @param value Value
      */
     @Override
-    public void broadcast(String name, Writable value) {
-
-    }
+    public void broadcast(String name, Writable value) {}
 
     @Override
     public void preSuperstep() {
-        for (Entry<String, AggregatorWrapper<Writable>> entry :
-            aggregators.entrySet()) {
+        for (Entry<String, AggregatorWrapper<Writable>> entry : aggregators.entrySet()) {
             if (!entry.getValue().isPersistent()) {
-                logger.info("Aggregator: " + entry.getKey()
-                    + " is not persistent, reset before superstep");
+                logger.info(
+                        "Aggregator: "
+                                + entry.getKey()
+                                + " is not persistent, reset before superstep");
                 entry.getValue()
-                    .setCurrentValue(entry.getValue().getReduceOp().createInitialValue());
+                        .setCurrentValue(entry.getValue().getReduceOp().createInitialValue());
             }
         }
     }
 
-    /**
-     * Synchronize aggregator values between workers after superstep.
-     */
+    /** Synchronize aggregator values between workers after superstep. */
     @Override
     public void postSuperstep() {
-        //for each aggregator, let master node receive all data, then master distribute to all other
-        //node. in byte vector.
-        for (Entry<String, AggregatorWrapper<Writable>> entry :
-            aggregators.entrySet()) {
+        // for each aggregator, let master node receive all data, then master distribute to all
+        // other
+        // node. in byte vector.
+        for (Entry<String, AggregatorWrapper<Writable>> entry : aggregators.entrySet()) {
             countDownLatch = new CountDownLatch(workerNum - 1);
             String aggregatorKey = entry.getKey();
             Writable value = entry.getValue().getCurrentValue();
@@ -335,7 +339,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 return;
             }
             Preconditions.checkState(value != null);
-            //TODO: netty implemented.
+            // TODO: netty implemented.
             if (workerNum <= 1) {
                 logger.info("only one worker, skip aggregating..");
                 if (!entry.getValue().isPersistent()) {
@@ -354,7 +358,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 try {
                     value.write(outputStream);
                     outputStream.flush();
-                //    outputStream.close();
+                    //    outputStream.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -362,39 +366,55 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 ByteBuf buf = outputStream.buffer();
                 logger.info("buf: " + buf.readableBytes());
                 AggregatorMessage msg;
-//                if (buf.hasArray()) {
-//                    logger.info("has array");
-//                    msg = new AggregatorMessage(aggregatorKey, value.toString(), buf.array());
-//                } else {
-//                    logger.info("no array");
-                //TODO: optimize for no copy.
+                //                if (buf.hasArray()) {
+                //                    logger.info("has array");
+                //                    msg = new AggregatorMessage(aggregatorKey, value.toString(),
+                // buf.array());
+                //                } else {
+                //                    logger.info("no array");
+                // TODO: optimize for no copy.
                 byte[] bytes = new byte[buf.readableBytes()];
                 buf.readBytes(bytes);
                 msg = new AggregatorMessage(aggregatorKey, value.toString(), bytes);
-//                }
+                //                }
                 logger.info(
-                    "Client: " + workerId + "sending aggregate value" + aggregatorKey + ", " + value
-                        .toString() + " " + msg.getSerializedSize());
+                        "Client: "
+                                + workerId
+                                + "sending aggregate value"
+                                + aggregatorKey
+                                + ", "
+                                + value.toString()
+                                + " "
+                                + msg.getSerializedSize());
 
                 Future<NettyMessage> response = client.sendMessage(msg);
-                while (!response.isDone()){
-                    try {
-                        TimeUnit.SECONDS.sleep(2);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
                 try {
-                    NettyMessage received =response.get();
+                    logger.info("worker: " + workerId + " start waiting:");
+                    this.wait();
+                    logger.info("Worker: " + workerId + "woke up");
+                } catch (InterruptedException e1) {
+                    // TODO Auto-generated catch block
+                    e1.printStackTrace();
+                }
+                // while (!response.isDone()){
+                //     try {
+                //         TimeUnit.SECONDS.sleep(2);
+                //     } catch (InterruptedException e) {
+                //         e.printStackTrace();
+                //     }
+                // }
+                try {
+                    NettyMessage received = response.get();
                     logger.info("client received msg: " + received);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 } catch (ExecutionException e) {
                     e.printStackTrace();
                 }
-//                Writable aggregatedValue = client.getAggregatedMessage(aggregatorKey);
+                //                Writable aggregatedValue =
+                // client.getAggregatedMessage(aggregatorKey);
 
-                //decode
+                // decode
             } else {
                 logger.info("Server wait for worker request for aggregator: " + aggregatorKey);
                 try {
@@ -403,18 +423,16 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                     e.printStackTrace();
                 }
                 logger.info("server finish all task");
-                //do nothing.
+                // do nothing.
             }
         }
-
     }
 
-    //TODO: figure out how this works
+    // TODO: figure out how this works
     public void postMasterCompute() {
         // broadcast what master set, or if it didn't broadcast reduced value
         // register reduce with the same value
-        for (Entry<String, AggregatorWrapper<Writable>> entry :
-            aggregators.entrySet()) {
+        for (Entry<String, AggregatorWrapper<Writable>> entry : aggregators.entrySet()) {
             Writable value = entry.getValue().getCurrentValue();
             if (value == null) {
                 logger.error("aggregator wrapper is null for " + entry.getKey());
@@ -422,76 +440,61 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
             }
             Preconditions.checkState(value != null);
 
-            //Synchronize the value
+            // Synchronize the value
 
             // For persistent aggregators, we do nothing
-            //For non persistent ones, we reset the initial value.
-            AggregatorReduceOperation<Writable> cleanReduceOp =
-                entry.getValue().createReduceOp();
+            // For non persistent ones, we reset the initial value.
+            AggregatorReduceOperation<Writable> cleanReduceOp = entry.getValue().createReduceOp();
             if (entry.getValue().isPersistent()) {
                 logger.info("Aggregator: " + entry.getKey() + " is persistent.");
             } else {
                 logger.info("Aggregator: " + entry.getKey() + " is non-persistent");
                 entry.getValue()
-                    .setCurrentValue(entry.getValue().getReduceOp().createInitialValue());
+                        .setCurrentValue(entry.getValue().getReduceOp().createInitialValue());
             }
-//            entry.getValue().setCurrentValue(null);
+            //            entry.getValue().setCurrentValue(null);
         }
-//        initAggregatorValues.clear();
+        //        initAggregatorValues.clear();
     }
 
-    private <A extends Writable> boolean registerAggregator(String name, Class<? extends
-        Aggregator<A>> aggregatorClass, boolean persistent) {
+    private <A extends Writable> boolean registerAggregator(
+            String name, Class<? extends Aggregator<A>> aggregatorClass, boolean persistent) {
         if (aggregators.containsKey(name)) {
-            logger.error(
-                "Name: " + name + " has already been registered " + aggregators.get(name));
+            logger.error("Name: " + name + " has already been registered " + aggregators.get(name));
             return false;
         }
         AggregatorWrapper<A> aggregatorWrapper = (AggregatorWrapper<A>) aggregators.get(name);
-        aggregatorWrapper =
-            new AggregatorWrapper<A>(aggregatorClass, persistent);
+        aggregatorWrapper = new AggregatorWrapper<A>(aggregatorClass, persistent);
         // postMasterCompute uses previously reduced value to broadcast,
         // unless current value is set. After aggregator is registered,
         // there was no previously reduced value, so set current value
         // to default to avoid calling getReduced() on unregistered reducer.
         // (which logs unnecessary warnings)
-        aggregatorWrapper.setCurrentValue(
-            aggregatorWrapper.getReduceOp().createInitialValue());
-        aggregators.put(
-            name, (AggregatorWrapper<Writable>) aggregatorWrapper);
+        aggregatorWrapper.setCurrentValue(aggregatorWrapper.getReduceOp().createInitialValue());
+        aggregators.put(name, (AggregatorWrapper<Writable>) aggregatorWrapper);
         return true;
     }
 
     private class AggregatorWrapper<A extends Writable> implements Writable {
 
-        /**
-         * False iff aggregator should be reset at the end of each super step
-         */
+        /** False iff aggregator should be reset at the end of each super step */
         private boolean persistent;
-        /**
-         * Translation of aggregator to reduce operations
-         */
+        /** Translation of aggregator to reduce operations */
         private AggregatorReduceOperation<A> reduceOp;
-        /**
-         * Current value, set by master manually
-         */
+        /** Current value, set by master manually */
         private A currentValue;
 
-        /**
-         * Constructor
-         */
-        public AggregatorWrapper() {
-        }
+        /** Constructor */
+        public AggregatorWrapper() {}
 
         /**
          * Constructor
          *
          * @param aggregatorClass Aggregator class
-         * @param persistent      Is persistent
+         * @param persistent Is persistent
          */
         public AggregatorWrapper(
-            Class<? extends Aggregator<A>> aggregatorClass,
-            boolean persistent) {
+                Class<? extends Aggregator<A>> aggregatorClass, boolean persistent) {
             this.persistent = persistent;
             this.reduceOp = new AggregatorReduceOperation<>(aggregatorClass, conf);
         }
@@ -532,15 +535,15 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
             out.writeBoolean(persistent);
             reduceOp.write(out);
 
-            Preconditions.checkState(currentValue == null, "AggregatorWrapper " +
-                "shouldn't have value at the end of the superstep");
+            Preconditions.checkState(
+                    currentValue == null,
+                    "AggregatorWrapper " + "shouldn't have value at the end of the superstep");
         }
 
         @Override
         public void readFields(DataInput in) throws IOException {
             persistent = in.readBoolean();
-            reduceOp = WritableUtils.createWritable(
-                AggregatorReduceOperation.class, conf);
+            reduceOp = WritableUtils.createWritable(AggregatorReduceOperation.class, conf);
             reduceOp.readFields(in);
             currentValue = null;
         }
@@ -572,12 +575,12 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 return null;
             }
             outputStream.finishSetting();
-            //Send what received to all worker
+            // Send what received to all worker
             for (int dstWroker = 1; dstWroker < fnum; ++dstWroker) {
                 communicator.sendTo(dstWroker, outputStream.getVector());
             }
             logger.info("master finish sending");
-            //Receive slaves' ips.
+            // Receive slaves' ips.
             FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream();
             for (int srcWorker = 1; srcWorker < fnum; ++srcWorker) {
                 FFIByteVector vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
@@ -598,13 +601,15 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
         } else {
             String coordinatorIp = null;
             FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream();
-            FFIByteVector vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE
-                .create();
+            FFIByteVector vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
             communicator.receiveFrom(0, vector);
             inputStream.digestVector(vector);
             logger.info(
-                "worker: " + workerId + " receive size: " + inputStream.longAvailable()
-                    + " from worker 0");
+                    "worker: "
+                            + workerId
+                            + " receive size: "
+                            + inputStream.longAvailable()
+                            + " from worker 0");
             try {
                 coordinatorIp = inputStream.readUTF();
             } catch (IOException e) {
@@ -622,8 +627,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
             outputStream.finishSetting();
             communicator.sendTo(0, outputStream.getVector());
             logger.info("worker[" + workerId + "] finish sending");
-            return new String[]{coordinatorIp};
+            return new String[] {coordinatorIp};
         }
     }
-
 }

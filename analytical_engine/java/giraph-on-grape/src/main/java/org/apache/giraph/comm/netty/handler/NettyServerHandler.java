@@ -17,97 +17,91 @@ package org.apache.giraph.comm.netty.handler;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
+
 import org.apache.giraph.comm.requests.AggregatorMessage;
 import org.apache.giraph.comm.requests.NettyMessage;
+import org.apache.giraph.comm.requests.NettyWritableMessage;
 import org.apache.giraph.graph.AggregatorManager;
 import org.apache.giraph.graph.impl.AggregatorManagerNettyImpl;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Handles a server-side channel.
- */
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/** Handles a server-side channel. */
 public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
 
     private static Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
     private AggregatorManagerNettyImpl aggregatorManager;
-    private Map<String, Integer> aggregateTimes;
+    // private Map<String, Integer> aggregateTimes;
     private ByteBufAllocator allocator;
     private ByteBuf buffer;
     private CountDownLatch aggregationLatch;
+    private AtomicInteger msgNo;
 
     public NettyServerHandler(AggregatorManager aggregatorManager) {
+        logger.info("Creating server hanlder in thread: " + Thread.currentThread().getName());
         this.aggregatorManager = (AggregatorManagerNettyImpl) aggregatorManager;
-        this.aggregateTimes = new ConcurrentHashMap<>();
         this.allocator = new PooledByteBufAllocator();
         this.buffer = allocator.buffer();
         aggregationLatch = new CountDownLatch(1);
+        msgNo = new AtomicInteger(0);
     }
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof NettyMessage) {
+            int no = msgNo.getAndAdd(1);
+            logger.info("receiving: msg no." + no);
             NettyMessage message = (NettyMessage) msg;
             if (message instanceof AggregatorMessage) {
                 AggregatorMessage aggregatorMessage = (AggregatorMessage) message;
 
                 aggregatorManager.acceptAggregatorMessage(aggregatorMessage);
                 String aggregatorId = aggregatorMessage.getAggregatorId();
-                aggregateTimes.put(aggregatorId,
-                    aggregateTimes.getOrDefault(aggregatorId, 0) + 1);
                 logger.info(
-                    "server: aggregator message: " + aggregatorMessage.getMessageType().name()
-                        + "value: " + aggregatorMessage.getValue() + "result: " + aggregatorManager
-                        .getAggregatedValue(aggregatorId) + " counts: "+ aggregateTimes.get(aggregatorId)+ "/"+(aggregatorManager.getNumWorkers() - 1));
+                        "server thread: ["
+                                + Thread.currentThread().getId()
+                                + "]: aggregating id: "
+                                + aggregatorMessage.getAggregatorId()
+                                + "value: "
+                                + aggregatorMessage.getValue()
+                                + "result: "
+                                + aggregatorManager.getAggregatedValue(aggregatorId)
+                                + " counts: "
+                                + no
+                                + ", need: "
+                                + (aggregatorManager.getNumWorkers() - 1));
 
-                AggregatorMessage toSend = null;
-                if (aggregateTimes.get(aggregatorId) == 1) {
-                    //send msg to worker.
-                    logger.info("server received " + aggregateTimes.get(aggregatorId)
-                        + " times reduce, now broadcast");
+                NettyWritableMessage toSend = null;
+                // if (no == aggregatorManager.getNumWorkers() - 1) {
+                //     // send msg to worker.
+                //     logger.info(
+                //             "server "
+                //                     + Thread.currentThread().getId()
+                //                     + "received "
+                //                     + no
+                //                     + " times reduce, now broadcast");
+                //     msgNo.set(0);
+                //     msgNo.notifyAll();
+                // } else {
+                //     logger.info("server: " + Thread.currentThread().getId() + "begin waiting..");
+                //     msgNo.wait();
+                //     logger.info("server: " + Thread.currentThread().getId() + "finish waiting!");
+                // }
 
-                    aggregateTimes.put(aggregatorId, 0);
- 			logger.info("before countdown" + aggregationLatch.getCount());
-                	aggregationLatch.countDown();
-                	logger.info("after countdown" + aggregationLatch.getCount());
-
-                }
-		
-                logger.info("server waiting to send to client: " + aggregatorId +": " + aggregationLatch.getCount());
-
-                if (aggregationLatch.getCount() > 0) {
-                    aggregationLatch.await();
-                }
-                logger.info("server waiting to send to client: " + aggregatorId + " completed");
                 Writable writable = aggregatorManager.getAggregatedValue(aggregatorId);
-                buffer.clear();
-                ByteBufOutputStream outputStream = new ByteBufOutputStream(buffer);
-                writable.write(outputStream);
-                outputStream.flush();
 
+                toSend = new NettyWritableMessage(writable, 100);
                 logger.info("server to client: readable bytes: " + buffer.readableBytes());
-                byte[] bytes = new byte[buffer.readableBytes()];
-                buffer.getBytes(buffer.readerIndex(), bytes);
-                toSend = new AggregatorMessage(aggregatorId, aggregatorMessage.getValue(),
-                    bytes);
+
                 logger.info("server send response to client: " + toSend);
                 ctx.writeAndFlush(toSend);
-                logger.info(
-                    "aggregator manager before countdown: " + aggregatorManager.countDownLatch
-                        .getCount());
-                aggregatorManager.countDownLatch.countDown();
-                logger.info(
-                    "aggregator manager after countdown: " + aggregatorManager.countDownLatch
-                        .getCount());
 
             } else {
                 logger.error("Not a aggregator message");
