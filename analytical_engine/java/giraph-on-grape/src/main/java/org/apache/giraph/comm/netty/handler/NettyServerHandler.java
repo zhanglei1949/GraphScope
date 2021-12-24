@@ -63,16 +63,12 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                 NettyWritableMessage aggregatorMessage = (NettyWritableMessage) message;
 
                 aggregatorManager.acceptNettyMessage(aggregatorMessage);
-                String aggregatorId = aggregatorMessage.getAggregatorId();
+                String aggregatorId = aggregatorMessage.getId();
                 logger.info(
                         "server thread: ["
                                 + Thread.currentThread().getId()
                                 + "]: aggregating id: "
-                                + aggregatorMessage.getAggregatorId()
-                                + "value: "
-                                + aggregatorMessage.getValue()
-                                + "result: "
-                                + aggregatorManager.getAggregatedValue(aggregatorId)
+                                + aggregatorMessage.getId()
                                 + " counts: "
                                 + no
                                 + ", need: "
@@ -97,8 +93,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
 
                 Writable writable = aggregatorManager.getAggregatedValue(aggregatorId);
 
-                toSend = new NettyWritableMessage(writable, 100);
-                logger.info("server to client: readable bytes: " + buffer.readableBytes());
+                toSend = new NettyWritableMessage(writable, 100, aggregatorId);
 
                 logger.info("server send response to client: " + toSend);
                 ctx.writeAndFlush(toSend);

@@ -69,7 +69,7 @@ public class NettyClientTest {
             Future<NettyMessage> msg = client.sendMessage(send);
             while (!msg.isDone()) {}
 
-            logger.info("" + msg.get());
+            logger.info("reponse for round: " + i +": "  + msg.get());
         }
     }
 

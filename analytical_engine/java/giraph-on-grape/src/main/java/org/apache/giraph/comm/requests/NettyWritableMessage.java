@@ -74,4 +74,16 @@ public class NettyWritableMessage implements NettyMessage {
     public NettyMessageType getMessageType() {
         return NettyMessageType.NETTY_WRITABLE_MESSAGE;
     }
+
+    @Override
+    public String toString() {
+        return "NettyWritable@"
+                + id
+                + ":"
+                + repeatTimes
+                + ",type: "
+                + writableType
+                + "data: "
+                + data;
+    }
 }
