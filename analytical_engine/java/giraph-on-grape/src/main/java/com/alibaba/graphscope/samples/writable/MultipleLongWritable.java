@@ -50,4 +50,9 @@ public class MultipleLongWritable implements Writable {
             writable.write(output);
         }
     }
+
+    @Override
+    public String toString() {
+        return "" + writable + "@time:" + repeatTimes;
+    }
 }
