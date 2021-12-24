@@ -52,7 +52,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof NettyMessage) {
-            int no = msgNo.getAndAdd(1);
+            int no = msgNo.addAndGet(1);
             logger.info(
                     "server thread id "
                             + Thread.currentThread().getId()
@@ -75,15 +75,17 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                                 + (aggregatorManager.getNumWorkers() - 1));
 
                 NettyWritableMessage toSend = null;
-                if (no != 0 && (no % (aggregatorManager.getNumWorkers() - 1) == 0)) {
+                if ((no % (aggregatorManager.getNumWorkers() - 1) == 0)) {
                     logger.info(
-                            "Server "
+                            "Server ["
                                     + Thread.currentThread().getId()
-                                    + " Received last msg for agg: "
+                                    + "] Received last msg for agg: "
                                     + aggregatorId
                                     + " notify on "
                                     + this.msgNo);
-                    this.msgNo.notifyAll();
+		    synchronized(this.msgNo){
+                   	 this.msgNo.notifyAll();
+			}
                 } else {
                     synchronized (this.msgNo) {
                         try {
@@ -101,12 +103,14 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                                         + Thread.currentThread().getId()
                                         + "finish waiting: "
                                         + this.msgNo);
-                        Writable writable = aggregatorManager.getAggregatedValue(aggregatorId);
-                        toSend = new NettyWritableMessage(writable, 100, aggregatorId);
-                        logger.info("server send response to client: " + toSend);
-                        ctx.writeAndFlush(toSend);
+                        
                     }
-                }
+		}
+			Writable writable = aggregatorManager.getAggregatedValue(aggregatorId);
+                        toSend = new NettyWritableMessage(writable, 100, aggregatorId);
+                        logger.info("server [" + Thread.currentThread().getId() + "] send response to client: " + toSend);
+                        ctx.writeAndFlush(toSend);
+
 
             } else {
                 logger.error("Not a aggregator message");

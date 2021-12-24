@@ -380,22 +380,25 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 // client.getAggregatedMessage(aggregatorKey);
 
                 // decode
+		logger.info("worker: [" + workerId + "] finish post super step");
             } else {
-                logger.info("Server wait for worker request for aggregator: " + aggregatorKey);
+                logger.info("Server " + Thread.currentThread().getId() +  "wait for worker request for aggregator: " + aggregatorKey);
                 // while (!server.gotEnoughRequestForOneAgg()) {}
                 synchronized (server.getMsgNo()) {
                     try {
-                        logger.info("Worker try wait on " + server.getMsgNo());
-                        server.getMsgNo().wait();
-                        logger.info("Worker finish waiting on " + server.getMsgNo());
+                        logger.info("server try wait on " + server.getMsgNo());
+			while (server.getMsgNo().get() == 0 || (server.getMsgNo().get() % (workerNum - 1)) != 0){
+                            server.getMsgNo().wait();
+			}
+                        logger.info("server finish waiting on " + server.getMsgNo());
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
-                logger.info("netty server got enough requests for one agg, proceed..");
+                logger.info("netty server got enough requests for one agg, proceed..");	
+		logger.info("server: [" + workerId + "] finish post super step");
             }
         }
-        logger.info("finish post super step");
     }
 
     // TODO: figure out how this works
