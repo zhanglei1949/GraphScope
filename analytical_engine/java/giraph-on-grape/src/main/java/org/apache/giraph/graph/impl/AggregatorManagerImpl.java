@@ -41,6 +41,12 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
 
     /** Java wrapper for grape mpi comm */
     private FFICommunicator communicator;
+    /** after aggregation, all data will be available in this stream */
+    FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream();
+    /** a temp stream for us to write data into byte array */
+    FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
+    /** vector to receive mpi message */
+    FFIByteVector received = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
 
     public AggregatorManagerImpl(
             ImmutableClassesGiraphConfiguration<?, ?, ?> conf, int workerId, int workerNum) {
@@ -252,10 +258,9 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
             }
             Preconditions.checkState(value != null);
 
-            /** after aggregation, all data will be available in this stream */
-            FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream();
-            /** a temp stream for us to write data into byte array */
-            FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
+            outputStream.reset();
+            inputStream.clear();
+
             try {
                 if (workerNum > 1) {
                     value.write(outputStream);
@@ -263,16 +268,13 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
                     if (workerId == 0) {
                         inputStream.digestVector(outputStream.getVector());
                         for (int src_worker = 1; src_worker < workerNum; ++src_worker) {
-                            FFIByteVector vector =
-                                    (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
-                            communicator.receiveFrom(src_worker, vector);
+                            communicator.receiveFrom(src_worker, received);
                             logger.info(
                                     "Receive from src_worker: "
                                             + src_worker
                                             + ", size : "
-                                            + vector.size());
-                            inputStream.digestVector(vector);
-                            vector.clear();
+                                            + received.size());
+                            inputStream.digestVector(received);
                         }
                         // Send what received to all worker
                         for (int dstWroker = 1; dstWroker < workerNum; ++dstWroker) {
@@ -286,10 +288,9 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
                                         + outputStream.getVector().size()
                                         + " to worker 0");
                         communicator.sendTo(0, outputStream.getVector());
-                        FFIByteVector vector =
-                                (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
-                        communicator.receiveFrom(0, vector);
-                        inputStream.digestVector(vector);
+
+                        communicator.receiveFrom(0, received);
+                        inputStream.digestVector(received);
                         logger.info(
                                 "worker: "
                                         + workerId
