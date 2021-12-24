@@ -338,7 +338,8 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                     return;
                 }
 
-                NettyWritableMessage toSend = new NettyWritableMessage(value, 100, aggregatorKey);
+                NettyWritableMessage toSend =
+                        new NettyWritableMessage(value, 1000000, aggregatorKey);
 
                 logger.info(
                         "Client: "
@@ -371,6 +372,13 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 try {
                     NettyMessage received = response.get();
                     logger.info("client received msg: " + received);
+                    if (received instanceof NettyWritableMessage) {
+                        NettyWritableMessage nettyWritableMessage = (NettyWritableMessage) received;
+                        entry.getValue().setCurrentValue(nettyWritableMessage.getData());
+                    } else {
+                        logger.error(
+                                "client: [" + workerId + "] received not nettyWritableMessage");
+                    }
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 } catch (ExecutionException e) {

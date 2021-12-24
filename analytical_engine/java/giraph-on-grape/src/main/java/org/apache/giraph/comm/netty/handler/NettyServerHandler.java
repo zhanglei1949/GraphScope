@@ -102,7 +102,7 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                                         + "finish waiting: "
                                         + this.msgNo);
                         Writable writable = aggregatorManager.getAggregatedValue(aggregatorId);
-                        toSend = new NettyWritableMessage(writable, 100, aggregatorId);
+                        toSend = new NettyWritableMessage(writable, 1000000, aggregatorId);
                         logger.info("server send response to client: " + toSend);
                         ctx.writeAndFlush(toSend);
                     }

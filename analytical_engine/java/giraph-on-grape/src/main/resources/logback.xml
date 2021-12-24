@@ -20,8 +20,13 @@
     <logger name="com.alibaba.graphscope.samples.PageRank" level="info"/>
     <logger name="com.alibaba.graphscope.factory.GiraphComputationFactory" level="info"/>
     <logger name="org.apache.giraph.graph.impl.AggregatorManagerImpl" level="error"/>
-    <logger name="org.apache.giraph.comm.requests.NettyMessageDecoder" level="debug"/>
-    <logger name="org.apache.giraph.comm.requests.NettyMessageEncoder" level="debug"/>
+    <logger name="org.apache.giraph.graph.impl.AggregatorManagerNettyImpl" level="error"/>
+    <logger name="org.apache.giraph.comm.requests.NettyMessageDecoder" level="error"/>
+    <logger name="org.apache.giraph.comm.requests.NettyMessageEncoder" level="error"/>
+    <logger name="org.apache.giraph.comm.netty.NettyClient" level="error"/>
+    <logger name="org.apache.giraph.comm.netty.NettyServer" level="error"/>
+    <logger name="org.apache.giraph.comm.netty.handler.NettyClientHandler" level="error"/>
+    <logger name="org.apache.giraph.comm.netty.hanlder.NettyServerHandler" level="error"/>
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>
