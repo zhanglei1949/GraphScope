@@ -7,16 +7,13 @@ import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.stdcxx.FFIByteVectorFactory;
 import com.google.common.base.Preconditions;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.PooledByteBufAllocator;
 
 import org.apache.giraph.aggregators.Aggregator;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.netty.NettyClient;
 import org.apache.giraph.comm.netty.NettyServer;
-import org.apache.giraph.comm.requests.AggregatorMessage;
 import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.comm.requests.NettyWritableMessage;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
@@ -341,40 +338,19 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                     return;
                 }
 
-                ByteBufOutputStream outputStream = new ByteBufOutputStream(allocator.buffer());
-                try {
-                    value.write(outputStream);
-                    outputStream.flush();
-                    //    outputStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                logger.info("" + outputStream.writtenBytes());
-                ByteBuf buf = outputStream.buffer();
-                logger.info("buf: " + buf.readableBytes());
-                AggregatorMessage msg;
-                //                if (buf.hasArray()) {
-                //                    logger.info("has array");
-                //                    msg = new AggregatorMessage(aggregatorKey, value.toString(),
-                // buf.array());
-                //                } else {
-                //                    logger.info("no array");
-                // TODO: optimize for no copy.
-                byte[] bytes = new byte[buf.readableBytes()];
-                buf.readBytes(bytes);
-                msg = new AggregatorMessage(aggregatorKey, value.toString(), bytes);
-                //                }
+                NettyWritableMessage toSend = new NettyWritableMessage(value, 100, aggregatorKey);
+
                 logger.info(
                         "Client: "
                                 + workerId
-                                + "sending aggregate value"
+                                + "sending aggregator "
                                 + aggregatorKey
-                                + ", "
-                                + value.toString()
+                                + ", value: "
+                                + toSend.toString()
                                 + " "
-                                + msg.getSerializedSize());
+                                + toSend.getSerializedSize());
 
-                Future<NettyMessage> response = client.sendMessage(msg);
+                Future<NettyMessage> response = client.sendMessage(toSend);
                 try {
                     logger.info("worker: " + workerId + " start waiting:");
                     response.wait();
