@@ -12,7 +12,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
 import org.apache.giraph.comm.WorkerInfo;
-import org.apache.giraph.comm.netty.handler.NettyClientHandler;
+import org.apache.giraph.comm.netty.handler.NettyClientHandlerV2;
 import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.comm.requests.NettyMessageDecoder;
 import org.apache.giraph.comm.requests.NettyMessageEncoder;
@@ -44,7 +44,7 @@ public class NettyClient {
     private Channel channel;
     private ImmutableClassesGiraphConfiguration conf;
     private AggregatorManager aggregatorManager;
-    private NettyClientHandler handler;
+    private NettyClientHandlerV2 handler;
     private Map<String, Writable> result;
 
     public NettyClient(
@@ -75,7 +75,7 @@ public class NettyClient {
                                 p.addLast(new NettyMessageEncoder());
                                 p.addLast(new NettyMessageDecoder());
                                 p.addLast(
-                                        new NettyClientHandler(
+                                        new NettyClientHandlerV2(
                                                 aggregatorManager, workerInfo.getWorkerId()));
                             }
                         });
@@ -117,7 +117,7 @@ public class NettyClient {
             return;
         }
 
-        handler = (NettyClientHandler) channel.pipeline().last();
+        handler = (NettyClientHandlerV2) channel.pipeline().last();
     }
 
     public boolean isConnected() {
@@ -126,6 +126,10 @@ public class NettyClient {
 
     public Future<NettyMessage> sendMessage(NettyMessage request) {
         return handler.sendMessage(request);
+    }
+
+    public NettyMessage getResponse() {
+        return handler.getResponse();
     }
 
     public void close() {
