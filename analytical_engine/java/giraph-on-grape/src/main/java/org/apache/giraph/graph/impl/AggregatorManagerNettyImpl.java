@@ -12,7 +12,7 @@ import io.netty.buffer.PooledByteBufAllocator;
 
 import org.apache.giraph.aggregators.Aggregator;
 import org.apache.giraph.comm.WorkerInfo;
-import org.apache.giraph.comm.netty.NettyClient;
+import org.apache.giraph.comm.netty.NettyClientV2;
 import org.apache.giraph.comm.netty.NettyServer;
 import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.comm.requests.NettyWritableMessage;
@@ -49,7 +49,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
     /** Conf */
     private final ImmutableClassesGiraphConfiguration<?, ?, ?> conf;
 
-    private NettyClient client;
+    private NettyClientV2 client;
     private NettyServer server;
     private WorkerInfo workerInfo;
     private int workerId;
@@ -97,7 +97,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
             this.workerInfo =
                     new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(), res);
             client =
-                    new NettyClient(
+                    new NettyClientV2(
                             conf,
                             this,
                             workerInfo,
@@ -368,8 +368,8 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                     //     } catch (InterruptedException e) {
                     //         e.printStackTrace();
                     //     }
-                }
-                try {
+                //}
+                //try {
                     // NettyMessage received = response.get();
                     NettyMessage received = client.getResponse();
                     logger.info("client received msg: " + received);
@@ -380,11 +380,11 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                         logger.error(
                                 "client: [" + workerId + "] received not nettyWritableMessage");
                     }
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                }
+                //} catch (InterruptedException e) {
+                //    e.printStackTrace();
+                //} catch (ExecutionException e) {
+                //    e.printStackTrace();
+                //}
                 //                Writable aggregatedValue =
                 // client.getAggregatedMessage(aggregatorKey);
 

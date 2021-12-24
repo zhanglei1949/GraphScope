@@ -43,7 +43,7 @@ public class AggregateBenchmarkMPI
         if (vertex.getId().get() < 10) {
             // aggregate(MAX_AGG, new DoubleWritable(getSuperstep()));
             // aggregate(MIN_AGG, new DoubleWritable(getSuperstep() + 1.0));
-            aggregate(SUM_AGG, new MultipleLongWritable(1));
+            aggregate(SUM_AGG, new MultipleLongWritable(new LongWritable(1),1000000));
         }
 
         if (getSuperstep() >= MAX_SUPERSTEPS) {

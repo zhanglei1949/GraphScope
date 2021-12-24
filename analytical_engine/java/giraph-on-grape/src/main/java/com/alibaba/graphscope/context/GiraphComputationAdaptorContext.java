@@ -22,6 +22,7 @@ import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexFactory;
 import org.apache.giraph.graph.VertexIdManager;
 import org.apache.giraph.graph.impl.AggregatorManagerImpl;
+import org.apache.giraph.graph.impl.AggregatorManagerNettyImpl;
 import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.giraph.io.VertexOutputFormat;
 import org.apache.giraph.io.VertexWriter;
@@ -206,7 +207,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T>
         //        String masterWorkerIp = getMasterWorkerIp(frag.fid(), frag.fnum());
 
         aggregatorManager = new AggregatorManagerImpl(conf, frag.fid(), frag.fnum());
-        // aggregatorManager = new AggregatorManagerNettyImpl(conf, frag.fid(), frag.fnum());
+//         aggregatorManager = new AggregatorManagerNettyImpl(conf, frag.fid(), frag.fnum());
         userComputation.setAggregatorManager(aggregatorManager);
         workerContext.setAggregatorManager(aggregatorManager);
 

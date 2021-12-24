@@ -25,7 +25,7 @@ public class NettyClientTest {
     private static Logger logger = LoggerFactory.getLogger(NettyClientTest.class);
 
     private NettyServer server;
-    private NettyClient client;
+    private NettyClientV2 client;
     private ImmutableClassesGiraphConfiguration configuration;
     private WorkerInfo workerInfo;
     private AggregatorManager aggregatorManager;
@@ -50,7 +50,7 @@ public class NettyClientTest {
                             }
                         });
         client =
-                new NettyClient(
+                new NettyClientV2(
                         conf,
                         aggregatorManager,
                         workerInfo,
@@ -67,7 +67,7 @@ public class NettyClientTest {
         for (int i = 0; i < 10; ++i) {
             NettyWritableMessage send = new NettyWritableMessage(new LongWritable(i), 1000000, "sum");
             Future<NettyMessage> msg = client.sendMessage(send);
-            while (!msg.isDone()) {}
+            //while (!msg.isDone()) {}
             NettyMessage received = client.getResponse();
             logger.info("reponse for round: " + i + ": " + received);
         }
