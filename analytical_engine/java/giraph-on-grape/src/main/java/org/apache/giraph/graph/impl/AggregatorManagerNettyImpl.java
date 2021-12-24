@@ -351,22 +351,22 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                                 + toSend.getSerializedSize());
 
                 Future<NettyMessage> response = client.sendMessage(toSend);
-                //try {
-                    //logger.info("worker: " + workerId + " start waiting:");
-		    //synchronized(response){
-                        //response.wait();
-		    //}
-                    //logger.info("Worker: " + workerId + "woke up");
-                //} catch (InterruptedException e1) {
-                    // TODO Auto-generated catch block
-                   // e1.printStackTrace();
-                //}
-                while (!response.isDone()){
-                //     try {
-                //         TimeUnit.SECONDS.sleep(2);
-                //     } catch (InterruptedException e) {
-                //         e.printStackTrace();
-                //     }
+                // try {
+                // logger.info("worker: " + workerId + " start waiting:");
+                // synchronized(response){
+                // response.wait();
+                // }
+                // logger.info("Worker: " + workerId + "woke up");
+                // } catch (InterruptedException e1) {
+                // TODO Auto-generated catch block
+                // e1.printStackTrace();
+                // }
+                while (!response.isDone()) {
+                    //     try {
+                    //         TimeUnit.SECONDS.sleep(2);
+                    //     } catch (InterruptedException e) {
+                    //         e.printStackTrace();
+                    //     }
                 }
                 try {
                     NettyMessage received = response.get();
@@ -382,16 +382,20 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 // decode
             } else {
                 logger.info("Server wait for worker request for aggregator: " + aggregatorKey);
-        //        try {
-        //            countDownLatch.await();
-        //        } catch (InterruptedException e) {
-        //            e.printStackTrace();
-        //        }
-        //        logger.info("server finish all task");
-                // do nothing.
+                // while (!server.gotEnoughRequestForOneAgg()) {}
+                synchronized (server.getMsgNo()) {
+                    try {
+                        logger.info("Worker try wait on " + server.getMsgNo());
+                        server.getMsgNo().wait();
+                        logger.info("Worker finish waiting on " + server.getMsgNo());
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                logger.info("netty server got enough requests for one agg, proceed..");
             }
         }
-	logger.info("finish post super step");
+        logger.info("finish post super step");
     }
 
     // TODO: figure out how this works

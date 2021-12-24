@@ -21,7 +21,6 @@ import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
-import org.apache.giraph.comm.requests.AggregatorMessage;
 import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.comm.requests.NettyWritableMessage;
 import org.apache.giraph.graph.AggregatorManager;
@@ -30,7 +29,6 @@ import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** Handles a server-side channel. */
@@ -41,23 +39,25 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
     // private Map<String, Integer> aggregateTimes;
     private ByteBufAllocator allocator;
     private ByteBuf buffer;
-    private CountDownLatch aggregationLatch;
     private AtomicInteger msgNo;
 
-    public NettyServerHandler(AggregatorManager aggregatorManager) {
+    public NettyServerHandler(AggregatorManager aggregatorManager, AtomicInteger msgNo) {
         logger.info("Creating server hanlder in thread: " + Thread.currentThread().getName());
         this.aggregatorManager = (AggregatorManagerNettyImpl) aggregatorManager;
         this.allocator = new PooledByteBufAllocator();
         this.buffer = allocator.buffer();
-        aggregationLatch = new CountDownLatch(1);
-        msgNo = new AtomicInteger(0);
+        this.msgNo = msgNo;
     }
 
     @Override
     public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof NettyMessage) {
             int no = msgNo.getAndAdd(1);
-            logger.info("receiving: msg no." + no);
+            logger.info(
+                    "server thread id "
+                            + Thread.currentThread().getId()
+                            + "receiving: msg no."
+                            + no);
             NettyMessage message = (NettyMessage) msg;
             if (message instanceof NettyWritableMessage) {
                 NettyWritableMessage aggregatorMessage = (NettyWritableMessage) message;
@@ -75,28 +75,38 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                                 + (aggregatorManager.getNumWorkers() - 1));
 
                 NettyWritableMessage toSend = null;
-                // if (no == aggregatorManager.getNumWorkers() - 1) {
-                //     // send msg to worker.
-                //     logger.info(
-                //             "server "
-                //                     + Thread.currentThread().getId()
-                //                     + "received "
-                //                     + no
-                //                     + " times reduce, now broadcast");
-                //     msgNo.set(0);
-                //     msgNo.notifyAll();
-                // } else {
-                //     logger.info("server: " + Thread.currentThread().getId() + "begin waiting..");
-                //     msgNo.wait();
-                //     logger.info("server: " + Thread.currentThread().getId() + "finish waiting!");
-                // }
-
-                Writable writable = aggregatorManager.getAggregatedValue(aggregatorId);
-
-                toSend = new NettyWritableMessage(writable, 100, aggregatorId);
-
-                logger.info("server send response to client: " + toSend);
-                ctx.writeAndFlush(toSend);
+                if (no != 0 && (no % (aggregatorManager.getNumWorkers() - 1) == 0)) {
+                    logger.info(
+                            "Server "
+                                    + Thread.currentThread().getId()
+                                    + " Received last msg for agg: "
+                                    + aggregatorId
+                                    + " notify on "
+                                    + this.msgNo);
+                    this.msgNo.notifyAll();
+                } else {
+                    synchronized (this.msgNo) {
+                        try {
+                            logger.info(
+                                    "Server "
+                                            + Thread.currentThread().getId()
+                                            + " wait on msgNo: "
+                                            + this.msgNo);
+                            this.msgNo.wait();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        logger.info(
+                                "server "
+                                        + Thread.currentThread().getId()
+                                        + "finish waiting: "
+                                        + this.msgNo);
+                        Writable writable = aggregatorManager.getAggregatedValue(aggregatorId);
+                        toSend = new NettyWritableMessage(writable, 100, aggregatorId);
+                        logger.info("server send response to client: " + toSend);
+                        ctx.writeAndFlush(toSend);
+                    }
+                }
 
             } else {
                 logger.error("Not a aggregator message");
