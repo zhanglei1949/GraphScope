@@ -46,6 +46,8 @@ public class AggregateBenchmark
 
         if (getSuperstep() >= MAX_SUPERSTEPS) {
             vertex.voteToHalt();
+        } else {
+            vertex.forceContinue();
         }
     }
 

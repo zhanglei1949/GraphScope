@@ -1,9 +1,7 @@
 package org.apache.giraph.graph.impl;
 
 import com.alibaba.graphscope.context.GiraphComputationAdaptorContext;
-import com.alibaba.graphscope.fragment.SimpleFragment;
-import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
-import com.alibaba.graphscope.utils.WritableFactory;
+
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.giraph.conf.DefaultImmutableClassesGiraphConfigurable;
 import org.apache.giraph.edge.Edge;
@@ -14,15 +12,17 @@ import org.apache.giraph.graph.EdgeManager;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexIdManager;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable> extends
-    DefaultImmutableClassesGiraphConfigurable<OID_T,VDATA_T,EDATA_T> implements
-    Vertex<OID_T,VDATA_T,EDATA_T> {
+public class VertexImpl<
+                OID_T extends WritableComparable,
+                VDATA_T extends Writable,
+                EDATA_T extends Writable>
+        extends DefaultImmutableClassesGiraphConfigurable<OID_T, VDATA_T, EDATA_T>
+        implements Vertex<OID_T, VDATA_T, EDATA_T> {
 
     private static Logger logger = LoggerFactory.getLogger(VertexImpl.class);
 
@@ -32,28 +32,27 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
 
     private VertexDataManager<VDATA_T> vertexDataManager;
     private VertexIdManager<OID_T> vertexIdManager;
-    /**
-     * EdgeManager manages all vertex's edges.
-     */
-    private EdgeManager<OID_T,EDATA_T> edgeManager;
+    /** EdgeManager manages all vertex's edges. */
+    private EdgeManager<OID_T, EDATA_T> edgeManager;
 
-
-    public VertexImpl(GiraphComputationAdaptorContext ctx){
-        lid = -1; //set to a negative value to ensure set lid to be called later.
+    public VertexImpl(GiraphComputationAdaptorContext ctx) {
+        lid = -1; // set to a negative value to ensure set lid to be called later.
         this.giraphComputationContext = ctx;
     }
 
-    public void setVertexDataManager(VertexDataManager vertexDataManager){
+    public void setVertexDataManager(VertexDataManager vertexDataManager) {
         this.vertexDataManager = vertexDataManager;
     }
-    public VertexDataManager getVertexDataManager(){
+
+    public VertexDataManager getVertexDataManager() {
         return this.vertexDataManager;
     }
 
-    public void setVertexIdManager(VertexIdManager vertexIdManager){
+    public void setVertexIdManager(VertexIdManager vertexIdManager) {
         this.vertexIdManager = vertexIdManager;
     }
-    public VertexIdManager getVertexIdManager(){
+
+    public VertexIdManager getVertexIdManager() {
         return this.vertexIdManager;
     }
 
@@ -61,7 +60,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
         this.edgeManager = edgeManager;
     }
 
-    public EdgeManager<OID_T, EDATA_T> getEdgeManager(){
+    public EdgeManager<OID_T, EDATA_T> getEdgeManager() {
         return this.edgeManager;
     }
 
@@ -69,7 +68,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      * Initialize id, value, and edges. This method (or the alternative form initialize(id, value))
      * must be called after instantiation, unless readFields() is called.
      *
-     * @param id    Vertex id
+     * @param id Vertex id
      * @param value Vertex value
      * @param edges Iterable of edges
      */
@@ -83,7 +82,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      * initialize(id, value, edges)) must be called after instantiation, unless readFields() is
      * called.
      *
-     * @param id    Vertex id
+     * @param id Vertex id
      * @param value Vertex value
      */
     @Override
@@ -123,8 +122,8 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
 
     /**
      * After this is called, the compute() code will no longer be called for this vertex unless a
-     * message is sent to it.  Then the compute() code will be called once again until this function
-     * is called.  The application finishes only when all vertices vote to halt.
+     * message is sent to it. Then the compute() code will be called once again until this function
+     * is called. The application finishes only when all vertices vote to halt.
      */
     @Override
     public void voteToHalt() {
@@ -168,8 +167,8 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
     /**
      * Get an iterable of out-edges that can be modified in-place. This can mean changing the
      * current edge value or removing the current edge (by using the iterator version). Note:
-     * accessing the edges with other methods (e.g., addEdge()) during iteration leads to
-     * undefined behavior.
+     * accessing the edges with other methods (e.g., addEdge()) during iteration leads to undefined
+     * behavior.
      *
      * @return An iterable of mutable out-edges
      */
@@ -198,7 +197,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
      * with strict graphs.
      *
      * @param targetVertexId Target vertex id
-     * @param edgeValue      Edge value
+     * @param edgeValue Edge value
      */
     @Override
     public void setEdgeValue(OID_T targetVertexId, EDATA_T edgeValue) {
@@ -254,9 +253,7 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
         throw new NotImplementedException();
     }
 
-    /**
-     * Re-activate vertex if halted.
-     */
+    /** Re-activate vertex if halted. */
     @Override
     public void wakeUp() {
         giraphComputationContext.activateVertex(lid);
@@ -272,12 +269,17 @@ public class VertexImpl<OID_T extends WritableComparable, VDATA_T extends Writab
         return giraphComputationContext.isHalted(lid);
     }
 
-    //Methods we need to adapt to grape
+    // Methods we need to adapt to grape
     public void setLocalId(int lid) {
         this.lid = lid;
     }
 
     public long getLocalId() {
         return lid;
+    }
+
+    @Override
+    public void forceContinue() {
+        giraphComputationContext.getGiraphMessageManager().forceContinue();
     }
 }
