@@ -20,7 +20,7 @@ public class NettyClientHandlerV2 extends SimpleChannelInboundHandler<NettyMessa
 
     //    private ByteBuf content;
     private ChannelHandlerContext ctx;
-    private static Logger logger = LoggerFactory.getLogger(NettyClientHandler.class);
+    private static Logger logger = LoggerFactory.getLogger(NettyClientHandlerV2.class);
 
     private AggregatorManager aggregatorManager;
     private BlockingQueue<NettyMessage> messageList = new ArrayBlockingQueue<NettyMessage>(10);
@@ -71,7 +71,6 @@ public class NettyClientHandlerV2 extends SimpleChannelInboundHandler<NettyMessa
     @Override
     public void channelRead0(ChannelHandlerContext ctx, NettyMessage msg) throws Exception {
         // Server is supposed to send nothing, but if it sends something, discard it.
-        logger.info("Client [" + id + "] receive msg from server");
         // synchronized (this) {
         //     if (messageList != null) {
         //         messageList.poll().setSuccess(msg);
@@ -80,6 +79,7 @@ public class NettyClientHandlerV2 extends SimpleChannelInboundHandler<NettyMessa
         //     }
         // }
         boolean res = messageList.offer(msg);
+        logger.info("Client [" + id + "] received msg from server, " + msg);
         assert res;
     }
 

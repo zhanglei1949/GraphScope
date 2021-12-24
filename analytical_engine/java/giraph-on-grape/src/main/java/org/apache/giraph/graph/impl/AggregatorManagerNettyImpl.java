@@ -362,7 +362,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                 // TODO Auto-generated catch block
                 // e1.printStackTrace();
                 // }
-                while (!response.isDone()) {
+                // while (!response.isDone()) {
                     //     try {
                     //         TimeUnit.SECONDS.sleep(2);
                     //     } catch (InterruptedException e) {
@@ -370,7 +370,8 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                     //     }
                 }
                 try {
-                    NettyMessage received = response.get();
+                    // NettyMessage received = response.get();
+                    NettyMessage received = client.getResponse();
                     logger.info("client received msg: " + received);
                     if (received instanceof NettyWritableMessage) {
                         NettyWritableMessage nettyWritableMessage = (NettyWritableMessage) received;
