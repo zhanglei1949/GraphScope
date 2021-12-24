@@ -89,12 +89,17 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                 } else {
                     synchronized (this.msgNo) {
                         try {
+			    if (this.msgNo.get() % (aggregatorManager.getNumWorkers() - 1) != 0){
                             logger.info(
                                     "Server "
                                             + Thread.currentThread().getId()
                                             + " wait on msgNo: "
                                             + this.msgNo);
                             this.msgNo.wait();
+			    }
+			    else {
+				logger.info("when server hanlder " + Thread.currentThread().getId() + " try to wait, find alread satisfied: " + this.msgNo.get());
+			  }
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -107,8 +112,9 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                     }
 		}
 			Writable writable = aggregatorManager.getAggregatedValue(aggregatorId);
-                        toSend = new NettyWritableMessage(writable, 100, aggregatorId);
+                        toSend = new NettyWritableMessage(writable, 1000000, aggregatorId);
                         logger.info("server [" + Thread.currentThread().getId() + "] send response to client: " + toSend);
+
                         ctx.writeAndFlush(toSend);
 
 

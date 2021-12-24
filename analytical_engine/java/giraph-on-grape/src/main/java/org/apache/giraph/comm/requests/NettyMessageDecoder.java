@@ -29,7 +29,7 @@ public class NettyMessageDecoder extends ByteToMessageDecoder {
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
         throws Exception {
-        if (in.readableBytes() < 5){
+        if (in.readableBytes() < 8000000){
             return ;
         }
         in.markReaderIndex();
