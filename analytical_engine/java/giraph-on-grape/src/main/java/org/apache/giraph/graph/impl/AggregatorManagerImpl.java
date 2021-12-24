@@ -276,9 +276,51 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
                                             + received.size());
                             inputStream.digestVector(received);
                         }
+
+                        // Reset
+                        AggregatorWrapper wrapper = entry.getValue();
+                        wrapper.setCurrentValue(wrapper.getReduceOp().createInitialValue());
+
+                        // digest input stream
+                        logger.info(
+                                "master: "
+                                        + workerId
+                                        + " aggregator: "
+                                        + aggregatorKey
+                                        + " ,receive msg: "
+                                        + inputStream.longAvailable());
+                        Writable msg =
+                                ReflectionUtils.newInstance(wrapper.getCurrentValue().getClass());
+                        logger.info("Parse aggregation msg in " + msg.getClass().getName());
+                        // parse to writables
+                        while (inputStream.longAvailable() > 0) {
+                            msg.readFields(inputStream);
+                            // apply aggregator on received writables.
+                            wrapper.reduce(msg);
+                            logger.info(
+                                    "worker: "
+                                            + workerId
+                                            + "aggregator: "
+                                            + aggregatorKey
+                                            + " reduce: "
+                                            + msg
+                                            + ", to"
+                                            + wrapper.getCurrentValue());
+                        }
+                        logger.info(
+                                "server: "
+                                        + workerId
+                                        + "aggregator: "
+                                        + aggregatorKey
+                                        + " after aggregation: "
+                                        + wrapper.getCurrentValue());
+                        // Wrap result in output stream
+                        outputStream.reset();
+                        wrapper.currentValue.write(outputStream);
+
                         // Send what received to all worker
                         for (int dstWroker = 1; dstWroker < workerNum; ++dstWroker) {
-                            communicator.sendTo(dstWroker, inputStream.getVector());
+                            communicator.sendTo(dstWroker, outputStream.getVector());
                         }
                     } else {
                         logger.info(
@@ -297,46 +339,17 @@ public class AggregatorManagerImpl implements AggregatorManager, Communicator {
                                         + " receive size: "
                                         + inputStream.longAvailable()
                                         + " from worker 0");
+                        AggregatorWrapper wrapper = entry.getValue();
+                        Writable msg =
+                                ReflectionUtils.newInstance(wrapper.getCurrentValue().getClass());
+                        msg.readFields(inputStream);
+                        logger.info("Worker " + workerId + " ] received final value: " + msg);
+                        wrapper.setCurrentValue(msg);
                     }
                 } else {
                     logger.info("only one worker, skip aggregating..");
                 }
-                // Reset
-                AggregatorWrapper wrapper = entry.getValue();
-                wrapper.setCurrentValue(wrapper.getReduceOp().createInitialValue());
 
-                // digest input stream
-                logger.info(
-                        "worker: "
-                                + workerId
-                                + " aggregator: "
-                                + aggregatorKey
-                                + " ,receive msg: "
-                                + inputStream.longAvailable());
-                Writable msg = ReflectionUtils.newInstance(wrapper.getCurrentValue().getClass());
-                logger.info("Parse aggregation msg in " + msg.getClass().getName());
-                // parse to writables
-                while (inputStream.longAvailable() > 0) {
-                    msg.readFields(inputStream);
-                    // apply aggregator on received writables.
-                    wrapper.reduce(msg);
-                    logger.info(
-                            "worker: "
-                                    + workerId
-                                    + "aggregator: "
-                                    + aggregatorKey
-                                    + " reduce: "
-                                    + msg
-                                    + ", to"
-                                    + wrapper.getCurrentValue());
-                }
-                logger.info(
-                        "worker: "
-                                + workerId
-                                + "aggregator: "
-                                + aggregatorKey
-                                + " after aggregation: "
-                                + wrapper.getCurrentValue());
             } catch (IOException e) {
                 e.printStackTrace();
             }
