@@ -68,8 +68,8 @@ public class NettyClientTest {
             NettyWritableMessage send = new NettyWritableMessage(new LongWritable(i), 1000000, "sum");
             Future<NettyMessage> msg = client.sendMessage(send);
             while (!msg.isDone()) {}
-
-            logger.info("reponse for round: " + i +": "  + msg.get());
+            NettyMessage received = client.getResponse();
+            logger.info("reponse for round: " + i + ": " + received);
         }
     }
 
