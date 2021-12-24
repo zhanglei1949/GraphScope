@@ -26,6 +26,7 @@
     <logger name="org.apache.giraph.comm.netty.NettyClient" level="error"/>
     <logger name="org.apache.giraph.comm.netty.NettyServer" level="error"/>
     <logger name="org.apache.giraph.comm.netty.handler.NettyClientHandler" level="error"/>
+    <logger name="org.apache.giraph.comm.netty.handler.NettyClientHandlerV2" level="error"/>
     <logger name="org.apache.giraph.comm.netty.hanlder.NettyServerHandler" level="error"/>
     <root level="info">
         <appender-ref ref="STDOUT" />

@@ -206,8 +206,8 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T>
 
         //        String masterWorkerIp = getMasterWorkerIp(frag.fid(), frag.fnum());
 
-        aggregatorManager = new AggregatorManagerImpl(conf, frag.fid(), frag.fnum());
-//         aggregatorManager = new AggregatorManagerNettyImpl(conf, frag.fid(), frag.fnum());
+ //       aggregatorManager = new AggregatorManagerImpl(conf, frag.fid(), frag.fnum());
+         aggregatorManager = new AggregatorManagerNettyImpl(conf, frag.fid(), frag.fnum());
         userComputation.setAggregatorManager(aggregatorManager);
         workerContext.setAggregatorManager(aggregatorManager);
 
