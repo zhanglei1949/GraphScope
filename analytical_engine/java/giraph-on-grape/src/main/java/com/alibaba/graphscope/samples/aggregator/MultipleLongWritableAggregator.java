@@ -21,6 +21,7 @@ package com.alibaba.graphscope.samples.aggregator;
 import com.alibaba.graphscope.samples.writable.MultipleLongWritable;
 
 import org.apache.giraph.aggregators.BasicAggregator;
+import org.apache.hadoop.io.LongWritable;
 
 /** Aggregator for summing up long values. */
 public class MultipleLongWritableAggregator extends BasicAggregator<MultipleLongWritable> {
@@ -31,6 +32,6 @@ public class MultipleLongWritableAggregator extends BasicAggregator<MultipleLong
 
     @Override
     public MultipleLongWritable createInitialValue() {
-        return new MultipleLongWritable();
+        return new MultipleLongWritable(new LongWritable(0), 1000000);
     }
 }
