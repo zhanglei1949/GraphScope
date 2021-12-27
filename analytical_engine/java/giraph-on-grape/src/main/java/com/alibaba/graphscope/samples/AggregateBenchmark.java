@@ -16,7 +16,9 @@ public class AggregateBenchmark
         extends BasicComputation<LongWritable, DoubleWritable, DoubleWritable, DoubleWritable> {
 
     /** Number of supersteps for this test */
-    public static final int MAX_SUPERSTEPS = 500;
+    // public static final int MAX_SUPERSTEPS = 500;
+    public static final int MAX_SUPERSTEPS = 5;
+
     /** Logger */
     private static final Logger LOG = LoggerFactory.getLogger(AggregateBenchmark.class);
     /** Sum aggregator name */

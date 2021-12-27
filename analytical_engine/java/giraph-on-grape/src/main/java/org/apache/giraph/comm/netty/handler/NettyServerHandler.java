@@ -83,23 +83,26 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                                     + aggregatorId
                                     + " notify on "
                                     + this.msgNo);
-		    synchronized(this.msgNo){
-                   	 this.msgNo.notifyAll();
-			}
+                    synchronized (this.msgNo) {
+                        this.msgNo.notifyAll();
+                    }
                 } else {
                     synchronized (this.msgNo) {
                         try {
-			    if (this.msgNo.get() % (aggregatorManager.getNumWorkers() - 1) != 0){
-                            logger.info(
-                                    "Server "
-                                            + Thread.currentThread().getId()
-                                            + " wait on msgNo: "
-                                            + this.msgNo);
-                            this.msgNo.wait();
-			    }
-			    else {
-				logger.info("when server hanlder " + Thread.currentThread().getId() + " try to wait, find alread satisfied: " + this.msgNo.get());
-			  }
+                            if (this.msgNo.get() % (aggregatorManager.getNumWorkers() - 1) != 0) {
+                                logger.info(
+                                        "Server "
+                                                + Thread.currentThread().getId()
+                                                + " wait on msgNo: "
+                                                + this.msgNo);
+                                this.msgNo.wait();
+                            } else {
+                                logger.info(
+                                        "when server hanlder "
+                                                + Thread.currentThread().getId()
+                                                + " try to wait, find alread satisfied: "
+                                                + this.msgNo.get());
+                            }
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -108,15 +111,17 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Object> {
                                         + Thread.currentThread().getId()
                                         + "finish waiting: "
                                         + this.msgNo);
-                        
                     }
-		}
-			Writable writable = aggregatorManager.getAggregatedValue(aggregatorId);
-                        toSend = new NettyWritableMessage(writable, 1000000, aggregatorId);
-                        logger.info("server [" + Thread.currentThread().getId() + "] send response to client: " + toSend);
+                }
+                Writable writable = aggregatorManager.getAggregatedValue(aggregatorId);
+                toSend = new NettyWritableMessage(writable, 1000000, aggregatorId);
+                logger.info(
+                        "server ["
+                                + Thread.currentThread().getId()
+                                + "] send response to client: "
+                                + toSend);
 
-                        ctx.writeAndFlush(toSend);
-
+                ctx.writeAndFlush(toSend);
 
             } else {
                 logger.error("Not a aggregator message");
