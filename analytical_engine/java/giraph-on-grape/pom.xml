@@ -69,22 +69,22 @@
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.apache.arrow</groupId>
-      <artifactId>arrow-vector</artifactId>
-      <version>7.0.0-SNAPSHOT</version>
-      <classifier>shade-format-flatbuffers</classifier>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.arrow</groupId>
-      <artifactId>arrow-memory-core</artifactId>
-      <version>7.0.0-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.arrow</groupId>
-      <artifactId>arrow-memory-netty</artifactId>
-      <version>7.0.0-SNAPSHOT</version>
-    </dependency>
+    <!--    <dependency>-->
+    <!--      <groupId>org.apache.arrow</groupId>-->
+    <!--      <artifactId>arrow-vector</artifactId>-->
+    <!--      <version>7.0.0-SNAPSHOT</version>-->
+    <!--      <classifier>shade-format-flatbuffers</classifier>-->
+    <!--    </dependency>-->
+    <!--    <dependency>-->
+    <!--      <groupId>org.apache.arrow</groupId>-->
+    <!--      <artifactId>arrow-memory-core</artifactId>-->
+    <!--      <version>7.0.0-SNAPSHOT</version>-->
+    <!--    </dependency>-->
+    <!--    <dependency>-->
+    <!--      <groupId>org.apache.arrow</groupId>-->
+    <!--      <artifactId>arrow-memory-netty</artifactId>-->
+    <!--      <version>7.0.0-SNAPSHOT</version>-->
+    <!--    </dependency>-->
     <dependency>
       <groupId>org.jodah</groupId>
       <artifactId>typetools</artifactId>
@@ -124,44 +124,44 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>1.6.0</version>
-        <configuration>
-          <skip>${skip.perf.benchmarks}</skip>
-          <classpathScope>test</classpathScope>
-          <executable>java</executable>
-          <arguments>
-            <argument>-classpath</argument>
-            <argument>${env.giraphcp}</argument>
-            <argument>org.openjdk.jmh.Main</argument>
-            <argument>${benchmark.filter}</argument>
-            <argument>-f</argument>
-            <argument>${benchmark.forks}</argument>
-            <argument>-jvmArgs</argument>
-            <argument>${benchmark.jvmargs}</argument>
-            <argument>-wi</argument>
-            <argument>${benchmark.warmups}</argument>
-            <argument>-i</argument>
-            <argument>${benchmark.runs}</argument>
-            <argument>-rff</argument>
-            <argument>${benchmark.resultfile}</argument>
-            <argument>-rf</argument>
-            <argument>${benchmark.resultformat}</argument>
+<!--      <plugin>-->
+<!--        <groupId>org.codehaus.mojo</groupId>-->
+<!--        <artifactId>exec-maven-plugin</artifactId>-->
+<!--        <version>1.6.0</version>-->
+<!--        <configuration>-->
+<!--          <skip>${skip.perf.benchmarks}</skip>-->
+<!--          <classpathScope>test</classpathScope>-->
+<!--          <executable>java</executable>-->
+<!--          <arguments>-->
+<!--            <argument>-classpath</argument>-->
+<!--            <argument>${env.giraphcp}</argument>-->
+<!--            <argument>org.openjdk.jmh.Main</argument>-->
+<!--            <argument>${benchmark.filter}</argument>-->
+<!--            <argument>-f</argument>-->
+<!--            <argument>${benchmark.forks}</argument>-->
+<!--            <argument>-jvmArgs</argument>-->
+<!--            <argument>${benchmark.jvmargs}</argument>-->
+<!--            <argument>-wi</argument>-->
+<!--            <argument>${benchmark.warmups}</argument>-->
+<!--            <argument>-i</argument>-->
+<!--            <argument>${benchmark.runs}</argument>-->
+<!--            <argument>-rff</argument>-->
+<!--            <argument>${benchmark.resultfile}</argument>-->
+<!--            <argument>-rf</argument>-->
+<!--            <argument>${benchmark.resultformat}</argument>-->
 
-          </arguments>
-        </configuration>
-        <executions>
-          <execution>
-            <id>run-java-benchmarks</id>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <phase>integration-test</phase>
-          </execution>
-        </executions>
-      </plugin>
+<!--          </arguments>-->
+<!--        </configuration>-->
+<!--        <executions>-->
+<!--          <execution>-->
+<!--            <id>run-java-benchmarks</id>-->
+<!--            <goals>-->
+<!--              <goal>exec</goal>-->
+<!--            </goals>-->
+<!--            <phase>integration-test</phase>-->
+<!--          </execution>-->
+<!--        </executions>-->
+<!--      </plugin>-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
@@ -193,7 +193,9 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <argLine>-Djava.library.path=${project.build.directory}/native:${project.build.directory}/../../grape-runtime/target/native</argLine>
+          <argLine>
+            -Djava.library.path=${project.build.directory}/native:${project.build.directory}/../../grape-runtime/target/native
+          </argLine>
         </configuration>
       </plugin>
     </plugins>
