@@ -214,7 +214,7 @@ import javax.lang.model.type.TypeMirror;
                         @FFIFunGen(
                                 name = "sum",
                                 returnType = "void",
-                                parameterTypes = {"MSG_T"},
+                                parameterTypes = {"MSG_T", "MSG_T"},
                                 templates = {
                                     @CXXTemplate(
                                             cxx = {DOUBLE_MSG},
@@ -228,7 +228,7 @@ import javax.lang.model.type.TypeMirror;
                         @FFIFunGen(
                                 name = "min",
                                 returnType = "void",
-                                parameterTypes = { "MSG_T"},
+                                parameterTypes = { "MSG_T", "MSG_T"},
                                 templates = {
                                     @CXXTemplate(
                                         cxx = {DOUBLE_MSG},
@@ -242,7 +242,7 @@ import javax.lang.model.type.TypeMirror;
                         @FFIFunGen(
                                 name = "max",
                                 returnType = "void",
-                                parameterTypes = {"MSG_T"},
+                                parameterTypes = {"MSG_T", "MSG_T"},
                                 templates = {
                                     @CXXTemplate(
                                         cxx = {DOUBLE_MSG},
@@ -256,7 +256,7 @@ import javax.lang.model.type.TypeMirror;
                         @FFIFunGen(
                             name = "sendTo",
                             returnType = "void",
-                            parameterTypes = {"MSG_T"},
+                            parameterTypes = {"int", "MSG_T"},
                             templates = {
                                 @CXXTemplate(
                                     cxx = "std::vector<char>",
@@ -267,7 +267,7 @@ import javax.lang.model.type.TypeMirror;
                         @FFIFunGen(
                             name = "receiveFrom",
                             returnType = "void",
-                            parameterTypes = {"MSG_T"},
+                            parameterTypes = {"int","MSG_T"},
                             templates = {
                                 @CXXTemplate(
                                     cxx = "std::vector<char>",
