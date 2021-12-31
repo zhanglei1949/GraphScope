@@ -194,10 +194,11 @@ public class NettyClient {
                             channel = future.channel();
                             break;
                         } else {
-                            warn("Failed connection " + connection + ", tries: " + failedCnt + "/"
-                                + maxTries + ", " + future.isSuccess() + ", opened: " + future
+                            warn("Failed connection [" + connection.workerId + " -> "  + index +"] , tries: " + failedCnt + "/"
+                                + maxTries + ", success: " + future.isSuccess() + ", opened: " + future
                                 .channel()
                                 .isOpen());
+                            TimeUnit.SECONDS.sleep(1);
                             failedCnt += 1;
                         }
                     } catch (InterruptedException e) {
