@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
  * Only send msg.
  */
 public class MessageApp extends
-    BasicComputation<LongWritable, LongWritable, DoubleWritable, LongWritable> {
+    BasicComputation<LongWritable, DoubleWritable, DoubleWritable, LongWritable> {
 
     private static Logger logger = LoggerFactory.getLogger(MessageApp.class);
 
@@ -24,7 +24,7 @@ public class MessageApp extends
      *                 message is only guaranteed to have
      */
     @Override
-    public void compute(Vertex<LongWritable, LongWritable, DoubleWritable> vertex,
+    public void compute(Vertex<LongWritable, DoubleWritable, DoubleWritable> vertex,
         Iterable<LongWritable> messages) throws IOException {
 
         if (getSuperstep() == 0) {
