@@ -1,20 +1,18 @@
 package org.apache.hadoop.io;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
 import java.lang.reflect.Field;
-import org.apache.hadoop.io.ffi.FFILongWritable;
 import sun.misc.Unsafe;
 
 public class LongWritableImpl {
+
     private static Unsafe unsafe;
-    private static int POOL_SIZE  = 1024 * 1024;
+    private static int POOL_SIZE = 1024 * 1024;
+
     static {
         try {
             Field field = Unsafe.class.getDeclaredField("theUnsafe");
             field.setAccessible(true);
-            unsafe =  (Unsafe) field.get(null);
+            unsafe = (Unsafe) field.get(null);
             System.out.println("Got unsafe");
         } catch (Exception e) {
             System.err.println(e.getMessage());
@@ -28,7 +26,7 @@ public class LongWritableImpl {
     }
 
     public LongWritableImpl(long value) {
-        address = unsafe.allocateMemory(8 );
+        address = unsafe.allocateMemory(8);
         unsafe.putLong(address, value);
     }
 

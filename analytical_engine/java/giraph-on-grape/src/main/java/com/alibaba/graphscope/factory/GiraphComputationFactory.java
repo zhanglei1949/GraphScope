@@ -49,7 +49,7 @@ public class GiraphComputationFactory {
      * @param fragment  simple fragment, which is parameterized.
      * @return created adaptor.
      */
-    public static <OID_T, VID_T, VDATA_T, EDATA_T>GiraphComputationAdaptorContext createGiraphComputationAdaptorContext(
+    public static <OID_T, VID_T, VDATA_T, EDATA_T> GiraphComputationAdaptorContext createGiraphComputationAdaptorContext(
         String className,
         ImmutableEdgecutFragmentAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> fragment) {
         Class<?>[] classes = getTypeArgumentFromInterface(SimpleFragment.class,
@@ -63,6 +63,20 @@ public class GiraphComputationFactory {
     }
 
     public static <VDATA_T extends Writable, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> VertexDataManager<VDATA_T> createDefaultVertexDataManager(
+        ImmutableClassesGiraphConfiguration conf,
+        SimpleFragment<GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> frag,
+        long innerVerticesNum) {
+        return createDefaultVertexDataManager(conf.getVertexValueClass(),
+            conf.getGrapeOidClass(),
+            conf.getGrapeVidClass(),
+            conf.getGrapeVdataClass(),
+            conf.getGrapeEdataClass(),
+            frag,
+            innerVerticesNum,
+            conf);
+    }
+
+    private static <VDATA_T extends Writable, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> VertexDataManager<VDATA_T> createDefaultVertexDataManager(
         Class<? extends VDATA_T> vdataClass, Class<? extends GRAPE_OID_T> grapeOidClass,
         Class<? extends GRAPE_VID_T> grapeVidClass, Class<? extends GRAPE_VDATA_T> grapeVdataClass,
         Class<? extends GRAPE_EDATA_T> grapeEdataClass, SimpleFragment fragment, long vertexNum,
@@ -72,7 +86,23 @@ public class GiraphComputationFactory {
             fragment, vertexNum, conf);
     }
 
-    public static <OID_T extends WritableComparable, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> VertexIdManagerImpl<OID_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> createDefaultVertexIdManager(
+    public static <OID_T extends WritableComparable, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T>
+    VertexIdManagerImpl<OID_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> createDefaultVertexIdManager(
+        ImmutableClassesGiraphConfiguration conf,
+        SimpleFragment<GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> frag,
+        long innerVerticesNum) {
+        return createDefaultVertexIdManager(conf.getVertexIdClass(),
+            conf.getGrapeOidClass(),
+            conf.getGrapeVidClass(),
+            conf.getGrapeVdataClass(),
+            conf.getGrapeEdataClass(),
+            frag,
+            innerVerticesNum,
+            conf);
+    }
+
+    private static <OID_T extends WritableComparable, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T>
+    VertexIdManagerImpl<OID_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> createDefaultVertexIdManager(
         Class<? extends OID_T> oidClass, Class<? extends GRAPE_OID_T> grapeOidClass,
         Class<? extends GRAPE_VID_T> grapeVidClass, Class<? extends GRAPE_VDATA_T> grapeVdataClass,
         Class<? extends GRAPE_EDATA_T> grapeEdataClass, SimpleFragment fragment, long vertexNum,
@@ -83,7 +113,25 @@ public class GiraphComputationFactory {
     }
 
     public static <OID_T extends WritableComparable,
-        VDATA_T extends Writable,
+        EDATA_T extends Writable,
+        GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T>
+    ImmutableEdgeManagerImpl<OID_T, EDATA_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> createImmutableEdgeManager(
+        ImmutableClassesGiraphConfiguration conf,
+        SimpleFragment<GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> fragment,
+        VertexIdManager<OID_T> vertexIdManager) {
+        return createImmutableEdgeManagerImpl(conf.getVertexIdClass(),
+            conf.getEdgeValueClass(),
+            conf.getGrapeOidClass(),
+            conf.getGrapeVidClass(),
+            conf.getGrapeVdataClass(),
+            conf.getGrapeEdataClass(),
+            fragment,
+            vertexIdManager,
+            conf);
+    }
+
+
+    private static <OID_T extends WritableComparable,
         EDATA_T extends Writable,
         GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T>
     ImmutableEdgeManagerImpl<OID_T, EDATA_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> createImmutableEdgeManagerImpl(
@@ -93,7 +141,7 @@ public class GiraphComputationFactory {
         Class<? extends GRAPE_EDATA_T> grapeEdataClass,
         SimpleFragment<GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> fragment,
         VertexIdManager<OID_T> idManager,
-        ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf) {
+        ImmutableClassesGiraphConfiguration<OID_T, ?, EDATA_T> conf) {
         return new ImmutableEdgeManagerImpl<OID_T, EDATA_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T>(
             fragment, idManager, conf);
 

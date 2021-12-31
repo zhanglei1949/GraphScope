@@ -1,12 +1,12 @@
-package com.alibaba.graphscope.parallel.impl;
+package com.alibaba.graphscope.parallel.mm.impl;
 
 import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.ds.adaptor.AdjList;
 import com.alibaba.graphscope.ds.adaptor.Nbr;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
-import com.alibaba.graphscope.parallel.GiraphMessageManager;
-import com.alibaba.graphscope.parallel.MessageIterable;
+import com.alibaba.graphscope.parallel.mm.GiraphMessageManager;
+import com.alibaba.graphscope.parallel.mm.MessageIterable;
 import com.alibaba.graphscope.serialization.FFIByteVectorInputStream;
 import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
@@ -333,5 +333,10 @@ public class GiraphDefaultMessageManager<
     @Override
     public void forceContinue() {
         grapeMessageManager.ForceContinue();
+    }
+
+    @Override
+    public void postApplication(){
+
     }
 }

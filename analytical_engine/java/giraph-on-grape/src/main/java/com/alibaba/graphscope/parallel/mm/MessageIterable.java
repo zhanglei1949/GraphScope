@@ -1,4 +1,4 @@
-package com.alibaba.graphscope.parallel;
+package com.alibaba.graphscope.parallel.mm;
 
 import java.util.ArrayList;
 import java.util.Iterator;

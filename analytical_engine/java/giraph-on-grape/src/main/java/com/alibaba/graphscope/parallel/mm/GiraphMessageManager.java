@@ -1,4 +1,4 @@
-package com.alibaba.graphscope.parallel;
+package com.alibaba.graphscope.parallel.mm;
 
 import org.apache.giraph.graph.Vertex;
 import org.apache.hadoop.io.Writable;
@@ -60,4 +60,6 @@ public interface GiraphMessageManager<
     boolean anyMessageToSelf();
 
     void forceContinue();
+
+    void postApplication();
 }

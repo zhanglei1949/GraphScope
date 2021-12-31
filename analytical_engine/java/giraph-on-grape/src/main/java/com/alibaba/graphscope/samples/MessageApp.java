@@ -28,15 +28,37 @@ public class MessageApp extends
         Iterable<LongWritable> messages) throws IOException {
 
         if (getSuperstep() == 0) {
-            for (LongWritable message : messages) {
-                if (message.get() != 123) {
-                    logger.error("Vertex: " + vertex.getId().get() + "receive msg: " + message.get()
-                        + ", which is impossible.");
-                    break;
+            logger.info("There should be no messages in step0");
+        }
+        else if (getSuperstep() == 1){
+            boolean flag = false;
+            for (LongWritable message : messages){
+                flag = true;
+            }
+            if (flag){
+                logger.error("Expect no msg received in step 1, but actually received");
+            }
+            if (vertex.getId().get() < 4){
+                for (long dst = 0; dst < 4; ++dst){
+                    if (dst == vertex.getId().get()){
+                        continue ;
+                    }
+                    LongWritable dstId = new LongWritable(dst);
+                    sendMessage(dstId, new LongWritable(2022));
+                    logger.info("Vertex [" + vertex.getId() + "] send to vertex " + dstId);
                 }
             }
-            sendMessageToAllEdges(vertex, new LongWritable(123));
         }
-        vertex.voteToHalt();
+        else if (getSuperstep() == 2){
+            logger.info("Checking received msg");
+            boolean flag = false;
+            for (LongWritable message : messages){
+                logger.info("Received msg: " + message);
+            }
+            vertex.voteToHalt();
+        }
+        else {
+            logger.info("Impossible: " + getSuperstep());
+        }
     }
 }

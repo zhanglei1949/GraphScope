@@ -53,6 +53,7 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
     private final GrapeTypes grapeClasses;
     private int workerId;
     private int workerNum;
+    private int inetAddressMaxResolveTime;
 
     private static String DEFAULT_WORKER_FILE_PREFIX= "giraph-on-grape";
 
@@ -63,6 +64,7 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
         grapeClasses = new GrapeTypes(fragment);
         workerId = fragment.fid();
         workerNum = fragment.fnum();
+        inetAddressMaxResolveTime = INET_ADDRESS_MAX_RESOLVE_TIMES.get(configuration);
     }
 
     /**
@@ -354,6 +356,10 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
 
     public int getWorkerNum(){
         return workerNum;
+    }
+
+    public int getInetAddressMaxResolveTime(){
+        return inetAddressMaxResolveTime;
     }
 
 }

@@ -546,7 +546,6 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
         }
 
         if (fid == 0) {
-
             logger.info("Master host: " + selfIp);
             FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
             try {

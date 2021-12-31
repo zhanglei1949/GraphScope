@@ -95,7 +95,8 @@ class JavaPIEDefaultContext : public grape::ContextBase {
   void Init(grape::DefaultMessageManager& messages,
             const std::string& app_class_name,
             const std::string& context_class_name, const std::string& frag_name,
-            const std::string& user_lib_path, const std::string& params) {
+            const std::string& user_lib_path, const std::string& params,
+            jlong communicatorAddress) {
     JNIEnvMark m;
     if (m.env()) {
       JNIEnv* env = m.env();
@@ -171,6 +172,10 @@ class JavaPIEDefaultContext : public grape::ContextBase {
       jmethodID init_methodID =
           env->GetMethodID(context_class, "Init", descriptor);
       CHECK_NOTNULL(init_methodID);
+
+      // init java communicator before context->Init().
+      InitJavaCommunicator(env, ctx.url_class_loader_object(), context_object_,
+                           communicatorAddress);
 
       env->CallVoidMethod(context_object_, init_methodID, fragment_object_,
                           mm_object_, json_object);

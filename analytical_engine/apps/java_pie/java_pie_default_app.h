@@ -56,9 +56,7 @@ class JavaPIEDefaultApp : public AppBase<FRAG_T, JavaPIEDefaultContext<FRAG_T>>,
       JNIEnv* env = m.env();
 
       jobject app_object = ctx.app_object();
-      auto communicator = static_cast<grape::Communicator*>(this);
-      InitJavaCommunicator(env, ctx.url_class_loader_object(), app_object,
-                           reinterpret_cast<jlong>(communicator));
+      // auto communicator = static_cast<grape::Communicator*>(this);
 
       jclass app_class = env->GetObjectClass(app_object);
       CHECK_NOTNULL(app_class);

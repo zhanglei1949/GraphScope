@@ -1,7 +1,7 @@
 package org.apache.giraph.graph;
 
 import com.alibaba.graphscope.fragment.SimpleFragment;
-import com.alibaba.graphscope.parallel.GiraphMessageManager;
+import com.alibaba.graphscope.parallel.mm.GiraphMessageManager;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Objects;

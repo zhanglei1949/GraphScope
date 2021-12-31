@@ -19,14 +19,13 @@
 package org.apache.giraph.worker;
 
 import com.alibaba.graphscope.fragment.SimpleFragment;
-import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
+import com.alibaba.graphscope.parallel.mm.impl.GiraphDefaultMessageManager;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import org.apache.giraph.graph.AggregatorManager;
-import org.apache.giraph.graph.Communicator;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -47,7 +46,6 @@ public abstract class WorkerContext
     private static Logger logger = LoggerFactory.getLogger(WorkerContext.class);
 
     private SimpleFragment fragment;
-//    private Communicator communicator;
     /**
      * Set to -1, so if not manually set, error will be reported.
      */
@@ -58,9 +56,6 @@ public abstract class WorkerContext
         this.fragment = fragment;
     }
 
-//    public void setCommunicator(Communicator communicator){
-//        this.communicator = communicator;
-//    }
 
     public void setAggregatorManager(AggregatorManager aggregatorManager){
         this.aggregatorManager = aggregatorManager;

@@ -183,6 +183,14 @@ public interface GiraphConstants {
     IntConfOption SERVER_RECEIVE_BUFFER_SIZE =
         new IntConfOption("giraph.serverReceiveBufferSize", 512 * ONE_KB,
             "Server receive buffer size");
+
+    /**
+     * Warn if msg request size exceeds default size by this factor
+     */
+    FloatConfOption REQUEST_SIZE_WARNING_THRESHOLD = new FloatConfOption(
+        "giraph.msgRequestWarningThreshold", 2.0f,
+        "If request sizes are bigger than the buffer size by this factor " +
+            "warnings are printed to the log and to the command line");
     /**
      * TCP backlog (defaults to number of workers)
      */
@@ -217,11 +225,17 @@ public interface GiraphConstants {
         new IntConfOption("giraph.nettyClientThreads", 4, "Netty client threads");
 
     /**
-     * Netty server threads
+     * Netty server boss threads
      */
-    IntConfOption NETTY_SERVER_THREADS =
-        new IntConfOption("giraph.nettyServerThreads", 16,
-            "Netty server threads");
+    IntConfOption NETTY_SERVER_BOSS_THREADS =
+        new IntConfOption("giraph.nettyServerBossThreads", 4,
+            "Netty server boss threads");
+    /**
+     * Netty server worker threads
+     */
+    IntConfOption NETTY_SERVER_WORKER_THREADS =
+        new IntConfOption("giraph.nettyServerWorkerThreads", 4,
+            "Netty server worker threads");
 
     /**
      * Use the execution handler in netty on the client?
@@ -311,7 +325,19 @@ public interface GiraphConstants {
     IntConfOption MAX_IPC_PORT_BIND_ATTEMPTS =
         new IntConfOption("giraph.maxIpcPortBindAttempts", 20,
             "Maximum bind attempts for different IPC ports");
+    /**
+     * Maximum connections trys for client to connect to server
+     */
+    IntConfOption MAX_CONN_TRY_ATTEMPTS = new IntConfOption("giraph.maxConnTryAttempty", 20,
+        "Maximum bind attempts for client to connect to server");
+
     IntConfOption BASE_SERVER_PORT = new IntConfOption("giraph.baseServerPort", 30000,
         "The base port for server to communicate");
+
+    StrConfOption MESSAGE_MANAGER_TYPE = new StrConfOption("giraph.messageManagerType", "netty",
+        "default message manager to use");
+
+    IntConfOption INET_ADDRESS_MAX_RESOLVE_TIMES = new IntConfOption("giraph.inetAddressMaxResolveTimes", 10,
+        "max tries for verifying address for client.");
 
 }

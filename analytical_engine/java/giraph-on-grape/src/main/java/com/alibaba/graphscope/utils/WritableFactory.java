@@ -1,6 +1,6 @@
 package com.alibaba.graphscope.utils;
 
-import com.alibaba.graphscope.parallel.impl.GiraphDefaultMessageManager;
+import com.alibaba.graphscope.parallel.mm.impl.GiraphDefaultMessageManager;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;

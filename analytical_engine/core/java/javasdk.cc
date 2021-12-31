@@ -395,7 +395,7 @@ char* JavaClassNameDashToSlash(const std::string& str) {
 // judge whether java app class instance of Communicator, if yes, we call
 // the init communicator method.
 void InitJavaCommunicator(JNIEnv* env, const jobject& url_class_loader,
-                          const jobject& java_app, jlong app_address) {
+                          const jobject& java_obj, jlong app_address) {
   CHECK_NOTNULL(env);
   CHECK_NE(app_address, 0);
   // load communicator class with url_class_loader
@@ -403,11 +403,11 @@ void InitJavaCommunicator(JNIEnv* env, const jobject& url_class_loader,
       gs_class_loader_clz, class_loader_load_communicator_class_methodID,
       url_class_loader);
   CHECK_NOTNULL(communicator_class);
-  if (env->IsInstanceOf(java_app, communicator_class)) {
+  if (env->IsInstanceOf(java_obj, communicator_class)) {
     jmethodID init_communicator_method =
         env->GetMethodID(communicator_class, "initCommunicator", "(J)V");
     CHECK_NOTNULL(init_communicator_method);
-    env->CallVoidMethod(java_app, init_communicator_method, app_address);
+    env->CallVoidMethod(java_obj, init_communicator_method, app_address);
     if (env->ExceptionCheck()) {
       LOG(ERROR) << "Exception occurred in init communicator";
       env->ExceptionDescribe();
