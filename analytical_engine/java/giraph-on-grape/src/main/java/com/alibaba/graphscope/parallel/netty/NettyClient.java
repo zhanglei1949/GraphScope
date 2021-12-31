@@ -113,7 +113,7 @@ public class NettyClient {
             new NioEventLoopGroup(
                 1,
                 ThreadUtils.createThreadFactory(
-                    "netty-client-worker-%d", exceptionHandler));
+                    "netty-client-worker-" + networkMap.getWorkerId() +"-%d", exceptionHandler));
 
         bootstrap = new Bootstrap();
         bootstrap.option(ChannelOption.SO_KEEPALIVE, true)
@@ -213,7 +213,7 @@ public class NettyClient {
                 }
             }
             else {
-                info("Connection to self is not needed [" + index);
+                info("Connection to self is not needed [" + index + "]");
             }
             index = (index + 1) % connections.length;
         }

@@ -86,12 +86,12 @@ public class NettyServer {
         bossGroup =
             new NioEventLoopGroup(
                 bossThreadSize,
-                ThreadUtils.createThreadFactory("netty-server-boss-%d", exceptionHandler));
+                ThreadUtils.createThreadFactory("netty-server-boss-" +  networkMap.getWorkerId() +"-%d", exceptionHandler));
         workerGroup =
             new NioEventLoopGroup(
                 workerThreadSize,
                 ThreadUtils.createThreadFactory(
-                    "netty-server-worker-%d", exceptionHandler));
+                    "netty-server-worker-" +  networkMap.getWorkerId() +"-%d", exceptionHandler));
     }
 
     public void startServer() {
