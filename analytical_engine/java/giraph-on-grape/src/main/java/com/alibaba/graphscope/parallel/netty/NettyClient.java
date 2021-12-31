@@ -258,7 +258,7 @@ public class NettyClient {
 
     @Override
     public String toString() {
-        String res = "NettyClient: " + this + ", channels:";
+        String res = "NettyClient: [" + workerId +"] channels:";
         for (Channel channel : channels) {
             if (Objects.nonNull(channel)){
                 res +=  channel.remoteAddress() + ",";

@@ -90,17 +90,17 @@ public class Utils {
         info(workerId, "Received msg: " + inputStream.longAvailable() + ", " + inputStream.getVector().size());
         //Expected workerNum string
         String [] res = new String [workerNum];
-  //      try {
+        try {
             for (int i = 0; i < workerNum; ++i){
                 if (inputStream.longAvailable() <= 0){
                     error(workerId,"Reaching bottom of input stream when trying to read" + i + "th data");
                     return res;
                 }
-                //res[i] = inputStream.readUTF();
+                res[i] = inputStream.readUTF();
             }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return res;
     }
 
