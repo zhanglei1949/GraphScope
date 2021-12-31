@@ -26,7 +26,9 @@ public class MessageApp extends
     @Override
     public void compute(Vertex<LongWritable, DoubleWritable, DoubleWritable> vertex,
         Iterable<LongWritable> messages) throws IOException {
-
+        if (vertex.getId().get() >= 4){
+            return ;
+        }
         if (getSuperstep() == 0) {
             logger.info("There should be no messages in step0");
         }
