@@ -79,7 +79,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
         logger.info(String.join(",", res));
         if (workerId == 0) {
             this.workerInfo =
-                    new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(), res);
+                    new WorkerInfo(workerId, workerNum, res[0], conf.getAggregatorServerInitPort(), res);
             server =
                     new NettyServer(
                             conf,
@@ -92,10 +92,10 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                                 }
                             });
             logger.info(
-                    "Worker 0 create server success on " + res[0] + ":" + conf.getInitServerPort());
+                    "Worker 0 create server success on " + res[0] + ":" + conf.getAggregatorServerInitPort());
         } else {
             this.workerInfo =
-                    new WorkerInfo(workerId, workerNum, res[0], conf.getInitServerPort(), res);
+                    new WorkerInfo(workerId, workerNum, res[0], conf.getAggregatorServerInitPort(), res);
             client =
                     new NettyClientV2(
                             conf,
@@ -114,7 +114,7 @@ public class AggregatorManagerNettyImpl implements AggregatorManager, Communicat
                                 + " connected to server success on "
                                 + res[0]
                                 + ":"
-                                + conf.getInitServerPort());
+                                + conf.getAggregatorServerInitPort());
             } else {
                 throw new IllegalStateException("client connection error");
             }

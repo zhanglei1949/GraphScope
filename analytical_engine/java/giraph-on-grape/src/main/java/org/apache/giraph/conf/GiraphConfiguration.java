@@ -223,8 +223,20 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
             return InetAddress.getLocalHost().getHostAddress();
     }
 
-    public int getInitServerPort(){
-        return BASE_SERVER_PORT.get(this);
+    /**
+     * Get the init port for message manager(Netty base).
+     * @return port
+     */
+    public int getMessagerInitServerPort(){
+        return MESSAGE_MANAGER_BASE_SERVER_PORT.get(this);
+    }
+
+    /**
+     * Get the initial port for netty server used in aggregator
+     * @return port
+     */
+    public int getAggregatorServerInitPort(){
+        return AGGREGATOR_BASE_SERVER_PORT.get(this);
     }
 
 }

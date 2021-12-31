@@ -331,8 +331,11 @@ public interface GiraphConstants {
     IntConfOption MAX_CONN_TRY_ATTEMPTS = new IntConfOption("giraph.maxConnTryAttempty", 20,
         "Maximum bind attempts for client to connect to server");
 
-    IntConfOption BASE_SERVER_PORT = new IntConfOption("giraph.baseServerPort", 30000,
-        "The base port for server to communicate");
+    IntConfOption MESSAGE_MANAGER_BASE_SERVER_PORT = new IntConfOption("giraph.mmBaseServerPort", 30000,
+        "The base port for messager to communicate");
+
+    IntConfOption AGGREGATOR_BASE_SERVER_PORT = new IntConfOption("giraph.aggregatorBaseServerPort", 40000,
+        "The base port for aggregator to communicate");
 
     StrConfOption MESSAGE_MANAGER_TYPE = new StrConfOption("giraph.messageManagerType", "netty",
         "default message manager to use");

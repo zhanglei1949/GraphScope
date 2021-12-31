@@ -174,7 +174,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
         if (MESSAGE_MANAGER_TYPE.get(conf).equals("netty")) {
             String [] allHostsNames = getAllHostNames(conf.getWorkerId(), conf.getWorkerNum(), getFFICommunicator());
             logger.info(String.join(",", allHostsNames));
-            NetworkMap networkMap = new NetworkMap(conf.getWorkerId(), conf.getWorkerNum(), conf.getInitServerPort(), allHostsNames);
+            NetworkMap networkMap = new NetworkMap(conf.getWorkerId(), conf.getWorkerNum(), conf.getMessagerInitServerPort(), allHostsNames);
             giraphMessageManager = GiraphMessageManagerFactory
                 .create("netty", frag, null, networkMap, conf);
         } else {
