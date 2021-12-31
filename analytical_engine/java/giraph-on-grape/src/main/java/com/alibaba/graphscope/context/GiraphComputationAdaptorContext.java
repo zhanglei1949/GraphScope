@@ -173,6 +173,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
         // VertexIdManager is needed since we need oid <-> lid converting.
         if (MESSAGE_MANAGER_TYPE.get(conf).equals("netty")) {
             String [] allHostsNames = getAllHostNames(conf.getWorkerId(), conf.getWorkerNum(), getFFICommunicator());
+            logger.info(String.join(",", allHostsNames));
             NetworkMap networkMap = new NetworkMap(conf.getWorkerId(), conf.getWorkerNum(), conf.getInitServerPort(), allHostsNames);
             giraphMessageManager = GiraphMessageManagerFactory
                 .create("netty", frag, null, networkMap, conf);

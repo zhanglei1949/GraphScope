@@ -174,7 +174,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
       CHECK_NOTNULL(init_methodID);
 
       // init java communicator before context->Init().
-      InitJavaCommunicator(env, ctx.url_class_loader_object(), context_object_,
+      InitJavaCommunicator(env, url_class_loader_object_, context_object_,
                            communicatorAddress);
 
       env->CallVoidMethod(context_object_, init_methodID, fragment_object_,

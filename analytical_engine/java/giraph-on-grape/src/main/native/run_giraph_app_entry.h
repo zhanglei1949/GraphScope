@@ -62,14 +62,14 @@ void Query(grape::CommSpec& comm_spec, std::shared_ptr<FRAG_T> fragment,
 
   MPI_Barrier(comm_spec.comm());
   double t = -GetCurrentTime();
-  grape::Communicator communicator* = new grape::Communicator();
-  communicator.InitCommunicator(comm_spec.comm());
+  grape::Communicator* communicator = new grape::Communicator();
+  communicator->InitCommunicator(comm_spec.comm());
 
-  VLOG(2) << "Communicator address:" << reinterpret_cast<jlong>(&communicator);
+  VLOG(2) << "Communicator address:" << reinterpret_cast<jlong>(communicator);
   // No matter we use netty or mpi for java ipc communication, we always need
   // one communicator to provided us will basic comm.
   worker->Query(app_class, context_class, frag_name, user_lib_path, params_str,
-                reinterpret_cast<jlong>(&communicator));
+                reinterpret_cast<jlong>(communicator));
 
   t += GetCurrentTime();
   VLOG(1) << "Query time: " << t;

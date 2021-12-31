@@ -31,8 +31,10 @@ public class Utils {
 
     private static String [] actAsCoordinator(String selfIp, int workerId, int workerNum, FFICommunicator communicator){
         String [] res = new String[workerNum];
+        res[0] = selfIp;
         FFIByteVector vec = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
         FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream();
+        FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
         for (int srcWorkerId = 1; srcWorkerId < workerNum; ++srcWorkerId){
             info(workerId, "receiving msg from " + srcWorkerId);
             communicator.receiveFrom(srcWorkerId, vec);
@@ -41,22 +43,25 @@ public class Utils {
         }
 
         try {
+            outputStream.writeUTF(res[0]);
             for (int i = 1; i < workerNum; ++i){
                 if (inputStream.longAvailable() <= 0){
                     throw  new IllegalStateException("reach bottom when try to read msg from " + i );
                 }
                 res[i] = inputStream.readUTF();
+                outputStream.writeUTF(res[i]);
                 info(workerId, "from worker: " + i + ": " + res[i]);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+        outputStream.finishSetting();
 
         //Distribute to others;
         for (int dstWorkerId = 1; dstWorkerId < workerNum; ++dstWorkerId){
-            info(workerId, " sending to worker: [" + dstWorkerId + "] " + inputStream.getVector().size());
-            communicator.sendTo(dstWorkerId, inputStream.getVector());
-            info(workerId, " Successfully send to worker: [" + dstWorkerId + "] " + inputStream.getVector().size());
+            info(workerId, " sending to worker: [" + dstWorkerId + "] " + outputStream.getVector().size());
+            communicator.sendTo(dstWorkerId, outputStream.getVector());
+            info(workerId, " Successfully send to worker: [" + dstWorkerId + "] " + outputStream.getVector().size());
         }
         return res;
     }
@@ -76,23 +81,26 @@ public class Utils {
 
         //Now receive from coordinator
         FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream();
-        communicator.receiveFrom(0, inputStream.getVector());
+        info(workerId, "waiting msg arriving");
+        FFIByteVector vec = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create(); 
+        communicator.receiveFrom(0, vec);
+        info(workerId, "msg arrived:" + vec.size());
         //Let readable limit be updated.
-        inputStream.setVector(inputStream.getVector());
-
+        inputStream.digestVector(vec);
+        info(workerId, "Received msg: " + inputStream.longAvailable() + ", " + inputStream.getVector().size());
         //Expected workerNum string
         String [] res = new String [workerNum];
-        try {
+  //      try {
             for (int i = 0; i < workerNum; ++i){
                 if (inputStream.longAvailable() <= 0){
                     error(workerId,"Reaching bottom of input stream when trying to read" + i + "th data");
                     return res;
                 }
-                res[i] = inputStream.readUTF();
+                //res[i] = inputStream.readUTF();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
         return res;
     }
 

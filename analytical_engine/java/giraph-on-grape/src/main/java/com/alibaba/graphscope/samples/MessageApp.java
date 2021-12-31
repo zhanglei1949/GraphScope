@@ -30,9 +30,7 @@ public class MessageApp extends
             return ;
         }
         if (getSuperstep() == 0) {
-            logger.info("There should be no messages in step0");
-        }
-        else if (getSuperstep() == 1){
+            logger.info("There should be no messages in step0, " + vertex.getId());
             boolean flag = false;
             for (LongWritable message : messages){
                 flag = true;
@@ -51,7 +49,7 @@ public class MessageApp extends
                 }
             }
         }
-        else if (getSuperstep() == 2){
+        else if (getSuperstep() == 1){
             logger.info("Checking received msg");
             boolean flag = false;
             for (LongWritable message : messages){
