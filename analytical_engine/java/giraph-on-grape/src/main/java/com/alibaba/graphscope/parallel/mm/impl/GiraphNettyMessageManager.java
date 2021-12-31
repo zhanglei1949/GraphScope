@@ -58,6 +58,8 @@ public class GiraphNettyMessageManager<
         this.networkMap = networkMap;
         this.conf = conf;
         outMessageCache = new BatchWritableMessageCache();
+
+        init();
     }
 
     public void init(){
