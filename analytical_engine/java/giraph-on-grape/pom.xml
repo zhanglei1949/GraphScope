@@ -27,7 +27,7 @@
     <benchmark.list></benchmark.list>
     <benchmark.resultfile>jmh-result.json</benchmark.resultfile>
     <benchmark.resultformat>json</benchmark.resultformat>
-    <uberjar.name>uberjar</uberjar.name>
+    <uberjar.name>giraph-on-grape-shaded</uberjar.name>
     <benchmark.jvmargs>-Darrow.enable_null_check_for_get=false
       -Darrow.enable_unsafe_memory_access=true
       -Djava.library.path=${project.build.directory}/native:${project.build.directory}/../../grape-runtime/target/native
