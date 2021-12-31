@@ -194,7 +194,7 @@ public class NettyClient {
                             channel = future.channel();
                             break;
                         } else {
-                            warn("Failed connection [" + connection.workerId + " -> "  + index +"] , tries: " + failedCnt + "/"
+                            warn("Failed connection [" + workerId + " -> "  + index +"] , tries: " + failedCnt + "/"
                                 + maxTries + ", success: " + future.isSuccess() + ", opened: " + future
                                 .channel()
                                 .isOpen());
@@ -316,7 +316,7 @@ public class NettyClient {
         /**
          * grape worker id(MPI_COMM)
          */
-        private final Integer workerId;
+        private final Integer dstWorkerId;
 
         /**
          * Constructor.
@@ -329,13 +329,13 @@ public class NettyClient {
             ChannelFuture future, InetSocketAddress address, Integer workerId) {
             this.future = future;
             this.address = address;
-            this.workerId = workerId;
+            this.dstWorkerId = workerId;
         }
 
         @Override
         public String toString() {
             return "(future=" + future + ",address=" + address + ",workerId=" +
-                workerId + ")";
+                dstWorkerId + ")";
         }
     }
 }
