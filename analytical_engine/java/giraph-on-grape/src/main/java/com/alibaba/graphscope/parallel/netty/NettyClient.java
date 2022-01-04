@@ -199,7 +199,7 @@ public class NettyClient {
                         throw new IllegalStateException("Future waiting exception");
                     }
                     if (res && future.isSuccess() && future.channel().isOpen()) {
-                        logger.info("success for " + failedCnt + " times");
+                        logger.info("connection "  + connection + " success for " + failedCnt + " times");
                         channel = future.channel();
                         break;
                     } else {
@@ -360,7 +360,7 @@ public class NettyClient {
 
         @Override
         public String toString() {
-            return "(future=" + future + ",address=" + address + ",workerId=" +
+            return "(future=" + future + ",address=" + address + ",dstWorkerId=" +
                 dstWorkerId + ")";
         }
     }
