@@ -10,7 +10,6 @@ import com.alibaba.graphscope.parallel.mm.GiraphMessageManager;
 import com.alibaba.graphscope.parallel.netty.NettyClient;
 import com.alibaba.graphscope.parallel.netty.NettyServer;
 import com.alibaba.graphscope.parallel.utils.NetworkMap;
-import java.lang.Thread.UncaughtExceptionHandler;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.Vertex;
 import org.apache.hadoop.io.Writable;
@@ -63,14 +62,14 @@ public class GiraphNettyMessageManager<
     }
 
     public void init(){
-        logger.info("Creating server on " + networkMap.getWorkerId() + " max bind time: " + MAX_IPC_PORT_BIND_ATTEMPTS.get(conf));
+        logger.info("Creating server on " + networkMap.getSelfWorkerId() + " max bind time: " + MAX_IPC_PORT_BIND_ATTEMPTS.get(conf));
         server = new NettyServer(conf, networkMap, (Thread t, Throwable e) -> logger.error(t.getId() + ": " + e.toString()));
         server.startServer();
 
-        logger.info("Create client on " + networkMap.getWorkerId() + " max times: " + MAX_CONN_TRY_ATTEMPTS.get(conf));
+        logger.info("Create client on " + networkMap.getSelfWorkerId() + " max times: " + MAX_CONN_TRY_ATTEMPTS.get(conf));
         client = new NettyClient(conf, networkMap, (Thread t, Throwable e) -> logger.error(t.getId() + ": " + e.toString()));
         client.connectToAllAddress();
-        logger.info("Worker [" + networkMap.getWorkerId() + "] listen on " + networkMap.getAddress() + ", client: " + client.toString());
+        logger.info("Worker [" + networkMap.getSelfWorkerId() + "] listen on " + networkMap.getAddress() + ", client: " + client.toString());
     }
 
     /**

@@ -86,12 +86,12 @@ public class NettyServer {
         bossGroup =
             new NioEventLoopGroup(
                 bossThreadSize,
-                ThreadUtils.createThreadFactory("netty-server-boss-" +  networkMap.getWorkerId() +"-%d", exceptionHandler));
+                ThreadUtils.createThreadFactory("netty-server-boss-" +  networkMap.getSelfWorkerId() +"-%d", exceptionHandler));
         workerGroup =
             new NioEventLoopGroup(
                 workerThreadSize,
                 ThreadUtils.createThreadFactory(
-                    "netty-server-worker-" +  networkMap.getWorkerId() +"-%d", exceptionHandler));
+                    "netty-server-worker-" +  networkMap.getSelfWorkerId() +"-%d", exceptionHandler));
     }
 
     public void startServer() {
@@ -165,19 +165,19 @@ public class NettyServer {
 
     private void warn(String msg) {
         logger.warn(
-            "NettyServer: [" + networkMap.getWorkerId() + "], Thread: [" + Thread.currentThread()
+            "NettyServer: [" + networkMap.getSelfWorkerId() + "], Thread: [" + Thread.currentThread()
                 .getId() + "]: " + msg);
     }
 
     private void debug(String msg) {
         logger.debug(
-            "NettyServer: [" + networkMap.getWorkerId() + "], Thread: [" + Thread.currentThread()
+            "NettyServer: [" + networkMap.getSelfWorkerId() + "], Thread: [" + Thread.currentThread()
                 .getId() + "]: " + msg);
     }
 
     private void info(String msg) {
         logger.info(
-            "NettyServer: [" + networkMap.getWorkerId() + "], Thread: [" + Thread.currentThread()
+            "NettyServer: [" + networkMap.getSelfWorkerId() + "], Thread: [" + Thread.currentThread()
                 .getId() + "]: " + msg);
     }
 

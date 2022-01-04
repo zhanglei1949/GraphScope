@@ -15,7 +15,7 @@ public class NetworkMap {
         return workerNum;
     }
 
-    public int getWorkerId(){
+    public int getSelfWorkerId(){
         return workerId;
     }
 

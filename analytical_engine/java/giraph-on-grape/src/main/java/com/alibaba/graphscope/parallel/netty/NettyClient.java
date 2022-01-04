@@ -86,7 +86,7 @@ public class NettyClient {
         final UncaughtExceptionHandler exceptionHandler) {
         this.conf = conf;
         this.networkMap = networkMap;
-        workerId = networkMap.getWorkerId();
+        workerId = networkMap.getSelfWorkerId();
         /** Init constants */
         /** Number of threads for client to use, i.e. number of handlers*/
         maxPoolSize = GiraphConstants.NETTY_CLIENT_THREADS.get(conf);
@@ -113,7 +113,8 @@ public class NettyClient {
             new NioEventLoopGroup(
                 1,
                 ThreadUtils.createThreadFactory(
-                    "netty-client-worker-" + networkMap.getWorkerId() +"-%d", exceptionHandler));
+                    "netty-client-worker-" + networkMap.getSelfWorkerId() + "-%d",
+                    exceptionHandler));
 
         bootstrap = new Bootstrap();
         bootstrap.option(ChannelOption.SO_KEEPALIVE, true)
@@ -152,7 +153,7 @@ public class NettyClient {
      */
     public void connectToAllAddress() {
         for (int dstWorkerId = 0; dstWorkerId < networkMap.getWorkerNum(); ++dstWorkerId) {
-            if (dstWorkerId == networkMap.getWorkerId()) {
+            if (dstWorkerId == networkMap.getSelfWorkerId()) {
                 //TODO: better way also good performace?
                 connections[dstWorkerId] = null;
                 continue;
@@ -179,32 +180,45 @@ public class NettyClient {
         int index = 0;
         int successCnt = 0;
         while (successCnt < connections.length) {
-            if (Objects.nonNull(connections[index])){
+            if (Objects.nonNull(connections[index])) {
                 Connection connection = connections[index];
-                info("try for connection: " + connection + " while success connection: " + successCnt);
+                info("try for connection: " + connection.dstWorkerId + " while success connection: "
+                    + successCnt);
 
                 int failedCnt = 0;
+                //If this future fails, we need to update the future.
                 ChannelFuture future = connection.future;
                 Channel channel = null;
                 while (failedCnt < maxTries) {
+                    boolean res = false;
                     try {
-                        boolean res = future.await(1, TimeUnit.SECONDS);
-                        if (res && future.isSuccess() && future.channel().isOpen()) {
-                            logger.info("success for " + failedCnt + " times");
-                            channel = future.channel();
-                            break;
-                        } else {
-                            warn("Failed connection [" + workerId + " -> "  + index +"] , tries: " + failedCnt + "/"
-                                + maxTries + ", success: " + future.isSuccess() + ", opened: " + future
-                                .channel()
-                                .isOpen());
+                        res = future.await(1, TimeUnit.SECONDS);
+                    }
+                    catch (Exception e){
+                        throw new IllegalStateException("Future waiting exception");
+                    }
+                    if (res && future.isSuccess() && future.channel().isOpen()) {
+                        logger.info("success for " + failedCnt + " times");
+                        channel = future.channel();
+                        break;
+                    } else {
+                        warn("Failed connection [" + workerId + " -> " + index + "] , tries: "
+                            + failedCnt + "/"
+                            + maxTries + ", success: " + future.isSuccess() + ", opened: " + future
+                            .channel()
+                            .isOpen() + ", cause: " + future.cause());
+                        try {
                             TimeUnit.SECONDS.sleep(1);
                             failedCnt += 1;
+                            //When encounter failure, we update the futreu;
+                            ChannelFuture newFuture = bootstrap.connect(connection.address);
+                            connection.updateFuture(newFuture);
+                        } catch (InterruptedException e) {
+                            throw new IllegalStateException(
+                                "Interrupted when waiting sleep: " + connection.address);
                         }
-                    } catch (InterruptedException e) {
-                        warn("interrupted when waiting for future connection: " + connection);
-                        failedCnt += 1;
                     }
+
                 }
                 if (Objects.isNull(channel)) {
                     warn("Skip connection:" + connection + "for next time. try others");
@@ -212,8 +226,7 @@ public class NettyClient {
                     successCnt += 1;
                     channels[index] = channel;
                 }
-            }
-            else {
+            } else {
                 info("Connection to self is not needed [" + index + "]");
             }
             index = (index + 1) % connections.length;
@@ -259,10 +272,10 @@ public class NettyClient {
 
     @Override
     public String toString() {
-        String res = "NettyClient: [" + workerId +"] channels:";
+        String res = "NettyClient: [" + workerId + "] channels:";
         for (Channel channel : channels) {
-            if (Objects.nonNull(channel)){
-                res +=  channel.remoteAddress() + ",";
+            if (Objects.nonNull(channel)) {
+                res += channel.remoteAddress() + ",";
             }
         }
         return res;
@@ -284,19 +297,22 @@ public class NettyClient {
 
     private void warn(String msg) {
         logger.warn(
-            "NettyClient: [" + networkMap.getWorkerId() + "], Thread: [" + Thread.currentThread()
+            "NettyClient: [" + networkMap.getSelfWorkerId() + "], Thread: [" + Thread
+                .currentThread()
                 .getId() + "]: " + msg);
     }
 
     private void debug(String msg) {
         logger.debug(
-            "NettyClient: [" + networkMap.getWorkerId() + "], Thread: [" + Thread.currentThread()
+            "NettyClient: [" + networkMap.getSelfWorkerId() + "], Thread: [" + Thread
+                .currentThread()
                 .getId() + "]: " + msg);
     }
 
     private void info(String msg) {
         logger.info(
-            "NettyClient: [" + networkMap.getWorkerId() + "], Thread: [" + Thread.currentThread()
+            "NettyClient: [" + networkMap.getSelfWorkerId() + "], Thread: [" + Thread
+                .currentThread()
                 .getId() + "]: " + msg);
     }
 
@@ -308,7 +324,7 @@ public class NettyClient {
         /**
          * Future object
          */
-        private final ChannelFuture future;
+        private ChannelFuture future;
         /**
          * Address of the future
          */
@@ -330,6 +346,15 @@ public class NettyClient {
             this.future = future;
             this.address = address;
             this.dstWorkerId = workerId;
+        }
+
+        /**
+         * We can update the future but don't update address.
+         *
+         * @param future future obj.
+         */
+        public void updateFuture(ChannelFuture future) {
+            this.future = future;
         }
 
         @Override
