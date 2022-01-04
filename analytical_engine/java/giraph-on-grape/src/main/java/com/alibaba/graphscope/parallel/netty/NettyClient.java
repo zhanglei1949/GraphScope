@@ -178,7 +178,7 @@ public class NettyClient {
     private void waitAllConnections() {
         int maxTries = MAX_CONN_TRY_ATTEMPTS.get(conf);
         int index = 0;
-        int successCnt = 0;
+        int successCnt = 1;
         while (successCnt < connections.length) {
             if (Objects.nonNull(connections[index])) {
                 Connection connection = connections[index];
