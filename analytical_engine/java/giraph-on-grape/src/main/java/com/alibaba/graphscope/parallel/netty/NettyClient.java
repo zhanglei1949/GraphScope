@@ -186,10 +186,11 @@ public class NettyClient {
                     + successCnt);
 
                 int failedCnt = 0;
-                //If this future fails, we need to update the future.
-                ChannelFuture future = connection.future;
+
                 Channel channel = null;
                 while (failedCnt < maxTries) {
+                    //If this future fails, we need to update the future.
+                    ChannelFuture future = connection.future;
                     boolean res = false;
                     try {
                         res = future.await(1, TimeUnit.SECONDS);
