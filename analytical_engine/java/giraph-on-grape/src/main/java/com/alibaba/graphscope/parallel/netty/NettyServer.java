@@ -2,6 +2,8 @@ package com.alibaba.graphscope.parallel.netty;
 
 import static org.apache.giraph.conf.GiraphConstants.MAX_IPC_PORT_BIND_ATTEMPTS;
 
+import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.parallel.message.MessageStore;
 import com.alibaba.graphscope.parallel.netty.handler.NettyServerHandler;
 import com.alibaba.graphscope.parallel.netty.request.serialization.WritableRequestDecoder;
 import com.alibaba.graphscope.parallel.netty.request.serialization.WritableRequestEncoder;
@@ -28,10 +30,12 @@ import java.net.InetSocketAddress;
 import org.apache.giraph.conf.GiraphConstants;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.utils.ThreadUtils;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NettyServer {
+public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
 
     private static Logger logger = LoggerFactory.getLogger(NettyServer.class);
 
@@ -62,6 +66,8 @@ public class NettyServer {
     private NetworkMap networkMap;
     private InetSocketAddress myAddress;
     private ImmutableClassesGiraphConfiguration conf;
+    private MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages;
+    private SimpleFragment fragment;
     /**
      * Accepted channels
      */
@@ -70,10 +76,14 @@ public class NettyServer {
 
     public NettyServer(
         ImmutableClassesGiraphConfiguration conf,
+        SimpleFragment fragment,
         NetworkMap networkMap,
+        MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages,
         final UncaughtExceptionHandler exceptionHandler) {
         this.conf = conf;
         this.networkMap = networkMap;
+        this.nextIncomingMessages = nextIncomingMessages;
+        this.fragment = fragment;
 
         bossThreadSize = GiraphConstants.NETTY_SERVER_BOSS_THREADS.get(conf);
         workerThreadSize = GiraphConstants.NETTY_SERVER_WORKER_THREADS.get(conf);
@@ -128,7 +138,7 @@ public class NettyServer {
                         p.addLast(new WritableRequestEncoder());
                         p.addLast(new WritableRequestDecoder());
                         p.addLast(
-                            new NettyServerHandler());
+                            new NettyServerHandler(fragment, nextIncomingMessages));
                     }
                 });
         bindAddress();

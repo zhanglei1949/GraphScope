@@ -17,6 +17,7 @@
  */
 package org.apache.giraph.conf;
 
+import com.alibaba.graphscope.parallel.message.MessageEncodeAndStoreType;
 import org.apache.giraph.factories.DefaultMessageValueFactory;
 import org.apache.giraph.graph.Computation;
 import org.apache.giraph.graph.Vertex;
@@ -171,11 +172,13 @@ public class GiraphClasses<I extends WritableComparable,
         incomingMessageClasses = new DefaultMessageClasses(
             giraphTypes.getInitialIncomingMessageValueClass(),
             DefaultMessageValueFactory.class,
-            null);
+            null,
+            MessageEncodeAndStoreType.SIMPLE_MESSAGE_STORE);
         outgoingMessageClasses = new DefaultMessageClasses(
             giraphTypes.getInitialOutgoingMessageValueClass(),
             OUTGOING_MESSAGE_VALUE_FACTORY_CLASS.get(conf),
-            MESSAGE_COMBINER_CLASS.get(conf));
+            MESSAGE_COMBINER_CLASS.get(conf),
+            MessageEncodeAndStoreType.SIMPLE_MESSAGE_STORE);
     }
 
     /**

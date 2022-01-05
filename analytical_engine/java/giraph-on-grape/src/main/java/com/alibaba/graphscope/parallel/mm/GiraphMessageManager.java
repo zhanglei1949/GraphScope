@@ -9,7 +9,7 @@ public interface GiraphMessageManager<
         VDATA_T extends Writable,
         EDATA_T extends Writable,
         IN_MSG_T extends Writable,
-        OUT_MSG_T extends Writable> {
+        OUT_MSG_T extends Writable, GS_VID_T> {
 
     /**
      * Called by our framework, to deserialize the messages from c++ to java. Must be called before
@@ -53,13 +53,18 @@ public interface GiraphMessageManager<
     void finishMessageSending();
 
     /**
-     * Check any messages to self.
+     * Check any messages received. For mpi-based message manager, we check any message to self produced.
+     * For netty-based message manager, we check any message received.
      *
-     * @return true if messages sent to self.
+     * @return true if any message received.
      */
-    boolean anyMessageToSelf();
+    boolean anyMessageReceived();
 
     void forceContinue();
+
+    void preSuperstep();
+
+    void postSuperstep();
 
     void postApplication();
 }

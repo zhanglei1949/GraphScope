@@ -17,6 +17,7 @@
  */
 package org.apache.giraph.conf;
 
+import com.alibaba.graphscope.parallel.message.MessageEncodeAndStoreType;
 import org.apache.giraph.combiner.MessageCombiner;
 import org.apache.giraph.factories.MessageValueFactory;
 import org.apache.hadoop.io.Writable;
@@ -60,11 +61,11 @@ public interface MessageClasses
      */
     boolean useMessageCombiner();
 
-//    /**
-//     * Get MessageEncodeAndStoreType
-//     * @return message encode and store type
-//     */
-//    MessageEncodeAndStoreType getMessageEncodeAndStoreType();
+    /**
+     * Get MessageEncodeAndStoreType
+     * @return message encode and store type
+     */
+    MessageEncodeAndStoreType getMessageEncodeAndStoreType();
 
     /**
      * Creates a fresh copy of this object,

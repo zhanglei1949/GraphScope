@@ -18,10 +18,10 @@
 
 package org.apache.giraph.utils;
 
+import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import org.apache.giraph.comm.requests.NettyMessage;
-import org.apache.giraph.comm.requests.WritableRequest;
 
 import java.io.IOException;
 import org.slf4j.Logger;
@@ -50,6 +50,21 @@ public class RequestUtils {
      */
     public static NettyMessage decodeNettyMessage(ByteBuf buf,
         NettyMessage request) throws IOException {
+        ByteBufInputStream input = new ByteBufInputStream(buf);
+        request.readFields(input);
+        return request;
+    }
+
+    /**
+     * decodeWritableRequest based on predicate
+     *
+     * @param buf ByteBuf
+     * @param request writableRequest
+     * @return properly initialized writableRequest
+     * @throws IOException
+     */
+    public static WritableRequest decodeWritableRequest(ByteBuf buf,
+        WritableRequest request) throws IOException {
         ByteBufInputStream input = new ByteBufInputStream(buf);
         request.readFields(input);
         return request;

@@ -1,5 +1,6 @@
 package com.alibaba.graphscope.parallel.netty.request.impl;
 
+import com.alibaba.graphscope.parallel.message.MessageStore;
 import com.alibaba.graphscope.parallel.netty.request.RequestType;
 import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
 import java.io.DataInput;
@@ -35,5 +36,20 @@ public class OneLongWritableRequest extends WritableRequest {
     @Override
     public void writeFieldsRequest(DataOutput output) throws IOException {
 
+    }
+
+    @Override
+    public int getNumBytes() {
+        return 8;
+    }
+
+    /**
+     * Apply this request on this message storage.
+     *
+     * @param messageStore message store.
+     */
+    @Override
+    public void doRequest(MessageStore messageStore) {
+        throw new IllegalStateException("Not implemented");
     }
 }

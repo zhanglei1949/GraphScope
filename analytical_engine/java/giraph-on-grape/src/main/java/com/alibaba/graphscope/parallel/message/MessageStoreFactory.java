@@ -18,51 +18,36 @@
 
 package com.alibaba.graphscope.parallel.message;
 
-import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
-import com.alibaba.graphscope.utils.VertexIdMessages;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-
-import java.util.Iterator;
+import com.alibaba.graphscope.fragment.SimpleFragment;
+import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
+import org.apache.giraph.conf.MessageClasses;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
 /**
- * Message store
+ * Factory for message stores
  *
  * @param <I> Vertex id
  * @param <M> Message data
+ * @param <MS> Message store
  */
-public interface MessageStore<I extends WritableComparable,
-    M extends Writable, GS_VID_T> {
-
-    void addLidMessage(GS_VID_T lid, Writable writable);
-
-    void addGidMessages(Iterator<GS_VID_T> gids, Iterator<Writable> writables);
+public interface MessageStoreFactory<I extends WritableComparable,
+    M extends Writable, MS> {
+    /**
+     * Creates new message store.
+     *
+     * @param messageClasses Message classes information to be held in the store
+     * @return New message store
+     */
+    MS newStore(MessageClasses<I, M> messageClasses);
 
     /**
-     * For messages bound with gid, first get lid.
-     * @param gid global id
-     * @param writable msg
+     * Implementation class should use this method of initialization
+     * of any required internal state.
+     *
+     * @param fragment fragment used for partition querying
+     * @param conf Configuration
      */
-    void addGidMessage(GS_VID_T gid, Writable writable);
-
-    void swap(MessageStore<I,M,GS_VID_T> other);
-
-    void clearAll();
-
-    /**
-     * Check whether any messages received.
-     */
-    boolean anyMessageReceived();
-
-    /**
-     * Check for lid, any messages available.
-     * @param lid lid.
-     * @return true if has message
-     */
-    boolean messageAvailable(long lid);
-
-    Iterable<M> getMessages(long lid);
+    void initialize(SimpleFragment fragment,
+        ImmutableClassesGiraphConfiguration<I, ?, ?> conf);
 }

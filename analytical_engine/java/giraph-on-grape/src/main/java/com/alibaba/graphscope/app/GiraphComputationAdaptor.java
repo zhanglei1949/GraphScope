@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
-
+ *
  */
 
 /**
@@ -34,8 +34,9 @@ import org.slf4j.LoggerFactory;
  * @param <VDATA_T> grape vdata.
  * @param <EDATA_T> grape edata.
  */
-public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Communicator implements
-    DefaultAppBase<OID_T,VID_T,VDATA_T,EDATA_T,GiraphComputationAdaptorContext<OID_T,VID_T,VDATA_T,EDATA_T>> {
+public class GiraphComputationAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> extends
+    Communicator implements
+    DefaultAppBase<OID_T, VID_T, VDATA_T, EDATA_T, GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T>> {
 
     private static Logger logger = LoggerFactory.getLogger(GiraphComputationAdaptor.class);
 
@@ -51,8 +52,8 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Comm
      * @see DefaultMessageManager
      */
     @Override
-    public void PEval(SimpleFragment<OID_T,VID_T,VDATA_T,EDATA_T> graph,
-        DefaultContextBase<OID_T,VID_T,VDATA_T,EDATA_T> context,
+    public void PEval(SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> graph,
+        DefaultContextBase<OID_T, VID_T, VDATA_T, EDATA_T> context,
         DefaultMessageManager messageManager) {
 
         GiraphComputationAdaptorContext ctx = (GiraphComputationAdaptorContext) context;
@@ -77,15 +78,16 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Comm
 
         workerContext.preSuperstep();
         /** Execute master compute before super step*/
-        if (ctx.hasMasterCompute()){
+        if (ctx.hasMasterCompute()) {
             MasterCompute masterCompute = ctx.getMasterCompute();
-            if (!masterCompute.isHalted()){
+            if (!masterCompute.isHalted()) {
                 masterCompute.compute();
                 masterCompute.incSuperStep();
             }
         }
 
-	aggregatorManager.preSuperstep();
+        aggregatorManager.preSuperstep();
+        giraphMessageManager.preSuperstep();
         //In first round, there is no message, we pass an empty iterable.
 //        Iterable<LongWritable> messages = new MessageIterable<>();
         Iterable<Writable> messages = new MessageIterable<>();
@@ -94,17 +96,17 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Comm
         VertexDataManager vertexDataManager = ctx.vertex.getVertexDataManager();
         VertexIdManager vertexIdManager = ctx.vertex.getVertexIdManager();
         int cnt = 0;
-        for (Vertex<VID_T> grapeVertex : graph.innerVertices().locals()){
-            if (cnt > 5){
+        for (Vertex<VID_T> grapeVertex : graph.innerVertices().locals()) {
+            if (cnt > 5) {
                 break;
             }
-            if (ctx.getUserComputation().getConf().getGrapeVidClass().equals(Long.class)){
+            if (ctx.getUserComputation().getConf().getGrapeVidClass().equals(Long.class)) {
                 Long lid = (Long) grapeVertex.GetValue();
                 logger.info("Vertex: " + grapeVertex.GetValue() + ", oid: " + vertexIdManager
                     .getId(lid) + ", vdata: " + vertexDataManager
                     .getVertexData(lid));
-            }
-            else if (ctx.getUserComputation().getConf().getGrapeVidClass().equals(Integer.class)){
+            } else if (ctx.getUserComputation().getConf().getGrapeVidClass()
+                .equals(Integer.class)) {
                 Integer lid = (Integer) grapeVertex.GetValue();
                 logger.info("Vertex: " + grapeVertex.GetValue() + ", oid: " + vertexIdManager
                     .getId(lid) + ", vdata: " + vertexDataManager
@@ -126,7 +128,7 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Comm
 
         //wait msg send finish.
         giraphMessageManager.finishMessageSending();
-
+        giraphMessageManager.postSuperstep();
         //Sync aggregators
         aggregatorManager.postSuperstep();
 
@@ -135,7 +137,7 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Comm
         workerContext.setCurStep(1);
 
         //We can not judge whether to proceed by messages sent and check halted array.
-        if (giraphMessageManager.anyMessageToSelf()) {
+        if (giraphMessageManager.anyMessageReceived()) {
             messageManager.ForceContinue();
         }
 
@@ -154,8 +156,8 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Comm
      * @see DefaultMessageManager
      */
     @Override
-    public void IncEval(SimpleFragment<OID_T,VID_T,VDATA_T,EDATA_T> graph,
-        DefaultContextBase<OID_T,VID_T,VDATA_T,EDATA_T> context,
+    public void IncEval(SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> graph,
+        DefaultContextBase<OID_T, VID_T, VDATA_T, EDATA_T> context,
         DefaultMessageManager messageManager) {
 
         GiraphComputationAdaptorContext ctx = (GiraphComputationAdaptorContext) context;
@@ -172,16 +174,18 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Comm
         //0. receive messages
         giraphMessageManager.receiveMessages();
 
+
         /** execute master compute on master node if there is */
-        if (ctx.hasMasterCompute()){
+        if (ctx.hasMasterCompute()) {
             MasterCompute masterCompute = ctx.getMasterCompute();
-            if (!masterCompute.isHalted()){
+            if (!masterCompute.isHalted()) {
                 masterCompute.compute();
                 masterCompute.incSuperStep();
             }
         }
-	//Clear non-persistent aggregator
-	aggregatorManager.preSuperstep();
+        //Clear non-persistent aggregator
+        aggregatorManager.preSuperstep();
+        giraphMessageManager.preSuperstep();
 
         //1. compute
         try {
@@ -204,13 +208,14 @@ public class GiraphComputationAdaptor<OID_T, VID_T,VDATA_T,EDATA_T> extends Comm
 
         //Sync aggregators
         aggregatorManager.postSuperstep();
+        giraphMessageManager.postSuperstep();
 
         //increase super step
         userComputation.incStep();
         //Also increase worker context.
         workerContext.incStep();
 
-        if (giraphMessageManager.anyMessageToSelf()) {
+        if (giraphMessageManager.anyMessageReceived()) {
             messageManager.ForceContinue();
         }
     }

@@ -30,13 +30,13 @@ public class GiraphMessageManagerFactory {
 //        NetworkMap networkMap = new NetworkMap(conf.getWorkerId(), conf.getWorkerNum(),
 //            conf.getInitServerPort(), new String[]{"1"});
         if (mmType.equals("netty")) {
-            return createGiraphNettyMM(fragment, networkMap, conf, conf.getVertexIdClass(), conf
+            return createGiraphNettyMM(fragment,grapeMessager, networkMap, conf, conf.getVertexIdClass(), conf
                 .getVertexValueClass(), conf.getEdgeValueClass(), conf
-                .getIncomingMessageValueClass(), conf.getOutgoingMessageValueClass());
+                .getIncomingMessageValueClass(), conf.getOutgoingMessageValueClass(), conf.getGrapeVidClass());
         } else if (mmType.equals("mpi")) {
             return createGiraphDefaultMM(fragment, grapeMessager, conf,conf.getVertexIdClass(), conf
                 .getVertexValueClass(), conf.getEdgeValueClass(), conf
-                .getIncomingMessageValueClass(), conf.getOutgoingMessageValueClass());
+                .getIncomingMessageValueClass(), conf.getOutgoingMessageValueClass(), conf.getGrapeVidClass());
         }
         else{
             logger.error("Unrecognized message manager type: [" + mmType + "]");
@@ -44,22 +44,24 @@ public class GiraphMessageManagerFactory {
         }
     }
 
-    private static <OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable, IN_MSG_T extends Writable, OUT_MSG_T extends Writable>
-    GiraphNettyMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T> createGiraphNettyMM(
+    private static <OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable, IN_MSG_T extends Writable, OUT_MSG_T extends Writable, GS_VID_T>
+    GiraphNettyMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,GS_VID_T> createGiraphNettyMM(
         SimpleFragment fragment,
+        DefaultMessageManager mm,
         NetworkMap networkMap,
         ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf,
         Class<? extends OID_T> oidClass,
         Class<? extends VDATA_T> vdataClass,
         Class<? extends EDATA_T> edataClass,
         Class<? extends IN_MSG_T> inMsgClass,
-        Class<? extends OUT_MSG_T> outMsgClass) {
-        return new GiraphNettyMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T>(fragment,
-            networkMap, conf);
+        Class<? extends OUT_MSG_T> outMsgClass,
+        Class<? extends GS_VID_T> gsVidClass) {
+        return new GiraphNettyMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,GS_VID_T>(fragment,
+            networkMap, mm, conf);
     }
 
-    private static <OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable, IN_MSG_T extends Writable, OUT_MSG_T extends Writable>
-    GiraphDefaultMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T> createGiraphDefaultMM(
+    private static <OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable, IN_MSG_T extends Writable, OUT_MSG_T extends Writable, GS_VID_T>
+    GiraphDefaultMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,GS_VID_T> createGiraphDefaultMM(
         SimpleFragment fragment,
         DefaultMessageManager mm,
         ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf,
@@ -67,8 +69,9 @@ public class GiraphMessageManagerFactory {
         Class<? extends VDATA_T> vdataClass,
         Class<? extends EDATA_T> edataClass,
         Class<? extends IN_MSG_T> inMsgClass,
-        Class<? extends OUT_MSG_T> outMsgClass) {
-        return new GiraphDefaultMessageManager<OID_T,VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T>(fragment,mm
+        Class<? extends OUT_MSG_T> outMsgClass,
+        Class<? extends GS_VID_T> gsVidClass) {
+        return new GiraphDefaultMessageManager<OID_T,VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,GS_VID_T>(fragment, mm
             , conf);
     }
 

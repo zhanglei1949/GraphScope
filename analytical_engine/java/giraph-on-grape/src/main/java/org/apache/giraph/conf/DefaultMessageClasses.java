@@ -18,6 +18,7 @@
 package org.apache.giraph.conf;
 
 import com.alibaba.graphscope.context.GiraphComputationAdaptorContext;
+import com.alibaba.graphscope.parallel.message.MessageEncodeAndStoreType;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -43,8 +44,6 @@ import org.slf4j.LoggerFactory;
 public class DefaultMessageClasses
     <I extends WritableComparable, M extends Writable>
     implements MessageClasses<I, M> {
-    private static Logger logger = LoggerFactory.getLogger(DefaultMessageClasses.class);
-
     /** message class */
     private Class<M> messageClass;
     /** message value factory class */
@@ -55,6 +54,7 @@ public class DefaultMessageClasses
     /** whether message class was manually modified in this superstep */
     private boolean messageClassModified;
     /** message encode and store type */
+    private MessageEncodeAndStoreType messageEncodeAndStoreType;
 
     /** Constructor */
     public DefaultMessageClasses() {
@@ -65,15 +65,18 @@ public class DefaultMessageClasses
      * @param messageClass message class
      * @param messageValueFactoryClass message value factory class
      * @param messageCombinerClass message combiner class
+     * @param messageEncodeAndStoreType message encode and store type
      */
     public DefaultMessageClasses(
         Class<M> messageClass,
         Class<? extends MessageValueFactory<M>> messageValueFactoryClass,
-        Class<? extends MessageCombiner<? super I, M>> messageCombinerClass) {
+        Class<? extends MessageCombiner<? super I, M>> messageCombinerClass,
+        MessageEncodeAndStoreType messageEncodeAndStoreType) {
         this.messageClass = messageClass;
         this.messageValueFactoryClass = messageValueFactoryClass;
         this.messageCombinerClass = messageCombinerClass;
         this.messageClassModified = false;
+        this.messageEncodeAndStoreType = messageEncodeAndStoreType;
     }
 
     @Override
@@ -103,7 +106,6 @@ public class DefaultMessageClasses
     public MessageCombiner<? super I, M> createMessageCombiner(
         ImmutableClassesGiraphConfiguration conf) {
         if (messageCombinerClass == null) {
-            logger.error("MessageCombinerClass null");
             return null;
         }
 
@@ -127,9 +129,14 @@ public class DefaultMessageClasses
     }
 
     @Override
+    public MessageEncodeAndStoreType getMessageEncodeAndStoreType() {
+        return messageEncodeAndStoreType;
+    }
+
+    @Override
     public MessageClasses<I, M> createCopyForNewSuperstep() {
         return new DefaultMessageClasses<>(messageClass, messageValueFactoryClass,
-            messageCombinerClass);
+            messageCombinerClass, messageEncodeAndStoreType);
     }
 
     @Override
@@ -179,12 +186,18 @@ public class DefaultMessageClasses
         this.messageValueFactoryClass = messageValueFactoryClass;
     }
 
+    public void setMessageEncodeAndStoreType(
+        MessageEncodeAndStoreType messageEncodeAndStoreType) {
+        this.messageEncodeAndStoreType = messageEncodeAndStoreType;
+    }
+
     @Override
     public void write(DataOutput out) throws IOException {
         WritableUtils.writeClass(messageClass, out);
         WritableUtils.writeClass(messageValueFactoryClass, out);
         WritableUtils.writeClass(messageCombinerClass, out);
         out.writeBoolean(messageClassModified);
+        out.writeByte(messageEncodeAndStoreType.ordinal());
     }
 
     @Override
@@ -193,5 +206,7 @@ public class DefaultMessageClasses
         messageValueFactoryClass = WritableUtils.readClass(in);
         messageCombinerClass = WritableUtils.readClass(in);
         messageClassModified = in.readBoolean();
+        messageEncodeAndStoreType =
+            messageEncodeAndStoreType.values()[in.readByte()];
     }
 }

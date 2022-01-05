@@ -31,8 +31,8 @@ public class GiraphDefaultMessageManager<
                 VDATA_T extends Writable,
                 EDATA_T extends Writable,
                 IN_MSG_T extends Writable,
-                OUT_MSG_T extends Writable>
-        implements GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T> {
+                OUT_MSG_T extends Writable, GS_VID_T>
+        implements GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T> {
 
     private ImmutableClassesGiraphConfiguration configuration;
     /** If cached message exceeds this threshold, we will send them immediately. */
@@ -311,7 +311,7 @@ public class GiraphDefaultMessageManager<
      * @return true if messages sent to self.
      */
     @Override
-    public boolean anyMessageToSelf() {
+    public boolean anyMessageReceived() {
         return messagesIn.longAvailable() > 0;
     }
 
@@ -333,6 +333,16 @@ public class GiraphDefaultMessageManager<
     @Override
     public void forceContinue() {
         grapeMessageManager.ForceContinue();
+    }
+
+    @Override
+    public void preSuperstep() {
+
+    }
+
+    @Override
+    public void postSuperstep() {
+
     }
 
     @Override

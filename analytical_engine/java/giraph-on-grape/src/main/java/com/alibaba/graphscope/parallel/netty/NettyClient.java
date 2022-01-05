@@ -5,6 +5,7 @@ import static org.apache.giraph.conf.GiraphConstants.CLIENT_SEND_BUFFER_SIZE;
 import static org.apache.giraph.conf.GiraphConstants.MAX_CONN_TRY_ATTEMPTS;
 
 import com.alibaba.graphscope.parallel.netty.handler.NettyClientHandler;
+import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
 import com.alibaba.graphscope.parallel.netty.request.serialization.WritableRequestDecoder;
 import com.alibaba.graphscope.parallel.netty.request.serialization.WritableRequestEncoder;
 import com.alibaba.graphscope.parallel.utils.NetworkMap;
@@ -22,6 +23,9 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -72,6 +76,7 @@ public class NettyClient {
      * All connected channels. length = workerNum, [index] = null
      */
     private Channel[] channels;
+    private Map<Integer, LinkedList<ChannelFuture>> pendingRequests;
     private NetworkMap networkMap;
 
     private EventLoopGroup workGroup;
@@ -100,6 +105,10 @@ public class NettyClient {
          */
         connections = new Connection[networkMap.getWorkerNum()];
         channels = new Channel[networkMap.getWorkerNum()];
+        pendingRequests = new HashMap<>();
+        for (int i = 0; i < networkMap.getWorkerNum(); ++i){
+            pendingRequests.put(i, new LinkedList<ChannelFuture>());
+        }
         /**
          * Start the client. connect to all address.
          */
@@ -271,6 +280,56 @@ public class NettyClient {
         return address;
     }
 
+    public void sendMessage(int dstFragId, WritableRequest request){
+        if (dstFragId == workerId){
+            throw new IllegalStateException("Shouldn't reach here:" + dstFragId + ", " + workerId);
+        }
+        ChannelFuture requestFuture  = channels[dstFragId].write(request);
+        pendingRequests.get(dstFragId).offer(requestFuture);
+        debug("send msg " + request + " to [" + dstFragId + "], corresponding pending request: " + pendingRequests.get(dstFragId).size());
+    }
+
+    /**
+     * Hide flush from message manager. From message manager view, all request send immediately.
+     */
+    private void flushMessages(){
+        debug("flushing messages");
+        for (int i = 0; i < networkMap.getWorkerNum() && i != workerId; ++i){
+            channels[i].flush();
+        }
+        debug("finish flushing messages");
+    }
+
+    public void waitAllRequests(){
+        flushMessages();
+        for (int i = 0; i < networkMap.getWorkerNum(); ++i){
+            LinkedList<ChannelFuture> futures = pendingRequests.get(i);
+            for (ChannelFuture future : futures){
+                if (future.isDone()){
+                    if (future.isSuccess()){
+                        debug("message to [" + i + "] success");
+                    }
+                    else {
+                        error("message to [" + i + "] failed: " + future.cause());
+                    }
+                }
+                else {
+                    try {
+                        warn("message to [" + i + "] not done, waiting...");
+                        future.await();
+                        warn("Ok,message to [" + i + "]  done, wake up");
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        info("finish waiting all messages");
+        for (int i = 0; i < networkMap.getWorkerNum(); ++i){
+            pendingRequests.get(i).clear();
+        }
+    }
+
     @Override
     public String toString() {
         String res = "NettyClient: [" + workerId + "] channels:";
@@ -283,6 +342,7 @@ public class NettyClient {
     }
 
     public void close() {
+        waitAllRequests();
         try {
             for (int i = 0; i < channels.length; ++i) {
                 if (Objects.nonNull(channels[i])) {
@@ -312,6 +372,12 @@ public class NettyClient {
 
     private void info(String msg) {
         logger.info(
+            "NettyClient: [" + networkMap.getSelfWorkerId() + "], Thread: [" + Thread
+                .currentThread()
+                .getId() + "]: " + msg);
+    }
+    private void error(String msg) {
+        logger.error(
             "NettyClient: [" + networkMap.getSelfWorkerId() + "], Thread: [" + Thread
                 .currentThread()
                 .getId() + "]: " + msg);

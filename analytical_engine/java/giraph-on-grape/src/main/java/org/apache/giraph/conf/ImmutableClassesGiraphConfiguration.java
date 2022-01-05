@@ -19,6 +19,12 @@
 package org.apache.giraph.conf;
 
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.utils.ExtendedByteArrayDataInput;
+import com.alibaba.graphscope.utils.ExtendedByteArrayDataOutput;
+import com.alibaba.graphscope.utils.ExtendedDataInput;
+import com.alibaba.graphscope.utils.ExtendedDataOutput;
+import com.alibaba.graphscope.utils.UnsafeByteArrayInputStream;
+import com.alibaba.graphscope.utils.UnsafeByteArrayOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import org.apache.giraph.combiner.MessageCombiner;
@@ -54,6 +60,11 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
     private int workerId;
     private int workerNum;
     private int inetAddressMaxResolveTime;
+    /**
+     * Use unsafe serialization? Cached for fast access to instantiate the
+     * extended data input/output classes
+     */
+    private final boolean useUnsafeSerialization;
 
     private static String DEFAULT_WORKER_FILE_PREFIX= "giraph-on-grape";
 
@@ -61,6 +72,7 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
     public ImmutableClassesGiraphConfiguration(Configuration configuration, SimpleFragment fragment){
         super(configuration);
         classes = new GiraphClasses<I,V,E>(configuration);
+        useUnsafeSerialization = USE_UNSAFE_SERIALIZATION.get(this);
         grapeClasses = new GrapeTypes(fragment);
         workerId = fragment.fid();
         workerNum = fragment.fnum();
@@ -360,6 +372,101 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
 
     public int getInetAddressMaxResolveTime(){
         return inetAddressMaxResolveTime;
+    }
+
+    /**
+     * Whether to use an unsafe serialization
+     *
+     * @return whether to use unsafe serialization
+     */
+    public boolean getUseUnsafeSerialization() {
+        return useUnsafeSerialization;
+    }
+
+    /**
+     * Create an extended data output (can be subclassed)
+     *
+     * @return ExtendedDataOutput object
+     */
+    public ExtendedDataOutput createExtendedDataOutput() {
+        if (useUnsafeSerialization) {
+            return new UnsafeByteArrayOutputStream();
+        } else {
+            return new ExtendedByteArrayDataOutput();
+        }
+    }
+
+    /**
+     * Create an extended data output (can be subclassed)
+     *
+     * @param expectedSize Expected size
+     * @return ExtendedDataOutput object
+     */
+    public ExtendedDataOutput createExtendedDataOutput(int expectedSize) {
+        if (useUnsafeSerialization) {
+            return new UnsafeByteArrayOutputStream(expectedSize);
+        } else {
+            return new ExtendedByteArrayDataOutput(expectedSize);
+        }
+    }
+
+    /**
+     * Create an extended data output (can be subclassed)
+     *
+     * @param buf Buffer to use for the output (reuse perhaps)
+     * @param pos How much of the buffer is already used
+     * @return ExtendedDataOutput object
+     */
+    public ExtendedDataOutput createExtendedDataOutput(byte[] buf,
+        int pos) {
+        if (useUnsafeSerialization) {
+            return new UnsafeByteArrayOutputStream(buf, pos);
+        } else {
+            return new ExtendedByteArrayDataOutput(buf, pos);
+        }
+    }
+
+    /**
+     * Create an extended data input (can be subclassed)
+     *
+     * @param buf Buffer to use for the input
+     * @param off Where to start reading in the buffer
+     * @param length Maximum length of the buffer
+     * @return ExtendedDataInput object
+     */
+    public ExtendedDataInput createExtendedDataInput(
+        byte[] buf, int off, int length) {
+        if (useUnsafeSerialization) {
+            return new UnsafeByteArrayInputStream(buf, off, length);
+        } else {
+            return new ExtendedByteArrayDataInput(buf, off, length);
+        }
+    }
+
+    /**
+     * Create an extended data input (can be subclassed)
+     *
+     * @param buf Buffer to use for the input
+     * @return ExtendedDataInput object
+     */
+    public ExtendedDataInput createExtendedDataInput(byte[] buf) {
+        if (useUnsafeSerialization) {
+            return new UnsafeByteArrayInputStream(buf);
+        } else {
+            return new ExtendedByteArrayDataInput(buf);
+        }
+    }
+
+    /**
+     * Create extendedDataInput based on extendedDataOutput
+     *
+     * @param extendedDataOutput extendedDataOutput
+     * @return extendedDataInput
+     */
+    public ExtendedDataInput createExtendedDataInput(
+        ExtendedDataOutput extendedDataOutput) {
+        return createExtendedDataInput(extendedDataOutput.getByteArray(), 0,
+            extendedDataOutput.getPos());
     }
 
 }

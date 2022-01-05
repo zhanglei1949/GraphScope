@@ -2,6 +2,8 @@ package org.apache.giraph.conf;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import com.alibaba.graphscope.parallel.message.DefaultMessageStoreFactory;
+import com.alibaba.graphscope.parallel.message.MessageStoreFactory;
 import org.apache.giraph.combiner.MessageCombiner;
 import org.apache.giraph.factories.DefaultMessageValueFactory;
 import org.apache.giraph.factories.MessageValueFactory;
@@ -331,16 +333,37 @@ public interface GiraphConstants {
     IntConfOption MAX_CONN_TRY_ATTEMPTS = new IntConfOption("giraph.maxConnTryAttempty", 20,
         "Maximum bind attempts for client to connect to server");
 
-    IntConfOption MESSAGE_MANAGER_BASE_SERVER_PORT = new IntConfOption("giraph.mmBaseServerPort", 30000,
+    IntConfOption MESSAGE_MANAGER_BASE_SERVER_PORT = new IntConfOption("giraph.mmBaseServerPort",
+        30000,
         "The base port for messager to communicate");
 
-    IntConfOption AGGREGATOR_BASE_SERVER_PORT = new IntConfOption("giraph.aggregatorBaseServerPort", 40000,
+    IntConfOption AGGREGATOR_BASE_SERVER_PORT = new IntConfOption("giraph.aggregatorBaseServerPort",
+        40000,
         "The base port for aggregator to communicate");
 
     StrConfOption MESSAGE_MANAGER_TYPE = new StrConfOption("giraph.messageManagerType", "netty",
         "default message manager to use");
 
-    IntConfOption INET_ADDRESS_MAX_RESOLVE_TIMES = new IntConfOption("giraph.inetAddressMaxResolveTimes", 10,
+    IntConfOption INET_ADDRESS_MAX_RESOLVE_TIMES = new IntConfOption(
+        "giraph.inetAddressMaxResolveTimes", 10,
         "max tries for verifying address for client.");
 
+    /**
+     * Use unsafe serialization?
+     */
+    BooleanConfOption USE_UNSAFE_SERIALIZATION =
+        new BooleanConfOption("giraph.useUnsafeSerialization", true,
+            "Use unsafe serialization?");
+
+    /**
+     * Message Store Factory
+     */
+    ClassConfOption<MessageStoreFactory> MESSAGE_STORE_FACTORY_CLASS =
+        ClassConfOption.create("giraph.messageStoreFactoryClass",
+            DefaultMessageStoreFactory.class,
+            MessageStoreFactory.class,
+            "Message Store Factory Class that is to be used");
+
+    IntConfOption MESSAGE_AGGREGATE_SIZE = new IntConfOption("giraph.messageAggregateSize", 500,
+        "how many size of request we aggregate together for sending in bulk");
 }
