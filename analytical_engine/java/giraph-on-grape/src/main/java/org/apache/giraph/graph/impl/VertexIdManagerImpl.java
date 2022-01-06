@@ -70,24 +70,24 @@ public class VertexIdManagerImpl<OID_T extends WritableComparable, GRAPE_OID_T,G
         FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
         try {
             if (conf.getGrapeOidClass().equals(Long.class)) {
-                for (Vertex<GRAPE_VID_T> vertex: fragment.innerVertices().locals()) {
+                for (Vertex<GRAPE_VID_T> vertex: fragment.vertices().locals()) {
                     Long value = (Long) fragment.getId(vertex);
                     outputStream.writeLong(value);
                 }
             } else if (conf.getGrapeOidClass().equals(Integer.class)) {
-                for (Vertex<GRAPE_VID_T> vertex: fragment.innerVertices().locals()) {
+                for (Vertex<GRAPE_VID_T> vertex: fragment.vertices().locals()) {
                     Integer value = (Integer) fragment.getId(vertex);
                     outputStream.writeInt(value);
                 }
             }
             else if (conf.getGrapeOidClass().equals(Double.class)) {
-                for (Vertex<GRAPE_VID_T> vertex : fragment.innerVertices().locals()) {
+                for (Vertex<GRAPE_VID_T> vertex : fragment.vertices().locals()) {
                     Double value = (Double) fragment.getId(vertex);
                     outputStream.writeDouble(value);
                 }
             }
             else if (conf.getGrapeOidClass().equals(Float.class)) {
-                for (Vertex<GRAPE_VID_T> vertex : fragment.innerVertices().locals()) {
+                for (Vertex<GRAPE_VID_T> vertex : fragment.vertices().locals()) {
                     Float value = (Float) fragment.getId(vertex);
                     outputStream.writeFloat(value);
                 }
