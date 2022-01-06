@@ -9,7 +9,6 @@ import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import java.io.IOException;
 import java.util.Iterator;
-import jnr.ffi.annotations.In;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.edge.DefaultEdge;
@@ -18,11 +17,6 @@ import org.apache.giraph.edge.MutableEdge;
 import org.apache.giraph.edge.ReusableEdge;
 import org.apache.giraph.graph.EdgeManager;
 import org.apache.giraph.graph.VertexIdManager;
-import org.apache.giraph.utils.ConfigurationUtils;
-import org.apache.hadoop.io.DoubleWritable;
-import org.apache.hadoop.io.FloatWritable;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
@@ -91,7 +85,15 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
      */
     @Override
     public Iterable<Edge<OID_T, EDATA_T>> getEdges(long lid) {
-        return new EdgeIterable((int) lid);
+        if (configuration.getGrapeVidClass().equals(Long.class)){
+            return new LongEdgeIterable(lid);
+        }
+        else if (configuration.getGrapeVidClass().equals(Integer.class)){
+            return new IntEdgeIterable((int)lid);
+        }
+        else {
+            throw new IllegalStateException("Oid should be int or long");
+        }
     }
 
     /**
@@ -191,14 +193,14 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
     }
 
     /**
-     * Iterable for edges from one vertex.
+     * Iterable for edges from one vertex. oid=long
      */
-    public class EdgeIterable implements Iterable<Edge<OID_T, EDATA_T>> {
+    public class LongEdgeIterable implements Iterable<Edge<OID_T, EDATA_T>> {
 
-        private Integer lid;
+        private long lid;
         private Vertex<GRAPE_VID_T> vertex;
 
-        public EdgeIterable(int lid) {
+        public LongEdgeIterable(long lid) {
             this.lid = lid;
             vertex = (Vertex<GRAPE_VID_T>) FFITypeFactoryhelper.newVertex(configuration.getGrapeVidClass());
             //It is safe to cast Integer to Long, but not vice-verse.
@@ -213,14 +215,50 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
          */
         @Override
         public Iterator<Edge<OID_T, EDATA_T>> iterator() {
-            if (configuration.getGrapeVidClass().equals(Long.class)){
-                return new LongNbrIterator(vertex);
-            }
-            else if (configuration.getGrapeVidClass().equals(Integer.class)){
-                return new IntNbrIterator(vertex);
-            }
-            logger.error("Only accept long and int as vid class");
-            return null;
+            return new LongNbrIterator(vertex);
+//            if (configuration.getGrapeVidClass().equals(Long.class)){
+//                return new LongNbrIterator(vertex);
+//            }
+//            else if (configuration.getGrapeVidClass().equals(Integer.class)){
+//                return new IntNbrIterator(vertex);
+//            }
+//            logger.error("Only accept long and int as vid class");
+//            return null;
+        }
+    }
+
+    /**
+     * Iterable for edges from one vertex. oid=int
+     */
+    public class IntEdgeIterable implements Iterable<Edge<OID_T, EDATA_T>> {
+
+        private int lid;
+        private Vertex<GRAPE_VID_T> vertex;
+
+        public IntEdgeIterable(int lid) {
+            this.lid = lid;
+            vertex = (Vertex<GRAPE_VID_T>) FFITypeFactoryhelper.newVertex(configuration.getGrapeVidClass());
+            //It is safe to cast Integer to Long, but not vice-verse.
+            vertex.SetValue((GRAPE_VID_T) configuration.getGrapeVidClass().cast(this.lid));
+        }
+
+        /**
+         * Returns an iterator over elements of type {@code T}. Make sure lid is updated before
+         * calling iterator()
+         *
+         * @return an Iterator.
+         */
+        @Override
+        public Iterator<Edge<OID_T, EDATA_T>> iterator() {
+            return new IntNbrIterator(vertex);
+//            if (configuration.getGrapeVidClass().equals(Long.class)){
+//                return new LongNbrIterator(vertex);
+//            }
+//            else if (configuration.getGrapeVidClass().equals(Integer.class)){
+//                return new IntNbrIterator(vertex);
+//            }
+//            logger.error("Only accept long and int as vid class");
+//            return null;
         }
     }
 
