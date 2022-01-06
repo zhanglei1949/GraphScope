@@ -9,6 +9,7 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import java.util.List;
 import org.apache.giraph.comm.requests.NettyMessage;
 import org.apache.giraph.comm.requests.NettyMessageType;
+import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.utils.ReflectionUtils;
 import org.apache.giraph.utils.RequestUtils;
 import org.apache.hadoop.io.Writable;
@@ -17,6 +18,12 @@ import org.slf4j.LoggerFactory;
 
 public class WritableRequestDecoder  extends ByteToMessageDecoder {
     private static Logger logger = LoggerFactory.getLogger(WritableRequestDecoder.class);
+
+    private ImmutableClassesGiraphConfiguration conf;
+
+    public WritableRequestDecoder(ImmutableClassesGiraphConfiguration conf){
+        this.conf = conf;
+    }
 
     /**
      * Decode the from one {@link ByteBuf} to an other. This method will be called till either the
@@ -61,6 +68,8 @@ public class WritableRequestDecoder  extends ByteToMessageDecoder {
                     + in.readableBytes());
 
         WritableRequest request = ReflectionUtils.newInstance(messageClass);
+        //Conf contains class info to create message instance.
+        request.setConf(conf);
         request = RequestUtils.decodeWritableRequest(in, request);
         logger.debug("decode res: " + request);
         out.add(request);
