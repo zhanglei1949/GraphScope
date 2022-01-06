@@ -47,8 +47,8 @@ public class WritableRequestEncoder extends MessageToByteEncoder {
                 out.capacity(requestSize + SIZE_OF_BYTE + SIZE_OF_INT);
             }
             ByteBufOutputStream output = new ByteBufOutputStream(out);
-            //write number of bytes for actual data.
-            output.writeInt(requestSize);
+            //Currently we don't know how many bytes written, revisit this later
+            output.writeInt(0);
             output.writeByte(request.getRequestType().ordinal());
             try {
                 request.write(output);
@@ -60,6 +60,8 @@ public class WritableRequestEncoder extends MessageToByteEncoder {
             }
             output.flush();
             output.close();
+
+            out.setInt(0, out.writerIndex() - SIZE_OF_INT);
             logger.info("Encode msg, type: " + request.getRequestType().getClazz().getName() + ", writen bytes: " + out.readableBytes());
         }
         else {

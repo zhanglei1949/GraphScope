@@ -44,16 +44,15 @@ public class WritableRequestDecoder  extends ByteToMessageDecoder {
 //            ctx.close();
             return ;
         }
-        // Decode the request type
-        int enumValue = in.readByte();
-        RequestType type = RequestType.values()[enumValue];
-        Class<? extends WritableRequest> messageClass = type.getClazz();
-
         if (in.readableBytes() < numBytes){
             in.resetReaderIndex();
             logger.error("not enough num bytes: " + in.readableBytes() + " expected: " + numBytes);
             return ;
         }
+        // Decode the request type
+        int enumValue = in.readByte();
+        RequestType type = RequestType.values()[enumValue];
+        Class<? extends WritableRequest> messageClass = type.getClazz();
 
         logger.debug(
                 "decode: Client "
