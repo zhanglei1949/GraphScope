@@ -3,7 +3,7 @@ package com.alibaba.graphscope.utils;
 import java.util.ArrayList;
 import org.apache.hadoop.io.Writable;
 
-public class Gid2DataResizable {
+public class Gid2DataResizable implements Gid2Data{
     private int size;
     private ArrayList<Long> gids;
     private ArrayList<Writable> data;
