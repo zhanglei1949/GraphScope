@@ -242,10 +242,6 @@ public class GiraphNettyMessageManager<
             "After send messages from vertex: "
                 + grapeVertex.GetValue()
                 + " through all edges");
-        for (int i = 0; i < fragment.fnum(); ++i) {
-//            logger.debug("To frag[" + i + "]: " + messagesOut[i].bytesWriten());
-//            logger.debug("messages to frag [ " + i + "] " + );
-        }
     }
 
     /**

@@ -40,10 +40,10 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
         }
         int seq = buf.readInt();
         int cnt = messageReceivedCount.addAndGet(1);
-        logger.info("Client handler [" + workerId + "] receive: " + seq
+        logger.debug("Client handler [" + workerId + "] receive: " + seq
             + " from server, current msg count: " + cnt);
         if (cnt >= pendingRequestSize) {
-            logger.info("Client handler [" + workerId
+            logger.debug("Client handler [" + workerId
                 + "] notify waiting on response cnt, since current num response: " + cnt
                 + " pending req size: " + pendingRequestSize);
             synchronized (messageReceivedCount) {
@@ -76,13 +76,13 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
 
     public void waitForResponse(int pendingRequestSize) {
         this.pendingRequestSize = pendingRequestSize;
-        logger.info("Client handler [" + workerId +"update pending request size to " + this.pendingRequestSize);
+        logger.debug("Client handler [" + workerId +"update pending request size to " + this.pendingRequestSize);
         if (messageReceivedCount.get() == pendingRequestSize) {
             if (pendingRequestSize == 0){
-                logger.info("no waiting since no message sent");
+                logger.debug("no waiting since no message sent");
                 return ;
             }
-            logger.info("Client handler [" + workerId +"All responses have arrived before starting waiting.");
+            logger.debug("Client handler [" + workerId +"All responses have arrived before starting waiting.");
             return;
         } else if (messageReceivedCount.get() > pendingRequestSize) {
             throw new IllegalStateException("Not possible");

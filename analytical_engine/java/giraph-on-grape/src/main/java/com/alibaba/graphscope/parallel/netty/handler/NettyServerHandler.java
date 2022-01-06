@@ -40,13 +40,13 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
      */
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WritableRequest msg) throws Exception {
-        logger.info("Server handler [" + fragment.fid() + "] thread: " + Thread.currentThread().getId() + " received msg: " + msg);
+        logger.debug("Server handler [" + fragment.fid() + "] thread: " + Thread.currentThread().getId() + " received msg: " + msg);
         msg.doRequest(nextIncomingMessages);
 
         ByteBuf buf = ctx.alloc().directBuffer(4);
         int curMsgSeq = msgSeq.getAndAdd(1);
         buf.writeInt(curMsgSeq);
-        logger.info("Server handler send response " + curMsgSeq);
+        logger.debug("Server handler send response " + curMsgSeq);
         ctx.writeAndFlush(buf);
     }
 
