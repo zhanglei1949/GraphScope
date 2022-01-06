@@ -17,6 +17,7 @@ import com.alibaba.graphscope.parallel.netty.NettyClient;
 import com.alibaba.graphscope.parallel.netty.NettyServer;
 import com.alibaba.graphscope.parallel.netty.request.impl.GidLongWritableRequest;
 import com.alibaba.graphscope.parallel.utils.NetworkMap;
+import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import java.io.IOException;
 import java.util.Iterator;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
@@ -100,6 +101,7 @@ public class GiraphNettyMessageManager<
         initMessageStore();
         //Netty server depends on message store.
         initNetty();
+        grapeVertex = FFITypeFactoryhelper.newVertex(conf.getGrapeVidClass());
     }
 
     public void initNetty(){

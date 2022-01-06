@@ -44,7 +44,7 @@ public class MessageApp extends
                         continue ;
                     }
                     LongWritable dstId = new LongWritable(dst);
-                    sendMessage(dstId, new LongWritable(2022));
+                    sendMessage(dstId, new LongWritable(dst));
                     logger.info("Vertex [" + vertex.getId() + "] send to vertex " + dstId);
                 }
             }
