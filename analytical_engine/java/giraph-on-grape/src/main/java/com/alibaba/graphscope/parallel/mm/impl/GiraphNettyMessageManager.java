@@ -217,26 +217,26 @@ public class GiraphNettyMessageManager<
         AdjList adjList = fragment.getOutgoingAdjList(grapeVertex);
         Iterable<Nbr> iterable = adjList.iterator();
         com.alibaba.graphscope.ds.Vertex<Long> curVertex;
-        if (message instanceof LongWritable) {
-            LongWritable longWritable = (LongWritable) message;
-            for (Iterator<Nbr> it = iterable.iterator(); it.hasNext(); ) {
-                Nbr nbr = it.next();
-                curVertex = nbr.neighbor();
-                int dstfragId = fragment.getFragId(curVertex);
-                long gid = (long) fragment.vertex2Gid(curVertex);
-                outMessageCache.sendMessage(dstfragId, gid, message);
-            }
-            // send msg through incoming adjlist
-            adjList = fragment.getIncomingAdjList(grapeVertex);
-            iterable = adjList.iterator();
-            for (Iterator<Nbr> it = iterable.iterator(); it.hasNext(); ) {
-                Nbr nbr = it.next();
-                curVertex = nbr.neighbor();
-                int dstfragId = fragment.getFragId(curVertex);
-                long gid = (long) fragment.vertex2Gid(curVertex);
-                outMessageCache.sendMessage(dstfragId, gid, message);
-            }
+//        if (message instanceof LongWritable) {
+//            LongWritable longWritable = (LongWritable) message;
+        for (Iterator<Nbr> it = iterable.iterator(); it.hasNext(); ) {
+            Nbr nbr = it.next();
+            curVertex = nbr.neighbor();
+            int dstfragId = fragment.getFragId(curVertex);
+            long gid = (long) fragment.vertex2Gid(curVertex);
+            outMessageCache.sendMessage(dstfragId, gid, message);
         }
+        // send msg through incoming adjlist
+        adjList = fragment.getIncomingAdjList(grapeVertex);
+        iterable = adjList.iterator();
+        for (Iterator<Nbr> it = iterable.iterator(); it.hasNext(); ) {
+            Nbr nbr = it.next();
+            curVertex = nbr.neighbor();
+            int dstfragId = fragment.getFragId(curVertex);
+            long gid = (long) fragment.vertex2Gid(curVertex);
+            outMessageCache.sendMessage(dstfragId, gid, message);
+        }
+//        }
 
         logger.debug(
             "After send messages from vertex: "

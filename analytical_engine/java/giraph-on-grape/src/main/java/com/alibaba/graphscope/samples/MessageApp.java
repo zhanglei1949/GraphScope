@@ -26,9 +26,6 @@ public class MessageApp extends
     @Override
     public void compute(Vertex<LongWritable, DoubleWritable, DoubleWritable> vertex,
         Iterable<LongWritable> messages) throws IOException {
-        if (vertex.getId().get() >= 4){
-            return ;
-        }
         if (getSuperstep() == 0) {
             logger.info("There should be no messages in step0, " + vertex.getId());
             boolean flag = false;
@@ -36,18 +33,13 @@ public class MessageApp extends
                 flag = true;
             }
             if (flag){
-                logger.error("Expect no msg received in step 1, but actually received");
+                throw new IllegalStateException("Expect no msg received in step 1, but actually received");
             }
-            if (vertex.getId().get() < 4){
-                for (long dst = 1; dst < 4; ++dst){
-                    if (dst == vertex.getId().get()){
-                        continue ;
-                    }
-                    LongWritable dstId = new LongWritable(dst);
-                    sendMessage(dstId, new LongWritable(dst));
-                    logger.info("Vertex [" + vertex.getId() + "] send to vertex " + dstId);
-                }
+            int repeatSendTimes = 10;
+            for (int i = 0; i < repeatSendTimes; ++i){
+                sendMessageToAllEdges(vertex, new LongWritable(vertex.getId().get()));
             }
+            logger.info("Vertex [" + vertex.getId() + "] send to all edges " +  vertex.getId());
         }
         else if (getSuperstep() == 1){
             logger.info("Checking received msg");
