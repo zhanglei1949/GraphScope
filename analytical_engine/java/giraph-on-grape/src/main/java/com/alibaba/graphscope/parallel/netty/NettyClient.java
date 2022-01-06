@@ -294,7 +294,10 @@ public class NettyClient {
      */
     private void flushMessages(){
         debug("flushing messages");
-        for (int i = 0; i < networkMap.getWorkerNum() && i != workerId; ++i){
+        for (int i = 0; i < networkMap.getWorkerNum(); ++i){
+            if (i == workerId){
+                continue ;
+            }
             channels[i].flush();
         }
         debug("finish flushing messages");
