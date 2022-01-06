@@ -59,6 +59,8 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
 
     private long innerVerticesNum;
 
+    private long fragVerticesNum;
+
     private WorkerContext workerContext;
     /**
      * Only executed by the master, in our case, the coordinator worker in mpi world
@@ -136,6 +138,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
 
         logger.info("Created user computation class: " + userComputation.getClass().getName());
         innerVerticesNum = frag.getInnerVerticesNum();
+        fragVerticesNum = (long) frag.getVerticesNum();
 
         /**
          * Important, we don't provided any constructors for workerContext, so make sure all fields
@@ -151,10 +154,11 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
         halted = new BitSet((int) frag.getInnerVerticesNum());
 
         // Init vertex data/oid manager
+        //vertex data and vertex id manager should contains out vertices.
         vertexDataManager =
-            GiraphComputationFactory.createDefaultVertexDataManager(conf, frag, innerVerticesNum);
+            GiraphComputationFactory.createDefaultVertexDataManager(conf, frag, fragVerticesNum);
         vertexIdManager =
-            GiraphComputationFactory.createDefaultVertexIdManager(conf, frag, innerVerticesNum);
+            GiraphComputationFactory.createDefaultVertexIdManager(conf, frag, fragVerticesNum);
         edgeManager =
             GiraphComputationFactory.createImmutableEdgeManager(
                 conf,
