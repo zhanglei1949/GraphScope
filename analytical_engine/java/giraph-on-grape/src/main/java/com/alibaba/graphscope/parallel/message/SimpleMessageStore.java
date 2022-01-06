@@ -4,6 +4,7 @@ import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -118,11 +119,17 @@ public class SimpleMessageStore<OID_T extends WritableComparable, IN_MSG_T exten
      */
     @Override
     public boolean messageAvailable(long lid) {
-        return false;
+        return messages.containsKey(lid);
     }
 
     @Override
     public Iterable<IN_MSG_T> getMessages(long lid) {
-        return null;
+        if (messages.containsKey(lid)){
+            return (Iterable<IN_MSG_T>) messages.get(lid);
+        }
+        else {
+            //actually a static empty iterator.
+            return () -> Collections.emptyIterator();
+        }
     }
 }
