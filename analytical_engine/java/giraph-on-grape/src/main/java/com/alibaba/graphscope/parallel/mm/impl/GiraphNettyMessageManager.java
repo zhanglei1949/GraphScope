@@ -278,6 +278,7 @@ public class GiraphNettyMessageManager<
         currentIncomingMessageStore.swap(nextIncomingMessageStore);
         nextIncomingMessageStore.clearAll();
         outMessageCache.clear();
+        client.preSuperStep();
     }
 
     @Override
@@ -288,6 +289,7 @@ public class GiraphNettyMessageManager<
 
         /** Add to self cache */
         outMessageCache.removeMessageToSelf(nextIncomingMessageStore);
+//        client.postSuperstep();
 //        currentIncomingMessageStore.clearAll();
         //Remove messages to self in cache, and send them to nextIncomingMessage store.
 //        nextIncomingMessageStore.remo(outMessageCache.getMessageToSelf());

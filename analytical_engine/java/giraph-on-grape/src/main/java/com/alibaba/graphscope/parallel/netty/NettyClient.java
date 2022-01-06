@@ -307,6 +307,15 @@ public class NettyClient {
         debug("finish flushing messages");
     }
 
+    public void preSuperStep(){
+        for (int i = 0; i < networkMap.getWorkerNum(); ++i) {
+            pendingRequests.get(i).clear();
+            if (i != workerId){
+                handlers[i].preSuperStep();
+            }
+        }
+    }
+
     public void waitAllRequests() {
         flushMessages();
         for (int i = 0; i < networkMap.getWorkerNum(); ++i) {
@@ -339,9 +348,6 @@ public class NettyClient {
             info("response waiting finished");
         }
         info("finish waiting sending all messages");
-        for (int i = 0; i < networkMap.getWorkerNum(); ++i) {
-            pendingRequests.get(i).clear();
-        }
     }
 
     @Override

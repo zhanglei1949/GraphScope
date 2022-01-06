@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import java.util.concurrent.atomic.AtomicInteger;
+import jnr.ffi.annotations.In;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,12 +15,13 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
 
     private static Logger logger = LoggerFactory.getLogger(NettyClientHandler.class);
     private AtomicInteger messageReceivedCount;
-    private int pendingRequestSize = Integer.MAX_VALUE;
+    private int pendingRequestSize;
     private int workerId;
 
     public NettyClientHandler(int workerId) {
         messageReceivedCount = new AtomicInteger(0);
         this.workerId = workerId;
+        pendingRequestSize = Integer.MAX_VALUE;
     }
 
     public AtomicInteger getMessageReceivedCount() {
@@ -67,10 +69,19 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
             ctx.channel().remoteAddress(), cause);
     }
 
+    public void preSuperStep(){
+        this.pendingRequestSize = Integer.MAX_VALUE;
+        messageReceivedCount.set(0);
+    }
+
     public void waitForResponse(int pendingRequestSize) {
         this.pendingRequestSize = pendingRequestSize;
         logger.info("Client handler [" + workerId +"update pending request size to " + this.pendingRequestSize);
         if (messageReceivedCount.get() == pendingRequestSize) {
+            if (pendingRequestSize == 0){
+                logger.info("no waiting since no message sent");
+                return ;
+            }
             logger.info("Client handler [" + workerId +"All responses have arrived before starting waiting.");
             return;
         } else if (messageReceivedCount.get() > pendingRequestSize) {
