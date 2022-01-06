@@ -45,7 +45,7 @@ public class MessageApp extends
             logger.info("Checking received msg");
             boolean flag = false;
             for (LongWritable message : messages){
-                logger.info("Received msg: " + message);
+                logger.info("vertex "+ vertex.getId() + "Received msg: " + message);
             }
             vertex.voteToHalt();
         }
