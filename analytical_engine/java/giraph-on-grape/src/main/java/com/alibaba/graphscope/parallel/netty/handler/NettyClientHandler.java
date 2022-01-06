@@ -3,10 +3,7 @@ package com.alibaba.graphscope.parallel.netty.handler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.channel.SimpleChannelInboundHandler;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.net.ssl.SSLException;
-import org.apache.giraph.comm.requests.WritableRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,33 +11,42 @@ import org.slf4j.LoggerFactory;
  * handling Response.
  */
 public class NettyClientHandler extends ChannelInboundHandlerAdapter {
+
     private static Logger logger = LoggerFactory.getLogger(NettyClientHandler.class);
     private AtomicInteger messageReceivedCount;
+    private int pendingRequestSize = Integer.MAX_VALUE;
+    private int workerId;
 
-    public NettyClientHandler(){
+    public NettyClientHandler(int workerId) {
         messageReceivedCount = new AtomicInteger(0);
+        this.workerId = workerId;
     }
 
-    public AtomicInteger getMessageReceivedCount(){
+    public AtomicInteger getMessageReceivedCount() {
         return messageReceivedCount;
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg){
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (!(msg instanceof ByteBuf)) {
             throw new IllegalStateException("channelRead: Got a " +
                 "non-ByteBuf message " + msg);
         }
         ByteBuf buf = (ByteBuf) msg;
-        if (buf.readableBytes() < 4){
+        if (buf.readableBytes() < 4) {
             throw new IllegalStateException("Expect at least 4 bytes response");
         }
         int seq = buf.readInt();
         int cnt = messageReceivedCount.addAndGet(1);
-        logger.info("Client handler receive: " + seq + " from server, current msg count: " + cnt);
-        logger.info("notify waiting on response cnt");
-        synchronized (messageReceivedCount){
-            messageReceivedCount.notifyAll();
+        logger.info("Client handler [" + workerId + "] receive: " + seq
+            + " from server, current msg count: " + cnt);
+        if (cnt >= pendingRequestSize) {
+            logger.info("Client handler [" + workerId
+                + "] notify waiting on response cnt, since current num response: " + cnt
+                + " pending req size: " + pendingRequestSize);
+            synchronized (messageReceivedCount) {
+                messageReceivedCount.notify();
+            }
         }
     }
 
@@ -57,8 +63,28 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
         throws Exception {
         logger.warn("exceptionCaught: Channel channelId=" +
-                ctx.channel().hashCode() + " failed with remote address " +
-                ctx.channel().remoteAddress(), cause);
+            ctx.channel().hashCode() + " failed with remote address " +
+            ctx.channel().remoteAddress(), cause);
+    }
+
+    public void waitForResponse(int pendingRequestSize) {
+        this.pendingRequestSize = pendingRequestSize;
+        logger.info("Client handler [" + workerId +"update pending request size to " + this.pendingRequestSize);
+        if (messageReceivedCount.get() == pendingRequestSize) {
+            logger.info("Client handler [" + workerId +"All responses have arrived before starting waiting.");
+            return;
+        } else if (messageReceivedCount.get() > pendingRequestSize) {
+            throw new IllegalStateException("Not possible");
+        }
+        synchronized (messageReceivedCount) {
+            try {
+                logger.info("Client handler [" + workerId + "starting waiting for response");
+                messageReceivedCount.wait();
+                logger.info("Client handler [" + workerId + "finish waiting for response");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
 

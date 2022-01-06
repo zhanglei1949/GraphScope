@@ -146,7 +146,7 @@ public class NettyClient {
 //                        p.addLast(new WritableRequestDecoder(conf));
 //                        p.addLast()
                         p.addLast(
-                            new NettyClientHandler());
+                            new NettyClientHandler(workerId));
                     }
 
                     @Override
@@ -335,22 +335,8 @@ public class NettyClient {
                 continue;
             }
             NettyClientHandler handler = handlers[i];
-            AtomicInteger msgReceivedCnt = handler.getMessageReceivedCount();
-            synchronized (msgReceivedCnt) {
-                while (msgReceivedCnt.get() < pendingRequests.get(i).size()) {
-                    info("response Received : " + msgReceivedCnt.get() + ", request sent:"
-                        + pendingRequests.get(i).size());
-                    try {
-                        info("waiting for response to arrive");
-                        msgReceivedCnt.wait();
-                        info("response arrived");
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            info("response received:" + msgReceivedCnt.get() + ", request sent:" + pendingRequests
-                .get(i).size());
+            handler.waitForResponse(pendingRequests.get(i).size());
+            info("response waiting finished");
         }
         info("finish waiting sending all messages");
         for (int i = 0; i < networkMap.getWorkerNum(); ++i) {
