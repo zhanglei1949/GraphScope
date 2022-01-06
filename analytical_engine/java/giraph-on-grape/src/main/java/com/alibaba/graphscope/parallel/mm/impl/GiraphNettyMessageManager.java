@@ -15,10 +15,8 @@ import com.alibaba.graphscope.parallel.message.MessageStoreFactory;
 import com.alibaba.graphscope.parallel.mm.GiraphMessageManager;
 import com.alibaba.graphscope.parallel.netty.NettyClient;
 import com.alibaba.graphscope.parallel.netty.NettyServer;
-import com.alibaba.graphscope.parallel.netty.request.impl.GidLongWritableRequest;
 import com.alibaba.graphscope.parallel.utils.NetworkMap;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
-import java.io.IOException;
 import java.util.Iterator;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.Vertex;
@@ -38,7 +36,7 @@ import org.slf4j.LoggerFactory;
  * </p>
  *
  * <p>
- *     Has similar role with WorkerClientRequestProcessor in Giraph.
+ * Has similar role with WorkerClientRequestProcessor in Giraph.
  * </p>
  *
  * @param <OID_T>     original id
@@ -54,28 +52,30 @@ public class GiraphNettyMessageManager<
     IN_MSG_T extends Writable,
     OUT_MSG_T extends Writable, GS_VID_T> implements
     GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T> {
+
     private static Logger logger = LoggerFactory.getLogger(GiraphNettyMessageManager.class);
 
-    private ImmutableClassesGiraphConfiguration<OID_T,VDATA_T,EDATA_T> conf;
+    private ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf;
     private NetworkMap networkMap;
 
     private SendMessageCache outMessageCache;
     private NettyClient client;
-    private NettyServer<OID_T,GS_VID_T> server;
+    private NettyServer<OID_T, GS_VID_T> server;
     private SimpleFragment fragment;
-    /** Message store factory */
-    private MessageStoreFactory<OID_T, IN_MSG_T, MessageStore<OID_T, IN_MSG_T,GS_VID_T>>
+    /**
+     * Message store factory
+     */
+    private MessageStoreFactory<OID_T, IN_MSG_T, MessageStore<OID_T, IN_MSG_T, GS_VID_T>>
         messageStoreFactory;
     /**
-     * Message store for incoming messages (messages which will be consumed
-     * in the next super step)
+     * Message store for incoming messages (messages which will be consumed in the next super step)
      */
-    private volatile MessageStore<OID_T, IN_MSG_T,GS_VID_T> nextIncomingMessageStore;
+    private volatile MessageStore<OID_T, IN_MSG_T, GS_VID_T> nextIncomingMessageStore;
     /**
-     * Message store for current messages (messages which we received in
-     * previous super step and which will be consumed in current super step)
+     * Message store for current messages (messages which we received in previous super step and
+     * which will be consumed in current super step)
      */
-    private volatile MessageStore<OID_T, IN_MSG_T,GS_VID_T> currentIncomingMessageStore;
+    private volatile MessageStore<OID_T, IN_MSG_T, GS_VID_T> currentIncomingMessageStore;
 
     private com.alibaba.graphscope.ds.Vertex grapeVertex;
 
@@ -85,11 +85,14 @@ public class GiraphNettyMessageManager<
 
     /**
      * The constructor is the preApplication.
-     * @param fragment fragment to use
+     *
+     * @param fragment   fragment to use
      * @param networkMap network map
-     * @param conf configuration
+     * @param conf       configuration
      */
-    public GiraphNettyMessageManager(SimpleFragment fragment, NetworkMap networkMap, DefaultMessageManager mm, ImmutableClassesGiraphConfiguration<OID_T,VDATA_T,EDATA_T> conf){
+    public GiraphNettyMessageManager(SimpleFragment fragment, NetworkMap networkMap,
+        DefaultMessageManager mm,
+        ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf) {
         this.fragment = fragment;
         this.networkMap = networkMap;
         this.conf = conf;
@@ -104,24 +107,31 @@ public class GiraphNettyMessageManager<
         grapeVertex = FFITypeFactoryhelper.newVertex(conf.getGrapeVidClass());
     }
 
-    public void initNetty(){
-        logger.info("Creating server on " + networkMap.getSelfWorkerId() + " max bind time: " + MAX_IPC_PORT_BIND_ATTEMPTS.get(conf));
-        server = new NettyServer(conf, fragment, networkMap, nextIncomingMessageStore, (Thread t, Throwable e) -> logger.error(t.getId() + ": " + e.toString()));
+    public void initNetty() {
+        logger.info("Creating server on " + networkMap.getSelfWorkerId() + " max bind time: "
+            + MAX_IPC_PORT_BIND_ATTEMPTS.get(conf));
+        server = new NettyServer(conf, fragment, networkMap, nextIncomingMessageStore,
+            (Thread t, Throwable e) -> logger.error(t.getId() + ": " + e.toString()));
         server.startServer();
 
-        logger.info("Create client on " + networkMap.getSelfWorkerId() + " max times: " + MAX_CONN_TRY_ATTEMPTS.get(conf));
-        client = new NettyClient(conf, networkMap, (Thread t, Throwable e) -> logger.error(t.getId() + ": " + e.toString()));
+        logger.info("Create client on " + networkMap.getSelfWorkerId() + " max times: "
+            + MAX_CONN_TRY_ATTEMPTS.get(conf));
+        client = new NettyClient(conf, networkMap,
+            (Thread t, Throwable e) -> logger.error(t.getId() + ": " + e.toString()));
         client.connectToAllAddress();
-        logger.info("Worker [" + networkMap.getSelfWorkerId() + "] listen on " + networkMap.getAddress() + ", client: " + client.toString());
+        logger.info(
+            "Worker [" + networkMap.getSelfWorkerId() + "] listen on " + networkMap.getAddress()
+                + ", client: " + client.toString());
     }
 
-    public void initMessageStore(){
+    public void initMessageStore() {
         messageStoreFactory = createMessageStoreFactory();
         nextIncomingMessageStore = messageStoreFactory.newStore(conf.getIncomingMessageClasses());
-        currentIncomingMessageStore = messageStoreFactory.newStore(conf.getIncomingMessageClasses());
+        currentIncomingMessageStore = messageStoreFactory
+            .newStore(conf.getIncomingMessageClasses());
     }
 
-    private MessageStoreFactory<OID_T, IN_MSG_T, MessageStore<OID_T, IN_MSG_T,GS_VID_T>> createMessageStoreFactory(){
+    private MessageStoreFactory<OID_T, IN_MSG_T, MessageStore<OID_T, IN_MSG_T, GS_VID_T>> createMessageStoreFactory() {
         Class<? extends MessageStoreFactory> messageStoreFactoryClass =
             MESSAGE_STORE_FACTORY_CLASS.get(conf);
 
@@ -176,11 +186,15 @@ public class GiraphNettyMessageManager<
             // Get lid from oid
 
             boolean res = fragment.getVertex(longOid, grapeVertex);
-            logger.debug("oid 2 lid: res: " + res + " oid: " + longOid + ", " + grapeVertex.GetValue());
+            logger.debug(
+                "oid 2 lid: res: " + res + " oid: " + longOid + ", " + grapeVertex.GetValue());
 
             int dstfragId = fragment.getFragId(grapeVertex);
-            logger.debug("Message manager sending via cache, dst: " + dstfragId + "msg: " + message);
-            outMessageCache.sendMessage(dstfragId, (Long) fragment.vertex2Gid(grapeVertex), message);
+            logger.debug(
+                "Message manager sending via cache, dst frag: [" + dstfragId + "] dst gid: "
+                    + fragment.vertex2Gid(grapeVertex) + "msg: " + message);
+            outMessageCache
+                .sendMessage(dstfragId, (Long) fragment.vertex2Gid(grapeVertex), message);
         } else {
             throw new IllegalStateException("Expect a long writable");
         }
@@ -202,7 +216,7 @@ public class GiraphNettyMessageManager<
         AdjList adjList = fragment.getOutgoingAdjList(grapeVertex);
         Iterable<Nbr> iterable = adjList.iterator();
         com.alibaba.graphscope.ds.Vertex<Long> curVertex;
-        if (message instanceof LongWritable){
+        if (message instanceof LongWritable) {
             LongWritable longWritable = (LongWritable) message;
             for (Iterator<Nbr> it = iterable.iterator(); it.hasNext(); ) {
                 Nbr nbr = it.next();
@@ -243,8 +257,8 @@ public class GiraphNettyMessageManager<
     }
 
     /**
-     * As this is called after superStep and before presuperStep's swapping, we check nextIncomingMessage
-     * Store.
+     * As this is called after superStep and before presuperStep's swapping, we check
+     * nextIncomingMessage Store.
      *
      * @return true if message received
      */
@@ -271,7 +285,6 @@ public class GiraphNettyMessageManager<
 //        client.waitAllRequests();
         /** Get received message in server, in netty server */
 
-
         /** Add to self cache */
         outMessageCache.removeMessageToSelf(nextIncomingMessageStore);
 //        currentIncomingMessageStore.clearAll();
@@ -282,7 +295,7 @@ public class GiraphNettyMessageManager<
     }
 
     @Override
-    public void postApplication(){
+    public void postApplication() {
         logger.info("Closing Client...");
         client.close();
         logger.info("Closing Server...");
