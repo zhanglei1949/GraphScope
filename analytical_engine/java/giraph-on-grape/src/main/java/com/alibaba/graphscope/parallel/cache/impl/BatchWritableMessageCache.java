@@ -108,7 +108,7 @@ public class BatchWritableMessageCache<I extends WritableComparable,
      */
     private void sendCurrentMessageInCache(){
         for (int dstFragId = 0; dstFragId < cache.length; ++dstFragId){
-            if (dstFragId != fragId){
+            if (dstFragId != fragId && cache[dstFragId].size() > 0){
                 BatchWritableRequest request = new BatchWritableRequest(
                     (Gid2DataFixed) cache[dstFragId]);
                 logger.info("frag [" + fragId + "] msg to [" + dstFragId + "], size: " + cache[dstFragId].size() + " flush and sending");
