@@ -50,8 +50,16 @@ public class SimpleMessageStore<OID_T extends WritableComparable, IN_MSG_T exten
     public void addGidMessages(Iterator<GS_VID_T> gidIterator, Iterator<Writable> writableIterator) {
         int cnt = 0;
         while (gidIterator.hasNext() && writableIterator.hasNext()){
-            fragment.gid2Vertex(gidIterator.next(), vertex);
+            GS_VID_T gid = gidIterator.next();
+            boolean res = fragment.gid2Vertex(gid, vertex);
+            if (!res){
+                throw new IllegalStateException("convert gid: " + gid + " to lid failed: ");
+            }
             Writable msg = writableIterator.next();
+            GS_VID_T lid = vertex.GetValue();
+            if (!messages.containsKey(lid)){
+                messages.put(lid, new ArrayList<>());
+            }
             messages.get(vertex.GetValue()).add(msg);
             cnt += 1;
         }
