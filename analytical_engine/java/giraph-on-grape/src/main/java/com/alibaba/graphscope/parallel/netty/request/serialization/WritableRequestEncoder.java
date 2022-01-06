@@ -40,6 +40,7 @@ public class WritableRequestEncoder extends MessageToByteEncoder {
             //at least
             int requestSize = request.getNumBytes();
             if (requestSize == WritableRequest.UNKNOWN_SIZE){
+                logger.info("Unknown size of request, using default size: " + bufferStartingSize);
                 out.capacity(bufferStartingSize);
             }
             else {

@@ -40,8 +40,8 @@ public class WritableRequestDecoder  extends ByteToMessageDecoder {
         //num of bytes
         int numBytes = in.readInt();
         if (numBytes < 0){
-            logger.error("Expect a positive number of bytes");
-            ctx.close();
+            logger.error("Expect a positive number of bytes" + numBytes);
+//            ctx.close();
             return ;
         }
         // Decode the request type
