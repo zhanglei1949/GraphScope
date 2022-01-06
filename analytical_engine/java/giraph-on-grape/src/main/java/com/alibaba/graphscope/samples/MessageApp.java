@@ -35,17 +35,20 @@ public class MessageApp extends
             if (flag){
                 throw new IllegalStateException("Expect no msg received in step 1, but actually received");
             }
-            int repeatSendTimes = 10;
-            for (int i = 0; i < repeatSendTimes; ++i){
-                sendMessageToAllEdges(vertex, new LongWritable(vertex.getId().get()));
-            }
+            LongWritable msg = new LongWritable(vertex.getId().get());
+            sendMessageToAllEdges(vertex, msg);
+
             logger.info("Vertex [" + vertex.getId() + "] send to all edges " +  vertex.getId());
         }
         else if (getSuperstep() == 1){
             logger.info("Checking received msg");
-            boolean flag = false;
+            int msgCnt = 0;
             for (LongWritable message : messages){
-                logger.info("vertex "+ vertex.getId() + "Received msg: " + message);
+//                logger.info("vertex "+ vertex.getId() + "Received msg: " + message);
+                msgCnt += 1;
+            }
+            if (vertex.getId().get() % 1000 == 0){
+                logger.info("vertex: " + vertex.getId() + "receive msg size: " + msgCnt);
             }
             vertex.voteToHalt();
         }

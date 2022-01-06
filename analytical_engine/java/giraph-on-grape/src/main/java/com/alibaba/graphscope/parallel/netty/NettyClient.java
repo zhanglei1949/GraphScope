@@ -287,7 +287,7 @@ public class NettyClient {
         if (dstFragId == workerId) {
             throw new IllegalStateException("Shouldn't reach here:" + dstFragId + ", " + workerId);
         }
-        ChannelFuture requestFuture = channels[dstFragId].write(request);
+        ChannelFuture requestFuture = channels[dstFragId].writeAndFlush(request);
         pendingRequests.get(dstFragId).offer(requestFuture);
         debug("send msg " + request + " to [" + dstFragId + "], corresponding pending request: "
             + pendingRequests.get(dstFragId).size());
