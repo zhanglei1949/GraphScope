@@ -13,6 +13,8 @@ public abstract class WritableRequest<I extends WritableComparable,
     V extends Writable, E extends Writable> implements Writable,
     ImmutableClassesGiraphConfigurable<I, V, E> {
 
+    public static final int UNKNOWN_SIZE = -1;
+
     /** Configuration */
     protected ImmutableClassesGiraphConfiguration<I, V, E> conf;
     /**

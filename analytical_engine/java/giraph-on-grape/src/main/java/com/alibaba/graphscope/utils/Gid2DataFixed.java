@@ -51,6 +51,17 @@ public class Gid2DataFixed implements Gid2Data{
         return size;
     }
 
+    /**
+     * Number of bytes need for serialization.
+     *
+     * @return number of butes
+     */
+    @Override
+    public int serializedSize() {
+        //minimum size of writable is 0.
+        return size * (4 + 0);
+    }
+
     public void write(DataOutput output) throws IOException {
         output.writeInt(size);
         for (int i = 0 ; i < size; ++i){

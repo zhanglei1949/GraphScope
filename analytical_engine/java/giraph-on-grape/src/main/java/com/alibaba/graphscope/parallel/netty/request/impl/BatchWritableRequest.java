@@ -60,8 +60,8 @@ public class BatchWritableRequest extends WritableRequest {
 
     @Override
     public int getNumBytes() {
-        //at least (4 + 1) * size
-        return 5 * data.size();
+//        return data.serializedSize();
+        return UNKNOWN_SIZE;
     }
 
     /**

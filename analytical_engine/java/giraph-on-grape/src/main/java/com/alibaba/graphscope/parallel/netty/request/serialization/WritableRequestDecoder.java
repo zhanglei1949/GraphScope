@@ -33,6 +33,7 @@ public class WritableRequestDecoder  extends ByteToMessageDecoder {
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
         throws Exception {
         if (in.readableBytes() < 4 + 1) {
+            logger.warn("return since only "+ in.readableBytes() + " available, need at least 5");
             return;
         }
         in.markReaderIndex();

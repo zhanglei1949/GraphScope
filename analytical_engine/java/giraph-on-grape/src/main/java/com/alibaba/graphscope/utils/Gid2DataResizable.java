@@ -41,4 +41,14 @@ public class Gid2DataResizable implements Gid2Data{
     public int size(){
         return size;
     }
+
+    /**
+     * Number of bytes need for serialization.
+     *
+     * @return number of butes
+     */
+    @Override
+    public int serializedSize() {
+        throw  new IllegalStateException("Not implemented intentionally");
+    }
 }

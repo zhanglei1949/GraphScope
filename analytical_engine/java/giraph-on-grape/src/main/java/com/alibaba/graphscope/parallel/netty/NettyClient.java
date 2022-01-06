@@ -141,7 +141,7 @@ public class NettyClient {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline p = ch.pipeline();
-                        p.addLast(new WritableRequestEncoder());
+                        p.addLast(new WritableRequestEncoder(conf));
                         p.addLast(new WritableRequestDecoder());
                         p.addLast(
                             new NettyClientHandler());
