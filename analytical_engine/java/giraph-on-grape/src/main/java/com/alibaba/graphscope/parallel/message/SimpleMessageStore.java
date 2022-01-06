@@ -107,7 +107,7 @@ public class SimpleMessageStore<OID_T extends WritableComparable, IN_MSG_T exten
      */
     @Override
     public boolean anyMessageReceived() {
-        return messages.isEmpty();
+        return !messages.isEmpty();
     }
 
     /**

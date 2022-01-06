@@ -96,11 +96,12 @@ public class GiraphNettyMessageManager<
         this.grapeMessager = mm;
         this.fragId = fragment.fid();
         this.fragNum = fragment.fnum();
-        outMessageCache = new BatchWritableMessageCache(fragNum, fragId, client, conf);
 
         initMessageStore();
         //Netty server depends on message store.
         initNetty();
+
+        outMessageCache = new BatchWritableMessageCache(fragNum, fragId, client, conf);
         grapeVertex = FFITypeFactoryhelper.newVertex(conf.getGrapeVidClass());
     }
 
