@@ -6,7 +6,6 @@ import static org.apache.giraph.conf.GiraphConstants.MAX_CONN_TRY_ATTEMPTS;
 
 import com.alibaba.graphscope.parallel.netty.handler.NettyClientHandler;
 import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
-import com.alibaba.graphscope.parallel.netty.request.serialization.WritableRequestDecoder;
 import com.alibaba.graphscope.parallel.netty.request.serialization.WritableRequestEncoder;
 import com.alibaba.graphscope.parallel.utils.NetworkMap;
 import com.google.common.collect.MapMaker;
@@ -25,10 +24,10 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.giraph.conf.GiraphConstants;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.utils.ThreadUtils;
@@ -76,6 +75,7 @@ public class NettyClient {
      * All connected channels. length = workerNum, [index] = null
      */
     private Channel[] channels;
+    private NettyClientHandler[] handlers;
     private Map<Integer, LinkedList<ChannelFuture>> pendingRequests;
     private NetworkMap networkMap;
 
@@ -105,8 +105,9 @@ public class NettyClient {
          */
         connections = new Connection[networkMap.getWorkerNum()];
         channels = new Channel[networkMap.getWorkerNum()];
+        handlers = new NettyClientHandler[networkMap.getWorkerNum()];
         pendingRequests = new HashMap<>();
-        for (int i = 0; i < networkMap.getWorkerNum(); ++i){
+        for (int i = 0; i < networkMap.getWorkerNum(); ++i) {
             pendingRequests.put(i, new LinkedList<ChannelFuture>());
         }
         /**
@@ -142,7 +143,8 @@ public class NettyClient {
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ChannelPipeline p = ch.pipeline();
                         p.addLast(new WritableRequestEncoder(conf));
-                        p.addLast(new WritableRequestDecoder(conf));
+//                        p.addLast(new WritableRequestDecoder(conf));
+//                        p.addLast()
                         p.addLast(
                             new NettyClientHandler());
                     }
@@ -203,12 +205,12 @@ public class NettyClient {
                     boolean res = false;
                     try {
                         res = future.await(1, TimeUnit.SECONDS);
-                    }
-                    catch (Exception e){
+                    } catch (Exception e) {
                         throw new IllegalStateException("Future waiting exception");
                     }
                     if (res && future.isSuccess() && future.channel().isOpen()) {
-                        logger.info("connection "  + connection + " success for " + failedCnt + " times");
+                        logger.info(
+                            "connection " + connection + " success for " + failedCnt + " times");
                         channel = future.channel();
                         break;
                     } else {
@@ -235,6 +237,7 @@ public class NettyClient {
                 } else {
                     successCnt += 1;
                     channels[index] = channel;
+                    handlers[index] = (NettyClientHandler) channel.pipeline().last();
                 }
             } else {
                 info("Connection to self is not needed [" + index + "]");
@@ -280,43 +283,42 @@ public class NettyClient {
         return address;
     }
 
-    public void sendMessage(int dstFragId, WritableRequest request){
-        if (dstFragId == workerId){
+    public void sendMessage(int dstFragId, WritableRequest request) {
+        if (dstFragId == workerId) {
             throw new IllegalStateException("Shouldn't reach here:" + dstFragId + ", " + workerId);
         }
-        ChannelFuture requestFuture  = channels[dstFragId].write(request);
+        ChannelFuture requestFuture = channels[dstFragId].write(request);
         pendingRequests.get(dstFragId).offer(requestFuture);
-        debug("send msg " + request + " to [" + dstFragId + "], corresponding pending request: " + pendingRequests.get(dstFragId).size());
+        debug("send msg " + request + " to [" + dstFragId + "], corresponding pending request: "
+            + pendingRequests.get(dstFragId).size());
     }
 
     /**
      * Hide flush from message manager. From message manager view, all request send immediately.
      */
-    private void flushMessages(){
+    private void flushMessages() {
         debug("flushing messages");
-        for (int i = 0; i < networkMap.getWorkerNum(); ++i){
-            if (i == workerId){
-                continue ;
+        for (int i = 0; i < networkMap.getWorkerNum(); ++i) {
+            if (i == workerId) {
+                continue;
             }
             channels[i].flush();
         }
         debug("finish flushing messages");
     }
 
-    public void waitAllRequests(){
+    public void waitAllRequests() {
         flushMessages();
-        for (int i = 0; i < networkMap.getWorkerNum(); ++i){
+        for (int i = 0; i < networkMap.getWorkerNum(); ++i) {
             LinkedList<ChannelFuture> futures = pendingRequests.get(i);
-            for (ChannelFuture future : futures){
-                if (future.isDone()){
-                    if (future.isSuccess()){
+            for (ChannelFuture future : futures) {
+                if (future.isDone()) {
+                    if (future.isSuccess()) {
                         debug("message to [" + i + "] success");
-                    }
-                    else {
+                    } else {
                         error("message to [" + i + "] failed: " + future.cause());
                     }
-                }
-                else {
+                } else {
                     try {
                         warn("message to [" + i + "] not done, waiting...");
                         future.await();
@@ -327,8 +329,31 @@ public class NettyClient {
                 }
             }
         }
-        info("finish waiting all messages");
-        for (int i = 0; i < networkMap.getWorkerNum(); ++i){
+        info("Message sending success, waiting for response");
+        for (int i = 0; i < networkMap.getWorkerNum(); ++i) {
+            if (i == workerId) {
+                continue;
+            }
+            NettyClientHandler handler = handlers[i];
+            AtomicInteger msgReceivedCnt = handler.getMessageReceivedCount();
+            synchronized (msgReceivedCnt) {
+                while (msgReceivedCnt.get() < pendingRequests.get(i).size()) {
+                    info("response Received : " + msgReceivedCnt.get() + ", request sent:"
+                        + pendingRequests.get(i).size());
+                    try {
+                        info("waiting for response to arrive");
+                        msgReceivedCnt.wait();
+                        info("response arrived");
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            info("response received:" + msgReceivedCnt.get() + ", request sent:" + pendingRequests
+                .get(i).size());
+        }
+        info("finish waiting sending all messages");
+        for (int i = 0; i < networkMap.getWorkerNum(); ++i) {
             pendingRequests.get(i).clear();
         }
     }
@@ -379,6 +404,7 @@ public class NettyClient {
                 .currentThread()
                 .getId() + "]: " + msg);
     }
+
     private void error(String msg) {
         logger.error(
             "NettyClient: [" + networkMap.getSelfWorkerId() + "], Thread: [" + Thread

@@ -88,10 +88,10 @@ public class SimpleMessageStore<OID_T extends WritableComparable, IN_MSG_T exten
             }
             Map<GS_VID_T, List<Writable>> tmp;
             tmp = this.messages;
-            logger.info("Before swap. this: " + this.messages + " other: " + simpleMessageStore);
+            logger.info("Before swap. this: " + this.messages + " other: " + simpleMessageStore.messages);
             this.messages = simpleMessageStore.messages;
             simpleMessageStore.messages = tmp;
-            logger.info("after swap. this: " + this.messages + " other: " + simpleMessageStore);
+            logger.info("after swap. this: " + this.messages + " other: " + simpleMessageStore.messages);
         }
         else {
             logger.error("Can not swap with a non-simpleMessageStore obj");

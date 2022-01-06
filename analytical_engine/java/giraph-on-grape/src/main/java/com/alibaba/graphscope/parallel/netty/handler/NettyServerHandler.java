@@ -4,8 +4,10 @@ import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.message.MessageStore;
 import com.alibaba.graphscope.parallel.mm.impl.GiraphDefaultMessageManager;
 import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
@@ -16,11 +18,13 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
     private MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages;
     private SimpleFragment<?,GS_VID_T,?,?> fragment;
     private static Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
+    private AtomicInteger msgSeq;
 
 
     public NettyServerHandler(SimpleFragment<?,GS_VID_T,?,?> fragment, MessageStore<OID_T,Writable,GS_VID_T> nextIncomingMessages){
         this.fragment = fragment;
         this.nextIncomingMessages = nextIncomingMessages;
+        this.msgSeq = new AtomicInteger(0);
     }
 
     /**
@@ -38,6 +42,12 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
     protected void channelRead0(ChannelHandlerContext ctx, WritableRequest msg) throws Exception {
         logger.info("Server handler [" + fragment.fid() + "] thread: " + Thread.currentThread().getId() + " received msg: " + msg);
         msg.doRequest(nextIncomingMessages);
+
+        ByteBuf buf = ctx.alloc().directBuffer(4);
+        int curMsgSeq = msgSeq.getAndAdd(1);
+        buf.writeInt(curMsgSeq);
+        logger.info("Server handler send response " + curMsgSeq);
+        ctx.writeAndFlush(buf);
     }
 
     @Override
