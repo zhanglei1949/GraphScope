@@ -17,6 +17,8 @@ import org.apache.giraph.worker.WorkerContext;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
+import org.apache.hadoop.io.LongWritable;
 
 /**
  *
@@ -105,6 +107,9 @@ public class GiraphComputationAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> extends
                 logger.info("Vertex: " + grapeVertex.GetValue() + ", oid: " + vertexIdManager
                     .getId(lid) + ", vdata: " + vertexDataManager
                     .getVertexData(lid));
+                Vertex<VID_T> oid_tVertex = (Vertex<VID_T>) FFITypeFactoryhelper.newVertex(Long.class);
+                Long longOid = ((LongWritable)vertexIdManager.getId(lid)).get();
+                graph.getVertex((OID_T) longOid, oid_tVertex);
             } else if (ctx.getUserComputation().getConf().getGrapeVidClass()
                 .equals(Integer.class)) {
                 Integer lid = (Integer) grapeVertex.GetValue();

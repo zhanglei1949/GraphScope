@@ -8,9 +8,12 @@ import com.alibaba.graphscope.ds.adaptor.AdjList;
 import com.alibaba.graphscope.ds.adaptor.GrapeAdjListAdaptor;
 import com.alibaba.graphscope.fragment.ImmutableEdgecutFragment;
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ImmutableEdgecutFragmentAdaptor<OID_T, VID_T, VDATA_T, EDATA_T>
         implements SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> {
+    private static Logger logger = LoggerFactory.getLogger(ImmutableEdgecutFragmentAdaptor.class);
     public static String fragmentType = "ImmutableEdgecutFragment";
     private ImmutableEdgecutFragment<OID_T, VID_T, VDATA_T, EDATA_T> fragment;
 
@@ -60,7 +63,24 @@ public class ImmutableEdgecutFragmentAdaptor<OID_T, VID_T, VDATA_T, EDATA_T>
 
     @Override
     public boolean getVertex(OID_T oid, @CXXReference Vertex<VID_T> vertex) {
-        return fragment.getVertex(oid, vertex);
+        logger.info(
+                "Before get vertex frag ["
+                        + fragment.fid()
+                        + "] oid: "
+                        + oid
+                        + ", lid:"
+                        + vertex.GetValue());
+        boolean res = fragment.getVertex(oid, vertex);
+        logger.info(
+                "frag ["
+                        + fragment.fid()
+                        + "] oid: "
+                        + oid
+                        + ", lid:"
+                        + vertex.GetValue()
+                        + ", bool: "
+                        + res);
+        return res;
     }
 
     @Override

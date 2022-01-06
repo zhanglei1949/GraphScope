@@ -39,7 +39,7 @@ public class MessageApp extends
                 logger.error("Expect no msg received in step 1, but actually received");
             }
             if (vertex.getId().get() < 4){
-                for (long dst = 0; dst < 4; ++dst){
+                for (long dst = 1; dst < 4; ++dst){
                     if (dst == vertex.getId().get()){
                         continue ;
                     }
