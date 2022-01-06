@@ -94,9 +94,9 @@ public class GiraphNettyMessageManager<
         this.networkMap = networkMap;
         this.conf = conf;
         this.grapeMessager = mm;
-        outMessageCache = new BatchWritableMessageCache(fragNum, fragId, client, conf);
         this.fragId = fragment.fid();
         this.fragNum = fragment.fnum();
+        outMessageCache = new BatchWritableMessageCache(fragNum, fragId, client, conf);
 
         initMessageStore();
         //Netty server depends on message store.
