@@ -174,7 +174,9 @@ public class GiraphNettyMessageManager<
         if (dstOid instanceof LongWritable) {
             long longOid = ((LongWritable) dstOid).get();
             // Get lid from oid
-            fragment.getInnerVertex(longOid, grapeVertex);
+
+            assert fragment.getInnerVertex(longOid, grapeVertex);
+            logger.debug("oid 2 lid: " + longOid + ", " + grapeVertex.GetValue());
 
             int dstfragId = fragment.getFragId(grapeVertex);
             logger.debug("Message manager sending via cache, dst: " + dstfragId + "msg: " + message);
