@@ -9,11 +9,19 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import org.apache.giraph.comm.requests.NettyMessageEncoder;
+import org.apache.giraph.conf.GiraphConstants;
+import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WritableRequestEncoder extends MessageToByteEncoder {
     private static Logger logger = LoggerFactory.getLogger(WritableRequestEncoder.class);
+    /** Buffer starting size */
+    private final int bufferStartingSize;
+    public WritableRequestEncoder(ImmutableClassesGiraphConfiguration conf){
+        bufferStartingSize =
+            GiraphConstants.NETTY_REQUEST_ENCODER_BUFFER_SIZE.get(conf);
+    }
 
     /**
      * Encode a message into a {@link ByteBuf}. This method will be called for each written message
@@ -29,11 +37,17 @@ public class WritableRequestEncoder extends MessageToByteEncoder {
     protected void encode(ChannelHandlerContext ctx, Object msg, ByteBuf out) throws Exception {
         if (msg instanceof WritableRequest){
             WritableRequest request = (WritableRequest) msg;
-            int serializeBytes = request.getNumBytes() + SIZE_OF_BYTE + SIZE_OF_INT;
-            out.capacity(serializeBytes);
+            //at least
+            int requestSize = request.getNumBytes();
+            if (requestSize == WritableRequest.UNKNOWN_SIZE){
+                out.capacity(bufferStartingSize);
+            }
+            else {
+                out.capacity(requestSize + SIZE_OF_BYTE + SIZE_OF_INT);
+            }
             ByteBufOutputStream output = new ByteBufOutputStream(out);
             //write number of bytes for actual data.
-            output.writeInt(request.getNumBytes());
+            output.writeInt(requestSize);
             output.writeByte(request.getRequestType().ordinal());
             try {
                 request.write(output);
@@ -45,7 +59,7 @@ public class WritableRequestEncoder extends MessageToByteEncoder {
             }
             output.flush();
             output.close();
-            logger.info("Encode msg, type: " + request.getRequestType().getClazz().getName() + ", num bytes: " + request.getNumBytes() + ", ");
+            logger.info("Encode msg, type: " + request.getRequestType().getClazz().getName() + ", writen bytes: " + out.readableBytes());
         }
         else {
             logger.error("Encoder: got instance " + msg + ", expect a WritableRequest");

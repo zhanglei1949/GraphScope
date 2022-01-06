@@ -11,6 +11,12 @@ public interface Gid2Data {
 
     int size();
 
+    /**
+     * Number of bytes need for serialization.
+     * @return number of butes
+     */
+    int serializedSize();
+
     static Gid2Data newResizable(int capacity){
         return (Gid2Data) new Gid2DataResizable(capacity);
     }
