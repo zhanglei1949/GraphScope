@@ -210,7 +210,7 @@ public interface GiraphConstants {
      * Use direct memory buffers in netty
      */
     BooleanConfOption NETTY_USE_DIRECT_MEMORY = new BooleanConfOption(
-        "giraph.useNettyDirectMemory", false, "Should netty use direct " +
+        "giraph.useNettyDirectMemory", true, "Should netty use direct " +
         "memory buffers");
 
     /**
