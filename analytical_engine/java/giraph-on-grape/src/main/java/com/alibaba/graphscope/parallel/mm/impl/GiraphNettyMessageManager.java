@@ -187,13 +187,13 @@ public class GiraphNettyMessageManager<
             // Get lid from oid
 
             boolean res = fragment.getVertex(longOid, grapeVertex);
-            logger.debug(
-                "oid 2 lid: res: " + res + " oid: " + longOid + ", " + grapeVertex.GetValue());
+//            logger.debug(
+//                "oid 2 lid: res: " + res + " oid: " + longOid + ", " + grapeVertex.GetValue());
 
             int dstfragId = fragment.getFragId(grapeVertex);
-            logger.debug(
-                "Message manager sending via cache, dst frag: [" + dstfragId + "] dst gid: "
-                    + fragment.vertex2Gid(grapeVertex) + "msg: " + message);
+//            logger.debug(
+//                "Message manager sending via cache, dst frag: [" + dstfragId + "] dst gid: "
+//                    + fragment.vertex2Gid(grapeVertex) + "msg: " + message);
             outMessageCache
                 .sendMessage(dstfragId, (Long) fragment.vertex2Gid(grapeVertex), message);
         } else {
@@ -236,12 +236,6 @@ public class GiraphNettyMessageManager<
             long gid = (long) fragment.vertex2Gid(curVertex);
             outMessageCache.sendMessage(dstfragId, gid, message);
         }
-//        }
-
-        logger.debug(
-            "After send messages from vertex: "
-                + grapeVertex.GetValue()
-                + " through all edges");
     }
 
     /**

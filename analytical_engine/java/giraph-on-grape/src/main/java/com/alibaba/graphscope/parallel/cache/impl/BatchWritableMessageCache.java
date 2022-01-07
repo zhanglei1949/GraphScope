@@ -71,7 +71,7 @@ public class BatchWritableMessageCache<I extends WritableComparable,
         }
         else {
             //if add success, invoke log.
-            logger.debug("frag [" + fragId + "] Send msg to [" + dstFragId + "], gid:" + gid + ", msg:" + message);
+//            logger.debug("frag [" + fragId + "] Send msg to [" + dstFragId + "], gid:" + gid + ", msg:" + message);
         }
     }
 
