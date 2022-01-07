@@ -180,7 +180,7 @@ import javax.lang.model.type.TypeMirror;
                         @FFIFunGen(
                             name = "sendToFragment",
                             returnType = "void",
-                            parameterTypes = {"MSG_T"},
+                            parameterTypes = {"int","MSG_T"},
                             templates = {
                                 @CXXTemplate(
                                     cxx = {
