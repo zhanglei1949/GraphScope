@@ -161,6 +161,8 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
 
                 accepted.add(f.channel());
                 channel = f.channel();
+                logger.info(""+channel);
+                logger.info(""+channel.pipeline());
                 handler = (NettyServerHandler) channel.pipeline().last();
                 logger.info("netty server handler: " + handler);
                 break;
