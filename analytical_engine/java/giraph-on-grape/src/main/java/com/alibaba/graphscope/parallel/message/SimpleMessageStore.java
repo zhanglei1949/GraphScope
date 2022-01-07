@@ -68,7 +68,7 @@ public class SimpleMessageStore<OID_T extends WritableComparable, IN_MSG_T exten
     }
 
     @Override
-    public void addGidMessage(GS_VID_T gid, Writable writable) {
+    public synchronized void addGidMessage(GS_VID_T gid, Writable writable) {
         vertex.SetValue(gid);
         boolean res = fragment.gid2Vertex(gid,vertex);
         GS_VID_T lid = vertex.GetValue();
