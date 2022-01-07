@@ -150,7 +150,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
         bindAddress();
     }
 
-    private NettyServerHandler<OID_T,GS_VID_T> getHandler(){
+    private synchronized NettyServerHandler<OID_T,GS_VID_T> getHandler(){
         NettyServerHandler<OID_T,GS_VID_T> handler = new NettyServerHandler<OID_T,GS_VID_T>(fragment, nextIncomingMessages);
         handlers.add(handler);
         logger.info("creating handler: " + handler + " current size: " + handlers.size());
