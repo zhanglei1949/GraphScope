@@ -162,7 +162,7 @@ public interface GiraphConstants {
      * Client send buffer size
      */
     IntConfOption CLIENT_SEND_BUFFER_SIZE =
-        new IntConfOption("giraph.clientSendBufferSize", 512 * ONE_KB,
+        new IntConfOption("giraph.clientSendBufferSize", 1024 * ONE_KB,
             "Client send buffer size");
 
     /**
@@ -183,7 +183,7 @@ public interface GiraphConstants {
      * Server receive buffer size
      */
     IntConfOption SERVER_RECEIVE_BUFFER_SIZE =
-        new IntConfOption("giraph.serverReceiveBufferSize", 512 * ONE_KB,
+        new IntConfOption("giraph.serverReceiveBufferSize", 1024 * ONE_KB,
             "Server receive buffer size");
 
     /**
