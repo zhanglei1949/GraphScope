@@ -367,6 +367,6 @@ public interface GiraphConstants {
             MessageStoreFactory.class,
             "Message Store Factory Class that is to be used");
 
-    IntConfOption MESSAGE_AGGREGATE_SIZE = new IntConfOption("giraph.messageAggregateSize", 3000,
+    IntConfOption MESSAGE_AGGREGATE_SIZE = new IntConfOption("giraph.messageAggregateSize", 30000,
         "how many size of request we aggregate together for sending in bulk");
 }
