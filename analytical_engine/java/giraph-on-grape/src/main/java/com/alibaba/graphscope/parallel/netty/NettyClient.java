@@ -111,6 +111,7 @@ public class NettyClient {
         pendingRequests = new HashMap<>();
         for (int i = 0; i < networkMap.getWorkerNum(); ++i) {
 //            pendingRequests.put(i, new LinkedList<ChannelFuture>());
+            pendingRequests.put(0, 0);
         }
         /**
          * Start the client. connect to all address.
