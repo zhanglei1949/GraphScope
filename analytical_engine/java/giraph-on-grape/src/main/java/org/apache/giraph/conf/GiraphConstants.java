@@ -341,7 +341,10 @@ public interface GiraphConstants {
         40000,
         "The base port for aggregator to communicate");
 
-    StrConfOption MESSAGE_MANAGER_TYPE = new StrConfOption("giraph.messageManagerType", "netty",
+//    StrConfOption MESSAGE_MANAGER_TYPE = new StrConfOption("giraph.messageManagerType", "netty",
+//        "default message manager to use");
+
+        StrConfOption MESSAGE_MANAGER_TYPE = new StrConfOption("giraph.messageManagerType", "mpi",
         "default message manager to use");
 
     IntConfOption INET_ADDRESS_MAX_RESOLVE_TIMES = new IntConfOption(
@@ -364,6 +367,6 @@ public interface GiraphConstants {
             MessageStoreFactory.class,
             "Message Store Factory Class that is to be used");
 
-    IntConfOption MESSAGE_AGGREGATE_SIZE = new IntConfOption("giraph.messageAggregateSize", 500,
+    IntConfOption MESSAGE_AGGREGATE_SIZE = new IntConfOption("giraph.messageAggregateSize", 1000,
         "how many size of request we aggregate together for sending in bulk");
 }
