@@ -56,4 +56,10 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
         cause.printStackTrace();
         ctx.close();
     }
+
+    public void preSuperStep(MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages){
+        logger.info("Update nextIncoming msg store from " + this.nextIncomingMessages + " to " + nextIncomingMessages);
+        this.nextIncomingMessages = nextIncomingMessages;
+        this.msgSeq.set(0);
+    }
 }

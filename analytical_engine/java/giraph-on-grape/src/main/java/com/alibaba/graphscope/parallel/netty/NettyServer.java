@@ -68,6 +68,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
     private ImmutableClassesGiraphConfiguration conf;
     private MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages;
     private SimpleFragment fragment;
+    private NettyServerHandler handler;
     /**
      * Accepted channels
      */
@@ -105,6 +106,8 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
     }
 
     public void startServer() {
+
+        handler = new NettyServerHandler(fragment, nextIncomingMessages);
         bootstrap = new ServerBootstrap();
         bootstrap.group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel.class)
@@ -137,8 +140,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
                         //TODO: optimization with fixed-frame
 //                        p.addLast(new WritableRequestEncoder(conf));
                         p.addLast(new WritableRequestDecoder(conf));
-                        p.addLast(
-                            new NettyServerHandler(fragment, nextIncomingMessages));
+                        p.addLast(handler);
                     }
                 });
         bindAddress();
@@ -171,6 +173,10 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
             workerThreadSize + " threads on bind attempt " + curAttempt +
             " with sendBufferSize = " + sendBufferSize +
             " receiveBufferSize = " + receiveBufferSize);
+    }
+
+    public void preSuperStep(MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages){
+        handler.preSuperStep(nextIncomingMessages);
     }
 
     private void warn(String msg) {

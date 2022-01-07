@@ -265,7 +265,7 @@ public class GiraphNettyMessageManager<
 
     @Override
     public void preSuperstep() {
-
+        server.preSuperStep((MessageStore<OID_T, Writable, GS_VID_T>) nextIncomingMessageStore);
     }
 
     @Override
