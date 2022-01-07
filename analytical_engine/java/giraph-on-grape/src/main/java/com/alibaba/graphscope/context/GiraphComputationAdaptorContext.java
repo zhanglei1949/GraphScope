@@ -175,7 +175,11 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
         vertex.setEdgeManager(edgeManager);
 
         // VertexIdManager is needed since we need oid <-> lid converting.
-        if (MESSAGE_MANAGER_TYPE.get(conf).equals("netty")) {
+        String giraphMessageManagerType = System.getenv("MESSAGE_MANAGER_TYPE");
+        if (Objects.isNull(giraphMessageManagerType) || giraphMessageManagerType.isEmpty()){
+            giraphMessageManagerType = MESSAGE_MANAGER_TYPE.get(conf);
+        }
+        if (giraphMessageManagerType.equals("netty")) {
             String[] allHostsNames = getAllHostNames(conf.getWorkerId(), conf.getWorkerNum(),
                 getFFICommunicator());
             logger.info(String.join(",", allHostsNames));
@@ -183,9 +187,12 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
                 conf.getMessagerInitServerPort(), allHostsNames);
             giraphMessageManager = GiraphMessageManagerFactory
                 .create("netty", frag, null, networkMap, conf);
-        } else {
+        } else if (giraphMessageManagerType.equals("mpi")){
             giraphMessageManager = GiraphMessageManagerFactory
                 .create("mpi", frag, messageManager, null, conf);
+        }
+        else {
+            throw new IllegalStateException("Expect a netty or mpi messager");
         }
         userComputation.setGiraphMessageManager(giraphMessageManager);
 
