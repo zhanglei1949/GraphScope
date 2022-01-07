@@ -138,7 +138,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
 
         logger.info("Created user computation class: " + userComputation.getClass().getName());
         innerVerticesNum = frag.getInnerVerticesNum();
-        fragVerticesNum = (long) frag.getVerticesNum();
+        fragVerticesNum = (Long) frag.getVerticesNum();
 
         /**
          * Important, we don't provided any constructors for workerContext, so make sure all fields

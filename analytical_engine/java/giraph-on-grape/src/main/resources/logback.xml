@@ -31,6 +31,10 @@
     <logger name="com.alibaba.graphscope.parallel.mm.impl.GiraphNettyMessageManager" level="debug"/>
     <logger name="com.alibaba.graphscope.parallel.netty.NettyClient" level="debug"/>
     <logger name="com.alibaba.graphscope.parallel.netty.NettyServer" level="debug"/>
+    <logger name="com.alibaba.graphscope.parallel.netty.handler.NettyServerHandler" level="debug"/>
+    <logger name="com.alibaba.graphscope.parallel.netty.handler.NettyClientHandler" level="debug"/>
+    <logger name="com.alibaba.graphscope.parallel.netty.request.impl.BatchWritableRequest" level="debug"/>
+    <logger name="com.alibaba.graphscope.parallel.message.SimpleMessageStore" level="debug"/>
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>
