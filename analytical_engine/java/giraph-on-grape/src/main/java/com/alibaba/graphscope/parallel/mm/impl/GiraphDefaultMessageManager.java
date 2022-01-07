@@ -185,7 +185,7 @@ public class GiraphDefaultMessageManager<
         if (dstOid instanceof LongWritable) {
             LongWritable longOid = (LongWritable) dstOid;
             // Get lid from oid
-            fragment.getInnerVertex(longOid, grapeVertex);
+            fragment.getInnerVertex(longOid.get(), grapeVertex);
             //            tmpVertex.SetValue(longOid.get());
             int dstfragId = fragment.getFragId(grapeVertex);
             if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
