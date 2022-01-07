@@ -133,6 +133,7 @@ public class GiraphComputationAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> extends
 
         //wait msg send finish.
         giraphMessageManager.finishMessageSending();
+        ctx.getFFICommunicator().barrier();
         giraphMessageManager.postSuperstep();
         //Sync aggregators
         aggregatorManager.postSuperstep();
@@ -210,7 +211,7 @@ public class GiraphComputationAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> extends
 
         //2. send msg
         giraphMessageManager.finishMessageSending();
-
+        ctx.getFFICommunicator().barrier();
         //Sync aggregators
         aggregatorManager.postSuperstep();
         giraphMessageManager.postSuperstep();

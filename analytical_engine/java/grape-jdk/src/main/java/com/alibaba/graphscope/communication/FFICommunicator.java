@@ -41,6 +41,8 @@ import com.alibaba.fastffi.FFITypeAlias;
 @CXXHead(CORE_JAVA_JAVA_MESSAGES_H)
 @FFITypeAlias(GRAPE_COMMUNICATOR)
 public interface FFICommunicator extends FFIPointer {
+    @FFINameAlias("Barrier")
+    void barrier();
 
     @FFINameAlias("Sum")
     <MSG_T> void sum(@FFIConst @CXXReference MSG_T msgIn, @CXXReference MSG_T msgOut);

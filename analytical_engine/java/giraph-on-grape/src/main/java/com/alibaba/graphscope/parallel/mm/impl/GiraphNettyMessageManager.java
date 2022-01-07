@@ -278,8 +278,7 @@ public class GiraphNettyMessageManager<
     public void postSuperstep() {
         //wait for messages sent.
 //        client.waitAllRequests();
-        /** Get received message in server, in netty server */
-
+        //sync netty server with client, make sure server received the request.
         /** Add to self cache */
         outMessageCache.removeMessageToSelf(nextIncomingMessageStore);
         currentIncomingMessageStore.swap(nextIncomingMessageStore);

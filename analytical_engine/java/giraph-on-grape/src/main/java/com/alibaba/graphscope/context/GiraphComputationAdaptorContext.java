@@ -29,7 +29,6 @@ import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexFactory;
 import org.apache.giraph.graph.VertexIdManager;
 import org.apache.giraph.graph.impl.AggregatorManagerImpl;
-import org.apache.giraph.graph.impl.AggregatorManagerNettyImpl;
 import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.giraph.io.VertexOutputFormat;
 import org.apache.giraph.io.VertexWriter;
@@ -118,7 +117,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
 
     /**
      * <em>CAUTION: THIS METHOD SHALL BE CALLED in JNI after initCommunicator.</em>.
-     *
+     * <p>
      * With communicatorAddress passed, we init a FFICommunicator obj with that address.
      */
 
@@ -177,9 +176,11 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
 
         // VertexIdManager is needed since we need oid <-> lid converting.
         if (MESSAGE_MANAGER_TYPE.get(conf).equals("netty")) {
-            String [] allHostsNames = getAllHostNames(conf.getWorkerId(), conf.getWorkerNum(), getFFICommunicator());
+            String[] allHostsNames = getAllHostNames(conf.getWorkerId(), conf.getWorkerNum(),
+                getFFICommunicator());
             logger.info(String.join(",", allHostsNames));
-            NetworkMap networkMap = new NetworkMap(conf.getWorkerId(), conf.getWorkerNum(), conf.getMessagerInitServerPort(), allHostsNames);
+            NetworkMap networkMap = new NetworkMap(conf.getWorkerId(), conf.getWorkerNum(),
+                conf.getMessagerInitServerPort(), allHostsNames);
             giraphMessageManager = GiraphMessageManagerFactory
                 .create("netty", frag, null, networkMap, conf);
         } else {
@@ -192,7 +193,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
 
         //        String masterWorkerIp = getMasterWorkerIp(frag.fid(), frag.fnum());
 
-               aggregatorManager = new AggregatorManagerImpl(conf, frag.fid(), frag.fnum());
+        aggregatorManager = new AggregatorManagerImpl(conf, frag.fid(), frag.fnum());
 //        aggregatorManager = new AggregatorManagerNettyImpl(conf, frag.fid(), frag.fnum());
         userComputation.setAggregatorManager(aggregatorManager);
         workerContext.setAggregatorManager(aggregatorManager);
