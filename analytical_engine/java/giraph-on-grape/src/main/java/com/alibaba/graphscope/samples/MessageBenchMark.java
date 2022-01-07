@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 public class MessageBenchMark extends
     BasicComputation<LongWritable, DoubleWritable, DoubleWritable, LongWritable> {
 
-    private static Logger logger = LoggerFactory.getLogger(MessageApp.class);
+    private static Logger logger = LoggerFactory.getLogger(MessageBenchMark.class);
 
     private static int MAX_SUPER_STEP = Integer.valueOf(System.getenv("MAX_SUPER_STEP"));
 
