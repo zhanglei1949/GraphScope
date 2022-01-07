@@ -28,6 +28,9 @@ import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.ImmediateEventExecutor;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import org.apache.giraph.conf.GiraphConstants;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.utils.ThreadUtils;
@@ -69,7 +72,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
     private ImmutableClassesGiraphConfiguration conf;
     private MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages;
     private SimpleFragment fragment;
-    private NettyServerHandler handler;
+    private List<NettyServerHandler<OID_T,GS_VID_T>> handlers;
     private Channel channel;
     /**
      * Accepted channels
@@ -87,6 +90,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
         this.networkMap = networkMap;
         this.nextIncomingMessages = nextIncomingMessages;
         this.fragment = fragment;
+        handlers = new ArrayList<>();
 
         bossThreadSize = GiraphConstants.NETTY_SERVER_BOSS_THREADS.get(conf);
         workerThreadSize = GiraphConstants.NETTY_SERVER_WORKER_THREADS.get(conf);
@@ -140,10 +144,17 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
                         //TODO: optimization with fixed-frame
 //                        p.addLast(new WritableRequestEncoder(conf));
                         p.addLast(new WritableRequestDecoder(conf));
-                        p.addLast("handler", new NettyServerHandler<>(fragment, nextIncomingMessages));
+                        p.addLast("handler", getHandler());
                     }
                 });
         bindAddress();
+    }
+
+    private NettyServerHandler<OID_T,GS_VID_T> getHandler(){
+        NettyServerHandler<OID_T,GS_VID_T> handler = new NettyServerHandler<OID_T,GS_VID_T>(fragment, nextIncomingMessages);
+        handlers.add(handler);
+        logger.info("creating handler: " + handler + " current size: " + handlers.size());
+        return handler;
     }
 
     private void bindAddress(){
@@ -158,9 +169,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
                 ChannelFuture f = bootstrap.bind(myAddress).sync();
 
                 accepted.add(f.channel());
-                channel = f.channel();
-                handler = (NettyServerHandler) channel.pipeline().get("handler");
-                logger.info("netty server handler: " + handler);
+//                channel = f.channel();
                 break;
             } catch (InterruptedException e) {
                 throw new IllegalStateException(e);
@@ -179,7 +188,10 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
     }
 
     public void preSuperStep(MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages){
-        handler.preSuperStep(nextIncomingMessages);
+        logger.info("Pre super step for: " + handlers);
+        for (NettyServerHandler handler : handlers){
+            handler.preSuperStep(nextIncomingMessages);
+        }
     }
 
     private void warn(String msg) {
