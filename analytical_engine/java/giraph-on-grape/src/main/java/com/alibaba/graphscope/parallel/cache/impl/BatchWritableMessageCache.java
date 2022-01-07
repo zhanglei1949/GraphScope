@@ -63,7 +63,9 @@ public class BatchWritableMessageCache<I extends WritableComparable,
                 (Gid2DataFixed) cache[dstFragId]);
             logger.info("frag [" + fragId + "] msg to [" + dstFragId + "] " + cache[dstFragId].size() + " full, flush and sending");
             client.sendMessage(dstFragId,request);
-            cache[dstFragId].clear();
+//            cache[dstFragId].clear();
+            //If we clear the original gid2dataFixed, it seems to affect the message sent.
+            cache[dstFragId] = Gid2Data.newFixed(cacheSize);
             //resend
             cache[dstFragId].add((Long) gid, message);
         }
