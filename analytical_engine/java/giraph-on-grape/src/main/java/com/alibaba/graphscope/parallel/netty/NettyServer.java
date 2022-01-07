@@ -108,8 +108,6 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
     }
 
     public void startServer() {
-
-        handler = new NettyServerHandler(fragment, nextIncomingMessages);
         bootstrap = new ServerBootstrap();
         bootstrap.group(bossGroup, workerGroup)
             .channel(NioServerSocketChannel.class)
@@ -142,7 +140,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
                         //TODO: optimization with fixed-frame
 //                        p.addLast(new WritableRequestEncoder(conf));
                         p.addLast(new WritableRequestDecoder(conf));
-                        p.addLast(new NettyServerHandler<>(fragment, nextIncomingMessages));
+                        p.addLast("handler", new NettyServerHandler<>(fragment, nextIncomingMessages));
                     }
                 });
         bindAddress();
@@ -161,7 +159,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
 
                 accepted.add(f.channel());
                 channel = f.channel();
-                handler = (NettyServerHandler) channel.pipeline().last();
+                handler = (NettyServerHandler) channel.pipeline().get("handler");
                 logger.info("netty server handler: " + handler);
                 break;
             } catch (InterruptedException e) {
