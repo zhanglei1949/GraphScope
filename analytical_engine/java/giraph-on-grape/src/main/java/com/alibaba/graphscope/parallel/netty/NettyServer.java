@@ -10,6 +10,7 @@ import com.alibaba.graphscope.parallel.netty.request.serialization.WritableReque
 import com.alibaba.graphscope.parallel.utils.NetworkMap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.AdaptiveRecvByteBufAllocator;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -69,6 +70,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
     private MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages;
     private SimpleFragment fragment;
     private NettyServerHandler handler;
+    private Channel channel;
     /**
      * Accepted channels
      */
@@ -140,7 +142,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
                         //TODO: optimization with fixed-frame
 //                        p.addLast(new WritableRequestEncoder(conf));
                         p.addLast(new WritableRequestDecoder(conf));
-                        p.addLast(handler);
+                        p.addLast(new NettyServerHandler<>(fragment, nextIncomingMessages));
                     }
                 });
         bindAddress();
@@ -158,6 +160,9 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
                 ChannelFuture f = bootstrap.bind(myAddress).sync();
 
                 accepted.add(f.channel());
+                channel = f.channel();
+                handler = (NettyServerHandler) channel.pipeline().last();
+                logger.info("netty server handler: " + handler);
                 break;
             } catch (InterruptedException e) {
                 throw new IllegalStateException(e);
