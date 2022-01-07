@@ -72,10 +72,12 @@ public class SimpleMessageStore<OID_T extends WritableComparable, IN_MSG_T exten
         vertex.SetValue(gid);
         boolean res = fragment.gid2Vertex(gid,vertex);
         GS_VID_T lid = vertex.GetValue();
+        logger.debug("Inserting gid message: (" + gid + ", " +writable + ")");
         if (!messages.containsKey(lid)){
             messages.put(lid, new ArrayList<>());
         }
         messages.get(lid).add(writable);
+        logger.debug("after inserting, gid: " + gid +  ",lid: " +  lid + " message:" + writable);
     }
 
     @Override
