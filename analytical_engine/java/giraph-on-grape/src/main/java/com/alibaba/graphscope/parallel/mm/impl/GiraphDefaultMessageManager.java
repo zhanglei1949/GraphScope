@@ -69,6 +69,7 @@ public class GiraphDefaultMessageManager<
         this.messagesOut = new FFIByteVectorOutputStream[fragment.fnum()];
         for (int i = 0; i < fragment.fnum(); ++i) {
             this.messagesOut[i] = new FFIByteVectorOutputStream();
+            this.messagesOut[i].resize(THRESHOLD);
         }
 
         this.receivedMessages = new MessageIterable[(int) fragment.getInnerVerticesNum()];
@@ -304,7 +305,8 @@ public class GiraphDefaultMessageManager<
                 logger.info(
                         "In final step, Frag [" + fragId + "] digest msg to self of size: " + size);
             }
-            messagesOut[i].reset();
+//            messagesOut[i].reset();
+//            messagesOut[i] = new FFIByteVectorOutputStream();
         }
     }
 
@@ -340,7 +342,11 @@ public class GiraphDefaultMessageManager<
 
     @Override
     public void preSuperstep() {
-
+        //reset messagesout here, so that the data buffer can be safely digested by
+        //grape message manager. Don't reset them after finishMessageSetting.
+        for (int i = 0; i < fragmentNum; ++i){
+            messagesOut[i].reset();
+        }
     }
 
     @Override
