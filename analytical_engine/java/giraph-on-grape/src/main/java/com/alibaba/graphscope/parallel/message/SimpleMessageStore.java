@@ -77,7 +77,7 @@ public class SimpleMessageStore<OID_T extends WritableComparable, IN_MSG_T exten
             messages.put(lid, new ArrayList<>());
         }
         messages.get(lid).add(writable);
-        logger.debug("after inserting, gid: " + gid +  ",lid: " +  lid + " message:" + writable);
+        logger.debug("after inserting, gid: " + gid +  ",lid: " +  lid + " message:" + messages);
     }
 
     @Override
