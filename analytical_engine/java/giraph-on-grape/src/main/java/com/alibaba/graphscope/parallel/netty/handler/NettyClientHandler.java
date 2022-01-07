@@ -69,7 +69,7 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
             ctx.channel().remoteAddress(), cause);
     }
 
-    public void preSuperStep(){
+    public void postSuperStep(){
         this.pendingRequestSize = Integer.MAX_VALUE;
         messageReceivedCount.set(0);
     }
@@ -89,9 +89,9 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
         }
         synchronized (messageReceivedCount) {
             try {
-                logger.info("Client handler [" + workerId + "starting waiting for response");
+                logger.info("Client handler [" + workerId + "] starting waiting for response");
                 messageReceivedCount.wait();
-                logger.info("Client handler [" + workerId + "finish waiting for response");
+                logger.info("Client handler [" + workerId + "] finish waiting for response");
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

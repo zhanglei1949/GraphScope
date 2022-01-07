@@ -261,7 +261,7 @@ public class GiraphNettyMessageManager<
      */
     @Override
     public boolean anyMessageReceived() {
-        return nextIncomingMessageStore.anyMessageReceived();
+        return currentIncomingMessageStore.anyMessageReceived();
     }
 
     @Override
@@ -271,10 +271,7 @@ public class GiraphNettyMessageManager<
 
     @Override
     public void preSuperstep() {
-        currentIncomingMessageStore.swap(nextIncomingMessageStore);
-        nextIncomingMessageStore.clearAll();
-        outMessageCache.clear();
-        client.preSuperStep();
+
     }
 
     @Override
@@ -285,6 +282,10 @@ public class GiraphNettyMessageManager<
 
         /** Add to self cache */
         outMessageCache.removeMessageToSelf(nextIncomingMessageStore);
+        currentIncomingMessageStore.swap(nextIncomingMessageStore);
+        nextIncomingMessageStore.clearAll();
+        outMessageCache.clear();
+        client.postSuperStep();
 //        client.postSuperstep();
 //        currentIncomingMessageStore.clearAll();
         //Remove messages to self in cache, and send them to nextIncomingMessage store.

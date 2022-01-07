@@ -23,12 +23,9 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import jnr.ffi.annotations.In;
 import org.apache.giraph.conf.GiraphConstants;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.utils.ThreadUtils;
@@ -315,12 +312,12 @@ public class NettyClient {
         debug("finish flushing messages");
     }
 
-    public void preSuperStep(){
+    public void postSuperStep(){
         for (int i = 0; i < networkMap.getWorkerNum(); ++i) {
 //            pendingRequests.get(i).clear();
             pendingRequests.put(i, 0);
             if (i != workerId){
-                handlers[i].preSuperStep();
+                handlers[i].postSuperStep();
             }
         }
     }

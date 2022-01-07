@@ -39,11 +39,13 @@ public class BatchWritableRequest extends WritableRequest {
     @Override
     public void readFieldsRequest(DataInput input) throws IOException {
         int size = input.readInt();
+        logger.debug("read request size: " + size);
         data = new Gid2DataFixed(size);
         for (int i = 0; i < size; ++i){
             Writable inMsg = getConf().createInComingMessageValue();
             long gid = input.readLong();
             inMsg.readFields(input);
+            logger.debug("reading gid: " + gid + ", msg: " + inMsg);
             data.add(gid,inMsg);
         }
     }
