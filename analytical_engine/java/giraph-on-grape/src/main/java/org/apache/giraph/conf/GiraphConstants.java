@@ -217,7 +217,7 @@ public interface GiraphConstants {
      * How big to make the encoder buffer?
      */
     IntConfOption NETTY_REQUEST_ENCODER_BUFFER_SIZE =
-        new IntConfOption("giraph.nettyRequestEncoderBufferSize", 32 * ONE_KB,
+        new IntConfOption("giraph.nettyRequestEncoderBufferSize", 512 * ONE_KB,
             "How big to make the encoder buffer?");
 
     /**
@@ -367,6 +367,6 @@ public interface GiraphConstants {
             MessageStoreFactory.class,
             "Message Store Factory Class that is to be used");
 
-    IntConfOption MESSAGE_AGGREGATE_SIZE = new IntConfOption("giraph.messageAggregateSize", 1000,
+    IntConfOption MESSAGE_AGGREGATE_SIZE = new IntConfOption("giraph.messageAggregateSize", 3000,
         "how many size of request we aggregate together for sending in bulk");
 }
