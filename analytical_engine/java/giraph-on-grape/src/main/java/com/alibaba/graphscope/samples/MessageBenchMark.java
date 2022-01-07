@@ -17,7 +17,7 @@ public class MessageBenchMark extends
 
     private static Logger logger = LoggerFactory.getLogger(MessageApp.class);
 
-    private static int MAX_SUPER_STEP = Integer.valueOf(System.getProperty("MAX_SUPER_STEP"));
+    private static int MAX_SUPER_STEP = Integer.valueOf(System.getenv("MAX_SUPER_STEP"));
 
     /**
      * Must be defined by user to do computation on a single Vertex.
