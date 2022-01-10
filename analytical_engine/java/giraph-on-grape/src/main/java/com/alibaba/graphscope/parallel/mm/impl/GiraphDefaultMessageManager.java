@@ -100,8 +100,6 @@ public class GiraphDefaultMessageManager<
                             + ", msg size:"
                             + tmpVector.size());
             this.messagesIn.digestVector(tmpVector);
-            //TODO: fix this
-            break;
         }
         // Parse messageIn and form into Iterable<message> for each vertex;
         logger.info(
