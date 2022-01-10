@@ -188,7 +188,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
     }
 
     public void preSuperStep(MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages){
-        logger.info("Pre super step for: " + handlers);
+        logger.info("Pre super step for handlers of size: " + handlers.size() + ": " + handlers);
         for (NettyServerHandler handler : handlers){
             handler.preSuperStep(nextIncomingMessages);
         }

@@ -193,7 +193,9 @@ public class GiraphDefaultMessageManager<
             if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
                 messagesOut[dstfragId].finishSetting();
                 grapeMessageManager.sendToFragment(dstfragId, messagesOut[dstfragId].getVector());
-                messagesOut[dstfragId].reset();
+//                messagesOut[dstfragId].reset();
+                messagesOut[dstfragId] = new FFIByteVectorOutputStream();
+                messagesOut[dstfragId].resize(THRESHOLD);
             }
             try {
                 messagesOut[dstfragId].writeLong((Long) fragment.vertex2Gid(grapeVertex));
@@ -345,7 +347,9 @@ public class GiraphDefaultMessageManager<
         //reset messagesout here, so that the data buffer can be safely digested by
         //grape message manager. Don't reset them after finishMessageSetting.
         for (int i = 0; i < fragmentNum; ++i){
-            messagesOut[i].reset();
+//            messagesOut[i].reset();
+            messagesOut[i] = new FFIByteVectorOutputStream();
+            messagesOut[i].resize(THRESHOLD);
         }
     }
 
