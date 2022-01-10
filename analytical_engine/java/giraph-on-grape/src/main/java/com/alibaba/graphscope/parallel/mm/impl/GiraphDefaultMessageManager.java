@@ -191,6 +191,7 @@ public class GiraphDefaultMessageManager<
             logger.debug("oid -> lid: return :" + res + ", oid:" + longOid + ", " + grapeVertex.GetValue());
             int dstfragId = fragment.getFragId(grapeVertex);
             if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
+                messagesOut[dstfragId].writeInt(0, (int)messagesOut[dstfragId].bytesWriten() - 4); // minus size_of_int
                 messagesOut[dstfragId].finishSetting();
                 grapeMessageManager.sendToFragment(dstfragId, messagesOut[dstfragId].getVector());
 //                messagesOut[dstfragId].reset();
@@ -280,6 +281,9 @@ public class GiraphDefaultMessageManager<
         this.messagesIn.clear();
         for (int i = 0; i < fragmentNum; ++i) {
             long size = messagesOut[i].bytesWriten();
+            if (i != fragId){
+                messagesOut[i].writeInt(0, (int)messagesOut[i].bytesWriten() - 4); // minus size_of_int
+            }
             messagesOut[i].finishSetting();
 
             if (size == 0) {
@@ -351,6 +355,14 @@ public class GiraphDefaultMessageManager<
 //            messagesOut[i].reset();
             messagesOut[i] = new FFIByteVectorOutputStream();
             messagesOut[i].resize(THRESHOLD);
+            if (i != fragId){
+                //only write size info for mpi messages, local message don't need size.
+                try {
+                    messagesOut[i].writeInt(0); // a place holder which hold then length of this vector. will be set to actual length when writing is over.
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 

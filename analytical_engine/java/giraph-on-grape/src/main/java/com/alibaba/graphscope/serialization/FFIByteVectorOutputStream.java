@@ -148,6 +148,11 @@ public class FFIByteVectorOutputStream extends OutputStream
         offset += 4;
     }
 
+    public void writeInt(int index, int v) {
+        vector.ensure(index, 4);
+        vector.setRawInt(index, v);
+    }
+
     /**
      * Writes a <code>long</code> value, which is comprised of eight bytes, to the output stream.
      * The byte values to be written, in the  order shown, are:
