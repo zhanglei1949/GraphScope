@@ -169,7 +169,6 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
                 ChannelFuture f = bootstrap.bind(myAddress).sync();
 
                 accepted.add(f.channel());
-//                channel = f.channel();
                 break;
             } catch (InterruptedException e) {
                 throw new IllegalStateException(e);
