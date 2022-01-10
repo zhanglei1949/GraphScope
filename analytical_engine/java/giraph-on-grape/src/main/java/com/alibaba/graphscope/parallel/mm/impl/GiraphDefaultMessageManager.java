@@ -308,7 +308,8 @@ public class GiraphDefaultMessageManager<
                         "In final step, Frag [" + fragId + "] digest msg to self of size: " + size);
             }
 //            messagesOut[i].reset();
-//            messagesOut[i] = new FFIByteVectorOutputStream();
+            messagesOut[i] = new FFIByteVectorOutputStream();
+            messagesOut[i].resize(THRESHOLD);
         }
     }
 
