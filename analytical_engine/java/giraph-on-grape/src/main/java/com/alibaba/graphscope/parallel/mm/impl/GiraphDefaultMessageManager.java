@@ -197,6 +197,7 @@ public class GiraphDefaultMessageManager<
 //                messagesOut[dstfragId].reset();
                 messagesOut[dstfragId] = new FFIByteVectorOutputStream();
                 messagesOut[dstfragId].resize(THRESHOLD);
+                messagesOut[dstfragId].writeInt(0, 0);
             }
             try {
                 messagesOut[dstfragId].writeLong((Long) fragment.vertex2Gid(grapeVertex));
@@ -282,6 +283,7 @@ public class GiraphDefaultMessageManager<
         for (int i = 0; i < fragmentNum; ++i) {
             long size = messagesOut[i].bytesWriten();
             if (i != fragId){
+                logger.info("finish msg sending: " + fragId + "->" + i + ": " + (messagesOut[i].bytesWriten() - 4));
                 messagesOut[i].writeInt(0, (int)messagesOut[i].bytesWriten() - 4); // minus size_of_int
             }
             messagesOut[i].finishSetting();
