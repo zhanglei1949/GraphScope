@@ -267,13 +267,13 @@ public class GiraphDefaultMessageManager<
             e.printStackTrace();
         }
 
-        logger.debug(
-                "After send messages from vertex: "
-                        + grapeVertex.GetValue()
-                        + " through all edges");
-        for (int i = 0; i < fragment.fnum(); ++i) {
-            logger.debug("To frag[" + i + "]: " + messagesOut[i].bytesWriten());
-        }
+//        logger.debug(
+//                "After send messages from vertex: "
+//                        + grapeVertex.GetValue()
+//                        + " through all edges");
+//        for (int i = 0; i < fragment.fnum(); ++i) {
+//            logger.debug("To frag[" + i + "]: " + messagesOut[i].bytesWriten());
+//        }
     }
 
     /** Make sure all messages has been sent. Clean outputstream buffer */
@@ -299,6 +299,11 @@ public class GiraphDefaultMessageManager<
             }
 
             if (i != fragId) {
+                FFIByteVector vector =messagesOut[i].getVector();
+                logger.info(" vector size: " + vector.size() + "size: " + size);
+                for (int j = 0; j < size; ++j){
+                    logger.info("index: [" + j + "]: " + vector.getRaw(j));
+                }
                 grapeMessageManager.sendToFragment(i, messagesOut[i].getVector());
                 logger.info(
                         "In final step, Frag ["

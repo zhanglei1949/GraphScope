@@ -151,6 +151,7 @@ public class FFIByteVectorOutputStream extends OutputStream
     public void writeInt(int index, int v) {
         vector.ensure(index, 4);
         vector.setRawInt(index, v);
+        offset = Math.max(offset, index + 4);
     }
 
     /**
