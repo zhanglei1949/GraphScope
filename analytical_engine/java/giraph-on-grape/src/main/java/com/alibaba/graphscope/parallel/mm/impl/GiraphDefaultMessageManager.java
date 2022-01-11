@@ -126,15 +126,15 @@ public class GiraphDefaultMessageManager<
                 Writable inMsg = configuration.createInComingMessageValue();
                 inMsg.readFields(messagesIn);
                 // TODO: only for testing
-                if (inMsg instanceof LongWritable) {
-                    LongWritable inMsg2 = (LongWritable) inMsg;
-                    logger.debug(
-                            "Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
-                } else if (inMsg instanceof DoubleWritable) {
-                    DoubleWritable inMsg2 = (DoubleWritable) inMsg;
-                    logger.debug(
-                            "Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
-                }
+//                if (inMsg instanceof LongWritable) {
+//                    LongWritable inMsg2 = (LongWritable) inMsg;
+//                    logger.debug(
+//                            "Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
+//                } else if (inMsg instanceof DoubleWritable) {
+//                    DoubleWritable inMsg2 = (DoubleWritable) inMsg;
+//                    logger.debug(
+//                            "Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
+//                }
 
                 // store the msg
                 fragment.gid2Vertex(dstVertexGid, grapeVertex);
