@@ -288,7 +288,7 @@ public class GiraphDefaultMessageManager<
             }
             messagesOut[i].finishSetting();
 
-            if (size == 0) {
+            if (size == 8) { // size be at least 8.
                 logger.info(
                         "In final step,Message from frag["
                                 + fragId
@@ -300,10 +300,10 @@ public class GiraphDefaultMessageManager<
 
             if (i != fragId) {
                 FFIByteVector vector =messagesOut[i].getVector();
-                logger.info(" vector size: " + vector.size() + "size: " + size);
-                for (int j = 0; j < size; ++j){
-                    logger.info("index: [" + j + "]: " + vector.getRaw(j));
-                }
+//                logger.info(" vector size: " + vector.size() + "size: " + size);
+//                for (int j = 0; j < size; ++j){
+//                    logger.info("index: [" + j + "]: " + vector.getRaw(j));
+//                }
                 grapeMessageManager.sendToFragment(i, messagesOut[i].getVector());
                 logger.info(
                         "In final step, Frag ["
