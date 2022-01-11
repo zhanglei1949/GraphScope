@@ -71,6 +71,7 @@ public class WritableRequestDecoder  extends ByteToMessageDecoder {
         //Conf contains class info to create message instance.
         request.setConf(conf);
         request = RequestUtils.decodeWritableRequest(in, request);
+        assert in.release();
         logger.debug("decode res: " + request);
         out.add(request);
     }
