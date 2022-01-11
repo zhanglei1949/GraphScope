@@ -180,6 +180,12 @@ public class FFIByteVectorOutputStream extends OutputStream
         offset += 8;
     }
 
+    public void writeLong(int index, long v) {
+        vector.ensure(index, 8);
+        vector.setRawLong(index, v);
+        offset = Math.max(offset, index + 8);
+    }
+
     /**
      * Writes a <code>float</code> value, which is comprised of four bytes, to the output stream. It
      * does this as if it first converts this

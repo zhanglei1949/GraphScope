@@ -191,13 +191,13 @@ public class GiraphDefaultMessageManager<
             logger.debug("oid -> lid: return :" + res + ", oid:" + longOid + ", " + grapeVertex.GetValue());
             int dstfragId = fragment.getFragId(grapeVertex);
             if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
-                messagesOut[dstfragId].writeInt(0, (int)messagesOut[dstfragId].bytesWriten() - 4); // minus size_of_int
+                messagesOut[dstfragId].writeLong(0, messagesOut[dstfragId].bytesWriten() - 8); // minus size_of_int
                 messagesOut[dstfragId].finishSetting();
                 grapeMessageManager.sendToFragment(dstfragId, messagesOut[dstfragId].getVector());
 //                messagesOut[dstfragId].reset();
                 messagesOut[dstfragId] = new FFIByteVectorOutputStream();
                 messagesOut[dstfragId].resize(THRESHOLD);
-                messagesOut[dstfragId].writeInt(0, 0);
+                messagesOut[dstfragId].writeLong(0, 0);
             }
             try {
                 messagesOut[dstfragId].writeLong((Long) fragment.vertex2Gid(grapeVertex));
@@ -283,8 +283,8 @@ public class GiraphDefaultMessageManager<
         for (int i = 0; i < fragmentNum; ++i) {
             long size = messagesOut[i].bytesWriten();
             if (i != fragId){
-                logger.info("finish msg sending: " + fragId + "->" + i + ": " + (messagesOut[i].bytesWriten() - 4));
-                messagesOut[i].writeInt(0, (int)messagesOut[i].bytesWriten() - 4); // minus size_of_int
+                logger.info("finish msg sending: " + fragId + "->" + i + ": " + (messagesOut[i].bytesWriten() - 8));
+                messagesOut[i].writeLong(0, messagesOut[i].bytesWriten() - 8); // minus size_of_long
             }
             messagesOut[i].finishSetting();
 
@@ -365,7 +365,7 @@ public class GiraphDefaultMessageManager<
             if (i != fragId){
                 //only write size info for mpi messages, local message don't need size.
                 try {
-                    messagesOut[i].writeInt(0); // a place holder which hold then length of this vector. will be set to actual length when writing is over.
+                    messagesOut[i].writeLong(0); // a place holder which hold then length of this vector. will be set to actual length when writing is over.
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
