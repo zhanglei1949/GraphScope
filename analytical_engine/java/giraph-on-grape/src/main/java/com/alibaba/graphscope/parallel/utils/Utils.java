@@ -61,9 +61,11 @@ public class Utils {
 
         //Distribute to others;
         for (int dstWorkerId = 1; dstWorkerId < workerNum; ++dstWorkerId){
-            info(workerId, " sending to worker: [" + dstWorkerId + "] " + outputStream.getVector().size());
-            communicator.sendTo(dstWorkerId, outputStream.getVector());
-            info(workerId, " Successfully send to worker: [" + dstWorkerId + "] " + outputStream.getVector().size());
+            FFIByteVector tempVec = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
+            tempVec.appendVector(0 ,outputStream.getVector());
+            info(workerId, " sending to worker: [" + dstWorkerId + "] " + tempVec.size());
+            communicator.sendTo(dstWorkerId, tempVec);
+            info(workerId, " Successfully send to worker: [" + dstWorkerId + "] " + tempVec.size());
         }
         return res;
     }
