@@ -360,8 +360,8 @@ public class GiraphDefaultMessageManager<
         //grape message manager. Don't reset them after finishMessageSetting.
         for (int i = 0; i < fragmentNum; ++i){
 //            messagesOut[i].reset();
-            messagesOut[i] = new FFIByteVectorOutputStream();
-            messagesOut[i].resize(THRESHOLD);
+//            messagesOut[i] = new FFIByteVectorOutputStream();
+//            messagesOut[i].resize(THRESHOLD);
             if (i != fragId){
                 //only write size info for mpi messages, local message don't need size.
                 try {
