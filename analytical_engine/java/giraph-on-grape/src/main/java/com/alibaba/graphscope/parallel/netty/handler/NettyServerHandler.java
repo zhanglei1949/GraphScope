@@ -46,7 +46,7 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
         ByteBuf buf = ctx.alloc().directBuffer(4);
         int curMsgSeq = msgSeq.getAndAdd(1);
         buf.writeInt(curMsgSeq);
-        logger.debug("Server handler send response " + curMsgSeq);
+        logger.debug("Server handler[ " + fragment.fid() + " ] send response " + curMsgSeq);
         ctx.writeAndFlush(buf);
     }
 
