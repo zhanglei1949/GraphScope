@@ -35,6 +35,7 @@ public class Utils {
         FFIByteVector vec = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
         FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream();
         FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
+        outputStream.writeLong(0,0);
         for (int srcWorkerId = 1; srcWorkerId < workerNum; ++srcWorkerId){
             info(workerId, "receiving msg from " + srcWorkerId);
             communicator.receiveFrom(srcWorkerId, vec);
@@ -55,6 +56,7 @@ public class Utils {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        outputStream.writeLong(0, outputStream.bytesWriten() - 8);
         outputStream.finishSetting();
 
         //Distribute to others;
@@ -68,12 +70,14 @@ public class Utils {
 
     private static String[] actAsWorker(String selfIp, int workerId, int workerNum, FFICommunicator communicator){
         FFIByteVectorOutputStream outputStream = new FFIByteVectorOutputStream();
+        outputStream.writeLong(0, 0);
         try {
             outputStream.writeUTF(selfIp);
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
+        outputStream.writeLong(0, outputStream.bytesWriten() - 8);
         outputStream.finishSetting();
         info(workerId,"now send to coordinator: " + selfIp);
         communicator.sendTo(0, outputStream.getVector());
