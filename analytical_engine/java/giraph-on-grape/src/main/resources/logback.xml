@@ -29,13 +29,13 @@
     <logger name="org.apache.giraph.comm.netty.handler.NettyClientHandler" level="error"/>
     <logger name="org.apache.giraph.comm.netty.handler.NettyClientHandlerV2" level="error"/>
     <logger name="org.apache.giraph.comm.netty.hanlder.NettyServerHandler" level="error"/>
-    <logger name="com.alibaba.graphscope.parallel.mm.impl.GiraphNettyMessageManager" level="info"/>
-    <logger name="com.alibaba.graphscope.parallel.netty.NettyClient" level="info"/>
-    <logger name="com.alibaba.graphscope.parallel.netty.NettyServer" level="info"/>
-    <logger name="com.alibaba.graphscope.parallel.netty.handler.NettyServerHandler" level="info"/>
-    <logger name="com.alibaba.graphscope.parallel.netty.handler.NettyClientHandler" level="info"/>
-    <logger name="com.alibaba.graphscope.parallel.netty.request.impl.BatchWritableRequest" level="info"/>
-    <logger name="com.alibaba.graphscope.parallel.message.SimpleMessageStore" level="info"/>
+    <logger name="com.alibaba.graphscope.parallel.mm.impl.GiraphNettyMessageManager" level="error"/>
+    <logger name="com.alibaba.graphscope.parallel.netty.NettyClient" level="error"/>
+    <logger name="com.alibaba.graphscope.parallel.netty.NettyServer" level="error"/>
+    <logger name="com.alibaba.graphscope.parallel.netty.handler.NettyServerHandler" level="error"/>
+    <logger name="com.alibaba.graphscope.parallel.netty.handler.NettyClientHandler" level="error"/>
+    <logger name="com.alibaba.graphscope.parallel.netty.request.impl.BatchWritableRequest" level="error"/>
+    <logger name="com.alibaba.graphscope.parallel.message.SimpleMessageStore" level="error"/>
     <logger name="com.alibaba.graphscope.fragment.adaptor.ImmutableEdgecutFragmentAdaptor" level="error"/>
     <root level="info">
         <appender-ref ref="STDOUT" />

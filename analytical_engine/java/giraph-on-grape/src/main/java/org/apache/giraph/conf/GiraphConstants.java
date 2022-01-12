@@ -217,7 +217,7 @@ public interface GiraphConstants {
      * How big to make the encoder buffer?
      */
     IntConfOption NETTY_REQUEST_ENCODER_BUFFER_SIZE =
-        new IntConfOption("giraph.nettyRequestEncoderBufferSize", 512 * ONE_KB,
+        new IntConfOption("giraph.nettyRequestEncoderBufferSize", 1024 * ONE_KB,
             "How big to make the encoder buffer?");
 
     /**

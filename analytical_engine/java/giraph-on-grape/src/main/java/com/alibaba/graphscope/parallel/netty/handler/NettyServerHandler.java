@@ -5,6 +5,8 @@ import com.alibaba.graphscope.parallel.message.MessageStore;
 import com.alibaba.graphscope.parallel.mm.impl.GiraphDefaultMessageManager;
 import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,13 +20,16 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
     private MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages;
     private SimpleFragment<?,GS_VID_T,?,?> fragment;
     private static Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
-    private AtomicInteger msgSeq;
+    private int msgSeq;
+    private ByteBuf buf;
 
 
     public NettyServerHandler(SimpleFragment<?,GS_VID_T,?,?> fragment, MessageStore<OID_T,Writable,GS_VID_T> nextIncomingMessages){
         this.fragment = fragment;
         this.nextIncomingMessages = nextIncomingMessages;
-        this.msgSeq = new AtomicInteger(0);
+//        this.msgSeq = new AtomicInteger(0);
+        this.msgSeq = 0;
+        buf = new PooledByteBufAllocator(true).buffer(4);
     }
 
     /**
@@ -43,11 +48,12 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
         logger.debug("Server handler [" + fragment.fid() + "] thread: " + Thread.currentThread().getId() + " received msg: " + msg);
         msg.doRequest(nextIncomingMessages);
 
-        ByteBuf buf = ctx.alloc().directBuffer(4);
-        int curMsgSeq = msgSeq.getAndAdd(1);
-        buf.writeInt(curMsgSeq);
-        logger.debug("Server handler[ " + fragment.fid() + " ] send response " + curMsgSeq);
+        buf.clear();
+//        int curMsgSeq = msgSeq.getAndAdd(1);
+        buf.writeInt(msgSeq);
+        logger.debug("Server handler[ " + fragment.fid() + " ] send response " + msgSeq);
         ctx.writeAndFlush(buf);
+        msgSeq += 1;
     }
 
     @Override
@@ -60,6 +66,6 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
     public void preSuperStep(MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages){
         logger.info("Update nextIncoming msg store from " + this.nextIncomingMessages + " to " + nextIncomingMessages);
         this.nextIncomingMessages = nextIncomingMessages;
-        this.msgSeq.set(0);
+        this.msgSeq = 0;
     }
 }
