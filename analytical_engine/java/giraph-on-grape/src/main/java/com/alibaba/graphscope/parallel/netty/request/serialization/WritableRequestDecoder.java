@@ -20,9 +20,13 @@ public class WritableRequestDecoder  extends ByteToMessageDecoder {
     private static Logger logger = LoggerFactory.getLogger(WritableRequestDecoder.class);
 
     private ImmutableClassesGiraphConfiguration conf;
+    private int waitingFullMsgTimes;
+    private int decoderId;
 
-    public WritableRequestDecoder(ImmutableClassesGiraphConfiguration conf){
+    public WritableRequestDecoder(ImmutableClassesGiraphConfiguration conf, int decoderId){
         this.conf = conf;
+        waitingFullMsgTimes = 0;
+        this.decoderId = decoderId;
     }
 
     /**
@@ -53,9 +57,10 @@ public class WritableRequestDecoder  extends ByteToMessageDecoder {
         }
         if (in.readableBytes() < numBytes){
             in.resetReaderIndex();
-            logger.error("not enough num bytes: " + in.readableBytes() + " expected: " + numBytes);
+            logger.error("Decoder [" + conf.getWorkerId() + "-" + decoderId + "] not enough num bytes: " + in.readableBytes() + " expected: " + numBytes + " times:" + waitingFullMsgTimes++);
             return ;
         }
+        waitingFullMsgTimes = 0;
         // Decode the request type
         int enumValue = in.readByte();
         RequestType type = RequestType.values()[enumValue];

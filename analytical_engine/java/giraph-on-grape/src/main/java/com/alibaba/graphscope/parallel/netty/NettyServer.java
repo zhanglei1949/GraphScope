@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.giraph.conf.GiraphConstants;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.utils.ThreadUtils;
@@ -44,6 +45,7 @@ import org.slf4j.LoggerFactory;
 public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
 
     private static Logger logger = LoggerFactory.getLogger(NettyServer.class);
+    private static AtomicInteger decoderId = new AtomicInteger(0);
 
     /**
      * Send buffer size
@@ -147,11 +149,16 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
                             });
                         //TODO: optimization with fixed-frame
 //                        p.addLast(new WritableRequestEncoder(conf));
-                        p.addLast(new WritableRequestDecoder(conf));
+//                        p.addLast(new WritableRequestDecoder(conf));
+                        p.addLast("decoder", getDecoder(conf));
                         p.addLast("handler", getHandler());
                     }
                 });
         bindAddress();
+    }
+
+    private synchronized WritableRequestDecoder getDecoder(ImmutableClassesGiraphConfiguration conf){
+        return new WritableRequestDecoder(conf, decoderId.getAndAdd(1));
     }
 
     private synchronized NettyServerHandler<OID_T,GS_VID_T> getHandler(){
