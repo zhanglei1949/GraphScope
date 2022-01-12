@@ -21,7 +21,7 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
     private SimpleFragment<?,GS_VID_T,?,?> fragment;
     private static Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
     private int msgSeq;
-    private ByteBuf buf;
+//    private ByteBuf buf;
 
 
     public NettyServerHandler(SimpleFragment<?,GS_VID_T,?,?> fragment, MessageStore<OID_T,Writable,GS_VID_T> nextIncomingMessages){
@@ -29,7 +29,7 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
         this.nextIncomingMessages = nextIncomingMessages;
 //        this.msgSeq = new AtomicInteger(0);
         this.msgSeq = 0;
-        buf = new PooledByteBufAllocator(true).buffer(4);
+//        buf = new PooledByteBufAllocator(true).buffer(4);
     }
 
     /**
@@ -48,8 +48,8 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
         logger.debug("Server handler [" + fragment.fid() + "] thread: " + Thread.currentThread().getId() + " received msg: " + msg);
         msg.doRequest(nextIncomingMessages);
 
-        buf.clear();
 //        int curMsgSeq = msgSeq.getAndAdd(1);
+        ByteBuf buf = ctx.alloc().buffer(4);
         buf.writeInt(msgSeq);
         logger.debug("Server handler[ " + fragment.fid() + " ] send response " + msgSeq);
         ctx.writeAndFlush(buf);
