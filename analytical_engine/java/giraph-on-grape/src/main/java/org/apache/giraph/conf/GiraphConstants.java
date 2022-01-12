@@ -203,7 +203,7 @@ public interface GiraphConstants {
      * Use netty pooled memory buffer allocator
      */
     BooleanConfOption NETTY_USE_POOLED_ALLOCATOR = new BooleanConfOption(
-        "giraph.useNettyPooledAllocator", false, "Should netty use pooled " +
+        "giraph.useNettyPooledAllocator", true, "Should netty use pooled " +
         "memory allocator?");
 
     /**

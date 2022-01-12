@@ -18,7 +18,7 @@
     <maven.compiler.target>8</maven.compiler.target>
     <hadoop-core.version>1.2.1</hadoop-core.version>
     <jmh.version>1.21</jmh.version>
-    <skip.perf.benchmarks>false</skip.perf.benchmarks>
+    <skip.perf.benchmarks>true</skip.perf.benchmarks>
     <benchmark.filter>org.apache.hadoop.io.LongWritableTest</benchmark.filter>
     <benchmark.forks>1</benchmark.forks>
     <benchmark.jvmargs></benchmark.jvmargs>
