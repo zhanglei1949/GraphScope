@@ -29,8 +29,10 @@ import io.netty.util.concurrent.ImmediateEventExecutor;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.giraph.conf.GiraphConstants;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.utils.ThreadUtils;
@@ -72,6 +74,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
     private ImmutableClassesGiraphConfiguration conf;
     private MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages;
     private SimpleFragment fragment;
+//    private CopyOnWriteArrayList<NettyServerHandler<OID_T,GS_VID_T>> handlers;
     private List<NettyServerHandler<OID_T,GS_VID_T>> handlers;
     private Channel channel;
     /**
@@ -90,7 +93,8 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
         this.networkMap = networkMap;
         this.nextIncomingMessages = nextIncomingMessages;
         this.fragment = fragment;
-        handlers = new ArrayList<>();
+//        handlers = new CopyOnWriteArrayList<>();
+        handlers = Collections.synchronizedList(new ArrayList<>());
 
         bossThreadSize = GiraphConstants.NETTY_SERVER_BOSS_THREADS.get(conf);
         workerThreadSize = GiraphConstants.NETTY_SERVER_WORKER_THREADS.get(conf);
