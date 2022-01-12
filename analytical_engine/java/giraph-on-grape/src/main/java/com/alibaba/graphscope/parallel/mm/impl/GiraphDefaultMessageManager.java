@@ -231,11 +231,13 @@ public class GiraphDefaultMessageManager<
                 curVertex = nbr.neighbor();
                 int dstfragId = fragment.getFragId(curVertex);
                 if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
-                    throw new IllegalStateException("cross threshold");
-//                    messagesOut[dstfragId].finishSetting();
-//                    grapeMessageManager.sendToFragment(
-//                            dstfragId, messagesOut[dstfragId].getVector());
-//                    messagesOut[dstfragId].reset();
+                    messagesOut[dstfragId].writeLong(0, messagesOut[dstfragId].bytesWriten() - 8); // minus size_of_int
+                    messagesOut[dstfragId].finishSetting();
+                    grapeMessageManager.sendToFragment(dstfragId, messagesOut[dstfragId].getVector());
+//                messagesOut[dstfragId].reset();
+                    messagesOut[dstfragId] = new FFIByteVectorOutputStream();
+                    messagesOut[dstfragId].resize(THRESHOLD);
+                    messagesOut[dstfragId].writeLong(0, 0);
                 }
                 messagesOut[dstfragId].writeLong((Long) fragment.vertex2Gid(curVertex));
                 message.write(messagesOut[dstfragId]);
@@ -254,11 +256,13 @@ public class GiraphDefaultMessageManager<
 
                 int dstfragId = fragment.getFragId(curVertex);
                 if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
-                    throw new IllegalStateException("cross threshold");
-//                    messagesOut[dstfragId].finishSetting();
-//                    grapeMessageManager.sendToFragment(
-//                            dstfragId, messagesOut[dstfragId].getVector());
-//                    messagesOut[dstfragId].reset();
+                    messagesOut[dstfragId].writeLong(0, messagesOut[dstfragId].bytesWriten() - 8); // minus size_of_int
+                    messagesOut[dstfragId].finishSetting();
+                    grapeMessageManager.sendToFragment(dstfragId, messagesOut[dstfragId].getVector());
+//                messagesOut[dstfragId].reset();
+                    messagesOut[dstfragId] = new FFIByteVectorOutputStream();
+                    messagesOut[dstfragId].resize(THRESHOLD);
+                    messagesOut[dstfragId].writeLong(0, 0);
                 }
                 messagesOut[dstfragId].writeLong((Long) fragment.vertex2Gid(curVertex));
                 message.write(messagesOut[dstfragId]);

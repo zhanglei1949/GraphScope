@@ -38,7 +38,7 @@ public class MessageBenchMark extends
             for (LongWritable message : messages){
                 msgCnt += 1;
             }
-            if (vertex.getId().get() % 1000 == 0){
+            if (vertex.getId().get() % 100000 == 0){
                 logger.info("vertex: " + vertex.getId() + "receive msg size: " + msgCnt);
             }
             MessageBenchMarkWorkerContext.messageReceived += msgCnt;
