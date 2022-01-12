@@ -136,7 +136,23 @@ void CreateAndQuery(std::string params) {
   graph_spec.set_directed(true);
   graph_spec.set_rebalance(false, 0);
 
+  bool deserialize = getFromPtree<bool>(pt, OPTION_DESERIALIZE);
+  bool serialize = getFromPtree<bool>(pt, OPTION_SERIALIZE);
+  std::string serialize_prefix =
+      getFromPtree<std::string>(pt, OPTION_SERIALIZE_REPFIX);
+  VLOG(1) << "serialize: " << serialize << ", deserialize: " << deserialize
+          << ", prefix: " << serialize_prefix;
+  if (deserialize) {
+    CHECK(!serialize_prefix.empty());
+    graph_spec.set_deserialize(true, serialize_prefix);
+  } else if (serialize) {
+    CHECK(!serialize_prefix.empty())
+    graph_spec.set_serialize(true, serialize_prefix);
+  }
+
   std::shared_ptr<GRAPH_TYPE> fragment;
+
+  // if deserialzation enabled, do deserialzation
 
   fragment = LoadGraph<GRAPH_TYPE, HashPartitioner<typename GRAPH_TYPE::oid_t>>(
       efile, vfile, comm_spec, graph_spec);
@@ -155,6 +171,8 @@ void CreateAndQuery(std::string params) {
   std::string frag_name = getenv("GRAPH_TYPE");
   Query<GRAPH_TYPE>(comm_spec, fragment, driver_app_class, driver_app_context,
                     frag_name, user_lib_path, params);
+
+  // if serailzation enabled, do serialzation
 }
 
 void Finalize() {

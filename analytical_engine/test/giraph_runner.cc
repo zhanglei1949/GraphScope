@@ -36,6 +36,10 @@ DEFINE_string(java_driver_app,
 DEFINE_string(java_driver_context,
               "com.alibaba.graphscope.context.GiraphComputationAdaptorContext",
               "the driver context used in java");
+DEFINE_bool(serialize, false, "whether to serialize loaded graph.");
+DEFINE_bool(deserialize, false, "whether to deserialize graph while loading.");
+DEFINE_string(serialize_prefix, "",
+              "where to load/store the serialization files");
 
 inline void* open_lib(const char* path) {
   void* handle = dlopen(path, RTLD_LAZY);
@@ -77,6 +81,10 @@ std::string flags2JsonStr() {
   pt.put("vfile", FLAGS_vfile);
   pt.put("java_driver_app", FLAGS_java_driver_app);
   pt.put("java_driver_context", FLAGS_java_driver_context);
+  pt.put("serialize", FLAGS_serialize);
+  pt.put("deserialize", FLAGS_deserialize);
+  pt.put("serialize_prefix", FLAGS_serialize_prefix)
+
 
   std::stringstream ss;
   boost::property_tree::json_parser::write_json(ss, pt);

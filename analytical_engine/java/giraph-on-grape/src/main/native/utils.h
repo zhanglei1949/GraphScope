@@ -35,6 +35,9 @@ static constexpr const char* OPTION_VERTEX_OUTPUT_FORMAT_CLASS =
     "vertex_output_format_class";
 static constexpr const char* OPTION_EFILE = "efile";
 static constexpr const char* OPTION_VFILE = "vfile";
+static constexpr const char* OPTION_SERIALIZE = "serialize";
+static constexpr const char* OPTION_DESERIALIZE = "deserialize";
+static constexpr const char* OPTION_SERIALIZE_PREFIX = "serialize_prefix";
 static constexpr const char* OPTION_APP_CLASS = "app_class";
 static constexpr const char* OPTION_DRIVER_APP_CLASS = "java_driver_app";
 static constexpr const char* OPTION_DRIVER_CONTEXT_CLASS =
