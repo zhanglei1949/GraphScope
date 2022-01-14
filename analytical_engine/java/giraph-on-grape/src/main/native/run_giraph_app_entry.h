@@ -139,14 +139,14 @@ void CreateAndQuery(std::string params) {
   bool deserialize = getFromPtree<bool>(pt, OPTION_DESERIALIZE);
   bool serialize = getFromPtree<bool>(pt, OPTION_SERIALIZE);
   std::string serialize_prefix =
-      getFromPtree<std::string>(pt, OPTION_SERIALIZE_REPFIX);
+      getFromPtree<std::string>(pt, OPTION_SERIALIZE_PREFIX);
   VLOG(1) << "serialize: " << serialize << ", deserialize: " << deserialize
           << ", prefix: " << serialize_prefix;
   if (deserialize) {
     CHECK(!serialize_prefix.empty());
     graph_spec.set_deserialize(true, serialize_prefix);
   } else if (serialize) {
-    CHECK(!serialize_prefix.empty())
+    CHECK(!serialize_prefix.empty());
     graph_spec.set_serialize(true, serialize_prefix);
   }
 
