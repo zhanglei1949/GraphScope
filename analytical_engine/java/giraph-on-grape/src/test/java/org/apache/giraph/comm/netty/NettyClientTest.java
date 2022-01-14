@@ -2,6 +2,8 @@ package org.apache.giraph.comm.netty;
 
 import static org.mockito.Mockito.mock;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import org.apache.giraph.aggregators.LongSumAggregator;
 import org.apache.giraph.comm.WorkerInfo;
 import org.apache.giraph.comm.requests.NettyMessage;
@@ -37,7 +39,8 @@ public class NettyClientTest {
         aggregatorManager.registerAggregator("sum", LongSumAggregator.class);
         aggregatorManager.setAggregatedValue("sum", new LongWritable(0));
         //        when(conf.)
-        String hostName = System.getenv("HOSTNAME");
+//        String hostName = System.getenv("HOSTNAME");
+        String hostName = getHostIp();
         workerInfo = new WorkerInfo(0, 2,hostName , 30000, null);
         server =
                 new NettyServer(
@@ -78,5 +81,14 @@ public class NettyClientTest {
     public void close() {
         client.close();
         server.close();
+    }
+
+    private static String getHostIp(){
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Failed to get master host address");
+        }
     }
 }

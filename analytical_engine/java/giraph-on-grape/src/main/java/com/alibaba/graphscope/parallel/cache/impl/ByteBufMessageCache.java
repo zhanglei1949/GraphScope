@@ -46,11 +46,11 @@ public class ByteBufMessageCache <I extends WritableComparable,
 
 //        int cacheSize = MAX_OUT_MSG_CACHE_SIZE.get(conf);
         logger.info("ByteBuf buf setting cache size to [{}]", cacheMaximum);
-        cache = new ByteBuf[cacheMaximum];
-        cacheStream = new ByteBufOutputStream[cacheMaximum];
+        cache = new ByteBuf[fragNum];
+        cacheStream = new ByteBufOutputStream[fragNum];
 
         for (int i = 0; i < fragNum; ++i){
-            cache[i] =  conf.getNettyAllocator().buffer(cacheMaximum);
+            cache[i] = conf.getNettyAllocator().buffer(cacheMaximum);
             cacheStream[i] = new ByteBufOutputStream(cache[i]);
             cache[i].writeInt(0);
             cache[i].writeByte(0);
