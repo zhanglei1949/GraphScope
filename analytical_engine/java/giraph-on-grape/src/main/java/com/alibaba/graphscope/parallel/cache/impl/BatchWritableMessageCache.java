@@ -83,7 +83,8 @@ public class BatchWritableMessageCache<I extends WritableComparable,
             ArrayList<Writable> msgs = messageToSelf.getData();
             logger.info("worker: [" + fragId + "] messages to self should be " + gids.size() + "==" + msgs.size());
 //            for (int i = 0; i < messageToSelf.size(); ++i){
-            nextIncomingMessages.addGidMessages((Iterator<GS_VID_T>) gids.iterator(), msgs.iterator());
+            nextIncomingMessages.addGidMessages((Iterator<GS_VID_T>) gids.iterator(),
+                (Iterator<M>) msgs.iterator());
 //            }
         }
     }

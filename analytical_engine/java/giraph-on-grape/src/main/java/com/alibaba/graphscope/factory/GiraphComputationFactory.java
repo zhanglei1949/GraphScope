@@ -10,6 +10,8 @@ import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.giraph.graph.VertexIdManager;
 import org.apache.giraph.graph.impl.ImmutableEdgeManagerImpl;
+import org.apache.giraph.graph.impl.LongVidDoubleVertexDataManagerImpl;
+import org.apache.giraph.graph.impl.LongVidLongVertexIdManagerImpl;
 import org.apache.giraph.graph.impl.VertexDataManagerImpl;
 import org.apache.giraph.graph.impl.VertexIdManagerImpl;
 import org.apache.hadoop.io.Writable;
@@ -82,12 +84,16 @@ public class GiraphComputationFactory {
         Class<? extends GRAPE_EDATA_T> grapeEdataClass, SimpleFragment fragment, long vertexNum,
         ImmutableClassesGiraphConfiguration conf
     ) {
+        if (conf.getGrapeVdataClass().equals(Double.class) && conf.getGrapeVidClass().equals(Long.class)){
+            logger.info("Creating specialized long vid double vertex data manager");
+            return new LongVidDoubleVertexDataManagerImpl<VDATA_T, GRAPE_OID_T,GRAPE_VID_T,GRAPE_VDATA_T,GRAPE_EDATA_T>(fragment,vertexNum, conf);
+        }
         return new VertexDataManagerImpl<VDATA_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T>(
             fragment, vertexNum, conf);
     }
 
     public static <OID_T extends WritableComparable, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T>
-    VertexIdManagerImpl<OID_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> createDefaultVertexIdManager(
+    VertexIdManager<OID_T> createDefaultVertexIdManager(
         ImmutableClassesGiraphConfiguration conf,
         SimpleFragment<GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> frag,
         long innerVerticesNum) {
@@ -102,12 +108,16 @@ public class GiraphComputationFactory {
     }
 
     private static <OID_T extends WritableComparable, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T>
-    VertexIdManagerImpl<OID_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> createDefaultVertexIdManager(
+    VertexIdManager<OID_T> createDefaultVertexIdManager(
         Class<? extends OID_T> oidClass, Class<? extends GRAPE_OID_T> grapeOidClass,
         Class<? extends GRAPE_VID_T> grapeVidClass, Class<? extends GRAPE_VDATA_T> grapeVdataClass,
         Class<? extends GRAPE_EDATA_T> grapeEdataClass, SimpleFragment fragment, long vertexNum,
         ImmutableClassesGiraphConfiguration conf
     ) {
+        if (conf.getGrapeVidClass().equals(Long.class) && conf.getGrapeOidClass().equals(Long.class)){
+            logger.info("Creating specialized long vid long oid vertex id manager");
+            return new LongVidLongVertexIdManagerImpl<OID_T,GRAPE_OID_T,GRAPE_VID_T,GRAPE_VDATA_T,GRAPE_EDATA_T>(fragment,vertexNum,conf);
+        }
         return new VertexIdManagerImpl<OID_T, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T>(
             fragment, vertexNum, conf);
     }

@@ -279,7 +279,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
         public LongNbrIterator(Vertex<GRAPE_VID_T> vertex){
             this.edge = new DefaultEdge<>();
             AdjList<GRAPE_VID_T,GRAPE_EDATA_T> adjList = fragment.getOutgoingAdjList(vertex);
-            this.nbrIterator = adjList.iterator().iterator(); //The first <iterator> is a method returns a iterator.
+            this.nbrIterator = adjList.iterable().iterator(); //The first <iterator> is a method returns a iterator.
             edge.setTargetVertexId(configuration.createVertexId());
             edge.setValue(configuration.createEdgeValue());
 
@@ -322,7 +322,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
         public IntNbrIterator(Vertex<GRAPE_VID_T> vertex){
             this.edge = new DefaultEdge<>();
             AdjList<GRAPE_VID_T,GRAPE_EDATA_T> adjList = fragment.getOutgoingAdjList(vertex);
-            this.nbrIterator = adjList.iterator().iterator(); //The first <iterator> is a method returns a iterator.
+            this.nbrIterator = adjList.iterable().iterator(); //The first <iterator> is a method returns a iterator.
             edge.setTargetVertexId((OID_T) configuration.createVertexId());
             edge.setValue((EDATA_T) configuration.createEdgeValue());
 
@@ -353,22 +353,22 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
         FFIByteVectorOutputStream stream = new FFIByteVectorOutputStream();
         try {
             if (configuration.getGrapeEdataClass().equals(Long.class)){
-                for (Nbr<GRAPE_VID_T, GRAPE_EDATA_T> tmpNbr: adjList.iterator()){
+                for (Nbr<GRAPE_VID_T, GRAPE_EDATA_T> tmpNbr: adjList.iterable()){
                     stream.writeLong((Long) tmpNbr.data());
                 }
             }
             else if (configuration.getGrapeEdataClass().equals(Double.class)){
-                for (Nbr<GRAPE_VID_T, GRAPE_EDATA_T> tmpNbr: adjList.iterator()){
+                for (Nbr<GRAPE_VID_T, GRAPE_EDATA_T> tmpNbr: adjList.iterable()){
                     stream.writeDouble((Double) tmpNbr.data());
                 }
             }
             else if (configuration.getGrapeEdataClass().equals(Float.class)){
-                for (Nbr<GRAPE_VID_T, GRAPE_EDATA_T> tmpNbr: adjList.iterator()){
+                for (Nbr<GRAPE_VID_T, GRAPE_EDATA_T> tmpNbr: adjList.iterable()){
                     stream.writeDouble((Float) tmpNbr.data());
                 }
             }
             else if (configuration.getGrapeEdataClass().equals(Integer.class)){
-                for (Nbr<GRAPE_VID_T, GRAPE_EDATA_T> tmpNbr: adjList.iterator()){
+                for (Nbr<GRAPE_VID_T, GRAPE_EDATA_T> tmpNbr: adjList.iterable()){
                     stream.writeInt((Integer) tmpNbr.data());
                 }
             }

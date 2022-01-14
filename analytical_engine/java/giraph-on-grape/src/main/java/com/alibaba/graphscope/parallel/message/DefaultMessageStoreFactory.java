@@ -1,15 +1,23 @@
 package com.alibaba.graphscope.parallel.message;
 
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import java.util.Objects;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.conf.MessageClasses;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultMessageStoreFactory<I extends WritableComparable,
-    M extends Writable, GS_VID_T> implements MessageStoreFactory<I,M, MessageStore<I,M,GS_VID_T>>{
-    private SimpleFragment<?,GS_VID_T,?,?> fragment;
-    private ImmutableClassesGiraphConfiguration<I,?,?> conf;
+    M extends Writable, GS_VID_T> implements
+    MessageStoreFactory<I, M, MessageStore<I, M, GS_VID_T>> {
+
+    private static Logger logger = LoggerFactory.getLogger(DefaultMessageStoreFactory.class);
+
+    private SimpleFragment<?, GS_VID_T, ?, ?> fragment;
+    private ImmutableClassesGiraphConfiguration<I, ?, ?> conf;
+
     /**
      * Creates new message store.
      *
@@ -17,8 +25,26 @@ public class DefaultMessageStoreFactory<I extends WritableComparable,
      * @return New message store
      */
     @Override
-    public MessageStore<I, M,GS_VID_T> newStore(MessageClasses<I, M> messageClasses) {
-        return new SimpleMessageStore<>(fragment, conf);
+    public MessageStore<I, M, GS_VID_T> newStore(MessageClasses<I, M> messageClasses) {
+        String messageStoreType = System.getenv("messageStoreType");
+        if (Objects.nonNull(messageStoreType)) {
+            if (messageStoreType.equals("simple")) {
+                return new SimpleMessageStore<>(fragment, conf);
+            } else if (messageStoreType.equals("primitive")) {
+                //try to use primitive store for better performace.
+                if (conf.getGrapeVidClass().equals(Long.class) && messageClasses.getMessageClass()
+                    .equals(Double.class)) {
+                    if (logger.isDebugEnabled()){
+                        logger.debug("creating LongDoubleMessageDoubleMessageStore");
+                    }
+                    return (MessageStore<I, M, GS_VID_T>) new LongDoubleMessageStore<I>(fragment,
+                        conf);
+                } else {
+                    throw new IllegalStateException("Not supported");
+                }
+            }
+        }
+        throw new IllegalStateException("unrecognizable message store" + messageStoreType);
     }
 
     /**

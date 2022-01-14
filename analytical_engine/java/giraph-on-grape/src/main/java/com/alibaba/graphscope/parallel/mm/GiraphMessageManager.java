@@ -9,7 +9,7 @@ public interface GiraphMessageManager<
         VDATA_T extends Writable,
         EDATA_T extends Writable,
         IN_MSG_T extends Writable,
-        OUT_MSG_T extends Writable, GS_VID_T> {
+        OUT_MSG_T extends Writable, GS_VID_T,GS_OID_T> {
 
     /**
      * Called by our framework, to deserialize the messages from c++ to java. Must be called before

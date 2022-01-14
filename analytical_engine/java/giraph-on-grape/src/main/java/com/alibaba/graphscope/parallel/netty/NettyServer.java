@@ -23,6 +23,7 @@ import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.ImmediateEventExecutor;
@@ -47,6 +48,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
     private static Logger logger = LoggerFactory.getLogger(NettyServer.class);
     private static AtomicInteger decoderId = new AtomicInteger(0);
 
+    private int workerId;
     /**
      * Send buffer size
      */
@@ -93,6 +95,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
         final UncaughtExceptionHandler exceptionHandler) {
         this.conf = conf;
         this.networkMap = networkMap;
+        this.workerId = networkMap.getSelfWorkerId();
         this.nextIncomingMessages = nextIncomingMessages;
         this.fragment = fragment;
 //        handlers = new CopyOnWriteArrayList<>();
@@ -150,7 +153,8 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
                         //TODO: optimization with fixed-frame
 //                        p.addLast(new WritableRequestEncoder(conf));
 //                        p.addLast(new WritableRequestDecoder(conf));
-                        p.addLast("decoder", getDecoder(conf));
+                        p.addLast("requestFrameDecoder", new LengthFieldBasedFrameDecoder(1024 * 1024 * 1024, 0, 4, 0, 4));
+                        p.addLast("requestDecoder", getDecoder(conf));
                         p.addLast("handler", getHandler());
                     }
                 });
@@ -174,7 +178,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
         int maxAttempts = MAX_IPC_PORT_BIND_ATTEMPTS.get(conf);
         int curAttempt = 0;
         while (curAttempt < maxAttempts){
-            info("try binding  port: " + myPort + " for " + curAttempt + "/" + maxAttempts + " times");
+            logger.info("NettyServer[{}]: try binding port {} for {}/{} times", workerId, myPort,curAttempt,maxAttempts);
             try {
                 this.myAddress = new InetSocketAddress(myHostNameOrIp, myPort);
                 ChannelFuture f = bootstrap.bind(myAddress).sync();
@@ -185,56 +189,31 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
                 throw new IllegalStateException(e);
             } catch (Exception e) {
                 // CHECKSTYLE: resume IllegalCatchCheck
-                warn("start: Likely failed to bind on attempt " +
+                logger.warn("start: Likely failed to bind on attempt " +
                     curAttempt + " to port " + myPort + e.getCause().toString());
                 ++curAttempt;
             }
         }
-        info("start: Started server " +
-            "communication server: " + myAddress + " with up to " +
-            workerThreadSize + " threads on bind attempt " + curAttempt +
-            " with sendBufferSize = " + sendBufferSize +
-            " receiveBufferSize = " + receiveBufferSize);
+        logger.info("NettyServer[{}]: start: Started server [{}] with up to [{}] threads after bind attempts [{}], sendBufferSize = {}, receiveBufferSize = {}",
+            workerId, myAddress ,workerThreadSize, curAttempt, sendBufferSize, receiveBufferSize);
     }
 
     public void preSuperStep(MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages){
-        logger.info("Pre super step for handlers of size: " + handlers.size() + ": " + handlers);
-//        for (NettyServerHandler handler : handlers){
+        logger.info("NettyServer[{}]: Pre super step for handlers of size: {}, {}", workerId, handlers.size(), handlers);
         for (int i = 0; i < handlers.size(); ++i){
             handlers.get(i).preSuperStep(nextIncomingMessages);
         }
     }
 
-    private void warn(String msg) {
-        logger.warn(
-            "NettyServer: [" + networkMap.getSelfWorkerId() + "], Thread: [" + Thread.currentThread()
-                .getId() + "]: " + msg);
-    }
-
-    private void debug(String msg) {
-        logger.debug(
-            "NettyServer: [" + networkMap.getSelfWorkerId() + "], Thread: [" + Thread.currentThread()
-                .getId() + "]: " + msg);
-    }
-
-    private void info(String msg) {
-        logger.info(
-            "NettyServer: [" + networkMap.getSelfWorkerId() + "], Thread: [" + Thread.currentThread()
-                .getId() + "]: " + msg);
-    }
-
     public void close() {
         try {
-            debug("Closing channels of size: " + accepted.size());
+            logger.debug("NettyServer [{}]: Closing channels of size {} ", workerId, accepted.size());
             accepted.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        info("channels down...");
         workerGroup.shutdownGracefully();
         bossGroup.shutdownGracefully();
-        info("thread groups down..");
-
-        info("Successfully close server " + myAddress);
+        logger.info("NettyServer [{}]: Successfully close server {}", workerId ,myAddress);
     }
 }

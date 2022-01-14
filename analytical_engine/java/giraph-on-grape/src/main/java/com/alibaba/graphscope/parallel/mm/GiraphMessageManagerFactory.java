@@ -16,36 +16,39 @@ public class GiraphMessageManagerFactory {
     private static Logger logger = LoggerFactory.getLogger(GiraphMessageManagerFactory.class);
 
     /**
-     *
-     * @param mmType netty or mpi,
-     * @param fragment grape fragment
+     * @param mmType        netty or mpi,
+     * @param fragment      grape fragment
      * @param grapeMessager used by mpi, DefaultMessageManager
-     * @param networkMap used by netty
-     * @param conf configuration
+     * @param networkMap    used by netty
+     * @param conf          configuration
      * @return
      */
     public static GiraphMessageManager create(String mmType, SimpleFragment fragment,
-        DefaultMessageManager grapeMessager, NetworkMap networkMap, ImmutableClassesGiraphConfiguration conf) {
+        DefaultMessageManager grapeMessager, NetworkMap networkMap,
+        ImmutableClassesGiraphConfiguration conf) {
         //TODO: get ip or address from mpi.
 //        NetworkMap networkMap = new NetworkMap(conf.getWorkerId(), conf.getWorkerNum(),
 //            conf.getInitServerPort(), new String[]{"1"});
         if (mmType.equals("netty")) {
-            return createGiraphNettyMM(fragment,grapeMessager, networkMap, conf, conf.getVertexIdClass(), conf
-                .getVertexValueClass(), conf.getEdgeValueClass(), conf
-                .getIncomingMessageValueClass(), conf.getOutgoingMessageValueClass(), conf.getGrapeVidClass());
+            return createGiraphNettyMM(fragment, grapeMessager, networkMap, conf,
+                conf.getVertexIdClass(), conf
+                    .getVertexValueClass(), conf.getEdgeValueClass(), conf
+                    .getIncomingMessageValueClass(), conf.getOutgoingMessageValueClass(),
+                conf.getGrapeVidClass(), conf.getGrapeOidClass());
         } else if (mmType.equals("mpi")) {
-            return createGiraphDefaultMM(fragment, grapeMessager, conf,conf.getVertexIdClass(), conf
-                .getVertexValueClass(), conf.getEdgeValueClass(), conf
-                .getIncomingMessageValueClass(), conf.getOutgoingMessageValueClass(), conf.getGrapeVidClass());
-        }
-        else{
+            return createGiraphDefaultMM(fragment, grapeMessager, conf, conf.getVertexIdClass(),
+                conf
+                    .getVertexValueClass(), conf.getEdgeValueClass(), conf
+                    .getIncomingMessageValueClass(), conf.getOutgoingMessageValueClass(),
+                conf.getGrapeVidClass(), conf.getGrapeOidClass());
+        } else {
             logger.error("Unrecognized message manager type: [" + mmType + "]");
             return null;
         }
     }
 
-    private static <OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable, IN_MSG_T extends Writable, OUT_MSG_T extends Writable, GS_VID_T>
-    GiraphNettyMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,GS_VID_T> createGiraphNettyMM(
+    private static <OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable, IN_MSG_T extends Writable, OUT_MSG_T extends Writable, GS_VID_T, GS_OID_T>
+    GiraphNettyMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T> createGiraphNettyMM(
         SimpleFragment fragment,
         DefaultMessageManager mm,
         NetworkMap networkMap,
@@ -55,13 +58,15 @@ public class GiraphMessageManagerFactory {
         Class<? extends EDATA_T> edataClass,
         Class<? extends IN_MSG_T> inMsgClass,
         Class<? extends OUT_MSG_T> outMsgClass,
-        Class<? extends GS_VID_T> gsVidClass) {
-        return new GiraphNettyMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,GS_VID_T>(fragment,
+        Class<? extends GS_VID_T> gsVidClass,
+        Class<? extends GS_OID_T> gsOidClass) {
+        return new GiraphNettyMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T>(
+            fragment,
             networkMap, mm, conf);
     }
 
-    private static <OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable, IN_MSG_T extends Writable, OUT_MSG_T extends Writable, GS_VID_T>
-    GiraphDefaultMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,GS_VID_T> createGiraphDefaultMM(
+    private static <OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable, IN_MSG_T extends Writable, OUT_MSG_T extends Writable, GS_VID_T, GS_OID_T>
+    GiraphDefaultMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T> createGiraphDefaultMM(
         SimpleFragment fragment,
         DefaultMessageManager mm,
         ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf,
@@ -70,8 +75,10 @@ public class GiraphMessageManagerFactory {
         Class<? extends EDATA_T> edataClass,
         Class<? extends IN_MSG_T> inMsgClass,
         Class<? extends OUT_MSG_T> outMsgClass,
-        Class<? extends GS_VID_T> gsVidClass) {
-        return new GiraphDefaultMessageManager<OID_T,VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,GS_VID_T>(fragment, mm
+        Class<? extends GS_VID_T> gsVidClass,
+        Class<? extends GS_OID_T> gsOidClass) {
+        return new GiraphDefaultMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T>(
+            fragment, mm
             , conf);
     }
 

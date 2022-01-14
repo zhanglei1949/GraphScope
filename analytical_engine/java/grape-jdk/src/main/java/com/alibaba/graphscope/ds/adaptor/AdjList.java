@@ -39,7 +39,7 @@ public interface AdjList<VID_T, EDATA_T> {
      *
      * @return the iterator.
      */
-    default Iterable<Nbr<VID_T, EDATA_T>> iterator() {
+    default Iterable<Nbr<VID_T, EDATA_T>> iterable() {
         if (type().equals(GrapeAdjListAdaptor.TYPE)) {
             return () ->
                     new Iterator<Nbr<VID_T, EDATA_T>>() {

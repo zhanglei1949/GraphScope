@@ -37,16 +37,16 @@ import org.apache.hadoop.io.WritableComparable;
 public interface MessageStore<I extends WritableComparable,
     M extends Writable, GS_VID_T> {
 
-    void addLidMessage(GS_VID_T lid, Writable writable);
+    void addLidMessage(GS_VID_T lid, M writable);
 
-    void addGidMessages(Iterator<GS_VID_T> gids, Iterator<Writable> writables);
+    void addGidMessages(Iterator<GS_VID_T> gids, Iterator<M> writables);
 
     /**
      * For messages bound with gid, first get lid.
      * @param gid global id
      * @param writable msg
      */
-    void addGidMessage(GS_VID_T gid, Writable writable);
+     void addGidMessage(GS_VID_T gid, M writable);
 
     void swap(MessageStore<I,M,GS_VID_T> other);
 

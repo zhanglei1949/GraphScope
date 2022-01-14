@@ -6,6 +6,7 @@ import com.alibaba.graphscope.ds.adaptor.Nbr;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.mm.GiraphMessageManager;
+import com.alibaba.graphscope.parallel.mm.ListMessageIterable;
 import com.alibaba.graphscope.parallel.mm.MessageIterable;
 import com.alibaba.graphscope.serialization.FFIByteVectorInputStream;
 import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
@@ -16,7 +17,6 @@ import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.impl.VertexImpl;
-import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -31,8 +31,8 @@ public class GiraphDefaultMessageManager<
                 VDATA_T extends Writable,
                 EDATA_T extends Writable,
                 IN_MSG_T extends Writable,
-                OUT_MSG_T extends Writable, GS_VID_T>
-        implements GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T> {
+                OUT_MSG_T extends Writable, GS_VID_T,GS_OID_T>
+        implements GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T,GS_OID_T> {
 
     private ImmutableClassesGiraphConfiguration configuration;
     /** If cached message exceeds this threshold, we will send them immediately. */
@@ -40,9 +40,9 @@ public class GiraphDefaultMessageManager<
 
     private static Logger logger = LoggerFactory.getLogger(GiraphDefaultMessageManager.class);
 
-    private SimpleFragment fragment;
+    private SimpleFragment<GS_OID_T,GS_VID_T,?,?> fragment;
     private DefaultMessageManager grapeMessageManager;
-    private com.alibaba.graphscope.ds.Vertex grapeVertex;
+    private com.alibaba.graphscope.ds.Vertex<GS_VID_T> grapeVertex;
     private VertexRange innerVertices;
     private long maxInnerVertexLid;
     private int fragmentNum;
@@ -74,7 +74,7 @@ public class GiraphDefaultMessageManager<
 
         this.receivedMessages = new MessageIterable[(int) fragment.getInnerVerticesNum()];
         for (int i = 0; i < fragment.getInnerVerticesNum(); ++i) {
-            this.receivedMessages[i] = new MessageIterable<>();
+            this.receivedMessages[i] = new ListMessageIterable<>();
         }
 
         this.configuration = configuration;
@@ -125,19 +125,9 @@ public class GiraphDefaultMessageManager<
                 //                Writable inMsg = WritableFactory.newInMsg();
                 Writable inMsg = configuration.createInComingMessageValue();
                 inMsg.readFields(messagesIn);
-                // TODO: only for testing
-//                if (inMsg instanceof LongWritable) {
-//                    LongWritable inMsg2 = (LongWritable) inMsg;
-//                    logger.debug(
-//                            "Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
-//                } else if (inMsg instanceof DoubleWritable) {
-//                    DoubleWritable inMsg2 = (DoubleWritable) inMsg;
-//                    logger.debug(
-//                            "Got message to vertex, gid" + dstVertexGid + "msg: " + inMsg2.get());
-//                }
 
                 // store the msg
-                fragment.gid2Vertex(dstVertexGid, grapeVertex);
+                fragment.gid2Vertex((GS_VID_T) (Long)dstVertexGid, grapeVertex);
                 com.alibaba.graphscope.ds.Vertex<Long> grapeVertex2 =
                         (com.alibaba.graphscope.ds.Vertex<Long>) grapeVertex;
                 if (grapeVertex2.GetValue() >= maxInnerVertexLid) {
@@ -186,7 +176,7 @@ public class GiraphDefaultMessageManager<
         if (dstOid instanceof LongWritable) {
             LongWritable longOid = (LongWritable) dstOid;
             // Get lid from oid
-            boolean res = fragment.getVertex(longOid.get(), grapeVertex);
+            boolean res = fragment.getVertex((GS_OID_T) (Long)longOid.get(), grapeVertex);
             //            tmpVertex.SetValue(longOid.get());
             logger.debug("oid -> lid: return :" + res + ", oid:" + longOid + ", " + grapeVertex.GetValue());
             int dstfragId = fragment.getFragId(grapeVertex);
@@ -219,12 +209,12 @@ public class GiraphDefaultMessageManager<
     public void sendMessageToAllEdges(Vertex<OID_T, VDATA_T, EDATA_T> vertex, OUT_MSG_T message) {
         VertexImpl<OID_T, VDATA_T, EDATA_T> vertexImpl =
                 (VertexImpl<OID_T, VDATA_T, EDATA_T>) vertex;
-        grapeVertex.SetValue(vertexImpl.getLocalId());
+        grapeVertex.SetValue((GS_VID_T) (Long)vertexImpl.getLocalId());
 
         // send msg through outgoing adjlist
         AdjList adjList = fragment.getOutgoingAdjList(grapeVertex);
-        Iterable<Nbr> iterable = adjList.iterator();
-        com.alibaba.graphscope.ds.Vertex<Long> curVertex;
+        Iterable<Nbr> iterable = adjList.iterable();
+        com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex;
         try {
             for (Iterator<Nbr> it = iterable.iterator(); it.hasNext(); ) {
                 Nbr nbr = it.next();
@@ -248,7 +238,7 @@ public class GiraphDefaultMessageManager<
 
         // send msg through incoming adjlist
         adjList = fragment.getIncomingAdjList(grapeVertex);
-        iterable = adjList.iterator();
+        iterable = adjList.iterable();
         try {
             for (Iterator<Nbr> it = iterable.iterator(); it.hasNext(); ) {
                 Nbr nbr = it.next();

@@ -158,33 +158,7 @@ public interface GiraphConstants {
         new IntConfOption("giraph.channelsPerServer", 1,
             "Number of channels used per server");
 
-    /**
-     * Client send buffer size
-     */
-    IntConfOption CLIENT_SEND_BUFFER_SIZE =
-        new IntConfOption("giraph.clientSendBufferSize", 1024 * ONE_KB,
-            "Client send buffer size");
 
-    /**
-     * Client receive buffer size
-     */
-    IntConfOption CLIENT_RECEIVE_BUFFER_SIZE =
-        new IntConfOption("giraph.clientReceiveBufferSize", 32 * ONE_KB,
-            "Client receive buffer size");
-
-    /**
-     * Server send buffer size
-     */
-    IntConfOption SERVER_SEND_BUFFER_SIZE =
-        new IntConfOption("giraph.serverSendBufferSize", 32 * ONE_KB,
-            "Server send buffer size");
-
-    /**
-     * Server receive buffer size
-     */
-    IntConfOption SERVER_RECEIVE_BUFFER_SIZE =
-        new IntConfOption("giraph.serverReceiveBufferSize", 1024 * ONE_KB,
-            "Server receive buffer size");
 
     /**
      * Warn if msg request size exceeds default size by this factor
@@ -217,8 +191,51 @@ public interface GiraphConstants {
      * How big to make the encoder buffer?
      */
     IntConfOption NETTY_REQUEST_ENCODER_BUFFER_SIZE =
-        new IntConfOption("giraph.nettyRequestEncoderBufferSize", 1024 * ONE_KB,
+        new IntConfOption("giraph.nettyRequestEncoderBufferSize", 1048 * ONE_KB,
             "How big to make the encoder buffer?");
+    /**
+     * Client send buffer size
+     */
+    IntConfOption CLIENT_SEND_BUFFER_SIZE =
+        new IntConfOption("giraph.clientSendBufferSize", 2048 * ONE_KB,
+            "Client send buffer size");
+
+    /**
+     * Client receive buffer size
+     */
+    IntConfOption CLIENT_RECEIVE_BUFFER_SIZE =
+        new IntConfOption("giraph.clientReceiveBufferSize", 32 * ONE_KB,
+            "Client receive buffer size");
+
+    /**
+     * Server send buffer size
+     */
+    IntConfOption SERVER_SEND_BUFFER_SIZE =
+        new IntConfOption("giraph.serverSendBufferSize", 32 * ONE_KB,
+            "Server send buffer size");
+
+    /**
+     * Server receive buffer size. a little bit larger than request size.
+     */
+    IntConfOption SERVER_RECEIVE_BUFFER_SIZE =
+        new IntConfOption("giraph.serverReceiveBufferSize", 2048 * ONE_KB,
+            "Server receive buffer size");
+
+    /**
+     * This represents the size of message cache, so actual cache bytes is generally (8 + 8) *
+     * aggregate_size; before flush.
+     *
+     * This is only used by batchWritable cache.
+     */
+    IntConfOption MESSAGE_AGGREGATE_SIZE = new IntConfOption("giraph.messageAggregateSize",
+        64 * ONE_KB,
+        "how many size of request we aggregate together for sending in bulk");
+
+    /**
+     * Should be used by byteBuf cache.
+     */
+    IntConfOption MAX_OUT_MSG_CACHE_SIZE = new IntConfOption("giraph.maxOutMsgCacheSize", 1024 * ONE_KB,
+        "Max number of bytes in cache before flushing");
 
     /**
      * Netty client threads
@@ -344,7 +361,7 @@ public interface GiraphConstants {
 //    StrConfOption MESSAGE_MANAGER_TYPE = new StrConfOption("giraph.messageManagerType", "netty",
 //        "default message manager to use");
 
-        StrConfOption MESSAGE_MANAGER_TYPE = new StrConfOption("giraph.messageManagerType", "mpi",
+    StrConfOption MESSAGE_MANAGER_TYPE = new StrConfOption("giraph.messageManagerType", "mpi",
         "default message manager to use");
 
     IntConfOption INET_ADDRESS_MAX_RESOLVE_TIMES = new IntConfOption(
@@ -367,6 +384,11 @@ public interface GiraphConstants {
             MessageStoreFactory.class,
             "Message Store Factory Class that is to be used");
 
-    IntConfOption MESSAGE_AGGREGATE_SIZE = new IntConfOption("giraph.messageAggregateSize", 6000000,
-        "how many size of request we aggregate together for sending in bulk");
+
+
+    /**
+     * Default use byteBuf message cache.
+     */
+    StrConfOption OUT_MESSAGE_CACHE_TYPE = new StrConfOption("giraph.outMessageCacheType",
+        "ByteBuf", "which type of out message cache to use");
 }

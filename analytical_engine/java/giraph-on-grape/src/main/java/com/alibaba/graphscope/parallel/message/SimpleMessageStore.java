@@ -40,7 +40,7 @@ public class SimpleMessageStore<OID_T extends WritableComparable, IN_MSG_T exten
     }
 
     @Override
-    public void addLidMessage(GS_VID_T lid, Writable writable) {
+    public void addLidMessage(GS_VID_T lid, IN_MSG_T writable) {
         if (!messages.containsKey(lid)){
             messages.put(lid, new ArrayList<>());
         }
@@ -48,7 +48,7 @@ public class SimpleMessageStore<OID_T extends WritableComparable, IN_MSG_T exten
     }
 
     @Override
-    public void addGidMessages(Iterator<GS_VID_T> gidIterator, Iterator<Writable> writableIterator) {
+    public void addGidMessages(Iterator<GS_VID_T> gidIterator, Iterator<IN_MSG_T> writableIterator) {
         int cnt = 0;
         while (gidIterator.hasNext() && writableIterator.hasNext()){
             GS_VID_T gid = gidIterator.next();
@@ -68,7 +68,7 @@ public class SimpleMessageStore<OID_T extends WritableComparable, IN_MSG_T exten
     }
 
     @Override
-    public synchronized void addGidMessage(GS_VID_T gid, Writable writable) {
+    public synchronized void addGidMessage(GS_VID_T gid, IN_MSG_T writable) {
         vertex.SetValue(gid);
         boolean res = fragment.gid2Vertex(gid,vertex);
         GS_VID_T lid = vertex.GetValue();

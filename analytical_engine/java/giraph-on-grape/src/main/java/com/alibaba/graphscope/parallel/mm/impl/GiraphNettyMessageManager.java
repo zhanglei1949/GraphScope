@@ -4,12 +4,10 @@ import static org.apache.giraph.conf.GiraphConstants.MAX_CONN_TRY_ATTEMPTS;
 import static org.apache.giraph.conf.GiraphConstants.MAX_IPC_PORT_BIND_ATTEMPTS;
 import static org.apache.giraph.conf.GiraphConstants.MESSAGE_STORE_FACTORY_CLASS;
 
-import com.alibaba.graphscope.ds.adaptor.AdjList;
 import com.alibaba.graphscope.ds.adaptor.Nbr;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.cache.SendMessageCache;
-import com.alibaba.graphscope.parallel.cache.impl.BatchWritableMessageCache;
 import com.alibaba.graphscope.parallel.message.MessageStore;
 import com.alibaba.graphscope.parallel.message.MessageStoreFactory;
 import com.alibaba.graphscope.parallel.mm.GiraphMessageManager;
@@ -17,7 +15,6 @@ import com.alibaba.graphscope.parallel.netty.NettyClient;
 import com.alibaba.graphscope.parallel.netty.NettyServer;
 import com.alibaba.graphscope.parallel.utils.NetworkMap;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
-import java.util.Iterator;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.impl.VertexImpl;
@@ -50,18 +47,18 @@ public class GiraphNettyMessageManager<
     VDATA_T extends Writable,
     EDATA_T extends Writable,
     IN_MSG_T extends Writable,
-    OUT_MSG_T extends Writable, GS_VID_T> implements
-    GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T> {
+    OUT_MSG_T extends Writable, GS_VID_T, GS_OID_T> implements
+    GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T,GS_OID_T> {
 
     private static Logger logger = LoggerFactory.getLogger(GiraphNettyMessageManager.class);
 
     private ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf;
     private NetworkMap networkMap;
 
-    private SendMessageCache outMessageCache;
+    private SendMessageCache<OID_T, OUT_MSG_T, GS_VID_T> outMessageCache;
     private NettyClient client;
     private NettyServer<OID_T, GS_VID_T> server;
-    private SimpleFragment fragment;
+    private SimpleFragment<GS_OID_T, GS_VID_T,?,?> fragment;
     /**
      * Message store factory
      */
@@ -77,11 +74,13 @@ public class GiraphNettyMessageManager<
      */
     private volatile MessageStore<OID_T, IN_MSG_T, GS_VID_T> currentIncomingMessageStore;
 
-    private com.alibaba.graphscope.ds.Vertex grapeVertex;
+    private com.alibaba.graphscope.ds.Vertex<GS_VID_T> grapeVertex;
 
     private int fragId, fragNum;
 
     private DefaultMessageManager grapeMessager;
+
+    private Class<? extends GS_OID_T> gsOidClass;
 
     /**
      * The constructor is the preApplication.
@@ -99,13 +98,16 @@ public class GiraphNettyMessageManager<
         this.grapeMessager = mm;
         this.fragId = fragment.fid();
         this.fragNum = fragment.fnum();
+        this.gsOidClass = (Class<? extends GS_OID_T>) conf.getGrapeOidClass();
 
         initMessageStore();
         //Netty server depends on message store.
         initNetty();
 
-        outMessageCache = new BatchWritableMessageCache(fragNum, fragId, client, conf);
-        grapeVertex = FFITypeFactoryhelper.newVertex(conf.getGrapeVidClass());
+        // Create different type of message cache as needed.
+        outMessageCache = (SendMessageCache<OID_T, OUT_MSG_T, GS_VID_T>) SendMessageCache.newMessageCache(
+            fragNum, fragId, client, conf);
+        grapeVertex = (com.alibaba.graphscope.ds.Vertex<GS_VID_T>) FFITypeFactoryhelper.newVertex(conf.getGrapeVidClass());
     }
 
     public void initNetty() {
@@ -160,7 +162,7 @@ public class GiraphNettyMessageManager<
      */
     @Override
     public Iterable<IN_MSG_T> getMessages(long lid) {
-        return (Iterable<IN_MSG_T>) currentIncomingMessageStore.getMessages(lid);
+        return currentIncomingMessageStore.getMessages(lid);
     }
 
     /**
@@ -184,18 +186,8 @@ public class GiraphNettyMessageManager<
     public void sendMessage(OID_T dstOid, OUT_MSG_T message) {
         if (dstOid instanceof LongWritable) {
             Long longOid = ((LongWritable) dstOid).get();
-            // Get lid from oid
-
-            boolean res = fragment.getVertex(longOid, grapeVertex);
-//            logger.debug(
-//                "oid 2 lid: res: " + res + " oid: " + longOid + ", " + grapeVertex.GetValue());
-
-            int dstfragId = fragment.getFragId(grapeVertex);
-//            logger.debug(
-//                "Message manager sending via cache, dst frag: [" + dstfragId + "] dst gid: "
-//                    + fragment.vertex2Gid(grapeVertex) + "msg: " + message);
-            outMessageCache
-                .sendMessage(dstfragId, (Long) fragment.vertex2Gid(grapeVertex), message);
+            assert fragment.getVertex((GS_OID_T) longOid, grapeVertex);
+            sendLidMessage(grapeVertex, message);
         } else {
             throw new IllegalStateException("Expect a long writable");
         }
@@ -211,31 +203,22 @@ public class GiraphNettyMessageManager<
     public void sendMessageToAllEdges(Vertex<OID_T, VDATA_T, EDATA_T> vertex, OUT_MSG_T message) {
         VertexImpl<OID_T, VDATA_T, EDATA_T> vertexImpl =
             (VertexImpl<OID_T, VDATA_T, EDATA_T>) vertex;
-        grapeVertex.SetValue(vertexImpl.getLocalId());
+        grapeVertex.SetValue((GS_VID_T) (Long) vertexImpl.getLocalId());
 
         // send msg through outgoing adjlist
-        AdjList adjList = fragment.getOutgoingAdjList(grapeVertex);
-        Iterable<Nbr> iterable = adjList.iterator();
-        com.alibaba.graphscope.ds.Vertex<Long> curVertex;
-//        if (message instanceof LongWritable) {
-//            LongWritable longWritable = (LongWritable) message;
-        for (Iterator<Nbr> it = iterable.iterator(); it.hasNext(); ) {
-            Nbr nbr = it.next();
-            curVertex = nbr.neighbor();
-            int dstfragId = fragment.getFragId(curVertex);
-            long gid = (long) fragment.vertex2Gid(curVertex);
-            outMessageCache.sendMessage(dstfragId, gid, message);
+        for (Nbr<GS_VID_T,?> nbr : fragment.getOutgoingAdjList(grapeVertex).iterable()){
+            com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
+            sendLidMessage(curVertex, message);
         }
-        // send msg through incoming adjlist
-        adjList = fragment.getIncomingAdjList(grapeVertex);
-        iterable = adjList.iterator();
-        for (Iterator<Nbr> it = iterable.iterator(); it.hasNext(); ) {
-            Nbr nbr = it.next();
-            curVertex = nbr.neighbor();
-            int dstfragId = fragment.getFragId(curVertex);
-            long gid = (long) fragment.vertex2Gid(curVertex);
-            outMessageCache.sendMessage(dstfragId, gid, message);
+        for (Nbr<GS_VID_T,?> nbr : fragment.getIncomingAdjList(grapeVertex).iterable()){
+            com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
+            sendLidMessage(curVertex, message);
         }
+    }
+
+    private void sendLidMessage(com.alibaba.graphscope.ds.Vertex<GS_VID_T> nbrVertex, OUT_MSG_T message){
+        int dstfragId = fragment.getFragId(nbrVertex);
+        outMessageCache.sendMessage(dstfragId, fragment.vertex2Gid(nbrVertex), message);
     }
 
     /**
@@ -243,7 +226,6 @@ public class GiraphNettyMessageManager<
      */
     @Override
     public void finishMessageSending() {
-//        client.waitAllRequests();
         outMessageCache.flushMessage();
     }
 
@@ -270,21 +252,15 @@ public class GiraphNettyMessageManager<
 
     @Override
     public void postSuperstep() {
-        //wait for messages sent.
-//        client.waitAllRequests();
         //sync netty server with client, make sure server received the request.
-        /** Add to self cache */
-        outMessageCache.removeMessageToSelf(nextIncomingMessageStore);
+        /** Add to self cache, IN_MSG_T must be same as OUT_MSG_T */
+        outMessageCache.removeMessageToSelf(
+            (MessageStore<OID_T, OUT_MSG_T, GS_VID_T>) nextIncomingMessageStore);
         currentIncomingMessageStore.swap(nextIncomingMessageStore);
         nextIncomingMessageStore.clearAll();
         outMessageCache.clear();
+
         client.postSuperStep();
-//        client.postSuperstep();
-//        currentIncomingMessageStore.clearAll();
-        //Remove messages to self in cache, and send them to nextIncomingMessage store.
-//        nextIncomingMessageStore.remo(outMessageCache.getMessageToSelf());
-        //If client sent all messages, then server should have already resolved them since
-        //we need the ack back.
     }
 
     @Override

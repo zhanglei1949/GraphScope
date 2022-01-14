@@ -27,6 +27,7 @@ import com.alibaba.graphscope.utils.UnsafeByteArrayInputStream;
 import com.alibaba.graphscope.utils.UnsafeByteArrayOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 import org.apache.giraph.combiner.MessageCombiner;
 import org.apache.giraph.factories.MessageValueFactory;
 import org.apache.giraph.graph.Computation;
@@ -467,6 +468,19 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
         ExtendedDataOutput extendedDataOutput) {
         return createExtendedDataInput(extendedDataOutput.getByteArray(), 0,
             extendedDataOutput.getPos());
+    }
+
+    public String getOutMessageCacheType(){
+        String messageCacheType = System.getenv("OUT_MESSAGE_CACHE_TYPE");
+        if (Objects.nonNull(messageCacheType)){
+            if (messageCacheType.equals("ByteBuf") || messageCacheType.equals("BatchWritable")){
+                return messageCacheType;
+            }
+            else {
+                throw new IllegalStateException("Wrong type of out message cache type {}" + messageCacheType);
+            }
+        }
+        return OUT_MESSAGE_CACHE_TYPE.get(this);
     }
 
 }

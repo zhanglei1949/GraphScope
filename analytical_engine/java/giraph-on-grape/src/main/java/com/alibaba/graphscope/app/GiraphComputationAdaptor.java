@@ -92,7 +92,7 @@ public class GiraphComputationAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> extends
         giraphMessageManager.preSuperstep();
         //In first round, there is no message, we pass an empty iterable.
 //        Iterable<LongWritable> messages = new MessageIterable<>();
-        Iterable<Writable> messages = new MessageIterable<>();
+        Iterable<Writable> messages = MessageIterable.emptyMessageIterable;
 
         //TODO: remove this debug code
         VertexDataManager vertexDataManager = ctx.vertex.getVertexDataManager();

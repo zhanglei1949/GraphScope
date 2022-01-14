@@ -19,6 +19,7 @@
 package org.apache.giraph.utils;
 
 import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
+import com.alibaba.graphscope.parallel.netty.request.impl.ByteBufRequest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import org.apache.giraph.comm.requests.NettyMessage;
@@ -65,6 +66,10 @@ public class RequestUtils {
      */
     public static WritableRequest decodeWritableRequest(ByteBuf buf,
         WritableRequest request) throws IOException {
+        if (request.getRequestType().getClazz().equals(ByteBufRequest.class)){
+            request.setBuffer(buf);
+            return request;
+        }
         ByteBufInputStream input = new ByteBufInputStream(buf);
         request.readFields(input);
         return request;

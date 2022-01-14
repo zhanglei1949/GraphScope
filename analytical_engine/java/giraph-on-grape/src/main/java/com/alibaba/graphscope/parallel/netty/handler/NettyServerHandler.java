@@ -21,6 +21,8 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
     private SimpleFragment<?,GS_VID_T,?,?> fragment;
     private static Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
     private int msgSeq;
+
+    public static int RESPONSE_BYTES = 4;
 //    private ByteBuf buf;
 
 
@@ -45,13 +47,13 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
      */
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WritableRequest msg) throws Exception {
-        logger.debug("Server handler [" + fragment.fid() + "] thread: " + Thread.currentThread().getId() + " received msg: " + msg);
+        logger.debug("Server handler [{}] thread: [{}] received msg: {}", fragment.fid(), Thread.currentThread().getId(),msg);
         msg.doRequest(nextIncomingMessages);
 
 //        int curMsgSeq = msgSeq.getAndAdd(1);
-        ByteBuf buf = ctx.alloc().buffer(4);
+        ByteBuf buf = ctx.alloc().buffer(RESPONSE_BYTES);
         buf.writeInt(msgSeq);
-        logger.debug("Server handler[ " + fragment.fid() + " ] send response " + msgSeq);
+        logger.debug("Server handler[{}] send response [{}]", fragment.fid(),  msgSeq);
         ctx.writeAndFlush(buf);
         msgSeq += 1;
     }

@@ -4,7 +4,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import java.util.concurrent.atomic.AtomicInteger;
-import jnr.ffi.annotations.In;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,12 +39,12 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
         }
         int seq = buf.readInt();
         int cnt = messageReceivedCount.addAndGet(1);
-        logger.debug("Client handler [" + workerId + "] receive: " + seq
-            + " from server, current msg count: " + cnt);
+        logger.debug("Client handler [{}] receive msg no.{} from server, current msg count {}",
+            workerId, seq, cnt);
         if (cnt >= pendingRequestSize) {
-            logger.debug("Client handler [" + workerId
-                + "] notify waiting on response cnt, since current num response: " + cnt
-                + " pending req size: " + pendingRequestSize);
+            logger.debug(
+                "Client handler [{}] finish waiting. since current num response arrived: {}/{}",
+                workerId, cnt, pendingRequestSize);
             synchronized (messageReceivedCount) {
                 messageReceivedCount.notify();
             }
@@ -55,7 +54,7 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         if (logger.isDebugEnabled()) {
-            logger.debug("channelClosed: Closed the channel on " +
+            logger.debug("Client handler [{}] :channelClosed: Closed the channel on {}", workerId,
                 ctx.channel().remoteAddress());
         }
         ctx.fireChannelInactive();
@@ -64,34 +63,35 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)
         throws Exception {
-        logger.warn("exceptionCaught: Channel channelId=" +
-            ctx.channel().hashCode() + " failed with remote address " +
+        logger.warn(
+            "Client handler [{}]: exceptionCaught: Channel channelId={}, failed with remote address {}, cause: {}",
+            workerId, ctx.channel().hashCode(),
             ctx.channel().remoteAddress(), cause);
     }
 
-    public void postSuperStep(){
+    public void postSuperStep() {
         this.pendingRequestSize = Integer.MAX_VALUE;
         messageReceivedCount.set(0);
     }
 
     public void waitForResponse(int pendingRequestSize) {
         this.pendingRequestSize = pendingRequestSize;
-        logger.debug("Client handler [" + workerId +"update pending request size to " + this.pendingRequestSize);
+        logger.debug("Client handler [{}] waiting for responses {}", workerId, pendingRequestSize);
         if (messageReceivedCount.get() == pendingRequestSize) {
-            if (pendingRequestSize == 0){
+            if (pendingRequestSize == 0) {
                 logger.debug("no waiting since no message sent");
-                return ;
+                return;
             }
-            logger.debug("Client handler [" + workerId +"All responses have arrived before starting waiting.");
+            logger.debug("Client handler [{}] All responses have arrived before starting waiting.", workerId);
             return;
         } else if (messageReceivedCount.get() > pendingRequestSize) {
             throw new IllegalStateException("Not possible");
         }
         synchronized (messageReceivedCount) {
             try {
-                logger.info("Client handler [" + workerId + "] starting waiting for response");
+                logger.debug("Client handler [{}] starting waiting for response, {}/{}", workerId, messageReceivedCount.get(), pendingRequestSize);
                 messageReceivedCount.wait();
-                logger.info("Client handler [" + workerId + "] finish waiting for response");
+                logger.debug("Client handler [{}] finish waiting for response, {}/{}", workerId, messageReceivedCount.get(), pendingRequestSize);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

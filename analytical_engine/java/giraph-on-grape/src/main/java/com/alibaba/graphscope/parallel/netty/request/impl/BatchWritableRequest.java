@@ -6,6 +6,7 @@ import com.alibaba.graphscope.parallel.netty.request.RequestType;
 import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
 import com.alibaba.graphscope.utils.Gid2Data;
 import com.alibaba.graphscope.utils.Gid2DataFixed;
+import io.netty.buffer.ByteBuf;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -62,6 +63,19 @@ public class BatchWritableRequest extends WritableRequest {
     public int getNumBytes() {
 //        return data.serializedSize();
         return UNKNOWN_SIZE;
+    }
+
+    /**
+     * @param buf
+     */
+    @Override
+    public void setBuffer(ByteBuf buf) {
+        throw new IllegalStateException("Not implemented");
+    }
+
+    @Override
+    public ByteBuf getBuffer() {
+        throw new IllegalStateException("not implemented");
     }
 
     /**

@@ -3,6 +3,7 @@ package com.alibaba.graphscope.parallel.netty.request.impl;
 import com.alibaba.graphscope.parallel.message.MessageStore;
 import com.alibaba.graphscope.parallel.netty.request.RequestType;
 import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
+import io.netty.buffer.ByteBuf;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -51,5 +52,17 @@ public class OneLongWritableRequest extends WritableRequest {
     @Override
     public void doRequest(MessageStore messageStore) {
         throw new IllegalStateException("Not implemented");
+    }
+    /**
+     * @param buf
+     */
+    @Override
+    public void setBuffer(ByteBuf buf) {
+        throw new IllegalStateException("Not implemented");
+    }
+
+    @Override
+    public ByteBuf getBuffer() {
+        throw new IllegalStateException("not implemented");
     }
 }

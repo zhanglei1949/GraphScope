@@ -1,6 +1,7 @@
 package com.alibaba.graphscope.parallel.netty.request;
 
 import com.alibaba.graphscope.parallel.message.MessageStore;
+import io.netty.buffer.ByteBuf;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -15,15 +16,19 @@ public abstract class WritableRequest<I extends WritableComparable,
 
     public static final int UNKNOWN_SIZE = -1;
 
-    /** Configuration */
+    /**
+     * Configuration
+     */
     protected ImmutableClassesGiraphConfiguration<I, V, E> conf;
+
     /**
      * Serialization of request type is taken care by encoder.
+     *
      * @return request type.
      */
     public abstract RequestType getRequestType();
 
-    public abstract void readFieldsRequest(DataInput input) throws  IOException;
+    public abstract void readFieldsRequest(DataInput input) throws IOException;
 
     public abstract void writeFieldsRequest(DataOutput output) throws IOException;
 
@@ -31,22 +36,29 @@ public abstract class WritableRequest<I extends WritableComparable,
 
     /**
      * Apply this request on this message storage.
+     *
      * @param messageStore message store.
      */
-    public abstract void doRequest(MessageStore<I, Writable,?> messageStore);
+    public abstract void doRequest(MessageStore<I, Writable, ?> messageStore);
 
     @Override
     public final void readFields(DataInput input) throws IOException {
-//        int numOfBytes= input.readInt();
-        //read but not used.
         readFieldsRequest(input);
     }
 
     @Override
     public final void write(DataOutput output) throws IOException {
-//        output.writeInt(getNumBytes());
         writeFieldsRequest(output);
     }
+
+    /**
+     *
+     * @param buf
+     */
+    public abstract void setBuffer(ByteBuf buf);
+
+    public abstract ByteBuf getBuffer();
+
     @Override
     public final ImmutableClassesGiraphConfiguration<I, V, E> getConf() {
         return conf;

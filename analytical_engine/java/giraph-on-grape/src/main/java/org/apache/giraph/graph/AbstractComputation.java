@@ -40,14 +40,14 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      */
 //    private Communicator communicator;
         private AggregatorManager aggregatorManager;
-    private GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,?> giraphMessageManager;
+    private GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,?,?> giraphMessageManager;
     private SimpleFragment fragment;
     private int curStep = 0;
     private WorkerContext workerContext;
 //    private AggregatorManager aggregatorManager;
 
     public void setGiraphMessageManager(
-        GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,?> giraphMessageManager) {
+        GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,?,?> giraphMessageManager) {
         this.giraphMessageManager = giraphMessageManager;
     }
 
