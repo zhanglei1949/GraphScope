@@ -4,6 +4,7 @@ import com.alibaba.graphscope.fragment.SimpleFragment;
 import java.util.Objects;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.conf.MessageClasses;
+import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
@@ -33,14 +34,17 @@ public class DefaultMessageStoreFactory<I extends WritableComparable,
             } else if (messageStoreType.equals("primitive")) {
                 //try to use primitive store for better performace.
                 if (conf.getGrapeVidClass().equals(Long.class) && messageClasses.getMessageClass()
-                    .equals(Double.class)) {
-                    if (logger.isDebugEnabled()){
+                    .equals(DoubleWritable.class)) {
+                    if (logger.isDebugEnabled()) {
                         logger.debug("creating LongDoubleMessageDoubleMessageStore");
                     }
                     return (MessageStore<I, M, GS_VID_T>) new LongDoubleMessageStore<I>(fragment,
                         conf);
                 } else {
-                    throw new IllegalStateException("Not supported");
+                    throw new IllegalStateException(
+                        "Not supported primitve store: vid:" + conf.getGrapeVidClass()
+                            .getSimpleName() + ", msg:" + messageClasses.getMessageClass()
+                            .getSimpleName());
                 }
             }
         }
