@@ -45,7 +45,7 @@ public class LongVidDoubleVertexDataManagerImpl<VDATA_T extends Writable,GRAPE_O
     public VDATA_T getVertexData(long lid) {
         checkLid(lid);
         grapeVertex.SetValue(lid);
-        double vertexData = (double) fragment.getData((Vertex<GRAPE_VID_T>) grapeVertex);
+        Double vertexData = (Double) fragment.getData((Vertex<GRAPE_VID_T>) grapeVertex);
         return (VDATA_T) new DoubleWritable(vertexData);
     }
 

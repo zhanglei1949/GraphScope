@@ -83,7 +83,7 @@ std::string flags2JsonStr() {
   pt.put("java_driver_context", FLAGS_java_driver_context);
   pt.put("serialize", FLAGS_serialize);
   pt.put("deserialize", FLAGS_deserialize);
-  pt.put("serialize_prefix", FLAGS_serialize_prefix)
+  pt.put("serialize_prefix", FLAGS_serialize_prefix);
 
 
   std::stringstream ss;

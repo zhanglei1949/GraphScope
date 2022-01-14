@@ -52,7 +52,7 @@ public class LongVidLongVertexIdManagerImpl<OID_T extends WritableComparable, GR
     public OID_T getId(long lid) {
         checkLid(lid);
         grapeVertex.SetValue(lid);
-        long oid = (long) fragment.getId((Vertex<GRAPE_VID_T>) grapeVertex);
+        Long oid = (Long) fragment.getId((Vertex<GRAPE_VID_T>) grapeVertex);
         return (OID_T) new LongWritable(oid);
     }
 
