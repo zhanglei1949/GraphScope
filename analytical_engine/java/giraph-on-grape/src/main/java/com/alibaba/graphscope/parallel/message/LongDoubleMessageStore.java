@@ -128,9 +128,15 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
                 return;
             }
             Map<Long, List<Double>> tmp;
+            if (logger.isDebugEnabled()){
+                logger.debug("Before swap {} vs {}", this.messages, longDoubleMessageStore.messages);
+            }
             tmp = this.messages;
             this.messages = longDoubleMessageStore.messages;
             longDoubleMessageStore.messages = tmp;
+            if (logger.isDebugEnabled()){
+                logger.debug("After swap {} vs {}", this.messages, longDoubleMessageStore.messages);
+            }
         } else {
             logger.error("Can not swap with a non-longDoubleMessageStore obj");
         }
