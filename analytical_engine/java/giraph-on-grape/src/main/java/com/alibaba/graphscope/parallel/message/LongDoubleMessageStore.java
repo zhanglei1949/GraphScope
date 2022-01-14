@@ -94,10 +94,13 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
 
     /**
      * For input byteBuf, parse and update our store.
+     *
+     * The received buf contains 4+1+data.
      * @param buf
      */
     public void digestByteBuf(ByteBuf buf){
         ByteBuf bufCopy = buf.copy();
+        bufCopy.skipBytes(5);
         if (bufCopy.readableBytes() % 16 != 0){
             throw new IllegalStateException("Expect number of bytes times of 16");
         }
