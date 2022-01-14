@@ -33,7 +33,7 @@ public class MessageBenchMark extends
             vertex.voteToHalt();
             return ;
         }
-        if (getSuperstep() > 1){
+        if (getSuperstep() >= 1){
             int msgCnt = 0;
             for (DoubleWritable message : messages){
                 msgCnt += 1;

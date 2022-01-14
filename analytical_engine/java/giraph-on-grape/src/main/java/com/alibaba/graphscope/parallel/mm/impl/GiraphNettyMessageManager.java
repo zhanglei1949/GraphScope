@@ -227,6 +227,9 @@ public class GiraphNettyMessageManager<
     @Override
     public void finishMessageSending() {
         outMessageCache.flushMessage();
+        /** Add to self cache, IN_MSG_T must be same as OUT_MSG_T */
+        outMessageCache.removeMessageToSelf(
+            (MessageStore<OID_T, OUT_MSG_T, GS_VID_T>) nextIncomingMessageStore);
     }
 
     /**
@@ -252,10 +255,7 @@ public class GiraphNettyMessageManager<
 
     @Override
     public void postSuperstep() {
-        //sync netty server with client, make sure server received the request.
-        /** Add to self cache, IN_MSG_T must be same as OUT_MSG_T */
-        outMessageCache.removeMessageToSelf(
-            (MessageStore<OID_T, OUT_MSG_T, GS_VID_T>) nextIncomingMessageStore);
+        outMessageCache.clear();
         currentIncomingMessageStore.swap(nextIncomingMessageStore);
         nextIncomingMessageStore.clearAll();
         outMessageCache.clear();
