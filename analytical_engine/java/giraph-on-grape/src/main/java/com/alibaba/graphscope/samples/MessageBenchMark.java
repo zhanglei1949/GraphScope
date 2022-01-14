@@ -37,10 +37,14 @@ public class MessageBenchMark extends
             int msgCnt = 0;
             for (DoubleWritable message : messages){
                 msgCnt += 1;
+                if (logger.isDebugEnabled()){
+                    logger.debug("vertex: {} receive msg: {}", vertex.getId(), message);
+                }
             }
             if (vertex.getId().get() % 100000 == 0){
                 logger.info("vertex: " + vertex.getId() + "receive msg size: " + msgCnt);
             }
+
             MessageBenchMarkWorkerContext.messageReceived += msgCnt;
         }
         DoubleWritable msg = new DoubleWritable(vertex.getId().get());
