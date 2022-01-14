@@ -26,7 +26,7 @@ public class DefaultMessageStoreFactory<I extends WritableComparable,
      */
     @Override
     public MessageStore<I, M, GS_VID_T> newStore(MessageClasses<I, M> messageClasses) {
-        String messageStoreType = System.getenv("messageStoreType");
+        String messageStoreType = System.getenv("MESSAGE_STORE_TYPE");
         if (Objects.nonNull(messageStoreType)) {
             if (messageStoreType.equals("simple")) {
                 return new SimpleMessageStore<>(fragment, conf);

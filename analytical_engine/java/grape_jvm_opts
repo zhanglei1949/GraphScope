@@ -36,5 +36,11 @@ export GRAPE_JVM_OPTS="-Dcom.alibaba.fastffi.rvBuffer=2147483648 -XX:+StartAttac
 -Djava.library.path=${GRAPHSCOPE_HOME}/lib \
 -Djava.class.path=${class_path}"
 
+export MAX_SUPER_STEP=10
+export MESSAGE_MANAGER_TYPE=netty
+export USER_JAR_PATH=/home/admin/gs/analytical_engine/java/giraph-on-grape/target/giraph-on-grape-shaded.jar
+export OUT_MESSAGE_CACHE_TYPE=ByteBuf
+export MESSAGE_STORE_TYPE=primitive
+
 #-XX:+PrintInlining \
 #-XX:+TraceClassLoading \
