@@ -197,7 +197,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
 
                 @Override
                 public boolean hasNext() {
-                    return ind < doubles.size() - 1;
+                    return ind < doubles.size();
                 }
 
                 @Override
