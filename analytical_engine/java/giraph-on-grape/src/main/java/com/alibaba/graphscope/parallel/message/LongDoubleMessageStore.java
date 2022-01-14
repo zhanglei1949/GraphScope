@@ -35,6 +35,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
      */
     private Map<Long, List<Double>> messages;
     private DoubleWritableIterable iterable;
+    private long innerVerticesNum;
 
 
     public LongDoubleMessageStore(SimpleFragment fragment,
@@ -44,10 +45,12 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         vertex = (Vertex<Long>) FFITypeFactoryhelper.newVertex(java.lang.Long.class);
         iterable = new DoubleWritableIterable();
         messages = new HashMap<Long,List<Double>>((int) fragment.getInnerVerticesNum());
+        innerVerticesNum = fragment.getInnerVerticesNum();
     }
 
     @Override
     public void addLidMessage(Long lid, DoubleWritable writable) {
+        assert lid < innerVerticesNum;
         if (!messages.containsKey(lid)) {
             messages.put(lid, new ArrayList<>(INIT_CAPACITY));
         }
@@ -83,6 +86,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
     private synchronized void addGidMessage(Long gid, double msg){
         assert fragment.innerVertexGid2Vertex(gid, vertex);
         long lid = vertex.GetValue();
+        assert lid < innerVerticesNum;
         if (logger.isDebugEnabled()){
             logger.debug("gid {} to lid {}", gid, lid);
         }
@@ -161,6 +165,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
      */
     @Override
     public boolean messageAvailable(long lid) {
+        assert lid < innerVerticesNum;
         return messages.containsKey(lid);
     }
 
@@ -172,6 +177,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
      */
     @Override
     public Iterable<DoubleWritable> getMessages(long lid) {
+        assert lid < innerVerticesNum;
         if (messages.containsKey(lid)) {
             if (logger.isDebugEnabled()){
                 logger.debug("worker [{}] getting msg for v: {} size {}", fragment.fid(), lid, messages.get(lid).size());
