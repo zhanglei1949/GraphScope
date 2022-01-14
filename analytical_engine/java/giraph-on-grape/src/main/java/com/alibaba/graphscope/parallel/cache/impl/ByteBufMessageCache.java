@@ -93,9 +93,9 @@ public class ByteBufMessageCache <I extends WritableComparable,
                 throw new IllegalStateException("Not supported now");
             }
         }
-        cache[fragId].clear();
-        cache[fragId].writeInt(0);
-        cache[fragId].writeByte(0);
+//        cache[fragId].clear();
+//        cache[fragId].writeInt(0);
+//        cache[fragId].writeByte(0);
     }
 
     /**
@@ -126,9 +126,9 @@ public class ByteBufMessageCache <I extends WritableComparable,
                 ByteBufRequest request = new ByteBufRequest(cache[dstFragId]);
                 logger.info("worker [{}] flush buffered msg of size [{}] to worker [{}]", fragId, cache[dstFragId].readableBytes(), dstFragId);
                 client.sendMessage(dstFragId,request);
-                cache[dstFragId].clear();
-                cache[dstFragId].writeInt(0);
-                cache[dstFragId].writeByte(0);
+//                cache[dstFragId].clear();
+//                cache[dstFragId].writeInt(0);
+//                cache[dstFragId].writeByte(0);
             }
         }
         logger.info("frag [{}] finish flushing cache", fragId);
