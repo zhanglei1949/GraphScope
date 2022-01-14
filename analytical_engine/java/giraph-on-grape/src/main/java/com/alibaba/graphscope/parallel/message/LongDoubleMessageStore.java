@@ -6,6 +6,7 @@ import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import io.netty.buffer.ByteBuf;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         this.conf = conf;
         vertex = (Vertex<Long>) FFITypeFactoryhelper.newVertex(java.lang.Long.class);
         iterable = new DoubleWritableIterable();
+        messages = new HashMap<Long,List<Double>>((int) fragment.getInnerVerticesNum());
     }
 
     @Override
@@ -104,13 +106,14 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         if (bufCopy.readableBytes() % 16 != 0){
             throw new IllegalStateException("Expect number of bytes times of 16");
         }
-        logger.info("LongDoubleMsgStore digest bytebuf size {} direct {}", buf.readableBytes(), buf.isDirect());
+        logger.info("LongDoubleMsgStore digest bytebuf size {} direct {}", bufCopy.readableBytes(), bufCopy.isDirect());
         while (bufCopy.readableBytes() >= 16){
             long gid = bufCopy.readLong();
             double msg = bufCopy.readDouble();
             addGidMessage(gid, msg);
         }
         assert bufCopy.readableBytes() == 0;
+        assert bufCopy.release();
     }
 
     @Override
