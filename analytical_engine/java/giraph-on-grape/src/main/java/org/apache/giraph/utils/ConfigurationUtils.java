@@ -118,7 +118,6 @@ public class ConfigurationUtils {
             giraphConfiguration.setMasterComputeClass((Class<? extends MasterCompute>) Class.forName(jsonObject.getString(MASTER_COMPUTE_CLASS_STR)));
             logger.info("Setting master compute class: " + jsonObject.getString(MASTER_COMPUTE_CLASS_STR));
         }
-
     }
 
     /**
