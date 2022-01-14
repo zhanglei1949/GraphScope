@@ -30,6 +30,9 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
     private SimpleFragment<?, Long, ?, ?> fragment;
     private ImmutableClassesGiraphConfiguration<OID_T, ?, ?> conf;
     private Vertex<Long> vertex;
+    /**
+     * lid 2 messages
+     */
     private Map<Long, List<Double>> messages;
     private DoubleWritableIterable iterable;
 
@@ -58,16 +61,9 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         while (gidIterator.hasNext() && writableIterator.hasNext()) {
             long gid = gidIterator.next();
             DoubleWritable msg = writableIterator.next();
-            boolean res = fragment.gid2Vertex(gid, vertex);
+            assert fragment.innerVertexGid2Vertex(gid, vertex);
             long lid = vertex.GetValue();
-            if (!res) {
-                throw new IllegalStateException("convert gid: " + gid + " to lid failed: ");
-            }
-
-            if (!messages.containsKey(lid)) {
-                messages.put(lid, new ArrayList<>());
-            }
-            messages.get(vertex.GetValue()).add(msg.get());
+            addLidMessage(lid, msg);
             cnt += 1;
         }
         logger.info("worker [{}] messages to self cnt: {}", fragment.fid(), cnt);
@@ -85,9 +81,11 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
     }
 
     private synchronized void addGidMessage(Long gid, double msg){
-        vertex.SetValue(gid);
-        assert fragment.gid2Vertex(gid, vertex);
+        assert fragment.innerVertexGid2Vertex(gid, vertex);
         long lid = vertex.GetValue();
+        if (logger.isDebugEnabled()){
+            logger.debug("gid {} to lid {}", gid, lid);
+        }
         if (!messages.containsKey(lid)) {
             messages.put(lid, new ArrayList<>());
         }

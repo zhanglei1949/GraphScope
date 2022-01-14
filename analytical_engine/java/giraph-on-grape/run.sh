@@ -20,7 +20,7 @@ GLOG_v=10 mpirun \
 --efile lei.e --vfile lei.v \
 --worker_context_class com.alibaba.graphscope.samples.MessageBenchMark\$MessageBenchMarkWorkerContext \
 --lib_path /opt/graphscope/lib/libgiraph-jni.so --loading_thread_num 1 \
---serialize true --serialize_prefix lei
+--serialize true --serialize_prefix p2p
 
 -f ~/hostfile
 
