@@ -25,7 +25,8 @@ public class WritableRequestEncoder extends ChannelOutboundHandlerAdapter {
 
     public WritableRequestEncoder(ImmutableClassesGiraphConfiguration conf) {
         bufferStartingSize =
-            GiraphConstants.NETTY_REQUEST_ENCODER_BUFFER_SIZE.get(conf) + SIZE_OF_INT + SIZE_OF_BYTE;
+            GiraphConstants.NETTY_REQUEST_ENCODER_BUFFER_SIZE.get(conf) + SIZE_OF_INT
+                + SIZE_OF_BYTE;
     }
 
     @Override
@@ -53,7 +54,9 @@ public class WritableRequestEncoder extends ChannelOutboundHandlerAdapter {
                         buf.readableBytes() - SIZE_OF_INT,
                         bufRequest.getRequestType().getClazz().getName());
                 }
-                ctx.writeAndFlush(buf, promise);
+                buf.retain();
+                ctx.writeAndFlush(buf,
+                    promise); //Netty may release our buf in this function, which is not we want.
             } else {
                 if (requestSize == WritableRequest.UNKNOWN_SIZE) {
                     logger.debug("Unknown size of request, using default size: {}",
