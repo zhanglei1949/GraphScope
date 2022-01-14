@@ -93,7 +93,7 @@ public class ByteBufRequest extends WritableRequest {
                 long gid = buf.readLong();
                 double msg = buf.readDouble();
                 if (logger.isDebugEnabled()){
-                    logger.debug("doRequest: feeding msg to message store: gid [{}], msg [{}]", gid, msg);
+                    logger.debug("worker [{}] doRequest: feeding msg to message store: gid [{}], msg [{}]", getConf().getWorkerId(),gid, msg);
                 }
                 writable.set(msg);
                 longDoubleMessageStore.addGidMessage(gid, writable);
