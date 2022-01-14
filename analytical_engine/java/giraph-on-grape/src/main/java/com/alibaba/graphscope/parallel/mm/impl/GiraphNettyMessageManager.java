@@ -218,6 +218,9 @@ public class GiraphNettyMessageManager<
 
     private void sendLidMessage(com.alibaba.graphscope.ds.Vertex<GS_VID_T> nbrVertex, OUT_MSG_T message){
         int dstfragId = fragment.getFragId(nbrVertex);
+        if (logger.isDebugEnabled()){
+            logger.debug("worker [{}] send msg {} to vertex {} on worker []", fragId, message, nbrVertex.GetValue(), dstfragId);
+        }
         outMessageCache.sendMessage(dstfragId, fragment.vertex2Gid(nbrVertex), message);
     }
 
@@ -258,7 +261,7 @@ public class GiraphNettyMessageManager<
         outMessageCache.clear();
         currentIncomingMessageStore.swap(nextIncomingMessageStore);
         nextIncomingMessageStore.clearAll();
-        outMessageCache.clear();
+//        outMessageCache.clear();
 
         client.postSuperStep();
     }

@@ -111,6 +111,9 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
             long gid = bufCopy.readLong();
             double msg = bufCopy.readDouble();
             addGidMessage(gid, msg);
+            if (logger.isDebugEnabled()){
+                logger.debug("worker [{}] resolving message to self, gid {}, msg {}", fragment.fid(), gid, msg);
+            }
         }
         assert bufCopy.readableBytes() == 0;
         assert bufCopy.release();
@@ -166,6 +169,9 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
     @Override
     public Iterable<DoubleWritable> getMessages(long lid) {
         if (messages.containsKey(lid)) {
+            if (logger.isDebugEnabled()){
+                logger.debug("worker [{}] getting msg for v: {} size {}", fragment.fid(), lid, messages.get(lid).size());
+            }
             iterable.init(messages.get(lid));
             return iterable;
         } else {
@@ -183,12 +189,15 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         public DoubleWritableIterable() {
             doubles = new ArrayList<>();
             ind = 0;
+            writable = new DoubleWritable();
         }
 
         public void init(List<Double> in) {
             doubles = in;
             ind = 0;
-            writable = new DoubleWritable();
+            if (logger.isDebugEnabled()){
+                logger.debug("DoubleWritableIterable set: {} to", in);
+            }
         }
 
         @Override
