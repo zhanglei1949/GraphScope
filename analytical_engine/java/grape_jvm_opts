@@ -34,7 +34,7 @@ export GRAPE_JVM_OPTS="-Dcom.alibaba.fastffi.rvBuffer=2147483648 -XX:+StartAttac
 -XX:+UnlockDiagnosticVMOptions -XX:LoopUnrollLimit=1 \
 -XX:CompileCommandFile=${GRAPHSCOPE_HOME}/conf/compile-commands.txt \
 -Djava.library.path=${GRAPHSCOPE_HOME}/lib \
--Djava.class.path=${class_path}"
+-Djava.class.path=${GRAPHSCOPE_HOME}/conf/:${class_path}"
 
 export MAX_SUPER_STEP=10
 export MESSAGE_MANAGER_TYPE=netty

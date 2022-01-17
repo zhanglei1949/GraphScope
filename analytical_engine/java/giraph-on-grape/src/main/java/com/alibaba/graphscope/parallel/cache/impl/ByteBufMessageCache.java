@@ -70,6 +70,9 @@ public class ByteBufMessageCache <I extends WritableComparable,
             }
         }
         try{
+            if (logger.isDebugEnabled()){
+                logger.debug("worker [{}]: send msg to worker [{}], dstGid {}, msg {}", fragId, dstFragId, gid, message);
+            }
             cacheStream[dstFragId].writeLong((Long) gid);
             message.write(cacheStream[dstFragId]);
         }
@@ -118,6 +121,9 @@ public class ByteBufMessageCache <I extends WritableComparable,
 
     private void sendCurrentMessageInCache(){
         for (int dstFragId = 0; dstFragId < cache.length; ++dstFragId){
+            if (logger.isDebugEnabled()){
+                logger.debug("worker {} to {}, cache {}", fragId, dstFragId, cache[dstFragId]);
+            }
             if (dstFragId != fragId && cache[dstFragId].readableBytes() > 0){
                 ByteBufRequest request = new ByteBufRequest(cache[dstFragId]);
                 logger.info("worker [{}] flush buffered msg of size [{}] to worker [{}]", fragId, cache[dstFragId].readableBytes(), dstFragId);
