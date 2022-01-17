@@ -59,13 +59,15 @@ public class ByteBufMessageCache <I extends WritableComparable,
 
     @Override
     public void sendMessage(int dstFragId, GS_VID_T gid, M message) {
-        if (cache[dstFragId].readableBytes() >= cacheMaximum){
-            logger.info("Cache limit reached, flushing buffer");
-            ByteBufRequest request = new ByteBufRequest(cache[dstFragId]);
-            // the data in this buffer [cache] will be flushed to netty cache.
-            client.sendMessage(dstFragId, request);
-            //don't need to create new cache, just reset the cache.
-            cache[dstFragId].clear();
+        if (dstFragId != fragId){
+            if (cache[dstFragId].readableBytes() >= cacheMaximum){
+                logger.info("Cache limit reached, flushing buffer");
+                ByteBufRequest request = new ByteBufRequest(cache[dstFragId]);
+                // the data in this buffer [cache] will be flushed to netty cache.
+                client.sendMessage(dstFragId, request);
+                //don't need to create new cache, just reset the cache.
+                cache[dstFragId].clear();
+            }
         }
         try{
             cacheStream[dstFragId].writeLong((Long) gid);
