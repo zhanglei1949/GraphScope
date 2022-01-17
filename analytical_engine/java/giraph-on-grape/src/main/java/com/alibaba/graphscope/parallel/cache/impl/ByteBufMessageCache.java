@@ -70,9 +70,9 @@ public class ByteBufMessageCache <I extends WritableComparable,
             }
         }
         try{
-            if (logger.isDebugEnabled()){
-                logger.debug("worker [{}]: send msg to worker [{}], dstGid {}, msg {}", fragId, dstFragId, gid, message);
-            }
+            //if (logger.isDebugEnabled()){
+            //    logger.debug("worker [{}]: send msg to worker [{}], dstGid {}, msg {}", fragId, dstFragId, gid, message);
+            //}
             cacheStream[dstFragId].writeLong((Long) gid);
             message.write(cacheStream[dstFragId]);
         }
