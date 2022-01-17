@@ -1,6 +1,8 @@
 package com.alibaba.graphscope.parallel.netty;
 
 import static org.apache.giraph.conf.GiraphConstants.MAX_IPC_PORT_BIND_ATTEMPTS;
+import static org.apache.giraph.utils.ByteUtils.SIZE_OF_BYTE;
+import static org.apache.giraph.utils.ByteUtils.SIZE_OF_INT;
 
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.message.MessageStore;
@@ -57,6 +59,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
      * Receive buffer size
      */
     private final int receiveBufferSize;
+    private final int maxFrameLength;
     /**
      * TCP backlog
      */
@@ -104,7 +107,8 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
         bossThreadSize = GiraphConstants.NETTY_SERVER_BOSS_THREADS.get(conf);
         workerThreadSize = GiraphConstants.NETTY_SERVER_WORKER_THREADS.get(conf);
         sendBufferSize = GiraphConstants.SERVER_SEND_BUFFER_SIZE.get(conf);
-        receiveBufferSize = GiraphConstants.SERVER_RECEIVE_BUFFER_SIZE.get(conf);
+        receiveBufferSize = GiraphConstants.SERVER_RECEIVE_BUFFER_SIZE.get(conf) + SIZE_OF_BYTE + SIZE_OF_INT;
+        maxFrameLength = GiraphConstants.MAX_FRAME_LENGTH.get(conf) + SIZE_OF_BYTE + SIZE_OF_INT;
 
         // SO_BACKLOG controls  number of clients our server can simultaneously listen.
         tcpBacklog = conf.getWorkerNum();
@@ -153,7 +157,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
                         //TODO: optimization with fixed-frame
 //                        p.addLast(new WritableRequestEncoder(conf));
 //                        p.addLast(new WritableRequestDecoder(conf));
-                        p.addLast("requestFrameDecoder", new LengthFieldBasedFrameDecoder(1024 * 1024 * 1024, 0, 4, 0, 4));
+                        p.addLast("requestFrameDecoder", new LengthFieldBasedFrameDecoder(maxFrameLength, 0, 4, 0, 4));
                         p.addLast("requestDecoder", getDecoder(conf));
                         p.addLast("handler", getHandler());
                     }

@@ -219,6 +219,8 @@ public interface GiraphConstants {
     IntConfOption SERVER_RECEIVE_BUFFER_SIZE =
         new IntConfOption("giraph.serverReceiveBufferSize", 128 * ONE_MB,
             "Server receive buffer size");
+    IntConfOption MAX_FRAME_LENGTH = new IntConfOption("giraph.maxFrameLength", 128 * ONE_MB,
+        "fixed frame max size");
 
     /**
      * This represents the size of message cache, so actual cache bytes is generally (8 + 8) *
