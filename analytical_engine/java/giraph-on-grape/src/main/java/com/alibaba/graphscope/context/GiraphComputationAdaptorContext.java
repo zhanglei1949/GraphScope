@@ -186,10 +186,10 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
             NetworkMap networkMap = new NetworkMap(conf.getWorkerId(), conf.getWorkerNum(),
                 conf.getMessagerInitServerPort(), allHostsNames);
             giraphMessageManager = GiraphMessageManagerFactory
-                .create("netty", frag, null, networkMap, conf);
+                .create("netty", frag, null, networkMap, conf, getFFICommunicator());
         } else if (giraphMessageManagerType.equals("mpi")){
             giraphMessageManager = GiraphMessageManagerFactory
-                .create("mpi", frag, messageManager, null, conf);
+                .create("mpi", frag, messageManager, null, conf, getFFICommunicator());
         }
         else {
             throw new IllegalStateException("Expect a netty or mpi messager");

@@ -1,5 +1,6 @@
 package com.alibaba.graphscope.parallel.mm;
 
+import com.alibaba.graphscope.communication.FFICommunicator;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.mm.impl.GiraphDefaultMessageManager;
@@ -25,12 +26,12 @@ public class GiraphMessageManagerFactory {
      */
     public static GiraphMessageManager create(String mmType, SimpleFragment fragment,
         DefaultMessageManager grapeMessager, NetworkMap networkMap,
-        ImmutableClassesGiraphConfiguration conf) {
+        ImmutableClassesGiraphConfiguration conf, FFICommunicator communicator) {
         //TODO: get ip or address from mpi.
 //        NetworkMap networkMap = new NetworkMap(conf.getWorkerId(), conf.getWorkerNum(),
 //            conf.getInitServerPort(), new String[]{"1"});
         if (mmType.equals("netty")) {
-            return createGiraphNettyMM(fragment, grapeMessager, networkMap, conf,
+            return createGiraphNettyMM(fragment, grapeMessager, networkMap, conf, communicator,
                 conf.getVertexIdClass(), conf
                     .getVertexValueClass(), conf.getEdgeValueClass(), conf
                     .getIncomingMessageValueClass(), conf.getOutgoingMessageValueClass(),
@@ -53,6 +54,7 @@ public class GiraphMessageManagerFactory {
         DefaultMessageManager mm,
         NetworkMap networkMap,
         ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf,
+        FFICommunicator communicator,
         Class<? extends OID_T> oidClass,
         Class<? extends VDATA_T> vdataClass,
         Class<? extends EDATA_T> edataClass,
@@ -62,7 +64,7 @@ public class GiraphMessageManagerFactory {
         Class<? extends GS_OID_T> gsOidClass) {
         return new GiraphNettyMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T>(
             fragment,
-            networkMap, mm, conf);
+            networkMap, mm, conf, communicator);
     }
 
     private static <OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable, IN_MSG_T extends Writable, OUT_MSG_T extends Writable, GS_VID_T, GS_OID_T>

@@ -4,6 +4,7 @@ import static org.apache.giraph.conf.GiraphConstants.MAX_CONN_TRY_ATTEMPTS;
 import static org.apache.giraph.conf.GiraphConstants.MAX_IPC_PORT_BIND_ATTEMPTS;
 import static org.apache.giraph.conf.GiraphConstants.MESSAGE_STORE_FACTORY_CLASS;
 
+import com.alibaba.graphscope.communication.FFICommunicator;
 import com.alibaba.graphscope.ds.adaptor.Nbr;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
@@ -81,6 +82,7 @@ public class GiraphNettyMessageManager<
     private DefaultMessageManager grapeMessager;
 
     private Class<? extends GS_OID_T> gsOidClass;
+    private FFICommunicator communicator;
 
     /**
      * The constructor is the preApplication.
@@ -91,7 +93,7 @@ public class GiraphNettyMessageManager<
      */
     public GiraphNettyMessageManager(SimpleFragment fragment, NetworkMap networkMap,
         DefaultMessageManager mm,
-        ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf) {
+        ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf, FFICommunicator communicator) {
         this.fragment = fragment;
         this.networkMap = networkMap;
         this.conf = conf;
@@ -99,6 +101,7 @@ public class GiraphNettyMessageManager<
         this.fragId = fragment.fid();
         this.fragNum = fragment.fnum();
         this.gsOidClass = (Class<? extends GS_OID_T>) conf.getGrapeOidClass();
+        this.communicator = communicator;
 
         initMessageStore();
         //Netty server depends on message store.
@@ -116,6 +119,7 @@ public class GiraphNettyMessageManager<
         server = new NettyServer(conf, fragment, networkMap, nextIncomingMessageStore,
             (Thread t, Throwable e) -> logger.error(t.getId() + ": " + e.toString()));
         server.startServer();
+        communicator.barrier();
 
         logger.info("Create client on " + networkMap.getSelfWorkerId() + " max times: "
             + MAX_CONN_TRY_ATTEMPTS.get(conf));
