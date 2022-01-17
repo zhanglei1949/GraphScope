@@ -43,6 +43,8 @@ static constexpr const char* OPTION_DRIVER_APP_CLASS = "java_driver_app";
 static constexpr const char* OPTION_DRIVER_CONTEXT_CLASS =
     "java_driver_context";
 static constexpr const char* OPTION_LIB_PATH = "lib_path";
+static constexpr const char* OPTION_GRAPE_LOADER = "grape_loader";
+static constexpr const char* OPTION_DIRECTED = "directed";
 
 static const std::string DEFAULT_JAVA_LOADER_CLASS =
     "com.alibaba.graphscope.loader.impl.FileLoader";

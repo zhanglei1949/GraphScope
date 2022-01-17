@@ -16,8 +16,6 @@
 DEFINE_string(vertex_input_format_class, "", "java class defines the input format");
 DEFINE_string(vertex_output_format_class, "", "java class defines the output format");
 DEFINE_string(app_class, "", "app class to run");
-DEFINE_string(input_vfile, "", "input vertex file");
-DEFINE_string(input_efile, "", "input edge file");
 DEFINE_string(vertex_output_path, "", "output file path");
 DEFINE_string(master_compute_class, "", "master compute class");
 DEFINE_string(aggregator_class, "", "aggregator class");
@@ -26,7 +24,7 @@ DEFINE_string(resolver_class, "", "resolver for graph loading");
 DEFINE_string(worker_context_class, "", "worker context");
 DEFINE_string(lib_path, "",
               "path for dynamic lib where the desired entry function exists");
-DEFINE_string(loading_thread_num, "",
+DEFINE_string(loading_thread_num, "1",
               "number of threads will be used in loading the graph");
 DEFINE_string(efile, "", "path to efile");
 DEFINE_string(vfile, "", "path to vfile");
@@ -40,6 +38,8 @@ DEFINE_bool(serialize, false, "whether to serialize loaded graph.");
 DEFINE_bool(deserialize, false, "whether to deserialize graph while loading.");
 DEFINE_string(serialize_prefix, "",
               "where to load/store the serialization files");
+DEFINE_bool(grape_loader, false, "whether to use grape loader rather than udf loader");
+DEFINE_bool(directed, true, "load direct graph or indirect graph");
 
 inline void* open_lib(const char* path) {
   void* handle = dlopen(path, RTLD_LAZY);
@@ -84,6 +84,8 @@ std::string flags2JsonStr() {
   pt.put("serialize", FLAGS_serialize);
   pt.put("deserialize", FLAGS_deserialize);
   pt.put("serialize_prefix", FLAGS_serialize_prefix);
+  pt.put("grape_loader", FLAGS_grape_loader);
+  pt.put("directed", FLAGS_directed);
 
 
   std::stringstream ss;

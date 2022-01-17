@@ -21,7 +21,7 @@ GLOG_v=10 mpirun \
 --efile ~/libgrape-lite/dataset/p2p-31.e --vfile ~/libgrape-lite/dataset/p2p-31.v \
 --worker_context_class com.alibaba.graphscope.samples.MessageBenchMark\$MessageBenchMarkWorkerContext \
 --lib_path /opt/graphscope/lib/libgiraph-jni.so --loading_thread_num 1 \
---serialize true --serialize_prefix livejournal
+--serialize true --serialize_prefix p2p
 
 # com 
 GLOG_v=10 mpirun \

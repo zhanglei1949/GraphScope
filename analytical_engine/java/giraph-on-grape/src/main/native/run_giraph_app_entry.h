@@ -48,6 +48,77 @@ void Init(const std::string& params) {
   verifyClasses(params);
 }
 
+// Load from ImmutableEdgecutFragmentLoader
+std::shared_ptr<GRAPH_TYPE> loadWithGrapeLoader(
+    const grape::CommSpec& comm_spec, const ptree& pt, const std::string& vfile,
+    const std::string& efile) {
+  LoadGraphSpec graph_spec = DefaultLoadGraphSpec();
+  graph_spec.set_directed(getFromPtree<bool>(pt, OPTION_DIRECTED));
+  graph_spec.set_rebalance(false, 0);
+
+  bool deserialize = getFromPtree<bool>(pt, OPTION_DESERIALIZE);
+  bool serialize = getFromPtree<bool>(pt, OPTION_SERIALIZE);
+  std::string serialize_prefix =
+      getFromPtree<std::string>(pt, OPTION_SERIALIZE_PREFIX);
+  VLOG(1) << "Serialize: " << serialize << ", Deserialize: " << deserialize
+          << ", Prefix: " << serialize_prefix;
+  if (deserialize) {
+    CHECK(!serialize_prefix.empty());
+    graph_spec.set_deserialize(true, serialize_prefix);
+  } else if (serialize) {
+    CHECK(!serialize_prefix.empty());
+    graph_spec.set_serialize(true, serialize_prefix);
+  }
+  // if deserialzation enabled, do deserialzation
+  fragment = LoadGraph<GRAPH_TYPE, HashPartitioner<typename GRAPH_TYPE::oid_t>>(
+      efile, vfile, comm_spec, graph_spec);
+}
+
+std::shared_ptr<GRAPH_TYPE> loadWithGiraphLoader(
+    const grape::CommSpec& comm_spec, const ptree& pt, const std::string& vfile,
+    const std::string& efile) {
+  int loading_threads_num = getFromPtree<int>(pt, OPTION_LOADING_THREAD_NUM);
+  if (loading_threads_num <= 0) {
+    LOG(ERROR) << "Invalid loading thread num: " << loading_threads_num;
+    return;
+  }
+  int vertex_buffer_nums = loading_threads_num * comm_spec.fnum();
+  int edge_buffer_nums =
+      loading_threads_num * comm_spec.fnum() * comm_spec.fnum();
+
+  std::vector<byte_vector> vid_buffers(vertex_buffer_nums),
+      vdata_buffers(vertex_buffer_nums), esrc_id_buffers(edge_buffer_nums),
+      edst_id_buffers(edge_buffer_nums), edata_buffers(edge_buffer_nums);
+  std::vector<offset_vector> vid_offsets(vertex_buffer_nums),
+      esrc_id_offsets(edge_buffer_nums), edst_id_offsets(edge_buffer_nums);
+
+  // Load via java_load_invoker. The class names must be ok since it has been
+  // verified.
+  // JavaLoaderInvoker java_loader_invoker;
+  // java_loader_invoker.Init(
+  //     DEFAULT_JAVA_LOADER_CLASS,
+  //     DEFAULT_JAVA_LOADER_METHOD_NAME,
+  //     DEFAULT_JAVA_LOADER_METHOD_SIG,
+  //     getFromPtree<std::string>(pt, OPTION_INPUT_FORMAT_CLASS));
+  // // fill in theses buffers in java
+  // java_loader_invoker.CallJavaLoader(
+  //     vid_buffers, vid_offsets, vdata_buffers, esrc_id_buffers,
+  //     esrc_id_offsets, edst_id_buffers, edst_id_offsets, edata_buffers);
+
+  // std::shared_ptr<LOADER_TYPE> loader =
+  //     std::make_shared<LOADER_TYPE>(comm_spec);
+  // loader->AddVertexBuffers(std::move(vid_buffers), std::move(vid_offsets),
+  //                          std::move(vdata_buffers));
+  // VLOG(1) << "Finish add vertex buffers";
+  // loader->AddEdgeBuffers(std::move(esrc_id_buffers),
+  // std::move(esrc_id_offsets),
+  //                        std::move(edst_id_buffers),
+  //                        std::move(edst_id_offsets),
+  //                        std::move(edata_buffers));
+  // VLOG(1) << "Finish add edge buffers";
+  return std::shared_ptr<GRAPH_TYPE>(nullptr);
+}
+
 template <typename FRAG_T>
 void Query(grape::CommSpec& comm_spec, std::shared_ptr<FRAG_T> fragment,
            const std::string& app_class, const std::string& context_class,
@@ -87,75 +158,21 @@ void CreateAndQuery(std::string params) {
   ptree pt;
   string2ptree(params, pt);
 
-  int loading_threads_num = getFromPtree<int>(pt, OPTION_LOADING_THREAD_NUM);
-  if (loading_threads_num < 0) {
-    LOG(ERROR) << "Invalid loading thread num: " << loading_threads_num;
-    return;
-  }
-  int vertex_buffer_nums = loading_threads_num * comm_spec.fnum();
-  int edge_buffer_nums =
-      loading_threads_num * comm_spec.fnum() * comm_spec.fnum();
-
   std::string efile = getFromPtree<std::string>(pt, OPTION_EFILE);
   std::string vfile = getFromPtree<std::string>(pt, OPTION_VFILE);
   VLOG(1) << "efile: " << efile << ", vfile: " << vfile;
-
-  std::vector<byte_vector> vid_buffers(vertex_buffer_nums),
-      vdata_buffers(vertex_buffer_nums), esrc_id_buffers(edge_buffer_nums),
-      edst_id_buffers(edge_buffer_nums), edata_buffers(edge_buffer_nums);
-  std::vector<offset_vector> vid_offsets(vertex_buffer_nums),
-      esrc_id_offsets(edge_buffer_nums), edst_id_offsets(edge_buffer_nums);
-
-  // Load via java_load_invoker. The class names must be ok since it has been
-  // verified.
-  // JavaLoaderInvoker java_loader_invoker;
-  // java_loader_invoker.Init(
-  //     DEFAULT_JAVA_LOADER_CLASS,
-  //     DEFAULT_JAVA_LOADER_METHOD_NAME,
-  //     DEFAULT_JAVA_LOADER_METHOD_SIG,
-  //     getFromPtree<std::string>(pt, OPTION_INPUT_FORMAT_CLASS));
-  // // fill in theses buffers in java
-  // java_loader_invoker.CallJavaLoader(
-  //     vid_buffers, vid_offsets, vdata_buffers, esrc_id_buffers,
-  //     esrc_id_offsets, edst_id_buffers, edst_id_offsets, edata_buffers);
-
-  // std::shared_ptr<LOADER_TYPE> loader =
-  //     std::make_shared<LOADER_TYPE>(comm_spec);
-  // loader->AddVertexBuffers(std::move(vid_buffers), std::move(vid_offsets),
-  //                          std::move(vdata_buffers));
-  // VLOG(1) << "Finish add vertex buffers";
-  // loader->AddEdgeBuffers(std::move(esrc_id_buffers),
-  // std::move(esrc_id_offsets),
-  //                        std::move(edst_id_buffers),
-  //                        std::move(edst_id_offsets),
-  //                        std::move(edata_buffers));
-  // VLOG(1) << "Finish add edge buffers";
-
-  // Load from ImmutableEdgecutFragmentLoader
-  LoadGraphSpec graph_spec = DefaultLoadGraphSpec();
-  graph_spec.set_directed(true);
-  graph_spec.set_rebalance(false, 0);
-
-  bool deserialize = getFromPtree<bool>(pt, OPTION_DESERIALIZE);
-  bool serialize = getFromPtree<bool>(pt, OPTION_SERIALIZE);
-  std::string serialize_prefix =
-      getFromPtree<std::string>(pt, OPTION_SERIALIZE_PREFIX);
-  VLOG(1) << "serialize: " << serialize << ", deserialize: " << deserialize
-          << ", prefix: " << serialize_prefix;
-  if (deserialize) {
-    CHECK(!serialize_prefix.empty());
-    graph_spec.set_deserialize(true, serialize_prefix);
-  } else if (serialize) {
-    CHECK(!serialize_prefix.empty());
-    graph_spec.set_serialize(true, serialize_prefix);
+  if (efile.empty() || vfile.empty()) {
+    LOG(FATAL) << "Make sure efile and vfile are avalibale";
   }
 
+  bool using_grape_loader = getFromPtree<bool>(pt, OPTION_GRAPE_LOADER);
+  VLOG(1) << "Using grape loader: " << (using_grape_loader ? "true" : "false");
   std::shared_ptr<GRAPH_TYPE> fragment;
-
-  // if deserialzation enabled, do deserialzation
-
-  fragment = LoadGraph<GRAPH_TYPE, HashPartitioner<typename GRAPH_TYPE::oid_t>>(
-      efile, vfile, comm_spec, graph_spec);
+  if (using_grape_loader) {
+    fragment = loadWithGrapeLoader(comm_spec, pt, vfile, efile);
+  } else {
+    fragment = loadWithGiraphLoader(comm_spec, pt, vfile, efile);
+  }
 
   VLOG(1) << fragment->fid() << ",vertex num: " << fragment->GetVerticesNum()
           << ",edge num:" << fragment->GetEdgeNum();
@@ -169,10 +186,9 @@ void CreateAndQuery(std::string params) {
 
   //  std::string frag_name = QUOTE(GRAPH_TYPE);
   std::string frag_name = getenv("GRAPH_TYPE");
+  CHECK(!frag_name.empty());
   Query<GRAPH_TYPE>(comm_spec, fragment, driver_app_class, driver_app_context,
                     frag_name, user_lib_path, params);
-
-  // if serailzation enabled, do serialzation
 }
 
 void Finalize() {
