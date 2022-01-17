@@ -84,9 +84,10 @@ public class ByteBufRequest extends WritableRequest {
             throw new IllegalStateException("try to do request on an empty byteBuf request");
         }
         if (messageStore instanceof LongDoubleMessageStore) {
-            if (buf.readableBytes() % 16 != 0) {
+            if (buf.readableBytes() % 16 != 5) {
                 throw new IllegalStateException("readable bytes can not be subtracted by 16");
             }
+            buf.skipBytes(5);
             LongDoubleMessageStore longDoubleMessageStore = (LongDoubleMessageStore) messageStore;
             DoubleWritable writable = new DoubleWritable();
             while (buf.isReadable(16)) {
