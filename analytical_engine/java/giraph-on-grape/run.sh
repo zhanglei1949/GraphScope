@@ -29,14 +29,28 @@ GLOG_v=10 mpirun \
 -f ~/hostfile \
 -envlist GLOG_v,GRAPE_JVM_OPTS,USER_JAR_PATH,GRAPH_TYPE,APP_TYPE,MAX_SUPER_STEP,MESSAGE_MANAGER_TYPE,OUT_MESSAGE_CACHE_TYPE,MESSAGE_STORE_TYPE \
 ./giraph_runner --app_class com.alibaba.graphscope.samples.MessageBenchMark \
---efile com.e --vfile com.v \
+--efile ~/com.e --vfile ~/com.v \
 --worker_context_class com.alibaba.graphscope.samples.MessageBenchMark\$MessageBenchMarkWorkerContext \
 --lib_path /opt/graphscope/lib/libgiraph-jni.so --loading_thread_num 1 \
---serialize true --serialize_prefix com
+--serialize true --serialize_prefix com --grape_loader true
+
+GLOG_v=10 mpirun \
+-n 4 \
+-f ~/hostfile \
+-envlist GLOG_v,GRAPE_JVM_OPTS,USER_JAR_PATH,GRAPH_TYPE,APP_TYPE,MAX_SUPER_STEP,MESSAGE_MANAGER_TYPE,OUT_MESSAGE_CACHE_TYPE,MESSAGE_STORE_TYPE \
+./giraph_runner --app_class com.alibaba.graphscope.samples.MessageBenchMark \
+--efile ~/libgrape-lite/dataset/p2p-31.e --vfile ~/libgrape-lite/dataset/p2p-31.v \
+--worker_context_class com.alibaba.graphscope.samples.MessageBenchMark\$MessageBenchMarkWorkerContext \
+--lib_path /opt/graphscope/lib/libgiraph-jni.so --loading_thread_num 1 \
+--serialize true --serialize_prefix p2p \
+--grape_loader true
 
 
 
 osscmd multiget --thread_num=16 oss://lei-benchdata/datagen-9_0-fb.v datagen.v
+
+osscmd multiget --thread_num=16 oss://grape-data/com-friendster/evr/com-friendster.v com.v
+osscmd multiget --thread_num=16 oss://grape-data/com-friendster/evr/com-friendster.e com.e
 
 GLOG_v=10 mpirun -envlist GLOG_v,GRAPE_JVM_OPTS,USER_JAR_PATH,GRAPH_TYPE,APP_TYPE,MAX_SUPER_STEP,MESSAGE_MANAGER_TYPE -n 4 ./giraph_runner --app_class com.alibaba.graphscope.samples.MessageBenchMark  --efile ~/libgrape-lite/dataset/p2p-31.e --vfile ~/libgrape-lite/dataset/p2p-31.v --worker_context_class com.alibaba.graphscope.samples.MessageBenchMark\$MessageBenchMarkWorkerContext --lib_path /opt/graphscope/lib/libgiraph-jni.so --loading_thread_num 1
 # --efile ./datagen-9_0.e --vfile ./datagen-9_0.v \

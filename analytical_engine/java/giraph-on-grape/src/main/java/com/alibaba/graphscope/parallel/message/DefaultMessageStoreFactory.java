@@ -2,9 +2,11 @@ package com.alibaba.graphscope.parallel.message;
 
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import java.util.Objects;
+import org.apache.giraph.combiner.MessageCombiner;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.conf.MessageClasses;
 import org.apache.hadoop.io.DoubleWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
@@ -35,11 +37,24 @@ public class DefaultMessageStoreFactory<I extends WritableComparable,
                 //try to use primitive store for better performace.
                 if (conf.getGrapeVidClass().equals(Long.class) && messageClasses.getMessageClass()
                     .equals(DoubleWritable.class)) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("creating LongDoubleMessageDoubleMessageStore");
+                    if (messageClasses.useMessageCombiner()) {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug(
+                                "creating LongDoubleMessageDoubleMessageStore with combiner");
+                        }
+                        return (MessageStore<I, M, GS_VID_T>) new LongDoubleMessageStoreWithCombiner(
+                            fragment,
+                            (ImmutableClassesGiraphConfiguration<? extends LongWritable, ? extends Writable, ? extends Writable>) conf,
+                            (MessageCombiner<? super LongWritable, DoubleWritable>) messageClasses.createMessageCombiner(conf));
+                    } else {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug(
+                                "creating LongDoubleMessageDoubleMessageStore with no combiner");
+                        }
+                        return (MessageStore<I, M, GS_VID_T>) new LongDoubleMessageStore<I>(
+                            fragment,
+                            conf);
                     }
-                    return (MessageStore<I, M, GS_VID_T>) new LongDoubleMessageStore<I>(fragment,
-                        conf);
                 } else {
                     throw new IllegalStateException(
                         "Not supported primitve store: vid:" + conf.getGrapeVidClass()
