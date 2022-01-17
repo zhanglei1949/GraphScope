@@ -216,9 +216,6 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         public void init(List<Double> in) {
             doubles = in;
             ind = 0;
-//            if (logger.isDebugEnabled()){
-//                logger.debug("DoubleWritableIterable set: {} to", in);
-//            }
         }
 
         @Override

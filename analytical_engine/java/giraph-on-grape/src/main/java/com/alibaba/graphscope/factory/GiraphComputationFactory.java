@@ -37,7 +37,7 @@ public class GiraphComputationFactory {
         Class<?>[] classes = getTypeArgumentFromInterface(SimpleFragment.class,
             fragment.getClass());
         if (classes.length != 4) {
-            logger.error("Expected 4 type params, parsed: " + classes.length);
+            logger.error("Expected 4 type params, parsed: {}", classes.length);
             return null;
         }
         return createGiraphComputationAdaptor(classes[0], classes[1], classes[2], classes[3]);
@@ -57,7 +57,7 @@ public class GiraphComputationFactory {
         Class<?>[] classes = getTypeArgumentFromInterface(SimpleFragment.class,
             fragment.getClass());
         if (classes.length != 4) {
-            logger.error("Expected 4 type params, parsed: " + classes.length);
+            logger.error("Expected 4 type params, parsed: {}", classes.length);
             return null;
         }
         return createGiraphComputationAdaptorContext(classes[0], classes[1], classes[2],

@@ -2,36 +2,30 @@ package com.alibaba.graphscope.parallel.netty.handler;
 
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.message.MessageStore;
-import com.alibaba.graphscope.parallel.mm.impl.GiraphDefaultMessageManager;
 import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> extends SimpleChannelInboundHandler<WritableRequest> {
-
-    private MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages;
-    private SimpleFragment<?,GS_VID_T,?,?> fragment;
-    private static Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
-    private int msgSeq;
+public class NettyServerHandler<OID_T extends WritableComparable, GS_VID_T> extends
+    SimpleChannelInboundHandler<WritableRequest> {
 
     public static int RESPONSE_BYTES = 4;
-//    private ByteBuf buf;
+    private static Logger logger = LoggerFactory.getLogger(NettyServerHandler.class);
 
+    private MessageStore<OID_T, Writable, GS_VID_T> nextIncomingMessages;
+    private SimpleFragment<?, GS_VID_T, ?, ?> fragment;
+    private int msgSeq;
 
-    public NettyServerHandler(SimpleFragment<?,GS_VID_T,?,?> fragment, MessageStore<OID_T,Writable,GS_VID_T> nextIncomingMessages){
+    public NettyServerHandler(SimpleFragment<?, GS_VID_T, ?, ?> fragment,
+        MessageStore<OID_T, Writable, GS_VID_T> nextIncomingMessages) {
         this.fragment = fragment;
         this.nextIncomingMessages = nextIncomingMessages;
-//        this.msgSeq = new AtomicInteger(0);
         this.msgSeq = 0;
-//        buf = new PooledByteBufAllocator(true).buffer(4);
     }
 
     /**
@@ -47,13 +41,17 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
      */
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WritableRequest msg) throws Exception {
-        logger.debug("Server handler [{}] thread: [{}] received msg: {}", fragment.fid(), Thread.currentThread().getId(), msg);
+        if (logger.isDebugEnabled()){
+            logger.debug("Server handler [{}] thread: [{}] received msg: {}", fragment.fid(),
+                Thread.currentThread().getId(), msg);
+        }
         msg.doRequest(nextIncomingMessages);
 
-//        int curMsgSeq = msgSeq.getAndAdd(1);
         ByteBuf buf = ctx.alloc().buffer(RESPONSE_BYTES);
         buf.writeInt(msgSeq);
-        logger.debug("Server handler[{}] send response [{}]", fragment.fid(),  msgSeq);
+        if (logger.isDebugEnabled()){
+            logger.debug("Server handler[{}] send response [{}]", fragment.fid(), msgSeq);
+        }
         ctx.writeAndFlush(buf);
         msgSeq += 1;
     }
@@ -65,8 +63,11 @@ public class NettyServerHandler<OID_T extends WritableComparable,GS_VID_T> exten
         ctx.close();
     }
 
-    public void preSuperStep(MessageStore<OID_T, Writable,GS_VID_T> nextIncomingMessages){
-        logger.info("Update nextIncoming msg store from " + this.nextIncomingMessages + " to " + nextIncomingMessages);
+    public void preSuperStep(MessageStore<OID_T, Writable, GS_VID_T> nextIncomingMessages) {
+        if (logger.isInfoEnabled()){
+            logger.info("Update nextIncoming msg store from " + this.nextIncomingMessages + " to "
+                + nextIncomingMessages);
+        }
         this.nextIncomingMessages = nextIncomingMessages;
         this.msgSeq = 0;
     }
