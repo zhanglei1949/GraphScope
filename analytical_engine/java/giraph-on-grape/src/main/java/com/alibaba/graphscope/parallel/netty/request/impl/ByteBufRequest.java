@@ -100,6 +100,11 @@ public class ByteBufRequest extends WritableRequest {
                 longDoubleMessageStore.addGidMessage(gid, writable);
             }
             assert buf.readableBytes() == 0;
+            //release buf here?
+            buf.release();
+            if (buf.refCnt() > 0){
+                throw new IllegalStateException("not released: " + buf);
+            }
         } else {
             throw new IllegalStateException("Not available mesageStore" + messageStore);
         }
