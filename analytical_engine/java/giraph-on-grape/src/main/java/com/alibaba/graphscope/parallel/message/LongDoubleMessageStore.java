@@ -190,9 +190,9 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
             throw new IllegalStateException("lid exceeded upper bound");
         }
         if (messages.containsKey(lid)) {
-            if (logger.isDebugEnabled()){
-                logger.debug("worker [{}] getting msg for v: {} size {}", fragment.fid(), lid, messages.get(lid).size());
-            }
+//            if (logger.isDebugEnabled()){
+//                logger.debug("worker [{}] getting msg for v: {} size {}", fragment.fid(), lid, messages.get(lid).size());
+//            }
             iterable.init(messages.get(lid));
             return iterable;
         } else {
@@ -216,9 +216,9 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         public void init(List<Double> in) {
             doubles = in;
             ind = 0;
-            if (logger.isDebugEnabled()){
-                logger.debug("DoubleWritableIterable set: {} to", in);
-            }
+//            if (logger.isDebugEnabled()){
+//                logger.debug("DoubleWritableIterable set: {} to", in);
+//            }
         }
 
         @Override
