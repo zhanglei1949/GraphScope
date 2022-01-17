@@ -50,7 +50,9 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
 
     @Override
     public void addLidMessage(Long lid, DoubleWritable writable) {
-        assert lid < innerVerticesNum;
+        if (lid >= innerVerticesNum){
+            throw new IllegalStateException("lid exceeded upper bound");
+        }
         if (!messages.containsKey(lid)) {
             messages.put(lid, new ArrayList<>(INIT_CAPACITY));
         }
@@ -64,7 +66,9 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         while (gidIterator.hasNext() && writableIterator.hasNext()) {
             long gid = gidIterator.next();
             DoubleWritable msg = writableIterator.next();
-            assert fragment.innerVertexGid2Vertex(gid, vertex);
+            if (!fragment.innerVertexGid2Vertex(gid, vertex)){
+                throw new IllegalStateException("gid to vertex convertion failed: " + gid);
+            }
             long lid = vertex.GetValue();
             addLidMessage(lid, msg);
             cnt += 1;
@@ -84,9 +88,13 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
     }
 
     private synchronized void addGidMessage(Long gid, double msg){
-        assert fragment.innerVertexGid2Vertex(gid, vertex);
+        if (!fragment.innerVertexGid2Vertex(gid, vertex)){
+            throw new IllegalStateException("gid to vertex convertion failed: " + gid);
+        }
         long lid = vertex.GetValue();
-        assert lid < innerVerticesNum;
+        if (lid >= innerVerticesNum){
+            throw new IllegalStateException("exceeded innerVertices num");
+        }
         if (logger.isDebugEnabled()){
             logger.debug("gid {} to lid {}", gid, lid);
         }
@@ -117,8 +125,10 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
                 logger.debug("worker [{}] resolving message to self, gid {}, msg {}", fragment.fid(), gid, msg);
             }
         }
-        assert bufCopy.readableBytes() == 0;
-        assert bufCopy.release();
+        if (bufCopy.readableBytes() != 0){
+            throw new IllegalStateException("readable bytes no subtracted by 16");
+        }
+        bufCopy.release();
     }
 
     @Override
@@ -165,7 +175,9 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
      */
     @Override
     public boolean messageAvailable(long lid) {
-        assert lid < innerVerticesNum;
+        if (lid >= innerVerticesNum){
+            throw new IllegalStateException("lid exceeded upper bound");
+        }
         return messages.containsKey(lid);
     }
 
@@ -177,7 +189,9 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
      */
     @Override
     public Iterable<DoubleWritable> getMessages(long lid) {
-        assert lid < innerVerticesNum;
+        if (lid >= innerVerticesNum){
+            throw new IllegalStateException("lid exceeded upper bound");
+        }
         if (messages.containsKey(lid)) {
             if (logger.isDebugEnabled()){
                 logger.debug("worker [{}] getting msg for v: {} size {}", fragment.fid(), lid, messages.get(lid).size());
