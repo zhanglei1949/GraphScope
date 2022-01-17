@@ -95,9 +95,6 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         if (lid >= innerVerticesNum){
             throw new IllegalStateException("exceeded innerVertices num");
         }
-        if (logger.isDebugEnabled()){
-            logger.debug("gid {} to lid {}", gid, lid);
-        }
         if (!messages.containsKey(lid)) {
             messages.put(lid, new ArrayList<>());
         }
