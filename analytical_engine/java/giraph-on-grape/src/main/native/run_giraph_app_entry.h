@@ -70,7 +70,7 @@ std::shared_ptr<GRAPH_TYPE> loadWithGrapeLoader(
     graph_spec.set_serialize(true, serialize_prefix);
   }
   // if deserialzation enabled, do deserialzation
-  fragment = LoadGraph<GRAPH_TYPE, HashPartitioner<typename GRAPH_TYPE::oid_t>>(
+  return LoadGraph<GRAPH_TYPE, HashPartitioner<typename GRAPH_TYPE::oid_t>>(
       efile, vfile, comm_spec, graph_spec);
 }
 
@@ -80,7 +80,6 @@ std::shared_ptr<GRAPH_TYPE> loadWithGiraphLoader(
   int loading_threads_num = getFromPtree<int>(pt, OPTION_LOADING_THREAD_NUM);
   if (loading_threads_num <= 0) {
     LOG(ERROR) << "Invalid loading thread num: " << loading_threads_num;
-    return;
   }
   int vertex_buffer_nums = loading_threads_num * comm_spec.fnum();
   int edge_buffer_nums =
