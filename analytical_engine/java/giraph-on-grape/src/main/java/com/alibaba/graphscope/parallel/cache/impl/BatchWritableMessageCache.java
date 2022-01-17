@@ -57,7 +57,9 @@ public class BatchWritableMessageCache<I extends WritableComparable,
     public void sendMessage(int dstFragId, GS_VID_T gid, M message) {
         //TODO: GS_VID_T can be types other than long.
         if (!cache[dstFragId].add((Long) gid, message)){
-            assert dstFragId != fragId;
+            if (dstFragId == fragId){
+                throw new IllegalStateException("message to self can not be failed");
+            }
             //If add cache fail, then cache is already full.
             BatchWritableRequest request = new BatchWritableRequest(
                 (Gid2DataFixed) cache[dstFragId]);

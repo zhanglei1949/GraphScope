@@ -186,7 +186,9 @@ public class GiraphNettyMessageManager<
     public void sendMessage(OID_T dstOid, OUT_MSG_T message) {
         if (dstOid instanceof LongWritable) {
             Long longOid = ((LongWritable) dstOid).get();
-            assert fragment.getVertex((GS_OID_T) longOid, grapeVertex);
+            if (!fragment.getVertex((GS_OID_T) longOid, grapeVertex)){
+                throw new IllegalStateException("get lid failed for oid: " + longOid);
+            }
             sendLidMessage(grapeVertex, message);
         } else {
             throw new IllegalStateException("Expect a long writable");
