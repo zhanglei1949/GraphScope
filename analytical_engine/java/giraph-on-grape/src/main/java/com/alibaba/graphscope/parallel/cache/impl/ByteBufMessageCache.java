@@ -33,6 +33,7 @@ public class ByteBufMessageCache<I extends WritableComparable,
     private final int fragId;
     private final NettyClient client;
     private final ImmutableClassesGiraphConfiguration<I, ?, ?> conf;
+
     private ByteBuf[] cache;
     private ByteBufOutputStream cacheStream[];
     private int cacheMaximum;
@@ -122,7 +123,7 @@ public class ByteBufMessageCache<I extends WritableComparable,
                 logger.debug("worker {} to {}, cache {}", fragId, dstFragId, cache[dstFragId]);
             }
             if (dstFragId != fragId && cache[dstFragId].readableBytes() > 0) {
-                ByteBufRequest request = new ByteBufRequest(cache[dstFragId]);
+                ByteBufRequest request = new ByteBufRequest(cache[dstFragId].copy());
                 logger.info("worker [{}] flush buffered msg of size [{}] to worker [{}]", fragId,
                     cache[dstFragId].readableBytes(), dstFragId);
                 client.sendMessage(dstFragId, request);

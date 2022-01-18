@@ -58,9 +58,9 @@ public class WritableRequestEncoder extends ChannelOutboundHandlerAdapter {
                         buf.readableBytes() - SIZE_OF_INT,
                         bufRequest.getRequestType().getClazz().getName());
                 }
-                buf.retain();
+//                buf.retain();
                 ctx.writeAndFlush(buf,
-                    promise); //Netty may release our buf in this function, which is not we want.
+                    promise); // can be released
             } else {
                 if (requestSize == WritableRequest.UNKNOWN_SIZE) {
                     logger.debug("Unknown size of request, using default size: {}",

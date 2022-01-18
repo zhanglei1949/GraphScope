@@ -108,6 +108,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
      * @param buf
      */
     public void digestByteBuf(ByteBuf buf){
+        //FIXME: why we are copying?
         ByteBuf bufCopy = buf.copy();
         bufCopy.skipBytes(5);
         if (bufCopy.readableBytes() % 16 != 0){

@@ -161,7 +161,8 @@ public class NettyClient {
                     public void channelUnregistered(ChannelHandlerContext ctx) throws
                         Exception {
                         super.channelUnregistered(ctx);
-                        logger.error("NettyClient [{}]: Channel failed {}", workerId, ctx.channel());
+                        logger.error("NettyClient [{}]: Channel failed {}", workerId,
+                            ctx.channel());
 //                        checkRequestsAfterChannelFailure(ctx.channel());
                     }
                 });
@@ -202,7 +203,8 @@ public class NettyClient {
         while (successCnt < connections.length) {
             if (Objects.nonNull(connections[index])) {
                 Connection connection = connections[index];
-                logger.info("NettyClient [{}]: try for connection to {} while success connection cnt: {}",
+                logger.info(
+                    "NettyClient [{}]: try for connection to {} while success connection cnt: {}",
                     workerId, connection.dstWorkerId, successCnt);
 
                 int failedCnt = 0;
@@ -243,14 +245,16 @@ public class NettyClient {
 
                 }
                 if (Objects.isNull(channel)) {
-                    logger.warn("NettyClient [{}]: Skip connection {} for next time. try others", workerId, connection);
+                    logger.warn("NettyClient [{}]: Skip connection {} for next time. try others",
+                        workerId, connection);
                 } else {
                     successCnt += 1;
                     channels[index] = channel;
                     handlers[index] = (NettyClientHandler) channel.pipeline().last();
                 }
             } else {
-                logger.info("NettyClient [{}]: Connection to self is not needed [{}]", workerId, index);
+                logger.info("NettyClient [{}]: Connection to self is not needed [{}]", workerId,
+                    index);
             }
             index = (index + 1) % connections.length;
         }
@@ -301,7 +305,8 @@ public class NettyClient {
 //        pendingRequests.get(dstFragId).offer(requestFuture);
         //Must already been initialized to 0 in presuperstep.
         pendingRequests.put(dstFragId, pendingRequests.get(dstFragId) + 1);
-        logger.debug("NettyClient [{}]: send msg {} to [{}], corresponding pending request: {}",workerId, request, dstFragId,
+        logger.debug("NettyClient [{}]: send msg {} to [{}], corresponding pending request: {}",
+            workerId, request, dstFragId,
             pendingRequests.get(dstFragId));
     }
 
