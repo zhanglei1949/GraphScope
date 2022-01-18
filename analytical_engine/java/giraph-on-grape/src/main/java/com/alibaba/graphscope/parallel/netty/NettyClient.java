@@ -4,6 +4,8 @@ import static com.alibaba.graphscope.parallel.netty.handler.NettyServerHandler.R
 import static org.apache.giraph.conf.GiraphConstants.CLIENT_RECEIVE_BUFFER_SIZE;
 import static org.apache.giraph.conf.GiraphConstants.CLIENT_SEND_BUFFER_SIZE;
 import static org.apache.giraph.conf.GiraphConstants.MAX_CONN_TRY_ATTEMPTS;
+import static org.apache.giraph.utils.ByteUtils.SIZE_OF_BYTE;
+import static org.apache.giraph.utils.ByteUtils.SIZE_OF_INT;
 
 import com.alibaba.graphscope.parallel.netty.handler.NettyClientHandler;
 import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
@@ -99,7 +101,7 @@ public class NettyClient {
         /** Init constants */
         /** Number of threads for client to use, i.e. number of handlers*/
         maxPoolSize = GiraphConstants.NETTY_CLIENT_THREADS.get(conf);
-        sendBufferSize = CLIENT_SEND_BUFFER_SIZE.get(conf);
+        sendBufferSize = CLIENT_SEND_BUFFER_SIZE.get(conf) + SIZE_OF_INT + SIZE_OF_BYTE;
         receiveBufferSize = CLIENT_RECEIVE_BUFFER_SIZE.get(conf);
         requestSizeWarningThreshold =
             GiraphConstants.REQUEST_SIZE_WARNING_THRESHOLD.get(conf);

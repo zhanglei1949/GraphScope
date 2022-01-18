@@ -63,7 +63,7 @@ public class ByteBufMessageCache<I extends WritableComparable,
     @Override
     public void sendMessage(int dstFragId, GS_VID_T gid, M message) {
         if (dstFragId != fragId) {
-            if (cache[dstFragId].readableBytes() >= cacheMaximum) {
+            if (cache[dstFragId].readableBytes() + 16 >= cacheMaximum) {
                 logger.info(
                     "Cache limit reached, flushing buffer: {} -> {}, size {}, maximum cache {}",
                     fragId, dstFragId, cache[dstFragId].readableBytes(), cacheMaximum);

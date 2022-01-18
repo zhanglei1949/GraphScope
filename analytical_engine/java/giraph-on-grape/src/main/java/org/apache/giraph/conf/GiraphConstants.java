@@ -34,6 +34,8 @@ public interface GiraphConstants {
      */
     int ONE_MB = 1024 * 1024;
 
+    int clientCacheSize = 4 * ONE_MB;
+
     /**
      * VertexOutputFormat class
      */
@@ -190,13 +192,13 @@ public interface GiraphConstants {
      * How big to make the encoder buffer?
      */
     IntConfOption NETTY_REQUEST_ENCODER_BUFFER_SIZE =
-        new IntConfOption("giraph.nettyRequestEncoderBufferSize", 64 * ONE_MB,
+        new IntConfOption("giraph.nettyRequestEncoderBufferSize", clientCacheSize,
             "How big to make the encoder buffer?");
     /**
      * Client send buffer size
      */
     IntConfOption CLIENT_SEND_BUFFER_SIZE =
-        new IntConfOption("giraph.clientSendBufferSize", 64 * ONE_MB,
+        new IntConfOption("giraph.clientSendBufferSize", clientCacheSize,
             "Client send buffer size");
 
     /**
@@ -217,10 +219,10 @@ public interface GiraphConstants {
      * Server receive buffer size. a little bit larger than request size.
      */
     IntConfOption SERVER_RECEIVE_BUFFER_SIZE =
-        new IntConfOption("giraph.serverReceiveBufferSize", 64 * ONE_MB,
+        new IntConfOption("giraph.serverReceiveBufferSize", clientCacheSize,
             "Server receive buffer size");
 
-    IntConfOption MAX_FRAME_LENGTH = new IntConfOption("giraph.maxFrameLength", 128 * ONE_MB ,
+    IntConfOption MAX_FRAME_LENGTH = new IntConfOption("giraph.maxFrameLength", 2 * clientCacheSize ,
         "fixed frame max size");
 
     /**
@@ -237,7 +239,7 @@ public interface GiraphConstants {
      * Should be used by byteBuf cache.
      */
     IntConfOption MAX_OUT_MSG_CACHE_SIZE = new IntConfOption("giraph.maxOutMsgCacheSize",
-        64 * ONE_MB,
+        clientCacheSize,
         "Max number of bytes in cache before flushing");
 
     /**

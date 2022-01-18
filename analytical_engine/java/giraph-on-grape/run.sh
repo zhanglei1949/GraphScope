@@ -35,7 +35,17 @@ GLOG_v=10 mpirun \
 --serialize true --serialize_prefix com --grape_loader true
 
 GLOG_v=10 mpirun \
--n 4 \
+-n 2 \
+-f ~/hostfile \
+-envlist GLOG_v,GRAPE_JVM_OPTS,USER_JAR_PATH,GRAPH_TYPE,APP_TYPE,MAX_SUPER_STEP,MESSAGE_MANAGER_TYPE,OUT_MESSAGE_CACHE_TYPE,MESSAGE_STORE_TYPE \
+./giraph_runner --app_class com.alibaba.graphscope.samples.MessageBenchMark \
+--efile ~/com.e --vfile ~/com.v \
+--worker_context_class com.alibaba.graphscope.samples.MessageBenchMark\$MessageBenchMarkWorkerContext \
+--lib_path /opt/graphscope/lib/libgiraph-jni.so --loading_thread_num 1 \
+--serialize true --serialize_prefix com --grape_loader true
+
+GLOG_v=10 mpirun \
+-n 2 \
 -f ~/hostfile \
 -envlist GLOG_v,GRAPE_JVM_OPTS,USER_JAR_PATH,GRAPH_TYPE,APP_TYPE,MAX_SUPER_STEP,MESSAGE_MANAGER_TYPE,OUT_MESSAGE_CACHE_TYPE,MESSAGE_STORE_TYPE \
 ./giraph_runner --app_class com.alibaba.graphscope.samples.MessageBenchMark \
