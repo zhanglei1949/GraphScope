@@ -34,7 +34,7 @@ public interface GiraphConstants {
      */
     int ONE_MB = 1024 * 1024;
 
-    int clientCacheSize = 128 * ONE_MB;
+    int clientCacheSize = 2048 * ONE_MB;
 
     /**
      * VertexOutputFormat class
@@ -222,7 +222,7 @@ public interface GiraphConstants {
         new IntConfOption("giraph.serverReceiveBufferSize", clientCacheSize,
             "Server receive buffer size");
 
-    IntConfOption MAX_FRAME_LENGTH = new IntConfOption("giraph.maxFrameLength", 2 * clientCacheSize ,
+    IntConfOption MAX_FRAME_LENGTH = new IntConfOption("giraph.maxFrameLength", clientCacheSize ,
         "fixed frame max size");
 
     /**
