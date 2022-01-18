@@ -1,10 +1,8 @@
 package com.alibaba.graphscope.parallel.netty.request.impl;
 
 import com.alibaba.graphscope.parallel.message.MessageStore;
-import com.alibaba.graphscope.parallel.mm.impl.GiraphDefaultMessageManager;
 import com.alibaba.graphscope.parallel.netty.request.RequestType;
 import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
-import com.alibaba.graphscope.utils.Gid2Data;
 import com.alibaba.graphscope.utils.Gid2DataFixed;
 import io.netty.buffer.ByteBuf;
 import java.io.DataInput;
@@ -16,14 +14,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class BatchWritableRequest extends WritableRequest {
+
     private Gid2DataFixed data;
     private static Logger logger = LoggerFactory.getLogger(BatchWritableRequest.class);
 
-    public BatchWritableRequest(){
+    public BatchWritableRequest() {
 
     }
 
-    public BatchWritableRequest(Gid2DataFixed data){
+    public BatchWritableRequest(Gid2DataFixed data) {
         this.data = data;
     }
 
@@ -41,20 +40,19 @@ public class BatchWritableRequest extends WritableRequest {
     public void readFieldsRequest(DataInput input) throws IOException {
         int size = input.readInt();
         data = new Gid2DataFixed(size);
-        for (int i = 0; i < size; ++i){
+        for (int i = 0; i < size; ++i) {
             Writable inMsg = getConf().createInComingMessageValue();
             long gid = input.readLong();
             inMsg.readFields(input);
-            data.add(gid,inMsg);
+            data.add(gid, inMsg);
         }
     }
 
     @Override
     public void writeFieldsRequest(DataOutput output) throws IOException {
-        if (Objects.nonNull(this.data)){
+        if (Objects.nonNull(this.data)) {
             this.data.write(output);
-        }
-        else {
+        } else {
             throw new IllegalStateException("Try to serialize an empty request");
         }
     }
@@ -87,13 +85,13 @@ public class BatchWritableRequest extends WritableRequest {
     public void doRequest(MessageStore messageStore) {
         long[] gids = data.getGids();
         Writable[] msgOnVertex = data.getMsgOnVertex();
-        for (int i = 0; i < data.size(); ++i){
+        for (int i = 0; i < data.size(); ++i) {
             messageStore.addGidMessage(gids[i], msgOnVertex[i]);
         }
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         return "BatchWritableRequest(" + data + ")";
     }
 }

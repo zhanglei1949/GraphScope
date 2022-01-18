@@ -1,6 +1,5 @@
 package com.alibaba.graphscope.utils;
 
-import com.alibaba.graphscope.parallel.mm.impl.GiraphDefaultMessageManager;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
@@ -17,25 +16,29 @@ public class WritableFactory {
     private static Class<? extends Writable> edataClass;
 
 
-    public static void setInMsgClass(Class<? extends Writable> param){
+    public static void setInMsgClass(Class<? extends Writable> param) {
         inMsgClass = param;
     }
-    public static void setOutMsgClass(Class<? extends Writable> param){
+
+    public static void setOutMsgClass(Class<? extends Writable> param) {
         outMsgClass = param;
     }
-    public static void setOidClass(Class<? extends WritableComparable> param){
+
+    public static void setOidClass(Class<? extends WritableComparable> param) {
         oidClass = param;
     }
-    public static void setVdataClass(Class<? extends Writable> param){
+
+    public static void setVdataClass(Class<? extends Writable> param) {
         vdataClass = param;
     }
-    public static void setEdataClass(Class<? extends Writable> param){
+
+    public static void setEdataClass(Class<? extends Writable> param) {
         edataClass = param;
     }
 
 
-    public static WritableComparable newOid(){
-        if (oidClass == null){
+    public static WritableComparable newOid() {
+        if (oidClass == null) {
             logger.error("Set oid class first");
         }
         try {
@@ -50,24 +53,24 @@ public class WritableFactory {
         return null;
     }
 
-    public static String getOidClassName(){
-        if (oidClass == null){
+    public static String getOidClassName() {
+        if (oidClass == null) {
             logger.error("Set oid class first");
             return "";
         }
         return oidClass.getName();
     }
 
-    public static String getEdataClassName(){
-        if (edataClass == null){
+    public static String getEdataClassName() {
+        if (edataClass == null) {
             logger.error("Set edata class first");
             return "";
         }
         return edataClass.getName();
     }
 
-    public static Writable newInMsg(){
-        if (inMsgClass == null){
+    public static Writable newInMsg() {
+        if (inMsgClass == null) {
             logger.error("Set in msg class first");
         }
         try {
@@ -82,8 +85,8 @@ public class WritableFactory {
         return null;
     }
 
-    public static Writable newOutMsg(){
-        if (outMsgClass == null){
+    public static Writable newOutMsg() {
+        if (outMsgClass == null) {
             logger.error("Set out msg class first");
         }
         try {
@@ -98,8 +101,8 @@ public class WritableFactory {
         return null;
     }
 
-    public static Writable newVData(){
-        if (vdataClass == null){
+    public static Writable newVData() {
+        if (vdataClass == null) {
             logger.error("Set vdata class first");
         }
         try {
@@ -114,8 +117,8 @@ public class WritableFactory {
         return null;
     }
 
-    public static Writable newEData(){
-        if (edataClass == null){
+    public static Writable newEData() {
+        if (edataClass == null) {
             logger.error("Set edata class first");
         }
         try {

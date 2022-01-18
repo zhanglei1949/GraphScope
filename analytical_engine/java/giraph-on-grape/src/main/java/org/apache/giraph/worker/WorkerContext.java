@@ -19,7 +19,6 @@
 package org.apache.giraph.worker;
 
 import com.alibaba.graphscope.fragment.SimpleFragment;
-import com.alibaba.graphscope.parallel.mm.impl.GiraphDefaultMessageManager;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -35,7 +34,7 @@ import org.slf4j.LoggerFactory;
 /**
  * WorkerContext allows for the execution of user code on a per-worker basis. There's one
  * WorkerContext per worker.
- *
+ * <p>
  * Giraph worker context is abstract. Our implementation should contains all necessary interfaces
  * needed. see {@link org.apache.giraph.worker.impl.DefaultWorkerContext}
  */
@@ -52,24 +51,25 @@ public abstract class WorkerContext
     private int curStep = -1;
     private AggregatorManager aggregatorManager;
 
-    public void setFragment(SimpleFragment fragment){
+    public void setFragment(SimpleFragment fragment) {
         this.fragment = fragment;
     }
 
 
-    public void setAggregatorManager(AggregatorManager aggregatorManager){
+    public void setAggregatorManager(AggregatorManager aggregatorManager) {
         this.aggregatorManager = aggregatorManager;
     }
 
     /**
      * Make sure this function is called after each step.
+     *
      * @param step
      */
-    public void setCurStep(int step){
+    public void setCurStep(int step) {
         this.curStep = step;
     }
 
-    public void incStep(){
+    public void incStep() {
         this.curStep += 1;
     }
 
@@ -80,11 +80,11 @@ public abstract class WorkerContext
      * @throws IllegalAccessException Thrown for getting the class
      * @throws InstantiationException Expected instantiation in this method.
      */
-    public abstract void preApplication() throws InstantiationException,IllegalAccessException;
+    public abstract void preApplication() throws InstantiationException, IllegalAccessException;
 
     /**
-     * Finalize the WorkerContext. This method is executed once on each Worker after the last superstep
-     * ends.
+     * Finalize the WorkerContext. This method is executed once on each Worker after the last
+     * superstep ends.
      */
     public abstract void postApplication();
 
@@ -95,19 +95,20 @@ public abstract class WorkerContext
 
     /**
      * Get number of workers.
-     *
+     * <p>
      * We use fragment fnum to represent fragment number.
      *
      * @return Number of workers
      */
     @Override
     public final int getWorkerCount() {
-        if (Objects.isNull(fragment)){
+        if (Objects.isNull(fragment)) {
             logger.error("Fragment null, please set fragment first");
             return 0;
         }
         return fragment.fnum();
     }
+
     /**
      * Get index for this worker
      *
@@ -115,7 +116,7 @@ public abstract class WorkerContext
      */
     @Override
     public final int getMyWorkerIndex() {
-        if (Objects.isNull(fragment)){
+        if (Objects.isNull(fragment)) {
             logger.error("Fragment null, please set fragment first");
             return 0;
         }
@@ -134,7 +135,7 @@ public abstract class WorkerContext
      *
      * @return Messages received
      */
-    public List<Writable> getAndClearMessagesFromOtherWorkers(){
+    public List<Writable> getAndClearMessagesFromOtherWorkers() {
         logger.error("Not implemented");
         return null;
     }
@@ -145,7 +146,7 @@ public abstract class WorkerContext
      * @param message     Message to send
      * @param workerIndex Index of the worker to send the message to
      */
-    public void sendMessageToWorker(Writable message, int workerIndex){
+    public void sendMessageToWorker(Writable message, int workerIndex) {
         logger.error("Not implemented");
     }
 
@@ -159,7 +160,7 @@ public abstract class WorkerContext
      *
      * @return Current superstep
      */
-    public long getSuperstep(){
+    public long getSuperstep() {
         return curStep;
     }
 
@@ -168,8 +169,8 @@ public abstract class WorkerContext
      *
      * @return Total number of vertices (-1 if first superstep) (?)
      */
-    public final long getTotalNumVertices(){
-        if (Objects.isNull(fragment)){
+    public final long getTotalNumVertices() {
+        if (Objects.isNull(fragment)) {
             logger.error("Fragment null, please set fragment first");
             return 0;
         }
@@ -181,8 +182,8 @@ public abstract class WorkerContext
      *
      * @return Total number of edges (-1 if first superstep)
      */
-    public final long getTotalNumEdges(){
-        if (Objects.isNull(fragment)){
+    public final long getTotalNumEdges() {
+        if (Objects.isNull(fragment)) {
             logger.error("Fragment null, please set fragment first");
             return 0;
         }
@@ -194,7 +195,7 @@ public abstract class WorkerContext
      *
      * @return Mapper context
      */
-    public final Mapper.Context getContext(){
+    public final Mapper.Context getContext() {
         logger.error("No mapper context available");
         return null;
     }
@@ -205,7 +206,7 @@ public abstract class WorkerContext
      *
      * @param line Line to print
      */
-    public void logToCommandLine(String line){
+    public void logToCommandLine(String line) {
         logger.info(line);
     }
 
@@ -223,29 +224,30 @@ public abstract class WorkerContext
 
     /**
      * Reduce value by name.
-     * @param name key
+     *
+     * @param name  key
      * @param value value
      */
     @Override
     public void reduce(String name, Object value) {
-        if (Objects.isNull(aggregatorManager)){
+        if (Objects.isNull(aggregatorManager)) {
             logger.error("Set communicator first");
-            return ;
+            return;
         }
 
     }
 
     @Override
     public void reduceMerge(String name, Writable value) {
-        if (Objects.isNull(aggregatorManager)){
+        if (Objects.isNull(aggregatorManager)) {
             logger.error("Set communicator first");
-            return ;
+            return;
         }
     }
 
     @Override
     public <B extends Writable> B getBroadcast(String name) {
-        if (Objects.isNull(aggregatorManager)){
+        if (Objects.isNull(aggregatorManager)) {
             logger.error("Set communicator first");
             return null;
         }
@@ -255,16 +257,16 @@ public abstract class WorkerContext
 
     @Override
     public <A extends Writable> void aggregate(String name, A value) {
-        if (Objects.isNull(aggregatorManager)){
+        if (Objects.isNull(aggregatorManager)) {
             logger.error("Set communicator first");
-            return ;
+            return;
         }
         aggregatorManager.aggregate(name, value);
     }
 
     @Override
     public <A extends Writable> A getAggregatedValue(String name) {
-        if (Objects.isNull(aggregatorManager)){
+        if (Objects.isNull(aggregatorManager)) {
             logger.error("Set communicator first");
             return null;
         }
