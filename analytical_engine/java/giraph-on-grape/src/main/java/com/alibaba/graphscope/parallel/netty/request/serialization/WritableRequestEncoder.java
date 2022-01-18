@@ -62,7 +62,7 @@ public class WritableRequestEncoder extends ChannelOutboundHandlerAdapter {
 //                buf.retain();
                 ctx.writeAndFlush(buf,
                     promise); // can be released
-                promise.await();
+//                promise.await();
             } else {
                 if (requestSize == WritableRequest.UNKNOWN_SIZE) {
                     logger.debug("Unknown size of request, using default size: {}",
