@@ -30,6 +30,7 @@
     <logger name="org.apache.giraph.comm.netty.handler.NettyClientHandlerV2" level="error"/>
     <logger name="org.apache.giraph.comm.netty.hanlder.NettyServerHandler" level="error"/>
     <logger name="com.alibaba.graphscope.parallel.mm.impl.GiraphNettyMessageManager" level="info"/>
+    <logger name="com.alibaba.graphscope.parallel.mm.impl.GiraphMpiMessageManager" level="info"/>
     <logger name="com.alibaba.graphscope.parallel.netty.NettyClient" level="info"/>
     <logger name="com.alibaba.graphscope.parallel.netty.NettyServer" level="info"/>
     <logger name="com.alibaba.graphscope.parallel.netty.handler.NettyServerHandler" level="info"/>
