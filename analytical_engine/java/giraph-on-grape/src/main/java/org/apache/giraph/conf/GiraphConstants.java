@@ -34,7 +34,8 @@ public interface GiraphConstants {
      */
     int ONE_MB = 1024 * 1024;
 
-    int clientCacheSize = 2048 * ONE_MB;
+//    int clientCacheSize = 128 * ONE_MB;
+    int clientCacheSize = ONE_KB;
 
     /**
      * VertexOutputFormat class
