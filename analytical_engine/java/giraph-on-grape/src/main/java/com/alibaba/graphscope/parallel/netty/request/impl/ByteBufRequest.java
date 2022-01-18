@@ -100,7 +100,7 @@ public class ByteBufRequest extends WritableRequest {
             }
             assert buf.readableBytes() == 0;
             //release buf here?
-            buf.release(2);
+            buf.release();
             if (buf.refCnt() > 0){
                 throw new IllegalStateException("not released: " + buf);
             }
