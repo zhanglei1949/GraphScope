@@ -52,8 +52,12 @@ public class WritableRequestEncoder extends ChannelOutboundHandlerAdapter {
                             "Wrong number of bytes: " + buf.readableBytes());
                     }
                 }
+
                 buf.setInt(0, buf.readableBytes() - SIZE_OF_INT);
+                logger.info("after set index 0 {}", buf.getInt(0));
                 buf.setByte(4, bufRequest.getRequestType().ordinal());
+                logger.info("after set index 4: {}", buf.getByte(4));
+
                 if (logger.isDebugEnabled()) {
                     logger.debug("encode ByteBufRequest length: {}, type {}",
                         buf.readableBytes() - SIZE_OF_INT,
