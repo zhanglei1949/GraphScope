@@ -39,12 +39,13 @@ public class WritableRequestEncoder extends ChannelOutboundHandlerAdapter {
         if (msg instanceof WritableRequest) {
             WritableRequest request = (WritableRequest) msg;
             int requestSize = request.getNumBytes();
-            if (logger.isDebugEnabled()){
-                logger.debug("request size: " + requestSize);
-            }
+
             if (msg instanceof ByteBufRequest) {
                 ByteBufRequest bufRequest = (ByteBufRequest) request;
                 buf = bufRequest.getBuffer();
+                if (logger.isDebugEnabled()){
+                    logger.debug("request size: {}, buf size: {}", requestSize, buf.readableBytes());
+                }
                 if (logger.isDebugEnabled()) {
                     if ((buf.readableBytes() - SIZE_OF_BYTE - SIZE_OF_INT) % 16 != 0) {
                         throw new IllegalStateException(
