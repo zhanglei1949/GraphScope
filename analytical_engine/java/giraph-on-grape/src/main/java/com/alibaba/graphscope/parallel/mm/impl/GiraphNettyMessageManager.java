@@ -216,17 +216,14 @@ public class GiraphNettyMessageManager<
             com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
             sendLidMessage(curVertex, message);
         }
-        for (Nbr<GS_VID_T,?> nbr : fragment.getIncomingAdjList(grapeVertex).iterable()){
-            com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
-            sendLidMessage(curVertex, message);
-        }
+//        for (Nbr<GS_VID_T,?> nbr : fragment.getIncomingAdjList(grapeVertex).iterable()){
+//            com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
+//            sendLidMessage(curVertex, message);
+//        }
     }
 
     private void sendLidMessage(com.alibaba.graphscope.ds.Vertex<GS_VID_T> nbrVertex, OUT_MSG_T message){
         int dstfragId = fragment.getFragId(nbrVertex);
-        if (logger.isDebugEnabled()){
-            logger.debug("worker [{}] send msg {} to vertex {} on worker {}", fragId, message, nbrVertex.GetValue(), dstfragId);
-        }
         outMessageCache.sendMessage(dstfragId, fragment.vertex2Gid(nbrVertex), message);
     }
 

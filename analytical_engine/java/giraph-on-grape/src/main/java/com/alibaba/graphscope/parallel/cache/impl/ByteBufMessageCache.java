@@ -68,7 +68,8 @@ public class ByteBufMessageCache<I extends WritableComparable,
                 logger.info(
                     "Cache limit reached, flushing buffer: {} -> {}, size {}, maximum cache {}",
                     fragId, dstFragId, cache[dstFragId].readableBytes(), cacheMaximum);
-                ByteBufRequest request = new ByteBufRequest(cache[dstFragId].copy());
+//                ByteBufRequest request = new ByteBufRequest(cache[dstFragId].copy());
+                ByteBufRequest request = new ByteBufRequest(cache[dstFragId]); //try no copy
                 // the data in this buffer [cache] will be flushed to netty cache.
                 client.sendMessage(dstFragId, request);
                 //don't need to create new cache, just reset the cache.
@@ -126,7 +127,10 @@ public class ByteBufMessageCache<I extends WritableComparable,
                 logger.debug("worker {} to {}, cache {}", fragId, dstFragId, cache[dstFragId]);
             }
             if (dstFragId != fragId && cache[dstFragId].readableBytes() > 0) {
-                ByteBufRequest request = new ByteBufRequest(cache[dstFragId].copy());
+                //ByteBufRequest request = new ByteBufRequest(cache[dstFragId].copy());
+                //try no copy
+                ByteBufRequest request = new ByteBufRequest(cache[dstFragId]);
+
                 if (logger.isDebugEnabled()){
                     logger.debug("worker [{}] flush buffered msg of size [{}] to worker [{}]", fragId,
                         cache[dstFragId].readableBytes(), dstFragId);

@@ -13,7 +13,6 @@ import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.stdcxx.FFIByteVectorFactory;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
-import static org.apache.giraph.conf.GiraphConstants.MAX_OUT_MSG_CACHE_SIZE;
 
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.Vertex;
@@ -27,18 +26,18 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Iterator;
 
-public class GiraphDefaultMessageManager<
-                OID_T extends WritableComparable,
-                VDATA_T extends Writable,
-                EDATA_T extends Writable,
-                IN_MSG_T extends Writable,
-                OUT_MSG_T extends Writable, GS_VID_T,GS_OID_T>
-        implements GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T,GS_OID_T> {
+public class GiraphMpiMessageManager<
+    OID_T extends WritableComparable,
+    VDATA_T extends Writable,
+    EDATA_T extends Writable,
+    IN_MSG_T extends Writable,
+    OUT_MSG_T extends Writable, GS_VID_T,GS_OID_T>
+    implements GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T,GS_OID_T> {
     private static Logger logger = LoggerFactory.getLogger(GiraphDefaultMessageManager.class);
 
     private ImmutableClassesGiraphConfiguration configuration;
     /** If cached message exceeds this threshold, we will send them immediately. */
-    private long THRESHOLD = MAX_OUT_MSG_CACHE_SIZE.get(configuration);
+    public static long THRESHOLD = 1024 * 1024;
 
     private SimpleFragment<GS_OID_T,GS_VID_T,?,?> fragment;
     private DefaultMessageManager grapeMessageManager;
@@ -52,10 +51,10 @@ public class GiraphDefaultMessageManager<
     private FFIByteVectorInputStream messagesIn;
     private FFIByteVectorOutputStream[] messagesOut;
 
-    public GiraphDefaultMessageManager(
-            SimpleFragment fragment,
-            DefaultMessageManager defaultMessageManager,
-            ImmutableClassesGiraphConfiguration configuration) {
+    public GiraphMpiMessageManager(
+        SimpleFragment fragment,
+        DefaultMessageManager defaultMessageManager,
+        ImmutableClassesGiraphConfiguration configuration) {
         this.fragment = fragment;
         this.fragmentNum = fragment.fnum();
         this.fragId = fragment.fid();
@@ -65,6 +64,7 @@ public class GiraphDefaultMessageManager<
         this.grapeMessageManager = defaultMessageManager;
         this.grapeVertex = FFITypeFactoryhelper.newVertex(configuration.getGrapeVidClass());
         this.messagesIn = new FFIByteVectorInputStream();
+        //        this.messagesOutToSelf = new FFIByteVectorOutputStream();
         this.messagesOut = new FFIByteVectorOutputStream[fragment.fnum()];
         for (int i = 0; i < fragment.fnum(); ++i) {
             this.messagesOut[i] = new FFIByteVectorOutputStream();
@@ -92,24 +92,24 @@ public class GiraphDefaultMessageManager<
         while (grapeMessageManager.getPureMessage(tmpVector)) {
             // OutArchive will do the resize;
             logger.info(
-                    "Frag ["
-                            + fragId
-                            + "]  digest message: "
-                            + tmpVector.getAddress()
-                            + ", msg size:"
-                            + tmpVector.size());
+                "Frag ["
+                    + fragId
+                    + "]  digest message: "
+                    + tmpVector.getAddress()
+                    + ", msg size:"
+                    + tmpVector.size());
             this.messagesIn.digestVector(tmpVector);
         }
         // Parse messageIn and form into Iterable<message> for each vertex;
         logger.info(
-                "Frag ["
-                        + fragId
-                        + "] totally Received ["
-                        + messagesIn.longAvailable()
-                        + "] bytes, starting deserialization");
+            "Frag ["
+                + fragId
+                + "] totally Received ["
+                + messagesIn.longAvailable()
+                + "] bytes, starting deserialization");
         if (configuration.getGrapeVidClass().equals(Long.class)) {
             com.alibaba.graphscope.ds.Vertex<Long> longVertex =
-                    (com.alibaba.graphscope.ds.Vertex<Long>) grapeVertex;
+                (com.alibaba.graphscope.ds.Vertex<Long>) grapeVertex;
         } else {
             throw new IllegalStateException("Expect long vid");
         }
@@ -128,7 +128,7 @@ public class GiraphDefaultMessageManager<
                 // store the msg
                 fragment.gid2Vertex((GS_VID_T) (Long)dstVertexGid, grapeVertex);
                 com.alibaba.graphscope.ds.Vertex<Long> grapeVertex2 =
-                        (com.alibaba.graphscope.ds.Vertex<Long>) grapeVertex;
+                    (com.alibaba.graphscope.ds.Vertex<Long>) grapeVertex;
                 if (grapeVertex2.GetValue() >= maxInnerVertexLid) {
                     logger.error("Received one vertex id which exceeds inner vertex range.");
                     return;
@@ -207,7 +207,7 @@ public class GiraphDefaultMessageManager<
     @Override
     public void sendMessageToAllEdges(Vertex<OID_T, VDATA_T, EDATA_T> vertex, OUT_MSG_T message) {
         VertexImpl<OID_T, VDATA_T, EDATA_T> vertexImpl =
-                (VertexImpl<OID_T, VDATA_T, EDATA_T>) vertex;
+            (VertexImpl<OID_T, VDATA_T, EDATA_T>) vertex;
         grapeVertex.SetValue((GS_VID_T) (Long)vertexImpl.getLocalId());
 
         // send msg through outgoing adjlist
@@ -283,11 +283,11 @@ public class GiraphDefaultMessageManager<
 
             if (size == 8) { // size be at least 8.
                 logger.info(
-                        "In final step,Message from frag["
-                                + fragId
-                                + "] to frag ["
-                                + i
-                                + "] empty.");
+                    "In final step,Message from frag["
+                        + fragId
+                        + "] to frag ["
+                        + i
+                        + "] empty.");
                 continue;
             }
 
@@ -299,17 +299,17 @@ public class GiraphDefaultMessageManager<
 //                }
                 grapeMessageManager.sendToFragment(i, messagesOut[i].getVector());
                 logger.info(
-                        "In final step, Frag ["
-                                + fragId
-                                + "] sending to frag ["
-                                + i
-                                + "] msg of size: "
-                                + size);
+                    "In final step, Frag ["
+                        + fragId
+                        + "] sending to frag ["
+                        + i
+                        + "] msg of size: "
+                        + size);
             } else {
                 // For messages send to local, we just do digest.
                 messagesIn.digestVector(messagesOut[i].getVector());
                 logger.info(
-                        "In final step, Frag [" + fragId + "] digest msg to self of size: " + size);
+                    "In final step, Frag [" + fragId + "] digest msg to self of size: " + size);
             }
 //            messagesOut[i].reset();
             messagesOut[i] = new FFIByteVectorOutputStream();

@@ -54,9 +54,9 @@ public class WritableRequestDecoder  extends ChannelInboundHandlerAdapter {
         WritableRequest request = ReflectionUtils.newInstance(messageClass);
         //Conf contains class info to create message instance.
         request.setConf(conf);
-        request = RequestUtils.decodeWritableRequest(buf.copy(), request);
-//        buf.retain();
-        buf.release();
+        request = RequestUtils.decodeWritableRequest(buf, request);
+        buf.retain();
+//        buf.release();
         if (logger.isDebugEnabled()){
             logger.debug("decode res: {}", request);
         }

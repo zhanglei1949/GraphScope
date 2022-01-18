@@ -46,6 +46,8 @@ public class NettyServerHandler<OID_T extends WritableComparable, GS_VID_T> exte
                 Thread.currentThread().getId(), msg);
         }
         msg.doRequest(nextIncomingMessages);
+        //dealloc the buffer here.
+        msg.getBuffer().release(2);
 
         ByteBuf buf = ctx.alloc().buffer(RESPONSE_BYTES);
         buf.writeInt(msgSeq);

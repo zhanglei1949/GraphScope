@@ -1,6 +1,7 @@
 
 export MAX_SUPER_STEP=10
-export MESSAGE_MANAGER_TYPE=netty
+#export MESSAGE_MANAGER_TYPE=netty
+export MESSAGE_MANAGER_TYPE=mpi
 export USER_JAR_PATH=/home/admin/gs/analytical_engine/java/giraph-on-grape/target/giraph-on-grape-shaded.jar
 export OUT_MESSAGE_CACHE_TYPE=ByteBuf
 export MESSAGE_STORE_TYPE=primitve
