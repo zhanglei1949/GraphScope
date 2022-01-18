@@ -73,6 +73,8 @@ public class ByteBufMessageCache<I extends WritableComparable,
                 client.sendMessage(dstFragId, request);
                 //don't need to create new cache, just reset the cache.
                 cache[dstFragId].clear();
+                cache[dstFragId].writeInt(0);
+                cache[dstFragId].writeByte(0);
             }
         }
         try{
