@@ -67,7 +67,7 @@ public class RequestUtils {
     public static WritableRequest decodeWritableRequest(ByteBuf buf,
         WritableRequest request) throws IOException {
         if (request.getRequestType().getClazz().equals(ByteBufRequest.class)){
-            request.setBuffer(buf.copy());
+            request.setBuffer(buf);
             return request;
         }
         ByteBufInputStream input = new ByteBufInputStream(buf);
