@@ -72,6 +72,7 @@ public class ByteBufMessageCache<I extends WritableComparable,
                 // the data in this buffer [cache] will be flushed to netty cache.
                 client.sendMessage(dstFragId, request);
                 //don't need to create new cache, just reset the cache.
+                //CAUTION: remember to set first 5 bytes when we flush the buffer.
                 cache[dstFragId].clear();
                 cache[dstFragId].writeInt(0);
                 cache[dstFragId].writeByte(0);
