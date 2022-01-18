@@ -2,6 +2,7 @@ package com.alibaba.graphscope.parallel.message;
 
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -133,5 +134,14 @@ public class SimpleMessageStore<OID_T extends WritableComparable, IN_MSG_T exten
             //actually a static empty iterator.
             return () -> Collections.emptyIterator();
         }
+    }
+    /**
+     * For a bytestream provided by FFIByteVector, read from it and digest its content.
+     *
+     * @param vector
+     */
+    @Override
+    public void digest(FFIByteVector vector) {
+        throw new IllegalStateException("not implemented");
     }
 }

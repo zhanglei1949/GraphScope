@@ -2,8 +2,11 @@ package com.alibaba.graphscope.parallel.message;
 
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.serialization.FFIByteVectorInputStream;
+import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import io.netty.buffer.ByteBuf;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,13 +47,13 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         this.conf = conf;
         vertex = (Vertex<Long>) FFITypeFactoryhelper.newVertex(java.lang.Long.class);
         iterable = new DoubleWritableIterable();
-        messages = new HashMap<Long,List<Double>>((int) fragment.getInnerVerticesNum());
+        messages = new HashMap<Long, List<Double>>((int) fragment.getInnerVerticesNum());
         innerVerticesNum = fragment.getInnerVerticesNum();
     }
 
     @Override
     public void addLidMessage(Long lid, DoubleWritable writable) {
-        if (lid >= innerVerticesNum){
+        if (lid >= innerVerticesNum) {
             throw new IllegalStateException("lid exceeded upper bound");
         }
         if (!messages.containsKey(lid)) {
@@ -66,7 +69,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         while (gidIterator.hasNext() && writableIterator.hasNext()) {
             long gid = gidIterator.next();
             DoubleWritable msg = writableIterator.next();
-            if (!fragment.innerVertexGid2Vertex(gid, vertex)){
+            if (!fragment.innerVertexGid2Vertex(gid, vertex)) {
                 throw new IllegalStateException("gid to vertex convertion failed: " + gid);
             }
             long lid = vertex.GetValue();
@@ -87,12 +90,12 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         addGidMessage(gid, writable.get());
     }
 
-    private synchronized void addGidMessage(Long gid, double msg){
-        if (!fragment.innerVertexGid2Vertex(gid, vertex)){
+    private synchronized void addGidMessage(Long gid, double msg) {
+        if (!fragment.innerVertexGid2Vertex(gid, vertex)) {
             throw new IllegalStateException("gid to vertex convertion failed: " + gid);
         }
         long lid = vertex.GetValue();
-        if (lid >= innerVerticesNum){
+        if (lid >= innerVerticesNum) {
             throw new IllegalStateException("exceeded innerVertices num");
         }
         if (!messages.containsKey(lid)) {
@@ -103,30 +106,31 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
 
     /**
      * For input byteBuf, parse and update our store.
-     *
+     * <p>
      * The received buf contains 4+1+data.
+     *
      * @param buf
      */
-    public void digestByteBuf(ByteBuf buf){
+    public void digestByteBuf(ByteBuf buf) {
         //FIXME: why we are copying?
-//        ByteBuf bufCopy = buf.copy();
         buf.skipBytes(5);
-        if (buf.readableBytes() % 16 != 0){
+        if (buf.readableBytes() % 16 != 0) {
             throw new IllegalStateException("Expect number of bytes times of 16");
         }
-        logger.info("LongDoubleMsgStore digest bytebuf size {} direct {}", buf.readableBytes(), buf.isDirect());
-        while (buf.readableBytes() >= 16){
+        logger.debug("LongDoubleMsgStore digest bytebuf size {} direct {}", buf.readableBytes(),
+            buf.isDirect());
+        while (buf.readableBytes() >= 16) {
             long gid = buf.readLong();
             double msg = buf.readDouble();
             addGidMessage(gid, msg);
-            if (logger.isDebugEnabled()){
-                logger.debug("worker [{}] resolving message to self, gid {}, msg {}", fragment.fid(), gid, msg);
+            if (logger.isDebugEnabled()) {
+                logger.debug("worker [{}] resolving message to self, gid {}, msg {}",
+                    fragment.fid(), gid, msg);
             }
         }
-        if (buf.readableBytes() != 0){
+        if (buf.readableBytes() != 0) {
             throw new IllegalStateException("readable bytes no subtracted by 16");
         }
-//        buf.release();
     }
 
     @Override
@@ -138,13 +142,14 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
                 return;
             }
             Map<Long, List<Double>> tmp;
-            if (logger.isDebugEnabled()){
-                logger.debug("Before swap {} vs {}", this.messages, longDoubleMessageStore.messages);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Before swap {} vs {}", this.messages,
+                    longDoubleMessageStore.messages);
             }
             tmp = this.messages;
             this.messages = longDoubleMessageStore.messages;
             longDoubleMessageStore.messages = tmp;
-            if (logger.isDebugEnabled()){
+            if (logger.isDebugEnabled()) {
                 logger.debug("After swap {} vs {}", this.messages, longDoubleMessageStore.messages);
             }
         } else {
@@ -173,7 +178,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
      */
     @Override
     public boolean messageAvailable(long lid) {
-        if (lid >= innerVerticesNum){
+        if (lid >= innerVerticesNum) {
             throw new IllegalStateException("lid exceeded upper bound");
         }
         return messages.containsKey(lid);
@@ -187,18 +192,49 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
      */
     @Override
     public Iterable<DoubleWritable> getMessages(long lid) {
-        if (lid >= innerVerticesNum){
+        if (lid >= innerVerticesNum) {
             throw new IllegalStateException("lid exceeded upper bound");
         }
         if (messages.containsKey(lid)) {
-//            if (logger.isDebugEnabled()){
-//                logger.debug("worker [{}] getting msg for v: {} size {}", fragment.fid(), lid, messages.get(lid).size());
-//            }
             iterable.init(messages.get(lid));
             return iterable;
         } else {
             //actually a static empty iterator.
             return () -> Collections.emptyIterator();
+        }
+    }
+
+    /**
+     * For a bytestream provided by FFIByteVector, read from it and digest its content.
+     *
+     * @param vector
+     */
+    @Override
+    public void digest(FFIByteVector vector) {
+        FFIByteVectorInputStream inputStream = new FFIByteVectorInputStream(vector);
+        int size = (int) vector.size();
+        if (size <= 0) {
+            return;
+        }
+        if (size % 16 != 0) {
+            throw new IllegalStateException("Expect number of bytes times of 16");
+        }
+        logger.debug("LongDoubleMsgStore digest FFIVector size {}", size);
+        try {
+            while (inputStream.longAvailable() >= 16) {
+                long gid = inputStream.readLong();
+                double msg = inputStream.readDouble();
+                addGidMessage(gid, msg);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("worker [{}] resolving message to self, gid {}, msg {}",
+                        fragment.fid(), gid, msg);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (inputStream.longAvailable() != 0) {
+            throw new IllegalStateException("readable bytes no subtracted by 16");
         }
     }
 

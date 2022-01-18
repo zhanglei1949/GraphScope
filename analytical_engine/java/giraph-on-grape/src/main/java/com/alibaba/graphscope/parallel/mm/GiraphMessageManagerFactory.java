@@ -3,7 +3,7 @@ package com.alibaba.graphscope.parallel.mm;
 import com.alibaba.graphscope.communication.FFICommunicator;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
-import com.alibaba.graphscope.parallel.mm.impl.GiraphDefaultMessageManager;
+import com.alibaba.graphscope.parallel.mm.impl.GiraphMpiMessageManager;
 import com.alibaba.graphscope.parallel.mm.impl.GiraphNettyMessageManager;
 import com.alibaba.graphscope.parallel.utils.NetworkMap;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
@@ -41,7 +41,7 @@ public class GiraphMessageManagerFactory {
                 conf
                     .getVertexValueClass(), conf.getEdgeValueClass(), conf
                     .getIncomingMessageValueClass(), conf.getOutgoingMessageValueClass(),
-                conf.getGrapeVidClass(), conf.getGrapeOidClass());
+                conf.getGrapeVidClass(), conf.getGrapeOidClass(), communicator);
         } else {
             logger.error("Unrecognized message manager type: [" + mmType + "]");
             return null;
@@ -68,7 +68,7 @@ public class GiraphMessageManagerFactory {
     }
 
     private static <OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable, IN_MSG_T extends Writable, OUT_MSG_T extends Writable, GS_VID_T, GS_OID_T>
-    GiraphDefaultMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T> createGiraphDefaultMM(
+    GiraphMpiMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T> createGiraphDefaultMM(
         SimpleFragment fragment,
         DefaultMessageManager mm,
         ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf,
@@ -78,10 +78,11 @@ public class GiraphMessageManagerFactory {
         Class<? extends IN_MSG_T> inMsgClass,
         Class<? extends OUT_MSG_T> outMsgClass,
         Class<? extends GS_VID_T> gsVidClass,
-        Class<? extends GS_OID_T> gsOidClass) {
-        return new GiraphDefaultMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T>(
+        Class<? extends GS_OID_T> gsOidClass,
+        FFICommunicator communicator) {
+        return new GiraphMpiMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T>(
             fragment, mm
-            , conf);
+            , conf, communicator);
     }
 
 

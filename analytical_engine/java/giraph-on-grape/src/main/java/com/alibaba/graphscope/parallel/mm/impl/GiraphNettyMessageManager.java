@@ -2,7 +2,6 @@ package com.alibaba.graphscope.parallel.mm.impl;
 
 import static org.apache.giraph.conf.GiraphConstants.MAX_CONN_TRY_ATTEMPTS;
 import static org.apache.giraph.conf.GiraphConstants.MAX_IPC_PORT_BIND_ATTEMPTS;
-import static org.apache.giraph.conf.GiraphConstants.MESSAGE_STORE_FACTORY_CLASS;
 
 import com.alibaba.graphscope.communication.FFICommunicator;
 import com.alibaba.graphscope.ds.adaptor.Nbr;
@@ -10,16 +9,12 @@ import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.cache.SendMessageCache;
 import com.alibaba.graphscope.parallel.message.MessageStore;
-import com.alibaba.graphscope.parallel.message.MessageStoreFactory;
-import com.alibaba.graphscope.parallel.mm.GiraphMessageManager;
 import com.alibaba.graphscope.parallel.netty.NettyClient;
 import com.alibaba.graphscope.parallel.netty.NettyServer;
 import com.alibaba.graphscope.parallel.utils.NetworkMap;
-import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.impl.VertexImpl;
-import org.apache.giraph.utils.ReflectionUtils;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -48,41 +43,16 @@ public class GiraphNettyMessageManager<
     VDATA_T extends Writable,
     EDATA_T extends Writable,
     IN_MSG_T extends Writable,
-    OUT_MSG_T extends Writable, GS_VID_T, GS_OID_T> implements
-    GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T,GS_OID_T> {
+    OUT_MSG_T extends Writable, GS_VID_T, GS_OID_T> extends
+    AbstractMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T> {
 
     private static Logger logger = LoggerFactory.getLogger(GiraphNettyMessageManager.class);
 
-    private ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf;
     private NetworkMap networkMap;
 
     private SendMessageCache<OID_T, OUT_MSG_T, GS_VID_T> outMessageCache;
     private NettyClient client;
     private NettyServer<OID_T, GS_VID_T> server;
-    private SimpleFragment<GS_OID_T, GS_VID_T,?,?> fragment;
-    /**
-     * Message store factory
-     */
-    private MessageStoreFactory<OID_T, IN_MSG_T, MessageStore<OID_T, IN_MSG_T, GS_VID_T>>
-        messageStoreFactory;
-    /**
-     * Message store for incoming messages (messages which will be consumed in the next super step)
-     */
-    private volatile MessageStore<OID_T, IN_MSG_T, GS_VID_T> nextIncomingMessageStore;
-    /**
-     * Message store for current messages (messages which we received in previous super step and
-     * which will be consumed in current super step)
-     */
-    private volatile MessageStore<OID_T, IN_MSG_T, GS_VID_T> currentIncomingMessageStore;
-
-    private com.alibaba.graphscope.ds.Vertex<GS_VID_T> grapeVertex;
-
-    private int fragId, fragNum;
-
-    private DefaultMessageManager grapeMessager;
-
-    private Class<? extends GS_OID_T> gsOidClass;
-    private FFICommunicator communicator;
 
     /**
      * The constructor is the preApplication.
@@ -93,37 +63,29 @@ public class GiraphNettyMessageManager<
      */
     public GiraphNettyMessageManager(SimpleFragment fragment, NetworkMap networkMap,
         DefaultMessageManager mm,
-        ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf, FFICommunicator communicator) {
-        this.fragment = fragment;
+        ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf,
+        FFICommunicator communicator) {
+        super(fragment, mm, conf, communicator);
         this.networkMap = networkMap;
-        this.conf = conf;
-        this.grapeMessager = mm;
-        this.fragId = fragment.fid();
-        this.fragNum = fragment.fnum();
-        this.gsOidClass = (Class<? extends GS_OID_T>) conf.getGrapeOidClass();
-        this.communicator = communicator;
-
-        initMessageStore();
         //Netty server depends on message store.
         initNetty();
 
         // Create different type of message cache as needed.
         outMessageCache = (SendMessageCache<OID_T, OUT_MSG_T, GS_VID_T>) SendMessageCache.newMessageCache(
             fragNum, fragId, client, conf);
-        grapeVertex = (com.alibaba.graphscope.ds.Vertex<GS_VID_T>) FFITypeFactoryhelper.newVertex(conf.getGrapeVidClass());
     }
 
     public void initNetty() {
         logger.info("Creating server on " + networkMap.getSelfWorkerId() + " max bind time: "
-            + MAX_IPC_PORT_BIND_ATTEMPTS.get(conf));
-        server = new NettyServer(conf, fragment, networkMap, nextIncomingMessageStore,
+            + MAX_IPC_PORT_BIND_ATTEMPTS.get(getConf()));
+        server = new NettyServer(getConf(), fragment, networkMap, nextIncomingMessageStore,
             (Thread t, Throwable e) -> logger.error(t.getId() + ": " + e.toString()));
         server.startServer();
-        communicator.barrier();
+        getCommunicator().barrier();
 
         logger.info("Create client on " + networkMap.getSelfWorkerId() + " max times: "
-            + MAX_CONN_TRY_ATTEMPTS.get(conf));
-        client = new NettyClient(conf, networkMap,
+            + MAX_CONN_TRY_ATTEMPTS.get(getConf()));
+        client = new NettyClient(getConf(), networkMap,
             (Thread t, Throwable e) -> logger.error(t.getId() + ": " + e.toString()));
         client.connectToAllAddress();
         logger.info(
@@ -131,23 +93,6 @@ public class GiraphNettyMessageManager<
                 + ", client: " + client.toString());
     }
 
-    public void initMessageStore() {
-        messageStoreFactory = createMessageStoreFactory();
-        nextIncomingMessageStore = messageStoreFactory.newStore(conf.getIncomingMessageClasses());
-        currentIncomingMessageStore = messageStoreFactory
-            .newStore(conf.getIncomingMessageClasses());
-    }
-
-    private MessageStoreFactory<OID_T, IN_MSG_T, MessageStore<OID_T, IN_MSG_T, GS_VID_T>> createMessageStoreFactory() {
-        Class<? extends MessageStoreFactory> messageStoreFactoryClass =
-            MESSAGE_STORE_FACTORY_CLASS.get(conf);
-
-        MessageStoreFactory messageStoreFactoryInstance =
-            ReflectionUtils.newInstance(messageStoreFactoryClass);
-        messageStoreFactoryInstance.initialize(fragment, conf);
-
-        return messageStoreFactoryInstance;
-    }
 
     /**
      * Called by our framework, to deserialize the messages from c++ to java. Must be called before
@@ -158,27 +103,6 @@ public class GiraphNettyMessageManager<
         //No op
     }
 
-    /**
-     * Get the messages received from last round.
-     *
-     * @param lid local id.
-     * @return received msg.
-     */
-    @Override
-    public Iterable<IN_MSG_T> getMessages(long lid) {
-        return currentIncomingMessageStore.getMessages(lid);
-    }
-
-    /**
-     * Check any message available on this vertex.
-     *
-     * @param lid local id
-     * @return true if recevied messages.
-     */
-    @Override
-    public boolean messageAvailable(long lid) {
-        return currentIncomingMessageStore.messageAvailable(lid);
-    }
 
     /**
      * Send one message to dstOid.
@@ -190,7 +114,7 @@ public class GiraphNettyMessageManager<
     public void sendMessage(OID_T dstOid, OUT_MSG_T message) {
         if (dstOid instanceof LongWritable) {
             Long longOid = ((LongWritable) dstOid).get();
-            if (!fragment.getVertex((GS_OID_T) longOid, grapeVertex)){
+            if (!fragment.getVertex((GS_OID_T) longOid, grapeVertex)) {
                 throw new IllegalStateException("get lid failed for oid: " + longOid);
             }
             sendLidMessage(grapeVertex, message);
@@ -212,17 +136,14 @@ public class GiraphNettyMessageManager<
         grapeVertex.SetValue((GS_VID_T) (Long) vertexImpl.getLocalId());
 
         // send msg through outgoing adjlist
-        for (Nbr<GS_VID_T,?> nbr : fragment.getOutgoingAdjList(grapeVertex).iterable()){
+        for (Nbr<GS_VID_T, ?> nbr : fragment.getOutgoingAdjList(grapeVertex).iterable()) {
             com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
             sendLidMessage(curVertex, message);
         }
-//        for (Nbr<GS_VID_T,?> nbr : fragment.getIncomingAdjList(grapeVertex).iterable()){
-//            com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
-//            sendLidMessage(curVertex, message);
-//        }
     }
 
-    private void sendLidMessage(com.alibaba.graphscope.ds.Vertex<GS_VID_T> nbrVertex, OUT_MSG_T message){
+    private void sendLidMessage(com.alibaba.graphscope.ds.Vertex<GS_VID_T> nbrVertex,
+        OUT_MSG_T message) {
         int dstfragId = fragment.getFragId(nbrVertex);
         outMessageCache.sendMessage(dstfragId, fragment.vertex2Gid(nbrVertex), message);
     }
@@ -238,25 +159,10 @@ public class GiraphNettyMessageManager<
             (MessageStore<OID_T, OUT_MSG_T, GS_VID_T>) nextIncomingMessageStore);
     }
 
-    /**
-     * As this is called after superStep and before presuperStep's swapping, we check
-     * nextIncomingMessage Store.
-     *
-     * @return true if message received
-     */
-    @Override
-    public boolean anyMessageReceived() {
-        return currentIncomingMessageStore.anyMessageReceived();
-    }
-
-    @Override
-    public void forceContinue() {
-        grapeMessager.ForceContinue();
-    }
 
     @Override
     public void preSuperstep() {
-        server.preSuperStep((MessageStore<OID_T, Writable, GS_VID_T>) nextIncomingMessageStore);
+        //server.preSuperStep((MessageStore<OID_T, Writable, GS_VID_T>) nextIncomingMessageStore);
     }
 
     @Override

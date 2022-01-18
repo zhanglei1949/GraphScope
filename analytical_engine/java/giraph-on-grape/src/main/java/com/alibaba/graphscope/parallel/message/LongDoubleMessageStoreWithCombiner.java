@@ -2,6 +2,7 @@ package com.alibaba.graphscope.parallel.message;
 
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
@@ -207,6 +208,16 @@ public class LongDoubleMessageStoreWithCombiner implements
             //actually a static empty iterator.
             return () -> Collections.emptyIterator();
         }
+    }
+
+    /**
+     * For a bytestream provided by FFIByteVector, read from it and digest its content.
+     *
+     * @param vector
+     */
+    @Override
+    public void digest(FFIByteVector vector) {
+        throw new IllegalStateException("not implemented");
     }
 
     public static class SingleDoubleWritableIterable implements Iterable<DoubleWritable> {

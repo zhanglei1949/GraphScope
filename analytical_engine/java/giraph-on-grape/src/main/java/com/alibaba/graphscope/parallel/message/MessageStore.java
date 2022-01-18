@@ -18,12 +18,7 @@
 
 package com.alibaba.graphscope.parallel.message;
 
-import com.alibaba.graphscope.parallel.netty.request.WritableRequest;
-import com.alibaba.graphscope.utils.VertexIdMessages;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-
+import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import java.util.Iterator;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -43,12 +38,13 @@ public interface MessageStore<I extends WritableComparable,
 
     /**
      * For messages bound with gid, first get lid.
-     * @param gid global id
+     *
+     * @param gid      global id
      * @param writable msg
      */
-     void addGidMessage(GS_VID_T gid, M writable);
+    void addGidMessage(GS_VID_T gid, M writable);
 
-    void swap(MessageStore<I,M,GS_VID_T> other);
+    void swap(MessageStore<I, M, GS_VID_T> other);
 
     void clearAll();
 
@@ -59,10 +55,18 @@ public interface MessageStore<I extends WritableComparable,
 
     /**
      * Check for lid, any messages available.
+     *
      * @param lid lid.
      * @return true if has message
      */
     boolean messageAvailable(long lid);
 
     Iterable<M> getMessages(long lid);
+
+    /**
+     * For a bytestream provided by FFIByteVector, read from it and digest its content.
+     *
+     * @param vector
+     */
+    void digest(FFIByteVector vector);
 }
