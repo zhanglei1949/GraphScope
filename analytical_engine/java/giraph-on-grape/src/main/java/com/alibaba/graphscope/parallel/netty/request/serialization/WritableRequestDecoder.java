@@ -44,12 +44,15 @@ public class WritableRequestDecoder  extends ChannelInboundHandlerAdapter {
         }
         // Decode the request type
         ByteBuf buf = (ByteBuf) msg;
+        if (buf.readableBytes() < 5){
+            return ;
+        }
         //FIXME: without fixed frame decoder
         buf.markReaderIndex();
         int length = buf.readInt();
         if (buf.readableBytes() < length){
             if (logger.isDebugEnabled()){
-                logger.debug("Expect bytes: {}, acutally {]", length, buf.readableBytes());
+                logger.debug("Expect bytes: {}, acutally {}", length, buf.readableBytes());
             }
             buf.resetReaderIndex();
             return ;
