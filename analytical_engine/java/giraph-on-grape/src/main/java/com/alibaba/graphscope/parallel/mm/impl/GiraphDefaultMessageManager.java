@@ -59,6 +59,8 @@ public class GiraphDefaultMessageManager<
         SimpleFragment fragment,
         DefaultMessageManager defaultMessageManager,
         ImmutableClassesGiraphConfiguration configuration) {
+        this.configuration = configuration;
+        THRESHOLD = MAX_OUT_MSG_CACHE_SIZE.get(configuration);
         this.fragment = fragment;
         this.fragmentNum = fragment.fnum();
         this.fragId = fragment.fid();
@@ -79,8 +81,7 @@ public class GiraphDefaultMessageManager<
             this.receivedMessages[i] = new ListMessageIterable<>();
         }
 
-        this.configuration = configuration;
-        THRESHOLD = MAX_OUT_MSG_CACHE_SIZE.get(configuration);
+
     }
 
     /**
