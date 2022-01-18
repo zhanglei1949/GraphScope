@@ -44,23 +44,7 @@ public class WritableRequestDecoder  extends ChannelInboundHandlerAdapter {
         }
         // Decode the request type
         ByteBuf buf = (ByteBuf) msg;
-        if (buf.readableBytes() < 5){
-            return ;
-        }
-        //FIXME: without fixed frame decoder
-        buf.markReaderIndex();
-        int length = buf.readInt();
-        if (buf.readableBytes() < length){
-            if (logger.isDebugEnabled()){
-                logger.debug("Expect bytes: {}, acutally {}", length, buf.readableBytes());
-            }
-            buf.resetReaderIndex();
-            return ;
-        }
         int enumValue = buf.readByte();
-        if (logger.isDebugEnabled()){
-            logger.debug("received buf size: {}, enum {}", length, enumValue);
-        }
         RequestType type = RequestType.values()[enumValue];
         Class<? extends WritableRequest> messageClass = type.getClazz();
 
@@ -69,11 +53,7 @@ public class WritableRequestDecoder  extends ChannelInboundHandlerAdapter {
         WritableRequest request = ReflectionUtils.newInstance(messageClass);
         //Conf contains class info to create message instance.
         request.setConf(conf);
-        ByteBuf copied = buf.copy();
-        if (logger.isDebugEnabled()){
-            logger.debug("readerindex: " + copied.readerIndex());
-        }
-        request = RequestUtils.decodeWritableRequest(copied, request);
+        request = RequestUtils.decodeWritableRequest(buf.copy(), request);
 //        buf.retain();
         buf.release();
         logger.debug("decode res: {}", request);
