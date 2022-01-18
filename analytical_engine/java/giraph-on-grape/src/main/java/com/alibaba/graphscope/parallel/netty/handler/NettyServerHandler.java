@@ -64,8 +64,8 @@ public class NettyServerHandler<OID_T extends WritableComparable, GS_VID_T> exte
     }
 
     public void preSuperStep(MessageStore<OID_T, Writable, GS_VID_T> nextIncomingMessages) {
-        if (logger.isInfoEnabled()){
-            logger.info("Update nextIncoming msg store from " + this.nextIncomingMessages + " to "
+        if (logger.isDebugEnabled()){
+            logger.debug("Update nextIncoming msg store from " + this.nextIncomingMessages + " to "
                 + nextIncomingMessages);
         }
         this.nextIncomingMessages = nextIncomingMessages;

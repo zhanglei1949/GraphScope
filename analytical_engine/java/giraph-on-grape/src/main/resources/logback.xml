@@ -39,9 +39,9 @@
     <logger name="com.alibaba.graphscope.parallel.message.SimpleMessageStore" level="error"/>
 	<logger name="com.alibaba.graphscope.parallel.message.LongDoubleMessageStore" level="error"/>
     <logger name="com.alibaba.graphscope.fragment.adaptor.ImmutableEdgecutFragmentAdaptor" level="error"/>
-    <logger name="com.alibaba.graphscope.parallel.netty.request.serialization.WritableRequestEncoder" level="debug"/>
-    <logger name="com.alibaba.graphscope.parallel.netty.request.serialization.WritableRequestDecoder" level="debug"/>
-    <logger name="com.alibaba.graphscope.parallel.cache.impl.ByteBufMessageCache" level="debug"/>
+    <logger name="com.alibaba.graphscope.parallel.netty.request.serialization.WritableRequestEncoder" level="info"/>
+    <logger name="com.alibaba.graphscope.parallel.netty.request.serialization.WritableRequestDecoder" level="info"/>
+    <logger name="com.alibaba.graphscope.parallel.cache.impl.ByteBufMessageCache" level="info"/>
     <root level="info">
         <appender-ref ref="STDOUT" />
     </root>

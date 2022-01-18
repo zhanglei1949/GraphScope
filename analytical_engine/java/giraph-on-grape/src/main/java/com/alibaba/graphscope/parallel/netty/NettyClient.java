@@ -343,7 +343,9 @@ public class NettyClient {
             NettyClientHandler handler = handlers[i];
 //            handler.waitForResponse(pendingRequests.get(i).size());
             handler.waitForResponse(pendingRequests.get(i));
-            logger.info("NettyClient [{}]: finished waiting response from [{}]", workerId, i);
+            if (logger.isDebugEnabled()){
+                logger.debug("NettyClient [{}]: finished waiting response from [{}]", workerId, i);
+            }
         }
         logger.info("NettyClient [{}]: finish waiting sending all messages", workerId);
     }

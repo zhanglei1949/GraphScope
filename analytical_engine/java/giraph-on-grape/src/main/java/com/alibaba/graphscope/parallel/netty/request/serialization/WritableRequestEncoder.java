@@ -43,20 +43,16 @@ public class WritableRequestEncoder extends ChannelOutboundHandlerAdapter {
             if (msg instanceof ByteBufRequest) {
                 ByteBufRequest bufRequest = (ByteBufRequest) request;
                 buf = bufRequest.getBuffer();
-                if (logger.isDebugEnabled()){
-                    logger.debug("request size: {}, buf size: {}", requestSize, buf.readableBytes());
-                }
-                if (logger.isDebugEnabled()) {
-                    if ((buf.readableBytes() - SIZE_OF_BYTE - SIZE_OF_INT) % 16 != 0) {
-                        throw new IllegalStateException(
-                            "Wrong number of bytes: " + buf.readableBytes());
-                    }
+                if ((buf.readableBytes() - SIZE_OF_BYTE - SIZE_OF_INT) % 16 != 0) {
+                    logger.error("Wrong number of bytes: {}", buf.readableBytes());
+                    //FIXME: this exception not catched.
+                    throw new IllegalStateException(
+                        "Wrong number of bytes: " + buf.readableBytes());
                 }
 
+
                 buf.setInt(0, buf.readableBytes() - SIZE_OF_INT);
-                logger.info("after set index 0 {}", buf.getInt(0));
                 buf.setByte(4, bufRequest.getRequestType().ordinal());
-                logger.info("after set index 4: {}", buf.getByte(4));
 
                 if (logger.isDebugEnabled()) {
                     logger.debug("encode ByteBufRequest length: {}, type {}",
@@ -66,13 +62,7 @@ public class WritableRequestEncoder extends ChannelOutboundHandlerAdapter {
 //                buf.retain();
                 ctx.writeAndFlush(buf,
                     promise); // can be released
-                if (logger.isDebugEnabled()){
-                    logger.debug("Promise waiting..");
-                }
                 promise.await();
-                if (logger.isDebugEnabled()) {
-                    logger.debug("promise wait complete");
-                }
             } else {
                 if (requestSize == WritableRequest.UNKNOWN_SIZE) {
                     logger.debug("Unknown size of request, using default size: {}",
@@ -97,8 +87,10 @@ public class WritableRequestEncoder extends ChannelOutboundHandlerAdapter {
                 output.close();
 
                 buf.setInt(0, buf.writerIndex() - SIZE_OF_INT);
-                logger.info("Encode msg, type: [{}], writen bytes: [{}]",
-                    request.getRequestType().getClazz().getName(), buf.readableBytes());
+                if (logger.isDebugEnabled()){
+                    logger.debug("Encode msg, type: [{}], writen bytes: [{}]",
+                        request.getRequestType().getClazz().getName(), buf.readableBytes());
+                }
                 ctx.writeAndFlush(buf, promise);
             }
         } else {
