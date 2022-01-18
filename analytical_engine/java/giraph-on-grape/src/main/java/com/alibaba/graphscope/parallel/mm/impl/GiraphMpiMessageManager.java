@@ -63,6 +63,9 @@ public class GiraphMpiMessageManager<
         FFIByteVector tmpVector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
         long bytesOfReceivedMsg = 0;
         while (grapeMessager.getPureMessage(tmpVector)) {
+            //The retrieved tmp vector has been resized, so the cached objAddress is not available.
+            //trigger the refresh
+            tmpVector.touch();
             // OutArchive will do the resize;
             if (logger.isDebugEnabled()) {
                 logger.debug("Frag [{}] digest message of size {}", fragId, tmpVector.size());

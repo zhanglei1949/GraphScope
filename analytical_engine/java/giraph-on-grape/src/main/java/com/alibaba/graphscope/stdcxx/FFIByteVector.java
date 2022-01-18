@@ -39,6 +39,14 @@ public class FFIByteVector extends FFIPointerImpl implements StdVector<Byte> {
         size = nativeSize(this.address);
     }
 
+    /**
+     * update the cached objAddress.
+     */
+    public void touch(){
+        objAddress = JavaRuntime.getLong(address);
+        size = nativeSize(this.address);
+    }
+
     private static final int _elementSize$$$() {
         return 24;
     }
