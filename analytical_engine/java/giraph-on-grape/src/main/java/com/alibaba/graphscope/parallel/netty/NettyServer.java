@@ -157,7 +157,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
                         //TODO: optimization with fixed-frame
 //                        p.addLast(new WritableRequestEncoder(conf));
 //                        p.addLast(new WritableRequestDecoder(conf));
-                        p.addLast("requestFrameDecoder", new LengthFieldBasedFrameDecoder(maxFrameLength, 0, 4, 0, 4));
+//                        p.addLast("requestFrameDecoder", new LengthFieldBasedFrameDecoder(maxFrameLength, 0, 4, 0, 4));
                         p.addLast("requestDecoder", getDecoder(conf));
                         p.addLast("handler", getHandler());
                     }
