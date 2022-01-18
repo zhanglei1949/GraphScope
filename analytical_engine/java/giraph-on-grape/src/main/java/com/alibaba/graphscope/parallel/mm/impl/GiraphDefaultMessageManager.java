@@ -1,5 +1,7 @@
 package com.alibaba.graphscope.parallel.mm.impl;
 
+import static org.apache.giraph.conf.GiraphConstants.MAX_OUT_MSG_CACHE_SIZE;
+
 import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.ds.adaptor.AdjList;
 import com.alibaba.graphscope.ds.adaptor.Nbr;
@@ -13,8 +15,8 @@ import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.stdcxx.FFIByteVectorFactory;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
-import static org.apache.giraph.conf.GiraphConstants.MAX_OUT_MSG_CACHE_SIZE;
-
+import java.io.IOException;
+import java.util.Iterator;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.impl.VertexImpl;
@@ -24,23 +26,24 @@ import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.Iterator;
-
 public class GiraphDefaultMessageManager<
-                OID_T extends WritableComparable,
-                VDATA_T extends Writable,
-                EDATA_T extends Writable,
-                IN_MSG_T extends Writable,
-                OUT_MSG_T extends Writable, GS_VID_T,GS_OID_T>
-        implements GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T,GS_OID_T> {
+    OID_T extends WritableComparable,
+    VDATA_T extends Writable,
+    EDATA_T extends Writable,
+    IN_MSG_T extends Writable,
+    OUT_MSG_T extends Writable, GS_VID_T, GS_OID_T>
+    implements
+    GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T> {
+
     private static Logger logger = LoggerFactory.getLogger(GiraphDefaultMessageManager.class);
 
     private ImmutableClassesGiraphConfiguration configuration;
-    /** If cached message exceeds this threshold, we will send them immediately. */
-    private long THRESHOLD = MAX_OUT_MSG_CACHE_SIZE.get(configuration);
+    /**
+     * If cached message exceeds this threshold, we will send them immediately.
+     */
+    private final long THRESHOLD;
 
-    private SimpleFragment<GS_OID_T,GS_VID_T,?,?> fragment;
+    private SimpleFragment<GS_OID_T, GS_VID_T, ?, ?> fragment;
     private DefaultMessageManager grapeMessageManager;
     private com.alibaba.graphscope.ds.Vertex<GS_VID_T> grapeVertex;
     private VertexRange innerVertices;
@@ -53,9 +56,9 @@ public class GiraphDefaultMessageManager<
     private FFIByteVectorOutputStream[] messagesOut;
 
     public GiraphDefaultMessageManager(
-            SimpleFragment fragment,
-            DefaultMessageManager defaultMessageManager,
-            ImmutableClassesGiraphConfiguration configuration) {
+        SimpleFragment fragment,
+        DefaultMessageManager defaultMessageManager,
+        ImmutableClassesGiraphConfiguration configuration) {
         this.fragment = fragment;
         this.fragmentNum = fragment.fnum();
         this.fragId = fragment.fid();
@@ -77,6 +80,7 @@ public class GiraphDefaultMessageManager<
         }
 
         this.configuration = configuration;
+        THRESHOLD = MAX_OUT_MSG_CACHE_SIZE.get(configuration);
     }
 
     /**
@@ -92,24 +96,24 @@ public class GiraphDefaultMessageManager<
         while (grapeMessageManager.getPureMessage(tmpVector)) {
             // OutArchive will do the resize;
             logger.info(
-                    "Frag ["
-                            + fragId
-                            + "]  digest message: "
-                            + tmpVector.getAddress()
-                            + ", msg size:"
-                            + tmpVector.size());
+                "Frag ["
+                    + fragId
+                    + "]  digest message: "
+                    + tmpVector.getAddress()
+                    + ", msg size:"
+                    + tmpVector.size());
             this.messagesIn.digestVector(tmpVector);
         }
         // Parse messageIn and form into Iterable<message> for each vertex;
         logger.info(
-                "Frag ["
-                        + fragId
-                        + "] totally Received ["
-                        + messagesIn.longAvailable()
-                        + "] bytes, starting deserialization");
+            "Frag ["
+                + fragId
+                + "] totally Received ["
+                + messagesIn.longAvailable()
+                + "] bytes, starting deserialization");
         if (configuration.getGrapeVidClass().equals(Long.class)) {
             com.alibaba.graphscope.ds.Vertex<Long> longVertex =
-                    (com.alibaba.graphscope.ds.Vertex<Long>) grapeVertex;
+                (com.alibaba.graphscope.ds.Vertex<Long>) grapeVertex;
         } else {
             throw new IllegalStateException("Expect long vid");
         }
@@ -126,9 +130,9 @@ public class GiraphDefaultMessageManager<
                 inMsg.readFields(messagesIn);
 
                 // store the msg
-                fragment.gid2Vertex((GS_VID_T) (Long)dstVertexGid, grapeVertex);
+                fragment.gid2Vertex((GS_VID_T) (Long) dstVertexGid, grapeVertex);
                 com.alibaba.graphscope.ds.Vertex<Long> grapeVertex2 =
-                        (com.alibaba.graphscope.ds.Vertex<Long>) grapeVertex;
+                    (com.alibaba.graphscope.ds.Vertex<Long>) grapeVertex;
                 if (grapeVertex2.GetValue() >= maxInnerVertexLid) {
                     logger.error("Received one vertex id which exceeds inner vertex range.");
                     return;
@@ -167,7 +171,7 @@ public class GiraphDefaultMessageManager<
     /**
      * Send one message to dstOid.
      *
-     * @param dstOid vertex to receive this message.
+     * @param dstOid  vertex to receive this message.
      * @param message message.
      */
     @Override
@@ -175,12 +179,14 @@ public class GiraphDefaultMessageManager<
         if (dstOid instanceof LongWritable) {
             LongWritable longOid = (LongWritable) dstOid;
             // Get lid from oid
-            boolean res = fragment.getVertex((GS_OID_T) (Long)longOid.get(), grapeVertex);
+            boolean res = fragment.getVertex((GS_OID_T) (Long) longOid.get(), grapeVertex);
             //            tmpVertex.SetValue(longOid.get());
-            logger.debug("oid -> lid: return :" + res + ", oid:" + longOid + ", " + grapeVertex.GetValue());
+            logger.debug(
+                "oid -> lid: return :" + res + ", oid:" + longOid + ", " + grapeVertex.GetValue());
             int dstfragId = fragment.getFragId(grapeVertex);
             if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
-                messagesOut[dstfragId].writeLong(0, messagesOut[dstfragId].bytesWriten() - 8); // minus size_of_int
+                messagesOut[dstfragId].writeLong(0,
+                    messagesOut[dstfragId].bytesWriten() - 8); // minus size_of_int
                 messagesOut[dstfragId].finishSetting();
                 grapeMessageManager.sendToFragment(dstfragId, messagesOut[dstfragId].getVector());
 //                messagesOut[dstfragId].reset();
@@ -207,8 +213,8 @@ public class GiraphDefaultMessageManager<
     @Override
     public void sendMessageToAllEdges(Vertex<OID_T, VDATA_T, EDATA_T> vertex, OUT_MSG_T message) {
         VertexImpl<OID_T, VDATA_T, EDATA_T> vertexImpl =
-                (VertexImpl<OID_T, VDATA_T, EDATA_T>) vertex;
-        grapeVertex.SetValue((GS_VID_T) (Long)vertexImpl.getLocalId());
+            (VertexImpl<OID_T, VDATA_T, EDATA_T>) vertex;
+        grapeVertex.SetValue((GS_VID_T) (Long) vertexImpl.getLocalId());
 
         // send msg through outgoing adjlist
         AdjList adjList = fragment.getOutgoingAdjList(grapeVertex);
@@ -220,9 +226,11 @@ public class GiraphDefaultMessageManager<
                 curVertex = nbr.neighbor();
                 int dstfragId = fragment.getFragId(curVertex);
                 if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
-                    messagesOut[dstfragId].writeLong(0, messagesOut[dstfragId].bytesWriten() - 8); // minus size_of_int
+                    messagesOut[dstfragId].writeLong(0,
+                        messagesOut[dstfragId].bytesWriten() - 8); // minus size_of_int
                     messagesOut[dstfragId].finishSetting();
-                    grapeMessageManager.sendToFragment(dstfragId, messagesOut[dstfragId].getVector());
+                    grapeMessageManager.sendToFragment(dstfragId,
+                        messagesOut[dstfragId].getVector());
 //                messagesOut[dstfragId].reset();
                     messagesOut[dstfragId] = new FFIByteVectorOutputStream();
                     messagesOut[dstfragId].resize(THRESHOLD);
@@ -245,9 +253,11 @@ public class GiraphDefaultMessageManager<
 
                 int dstfragId = fragment.getFragId(curVertex);
                 if (dstfragId != fragId && messagesOut[dstfragId].bytesWriten() >= THRESHOLD) {
-                    messagesOut[dstfragId].writeLong(0, messagesOut[dstfragId].bytesWriten() - 8); // minus size_of_int
+                    messagesOut[dstfragId].writeLong(0,
+                        messagesOut[dstfragId].bytesWriten() - 8); // minus size_of_int
                     messagesOut[dstfragId].finishSetting();
-                    grapeMessageManager.sendToFragment(dstfragId, messagesOut[dstfragId].getVector());
+                    grapeMessageManager.sendToFragment(dstfragId,
+                        messagesOut[dstfragId].getVector());
 //                messagesOut[dstfragId].reset();
                     messagesOut[dstfragId] = new FFIByteVectorOutputStream();
                     messagesOut[dstfragId].resize(THRESHOLD);
@@ -269,47 +279,50 @@ public class GiraphDefaultMessageManager<
 //        }
     }
 
-    /** Make sure all messages has been sent. Clean outputstream buffer */
+    /**
+     * Make sure all messages has been sent. Clean outputstream buffer
+     */
     @Override
     public void finishMessageSending() {
         this.messagesIn.clear();
         for (int i = 0; i < fragmentNum; ++i) {
             long size = messagesOut[i].bytesWriten();
-            if (i != fragId){
-                logger.info("finish msg sending: " + fragId + "->" + i + ": " + (messagesOut[i].bytesWriten() - 8));
+            if (i != fragId) {
+                logger.info("finish msg sending: " + fragId + "->" + i + ": " + (
+                    messagesOut[i].bytesWriten() - 8));
                 messagesOut[i].writeLong(0, messagesOut[i].bytesWriten() - 8); // minus size_of_long
             }
             messagesOut[i].finishSetting();
 
             if (size == 8) { // size be at least 8.
                 logger.info(
-                        "In final step,Message from frag["
-                                + fragId
-                                + "] to frag ["
-                                + i
-                                + "] empty.");
+                    "In final step,Message from frag["
+                        + fragId
+                        + "] to frag ["
+                        + i
+                        + "] empty.");
                 continue;
             }
 
             if (i != fragId) {
-                FFIByteVector vector =messagesOut[i].getVector();
+                FFIByteVector vector = messagesOut[i].getVector();
 //                logger.info(" vector size: " + vector.size() + "size: " + size);
 //                for (int j = 0; j < size; ++j){
 //                    logger.info("index: [" + j + "]: " + vector.getRaw(j));
 //                }
                 grapeMessageManager.sendToFragment(i, messagesOut[i].getVector());
                 logger.info(
-                        "In final step, Frag ["
-                                + fragId
-                                + "] sending to frag ["
-                                + i
-                                + "] msg of size: "
-                                + size);
+                    "In final step, Frag ["
+                        + fragId
+                        + "] sending to frag ["
+                        + i
+                        + "] msg of size: "
+                        + size);
             } else {
                 // For messages send to local, we just do digest.
                 messagesIn.digestVector(messagesOut[i].getVector());
                 logger.info(
-                        "In final step, Frag [" + fragId + "] digest msg to self of size: " + size);
+                    "In final step, Frag [" + fragId + "] digest msg to self of size: " + size);
             }
 //            messagesOut[i].reset();
             messagesOut[i] = new FFIByteVectorOutputStream();
@@ -335,7 +348,9 @@ public class GiraphDefaultMessageManager<
         return curVertex.GetValue().intValue() < maxInnerVertexLid;
     }
 
-    /** Clear the messageIterables in parallel. */
+    /**
+     * Clear the messageIterables in parallel.
+     */
     private void parallelClearReceiveMessages() {
         for (int i = 0; i < maxInnerVertexLid; ++i) {
             receivedMessages[i].clear();
@@ -351,14 +366,15 @@ public class GiraphDefaultMessageManager<
     public void preSuperstep() {
         //reset messagesout here, so that the data buffer can be safely digested by
         //grape message manager. Don't reset them after finishMessageSetting.
-        for (int i = 0; i < fragmentNum; ++i){
+        for (int i = 0; i < fragmentNum; ++i) {
 //            messagesOut[i].reset();
 //            messagesOut[i] = new FFIByteVectorOutputStream();
 //            messagesOut[i].resize(THRESHOLD);
-            if (i != fragId){
+            if (i != fragId) {
                 //only write size info for mpi messages, local message don't need size.
                 try {
-                    messagesOut[i].writeLong(0); // a place holder which hold then length of this vector. will be set to actual length when writing is over.
+                    messagesOut[i].writeLong(
+                        0); // a place holder which hold then length of this vector. will be set to actual length when writing is over.
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -372,7 +388,7 @@ public class GiraphDefaultMessageManager<
     }
 
     @Override
-    public void postApplication(){
+    public void postApplication() {
 
     }
 }
