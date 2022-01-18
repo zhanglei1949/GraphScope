@@ -48,14 +48,14 @@ public class WritableRequestDecoder  extends ChannelInboundHandlerAdapter {
         RequestType type = RequestType.values()[enumValue];
         Class<? extends WritableRequest> messageClass = type.getClazz();
 
-        logger.debug("Decoder: message clz: {}, bytes to read {}", messageClass.getName(), buf.readableBytes());
+        logger.debug("Decoder {}-{}: message clz: {}, bytes to read {}", conf.getWorkerId(), decoderId, messageClass.getName(), buf.readableBytes());
 
         WritableRequest request = ReflectionUtils.newInstance(messageClass);
         //Conf contains class info to create message instance.
         request.setConf(conf);
         request = RequestUtils.decodeWritableRequest(buf, request);
-        buf.retain();
-//        assert buf.release();
+//        buf.retain();
+        assert buf.release();
         logger.debug("decode res: {}", request);
         ctx.fireChannelRead(request);
     }
