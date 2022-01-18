@@ -109,24 +109,24 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
      */
     public void digestByteBuf(ByteBuf buf){
         //FIXME: why we are copying?
-        ByteBuf bufCopy = buf.copy();
-        bufCopy.skipBytes(5);
-        if (bufCopy.readableBytes() % 16 != 0){
+//        ByteBuf bufCopy = buf.copy();
+        buf.skipBytes(5);
+        if (buf.readableBytes() % 16 != 0){
             throw new IllegalStateException("Expect number of bytes times of 16");
         }
-        logger.info("LongDoubleMsgStore digest bytebuf size {} direct {}", bufCopy.readableBytes(), bufCopy.isDirect());
-        while (bufCopy.readableBytes() >= 16){
-            long gid = bufCopy.readLong();
-            double msg = bufCopy.readDouble();
+        logger.info("LongDoubleMsgStore digest bytebuf size {} direct {}", buf.readableBytes(), buf.isDirect());
+        while (buf.readableBytes() >= 16){
+            long gid = buf.readLong();
+            double msg = buf.readDouble();
             addGidMessage(gid, msg);
             if (logger.isDebugEnabled()){
                 logger.debug("worker [{}] resolving message to self, gid {}, msg {}", fragment.fid(), gid, msg);
             }
         }
-        if (bufCopy.readableBytes() != 0){
+        if (buf.readableBytes() != 0){
             throw new IllegalStateException("readable bytes no subtracted by 16");
         }
-        bufCopy.release();
+//        buf.release();
     }
 
     @Override

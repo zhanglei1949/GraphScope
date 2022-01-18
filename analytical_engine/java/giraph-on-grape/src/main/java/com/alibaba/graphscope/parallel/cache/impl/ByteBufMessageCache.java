@@ -68,7 +68,7 @@ public class ByteBufMessageCache<I extends WritableComparable,
                 logger.info(
                     "Cache limit reached, flushing buffer: {} -> {}, size {}, maximum cache {}",
                     fragId, dstFragId, cache[dstFragId].readableBytes(), cacheMaximum);
-                ByteBufRequest request = new ByteBufRequest(cache[dstFragId]);
+                ByteBufRequest request = new ByteBufRequest(cache[dstFragId].copy());
                 // the data in this buffer [cache] will be flushed to netty cache.
                 client.sendMessage(dstFragId, request);
                 //don't need to create new cache, just reset the cache.
