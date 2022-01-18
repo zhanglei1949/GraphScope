@@ -32,12 +32,16 @@ public class WritableRequestEncoder extends ChannelOutboundHandlerAdapter {
     @Override
     public void write(ChannelHandlerContext ctx, Object msg,
         ChannelPromise promise) throws Exception {
-
+        if (logger.isDebugEnabled()){
+            logger.debug("Enter encoder");
+        }
         ByteBuf buf;
         if (msg instanceof WritableRequest) {
             WritableRequest request = (WritableRequest) msg;
             int requestSize = request.getNumBytes();
-
+            if (logger.isDebugEnabled()){
+                logger.debug("request size: " + requestSize);
+            }
             if (msg instanceof ByteBufRequest) {
                 ByteBufRequest bufRequest = (ByteBufRequest) request;
                 buf = bufRequest.getBuffer();
