@@ -301,7 +301,8 @@ public class NettyClient {
         if (dstFragId == workerId) {
             throw new IllegalStateException("Shouldn't reach here:" + dstFragId + ", " + workerId);
         }
-        ChannelFuture requestFuture = channels[dstFragId].writeAndFlush(request);
+//        ChannelFuture requestFuture = channels[dstFragId].writeAndFlush(request);
+        ChannelFuture requestFuture = channels[dstFragId].write(request);
 //        pendingRequests.get(dstFragId).offer(requestFuture);
         //Must already been initialized to 0 in presuperstep.
         pendingRequests.put(dstFragId, pendingRequests.get(dstFragId) + 1);
