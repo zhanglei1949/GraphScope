@@ -36,22 +36,24 @@ public class MessageBenchMark
         }
         if (getSuperstep() >= 1) {
             int msgCnt = 0;
-            for (DoubleWritable message : messages) {
-                msgCnt += 1;
-                if (logger.isDebugEnabled()) {
-                    logger.debug("vertex: {} receive msg: {}", vertex.getId(), message);
-                }
-            }
+//            for (DoubleWritable message : messages) {
+//                msgCnt += 1;
+//                if (logger.isDebugEnabled()) {
+//                    logger.debug("vertex: {} receive msg: {}", vertex.getId(), message);
+//                }
+//            }
+            //Record number of vertices that has vertices.
+//            if (messages.iterator().hasNext()){
+//                MessageBenchMarkWorkerContext.stepMessageReceived += msgCnt;
+//                MessageBenchMarkWorkerContext.totalMessageReceived +=
+//                    MessageBenchMarkWorkerContext.stepMessageReceived;
+//            }
             if (vertex.getId().get() % 10000000 == 0) {
                 logger.debug("vertex: {} receive msg size: {}", vertex.getId(), msgCnt);
             }
-
-            MessageBenchMarkWorkerContext.stepMessageReceived += msgCnt;
-            MessageBenchMarkWorkerContext.totalMessageReceived +=
-                    MessageBenchMarkWorkerContext.stepMessageReceived;
         }
         DoubleWritable msg = new DoubleWritable(vertex.getId().get());
-        MessageBenchMarkWorkerContext.stepMessageSent = vertex.getNumEdges();
+        MessageBenchMarkWorkerContext.stepMessageSent += vertex.getNumEdges();
         MessageBenchMarkWorkerContext.totalMessageSent += vertex.getNumEdges();
         sendMessageToAllEdges(vertex, msg);
         // logger.info("Vertex [" + vertex.getId() + "] send to all edges " +  vertex.getId());

@@ -209,6 +209,20 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
         }
     }
 
+    public long getNumberOfByteReceived() {
+        long cnt = 0;
+        for (int i = 0; i < handlers.size(); ++i){
+            cnt += handlers.get(i).getNumberBytesReceived();
+        }
+        return cnt;
+    }
+
+    public void resetBytesCounter(){
+        for (int i = 0; i < handlers.size(); ++i){
+            handlers.get(i).resetBytesCounter();
+        }
+    }
+
     public void close() {
         try {
             logger.debug("NettyServer [{}]: Closing channels of size {} ", workerId, accepted.size());

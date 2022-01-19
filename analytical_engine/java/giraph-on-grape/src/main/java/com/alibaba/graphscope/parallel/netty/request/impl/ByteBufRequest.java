@@ -85,6 +85,7 @@ public class ByteBufRequest extends WritableRequest {
         }
         if (messageStore instanceof LongDoubleMessageStore) {
             if (buf.readableBytes() % 16 != 0) {
+                logger.error("readable bytes {} can not be subtracted by 16", buf.readableBytes());
                 throw new IllegalStateException("readable bytes" + buf.readableBytes() +" can not be subtracted by 16");
             }
             LongDoubleMessageStore longDoubleMessageStore = (LongDoubleMessageStore) messageStore;
@@ -98,7 +99,9 @@ public class ByteBufRequest extends WritableRequest {
                 writable.set(msg);
                 longDoubleMessageStore.addGidMessage(gid, writable);
             }
-            assert buf.readableBytes() == 0;
+            if (buf.readableBytes() != 0){
+                logger.error("Error: still bytes available, but not readable: {}", buf.readableBytes());
+            }
 //            //release buf here?
 //            buf.release();
 //            if (buf.refCnt() > 0){

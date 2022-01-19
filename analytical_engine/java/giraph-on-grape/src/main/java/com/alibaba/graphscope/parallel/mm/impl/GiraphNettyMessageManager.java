@@ -101,6 +101,8 @@ public class GiraphNettyMessageManager<
     @Override
     public void receiveMessages() {
         //No op
+        logger.debug("Messager [{}] receive totally {} bytes", fragId, server.getNumberOfByteReceived());
+        server.resetBytesCounter();
     }
 
 

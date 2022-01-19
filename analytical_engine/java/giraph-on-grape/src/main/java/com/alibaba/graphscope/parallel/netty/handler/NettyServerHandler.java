@@ -20,12 +20,14 @@ public class NettyServerHandler<OID_T extends WritableComparable, GS_VID_T> exte
     private MessageStore<OID_T, Writable, GS_VID_T> nextIncomingMessages;
     private SimpleFragment<?, GS_VID_T, ?, ?> fragment;
     private int msgSeq;
+    private long byteCounter;
 
     public NettyServerHandler(SimpleFragment<?, GS_VID_T, ?, ?> fragment,
         MessageStore<OID_T, Writable, GS_VID_T> nextIncomingMessages) {
         this.fragment = fragment;
         this.nextIncomingMessages = nextIncomingMessages;
         this.msgSeq = 0;
+        this.byteCounter = 0;
     }
 
     /**
@@ -46,6 +48,7 @@ public class NettyServerHandler<OID_T extends WritableComparable, GS_VID_T> exte
                 Thread.currentThread().getId(), msg);
         }
         msg.doRequest(nextIncomingMessages);
+        byteCounter += msg.getBuffer().readableBytes();
         //dealloc the buffer here.
         msg.getBuffer().release(2);
 
@@ -72,5 +75,13 @@ public class NettyServerHandler<OID_T extends WritableComparable, GS_VID_T> exte
         }
         this.nextIncomingMessages = nextIncomingMessages;
         this.msgSeq = 0;
+    }
+
+    public long getNumberBytesReceived(){
+        return byteCounter;
+    }
+
+    public void resetBytesCounter(){
+        byteCounter = 0;
     }
 }

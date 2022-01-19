@@ -73,8 +73,8 @@ public class GiraphMpiMessageManager<
             currentIncomingMessageStore.digest(tmpVector);
             bytesOfReceivedMsg += tmpVector.size();
         }
-        logger.debug(
-            "Frag [{}] totally Received [{}] bytes, starting deserialization", fragId,
+        logger.info(
+            "Frag [{}] totally Received [{}] bytes from others starting deserialization", fragId,
             bytesOfReceivedMsg);
     }
 
