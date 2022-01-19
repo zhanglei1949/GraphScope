@@ -241,9 +241,10 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
     public static class DoubleWritableIterable implements Iterable<DoubleWritable> {
 
         private DoubleWritable writable;
+        boolean res = true;
 
         private Iterator<DoubleWritable> iterator = new Iterator<DoubleWritable>() {
-            boolean res = true;
+
             @Override
             public boolean hasNext() {
                 return res;
@@ -262,6 +263,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
 
         public void init(double in) {
             writable.set(in);
+            res = true;
         }
 
         @Override
