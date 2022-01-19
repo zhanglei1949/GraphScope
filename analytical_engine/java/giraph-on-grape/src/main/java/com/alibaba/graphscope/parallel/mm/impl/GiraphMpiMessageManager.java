@@ -70,7 +70,9 @@ public class GiraphMpiMessageManager<
             if (logger.isDebugEnabled()) {
                 logger.debug("Frag [{}] digest message of size {}", fragId, tmpVector.size());
             }
-            currentIncomingMessageStore.digest(tmpVector);
+            ///////////////////////////////////////////
+//            currentIncomingMessageStore.digest(tmpVector);
+            ///////////////////////////////////////////
             bytesOfReceivedMsg += tmpVector.size();
         }
         logger.info(
