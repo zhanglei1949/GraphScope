@@ -41,8 +41,8 @@ public class MessageBenchMark extends
                     logger.debug("vertex: {} receive msg: {}", vertex.getId(), message);
                 }
             }
-            if (vertex.getId().get() % 100000 == 0){
-                logger.info("vertex: " + vertex.getId() + "receive msg size: " + msgCnt);
+            if (vertex.getId().get() % 10000000 == 0){
+                logger.debug("vertex: {} receive msg size: {}",vertex.getId(),msgCnt);
             }
 
             MessageBenchMarkWorkerContext.messageReceived += msgCnt;
