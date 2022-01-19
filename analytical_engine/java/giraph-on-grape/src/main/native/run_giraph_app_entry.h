@@ -53,14 +53,16 @@ std::shared_ptr<GRAPH_TYPE> loadWithGrapeLoader(
     const grape::CommSpec& comm_spec, const ptree& pt, const std::string& vfile,
     const std::string& efile) {
   LoadGraphSpec graph_spec = DefaultLoadGraphSpec();
-  graph_spec.set_directed(getFromPtree<bool>(pt, OPTION_DIRECTED));
+  bool directed = getFromPtree<bool>(pt, OPTION_DIRECTED);
+  graph_spec.set_directed(directed);
   graph_spec.set_rebalance(false, 0);
 
   bool deserialize = getFromPtree<bool>(pt, OPTION_DESERIALIZE);
   bool serialize = getFromPtree<bool>(pt, OPTION_SERIALIZE);
   std::string serialize_prefix =
       getFromPtree<std::string>(pt, OPTION_SERIALIZE_PREFIX);
-  VLOG(1) << "Serialize: " << serialize << ", Deserialize: " << deserialize
+  VLOG(1) << "directed: " << directed << ", Serialize: " << serialize
+          << ", Deserialize: " << deserialize
           << ", Prefix: " << serialize_prefix;
   if (deserialize) {
     CHECK(!serialize_prefix.empty());

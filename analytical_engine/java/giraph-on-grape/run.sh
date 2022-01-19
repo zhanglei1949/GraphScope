@@ -26,7 +26,7 @@ GLOG_v=2 mpirun \
 
 # com 
 GLOG_v=10 mpirun \
--n 4 \
+-n 4 \x
 -f ~/hostfile \
 -envlist GLOG_v,GRAPE_JVM_OPTS,USER_JAR_PATH,GRAPH_TYPE,APP_TYPE,MAX_SUPER_STEP,MESSAGE_MANAGER_TYPE,OUT_MESSAGE_CACHE_TYPE,MESSAGE_STORE_TYPE \
 ./giraph_runner --app_class com.alibaba.graphscope.samples.MessageBenchMark \
