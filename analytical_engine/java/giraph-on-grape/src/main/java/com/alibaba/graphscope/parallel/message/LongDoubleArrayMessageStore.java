@@ -6,7 +6,6 @@ import com.alibaba.graphscope.serialization.FFIByteVectorInputStream;
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import io.netty.buffer.ByteBuf;
-import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,7 +24,7 @@ import org.slf4j.LoggerFactory;
  *
  * @param <OID_T>
  */
-public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
+public class LongDoubleArrayMessageStore<OID_T extends WritableComparable> implements
     MessageStore<OID_T, DoubleWritable, Long> {
 
     private static Logger logger = LoggerFactory.getLogger(LongDoubleMessageStore.class);
@@ -37,19 +36,18 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
     /**
      * lid 2 messages
      */
-//    private Map<Long, List<Double>> messages;
-    private Long2DoubleOpenHashMap messages;
+    private Map<Long, List<Double>> messages;
     private DoubleWritableIterable iterable;
     private long innerVerticesNum;
 
 
-    public LongDoubleMessageStore(SimpleFragment fragment,
+    public LongDoubleArrayMessageStore(SimpleFragment fragment,
         ImmutableClassesGiraphConfiguration<OID_T, ?, ?> conf) {
         this.fragment = fragment;
         this.conf = conf;
         vertex = (Vertex<Long>) FFITypeFactoryhelper.newVertex(java.lang.Long.class);
         iterable = new DoubleWritableIterable();
-        messages = new Long2DoubleOpenHashMap((int) fragment.getInnerVerticesNum());
+        messages = new HashMap<Long, List<Double>>((int) fragment.getInnerVerticesNum());
         innerVerticesNum = fragment.getInnerVerticesNum();
     }
 
@@ -58,14 +56,10 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         if (lid >= innerVerticesNum) {
             throw new IllegalStateException("lid exceeded upper bound");
         }
-        messages.put((long)lid, writable.get());
-    }
-
-    public void addLidMessage(Long lid, double msg){
-        if (lid >= innerVerticesNum) {
-            throw new IllegalStateException("lid exceeded upper bound");
+        if (!messages.containsKey(lid)) {
+            messages.put(lid, new ArrayList<>(INIT_CAPACITY));
         }
-        messages.put((long)lid, msg);
+        messages.get(lid).add(writable.get());
     }
 
     @Override
@@ -93,15 +87,21 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
      */
     @Override
     public synchronized void addGidMessage(Long gid, DoubleWritable writable) {
-        addGidMessage0((Long)gid, writable.get());
+        addGidMessage(gid, writable.get());
     }
 
-    private synchronized void addGidMessage0(Long gid, double msg) {
+    private synchronized void addGidMessage(Long gid, double msg) {
         if (!fragment.innerVertexGid2Vertex(gid, vertex)) {
             throw new IllegalStateException("gid to vertex convertion failed: " + gid);
         }
         long lid = vertex.GetValue();
-        addLidMessage(lid, msg);
+        if (lid >= innerVerticesNum) {
+            throw new IllegalStateException("exceeded innerVertices num");
+        }
+        if (!messages.containsKey(lid)) {
+            messages.put(lid, new ArrayList<>());
+        }
+        messages.get(lid).add(msg);
     }
 
     /**
@@ -122,7 +122,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         while (buf.readableBytes() >= 16) {
             long gid = buf.readLong();
             double msg = buf.readDouble();
-            addGidMessage0(gid, msg);
+            addGidMessage(gid, msg);
             if (logger.isDebugEnabled()) {
                 logger.debug("worker [{}] resolving message to self, gid {}, msg {}",
                     fragment.fid(), gid, msg);
@@ -135,13 +135,13 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
 
     @Override
     public void swap(MessageStore<OID_T, DoubleWritable, Long> other) {
-        if (other instanceof LongDoubleMessageStore) {
-            LongDoubleMessageStore<OID_T> longDoubleMessageStore = (LongDoubleMessageStore<OID_T>) other;
+        if (other instanceof LongDoubleArrayMessageStore) {
+            LongDoubleArrayMessageStore<OID_T> longDoubleMessageStore = (LongDoubleArrayMessageStore<OID_T>) other;
             if (!this.fragment.equals(longDoubleMessageStore.fragment)) {
                 logger.error("fragment not the same");
                 return;
             }
-            Long2DoubleOpenHashMap tmp;
+            Map<Long, List<Double>> tmp;
             if (logger.isDebugEnabled()) {
                 logger.debug("Before swap {} vs {}", this.messages,
                     longDoubleMessageStore.messages);
@@ -224,7 +224,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
             while (inputStream.longAvailable() >= 16) {
                 long gid = inputStream.readLong();
                 double msg = inputStream.readDouble();
-                addGidMessage0(gid, msg);
+                addGidMessage(gid, msg);
                 if (logger.isDebugEnabled()) {
                     logger.debug("worker [{}] resolving message to self, gid {}, msg {}",
                         fragment.fid(), gid, msg);
@@ -240,28 +240,33 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
 
     public static class DoubleWritableIterable implements Iterable<DoubleWritable> {
 
+        private List<Double> doubles;
+        private int ind;
         private DoubleWritable writable;
 
         private Iterator<DoubleWritable> iterator = new Iterator<DoubleWritable>() {
-            boolean res = true;
+
             @Override
             public boolean hasNext() {
-                return res;
+                return ind < doubles.size();
             }
 
             @Override
             public DoubleWritable next() {
-                res = false;
+                writable.set(doubles.get(ind++));
                 return writable;
             }
         };
 
         public DoubleWritableIterable() {
+            doubles = new ArrayList<>();
+            ind = 0;
             writable = new DoubleWritable();
         }
 
-        public void init(double in) {
-            writable.set(in);
+        public void init(List<Double> in) {
+            doubles = in;
+            ind = 0;
         }
 
         @Override
