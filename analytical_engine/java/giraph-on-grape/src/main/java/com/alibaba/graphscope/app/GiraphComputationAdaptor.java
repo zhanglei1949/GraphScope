@@ -199,10 +199,10 @@ public class GiraphComputationAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> extends
                 if (giraphMessageManager.messageAvailable(lid)) {
                     ctx.activateVertex(lid); //set halted[lid] to false;
                 }
-                if (!ctx.isHalted(lid)) {
+//                if (!ctx.isHalted(lid)) {
                     ctx.vertex.setLocalId((int) lid);
                     userComputation.compute(ctx.vertex, giraphMessageManager.getMessages(lid));
-                }
+//                }
             }
         } catch (IOException e) {
             e.printStackTrace();
