@@ -47,15 +47,15 @@ public class NettyServerHandler<OID_T extends WritableComparable, GS_VID_T> exte
             logger.debug("Server handler [{}] thread: [{}] received msg: {}", fragment.fid(),
                 Thread.currentThread().getId(), msg);
         }
-        msg.doRequest(nextIncomingMessages);
         byteCounter += msg.getBuffer().readableBytes();
+//        msg.doRequest(nextIncomingMessages);
         //dealloc the buffer here.
         msg.getBuffer().release(2);
 
         ByteBuf buf = ctx.alloc().buffer(RESPONSE_BYTES);
         buf.writeInt(msgSeq);
         if (logger.isDebugEnabled()){
-            logger.debug("Server handler[{}] send response [{}]", fragment.fid(), msgSeq);
+            logger.debug("Server handler[{}] thread [{}] send response [{}]", fragment.fid(),Thread.currentThread().getId(), msgSeq);
         }
         ctx.writeAndFlush(buf);
         msgSeq += 1;
