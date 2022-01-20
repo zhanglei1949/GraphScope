@@ -200,6 +200,7 @@ public class GiraphMpiMessageManager<
 
         //profile for Nbr.neighbor
         //0. nbrAdaptor
+        adaptorIterator = adaptorAdjList.iterable().iterator();
         if (adaptorIterator.hasNext()){
             Nbr<GS_VID_T,?> nbr = adaptorIterator.next();
             adaptorNeighbor -= System.nanoTime();
@@ -210,6 +211,7 @@ public class GiraphMpiMessageManager<
             adaptorNeighbor += System.nanoTime();
         }
         //1. grapeNbr
+        grapeNbrIterator = grapeAdjList.locals().iterator();
         if (grapeNbrIterator.hasNext()){
             GrapeNbr<GS_VID_T, ?> grapeNbr = grapeNbrIterator.next();
             grapeNeighbor -= System.nanoTime();
