@@ -179,6 +179,7 @@ public class GiraphMpiMessageManager<
                 grapeMessager.sendToFragment(i, cacheOut[i].getVector());
             }
         }
+        grapeMessager.ForceContinue();
         logger.debug("[Unused res] {}", unused);
     }
 
