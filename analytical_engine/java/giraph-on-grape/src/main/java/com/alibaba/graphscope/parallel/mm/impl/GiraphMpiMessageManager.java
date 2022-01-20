@@ -163,6 +163,7 @@ public class GiraphMpiMessageManager<
 //        }
         for (Nbr<GS_VID_T,?> nbr : adaptorAdjList.iterable()){
             com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
+            sendMessage(curVertex, message);
             unused += (Long) curVertex.GetValue();
         }
 
