@@ -148,7 +148,7 @@ public class GiraphMpiMessageManager<
         grapeVertex.SetValue((GS_VID_T) (Long) vertexImpl.getLocalId());
 
         // send msg through outgoing adjlist
-        AdjList adaptorAdjList = fragment.getOutgoingAdjList(grapeVertex);
+        AdjList<GS_VID_T,?> adaptorAdjList = fragment.getOutgoingAdjList(grapeVertex);
 //        if (adaptorAdjList instanceof GrapeAdjListAdaptor){
 //            GrapeAdjList<GS_VID_T,?> grapeAdjList = ((GrapeAdjListAdaptor<GS_VID_T, ?>) adaptorAdjList).getAdjList();
 //            for (GrapeNbr<GS_VID_T,?> nbr : grapeAdjList.locals()){
@@ -161,66 +161,70 @@ public class GiraphMpiMessageManager<
 //        else {
 //            throw new IllegalStateException("expect grape adjList");
 //        }
+        for (Nbr<GS_VID_T,?> nbr : adaptorAdjList.iterable()){
+            com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
+            unused += (Long) curVertex.GetValue();
+        }
 
         //profile for has next;
         //0. adaptor
-        long adaptorSize = adaptorAdjList.size();
-        Iterator<Nbr<GS_VID_T,?>> adaptorIterator = adaptorAdjList.iterable().iterator();
-        adaptorHasNext -= System.nanoTime();
-        for  (int i = 0; i < adaptorSize; ++i){
-            unused += adaptorIterator.hasNext() ? 1: 0;
-        }
-        adaptorHasNext += System.nanoTime();
-        //1. native
-        GrapeAdjList<GS_VID_T, ?> grapeAdjList = ((GrapeAdjListAdaptor<GS_VID_T, ?>) adaptorAdjList).getAdjList();
-        long grapeSize = grapeAdjList.size();
-        Iterator<? extends GrapeNbr<GS_VID_T, ?>> grapeNbrIterator = grapeAdjList.locals().iterator();
-        grapeHasNext -= System.nanoTime();
-        for (int i = 0; i < grapeSize; ++i){
-            unused += grapeNbrIterator.hasNext() ? 1 : 0;
-        }
-        grapeHasNext += System.nanoTime();
+//        long adaptorSize = adaptorAdjList.size();
+//        Iterator<Nbr<GS_VID_T,?>> adaptorIterator = adaptorAdjList.iterable().iterator();
+//        adaptorHasNext -= System.nanoTime();
+//        for  (int i = 0; i < adaptorSize; ++i){
+//            unused += adaptorIterator.hasNext() ? 1: 0;
+//        }
+//        adaptorHasNext += System.nanoTime();
+//        //1. native
+//        GrapeAdjList<GS_VID_T, ?> grapeAdjList = ((GrapeAdjListAdaptor<GS_VID_T, ?>) adaptorAdjList).getAdjList();
+//        long grapeSize = grapeAdjList.size();
+//        Iterator<? extends GrapeNbr<GS_VID_T, ?>> grapeNbrIterator = grapeAdjList.locals().iterator();
+//        grapeHasNext -= System.nanoTime();
+//        for (int i = 0; i < grapeSize; ++i){
+//            unused += grapeNbrIterator.hasNext() ? 1 : 0;
+//        }
+//        grapeHasNext += System.nanoTime();
 
         //profile for next
         //0. adaptor
-        com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex;
-        adaptorNext -= System.nanoTime();
-        for  (int i = 0; i < adaptorSize; ++i){
-            Nbr<GS_VID_T,?> nbr = adaptorIterator.next();
-            unused += 1;
-        }
-        adaptorNext += System.nanoTime();
-        //1. native
-        grapeNext -= System.nanoTime();
-        for (int i = 0; i < grapeSize; ++i){
-            GrapeNbr<GS_VID_T, ?> grapeNbr = grapeNbrIterator.next();
-            unused += 1;
-        }
-        grapeNext += System.nanoTime();
+//        com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex;
+//        adaptorNext -= System.nanoTime();
+//        for  (int i = 0; i < adaptorSize; ++i){
+//            Nbr<GS_VID_T,?> nbr = adaptorIterator.next();
+//            unused += 1;
+//        }
+//        adaptorNext += System.nanoTime();
+//        //1. native
+//        grapeNext -= System.nanoTime();
+//        for (int i = 0; i < grapeSize; ++i){
+//            GrapeNbr<GS_VID_T, ?> grapeNbr = grapeNbrIterator.next();
+//            unused += 1;
+//        }
+//        grapeNext += System.nanoTime();
 
         //profile for Nbr.neighbor
         //0. nbrAdaptor
-        adaptorIterator = adaptorAdjList.iterable().iterator();
-        if (adaptorIterator.hasNext()){
-            Nbr<GS_VID_T,?> nbr = adaptorIterator.next();
-            adaptorNeighbor -= System.nanoTime();
-            for (int i = 0; i < adaptorSize; ++i){
-                com.alibaba.graphscope.ds.Vertex<GS_VID_T> tmpVertex = nbr.neighbor();
-                unused += (Long) tmpVertex.GetValue();
-            }
-            adaptorNeighbor += System.nanoTime();
-        }
+//        adaptorIterator = adaptorAdjList.iterable().iterator();
+//        if (adaptorIterator.hasNext()){
+//            Nbr<GS_VID_T,?> nbr = adaptorIterator.next();
+//            adaptorNeighbor -= System.nanoTime();
+//            for (int i = 0; i < adaptorSize; ++i){
+//                com.alibaba.graphscope.ds.Vertex<GS_VID_T> tmpVertex = nbr.neighbor();
+//                unused += (Long) tmpVertex.GetValue();
+//            }
+//            adaptorNeighbor += System.nanoTime();
+//        }
         //1. grapeNbr
-        grapeNbrIterator = grapeAdjList.locals().iterator();
-        if (grapeNbrIterator.hasNext()){
-            GrapeNbr<GS_VID_T, ?> grapeNbr = grapeNbrIterator.next();
-            grapeNeighbor -= System.nanoTime();
-            for (int i = 0; i < grapeSize; ++i){
-                com.alibaba.graphscope.ds.Vertex<GS_VID_T> tmpVertex = grapeNbr.neighbor();
-                unused += (Long) tmpVertex.GetValue();
-            }
-            grapeNeighbor += System.nanoTime();
-        }
+//        grapeNbrIterator = grapeAdjList.locals().iterator();
+//        if (grapeNbrIterator.hasNext()){
+//            GrapeNbr<GS_VID_T, ?> grapeNbr = grapeNbrIterator.next();
+//            grapeNeighbor -= System.nanoTime();
+//            for (int i = 0; i < grapeSize; ++i){
+//                com.alibaba.graphscope.ds.Vertex<GS_VID_T> tmpVertex = grapeNbr.neighbor();
+//                unused += (Long) tmpVertex.GetValue();
+//            }
+//            grapeNeighbor += System.nanoTime();
+//        }
 
 
 //        Iterable<Nbr> iterable = adjList.iterable();
