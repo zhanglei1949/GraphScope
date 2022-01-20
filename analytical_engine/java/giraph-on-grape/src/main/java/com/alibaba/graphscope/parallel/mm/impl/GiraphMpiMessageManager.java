@@ -109,7 +109,7 @@ public class GiraphMpiMessageManager<
 
     private void sendMessage(com.alibaba.graphscope.ds.Vertex<GS_VID_T> vertex, OUT_MSG_T msg) {
         int dstfragId = fragment.getFragId(vertex);
-        if (dstfragId != fragId && cacheOut[dstfragId].bytesWriten() >= THRESHOLD) {
+        if (cacheOut[dstfragId].bytesWriten() >= THRESHOLD && dstfragId != fragId) {
             cacheOut[dstfragId].writeLong(0,
                 cacheOut[dstfragId].bytesWriten() - 8); // minus size_of_long
             cacheOut[dstfragId].finishSetting();
