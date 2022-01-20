@@ -39,6 +39,7 @@ public class GiraphMpiMessageManager<
     private FFIByteVectorOutputStream[] cacheOut;
 
     private long unused;
+    private int maxSuperStep;
 
     public GiraphMpiMessageManager(
         SimpleFragment fragment,
@@ -46,6 +47,7 @@ public class GiraphMpiMessageManager<
         ImmutableClassesGiraphConfiguration configuration, FFICommunicator communicator) {
         super(fragment, defaultMessageManager, configuration, communicator);
         THRESHOLD = MAX_OUT_MSG_CACHE_SIZE.get(configuration);
+        maxSuperStep = Integer.valueOf(System.getenv("MAX_SUPER_STEP"));
 
 //        this.messagesIn = new FFIByteVectorInputStream();
         this.cacheOut = new FFIByteVectorOutputStream[fragment.fnum()];
@@ -179,7 +181,11 @@ public class GiraphMpiMessageManager<
                 grapeMessager.sendToFragment(i, cacheOut[i].getVector());
             }
         }
-        grapeMessager.ForceContinue();
+        if (maxSuperStep > 0){
+            grapeMessager.ForceContinue();
+            maxSuperStep -= 1;
+        }
+
         logger.debug("[Unused res] {}", unused);
     }
 
