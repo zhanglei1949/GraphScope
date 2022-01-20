@@ -259,7 +259,7 @@ public interface GiraphConstants {
      * Netty server worker threads
      */
     IntConfOption NETTY_SERVER_WORKER_THREADS =
-        new IntConfOption("giraph.nettyServerWorkerThreads", 4,
+        new IntConfOption("giraph.nettyServerWorkerThreads", 16,
             "Netty server worker threads");
 
     /**

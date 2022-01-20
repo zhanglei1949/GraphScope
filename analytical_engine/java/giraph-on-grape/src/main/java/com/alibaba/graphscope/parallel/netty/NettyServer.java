@@ -130,7 +130,7 @@ public class NettyServer<OID_T extends WritableComparable,GS_VID_T> {
             .channel(NioServerSocketChannel.class)
             .option(ChannelOption.SO_BACKLOG, tcpBacklog)
             .option(ChannelOption.ALLOCATOR, conf.getNettyAllocator())
-            .handler(new LoggingHandler(LogLevel.INFO))
+//            .handler(new LoggingHandler(LogLevel.INFO))
             .childOption(ChannelOption.SO_KEEPALIVE, true)
             .childOption(ChannelOption.TCP_NODELAY, true)
             .childOption(ChannelOption.SO_SNDBUF, sendBufferSize)

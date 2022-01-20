@@ -4,7 +4,10 @@ import static org.apache.giraph.conf.GiraphConstants.MAX_OUT_MSG_CACHE_SIZE;
 import static org.apache.giraph.utils.ByteUtils.SIZE_OF_LONG;
 
 import com.alibaba.graphscope.communication.FFICommunicator;
+import com.alibaba.graphscope.ds.GrapeAdjList;
+import com.alibaba.graphscope.ds.GrapeNbr;
 import com.alibaba.graphscope.ds.adaptor.AdjList;
+import com.alibaba.graphscope.ds.adaptor.GrapeAdjListAdaptor;
 import com.alibaba.graphscope.ds.adaptor.Nbr;
 import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
@@ -140,15 +143,23 @@ public class GiraphMpiMessageManager<
 
         // send msg through outgoing adjlist
         AdjList adjList = fragment.getOutgoingAdjList(grapeVertex);
-        Iterable<Nbr> iterable = adjList.iterable();
-        com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex;
-
-
-        for (Iterator<Nbr> it = iterable.iterator(); it.hasNext(); ) {
-            curVertex = it.next().neighbor();
-            unused += (Long) curVertex.GetValue(); //make sure not optimized
-//            sendMessage(curVertex, message);
+        if (adjList instanceof GrapeAdjListAdaptor){
+            GrapeAdjList<GS_VID_T,?> grapeAdjList = ((GrapeAdjListAdaptor<GS_VID_T, ?>) adjList).getAdjList();
+            for (GrapeNbr<GS_VID_T,?> nbr : grapeAdjList.locals()){
+                com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
+                unused += (Long) curVertex.GetValue();
+            }
         }
+
+//        Iterable<Nbr> iterable = adjList.iterable();
+//        com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex;
+//
+//
+//        for (Iterator<Nbr> it = iterable.iterator(); it.hasNext(); ) {
+//            curVertex = it.next().neighbor();
+//            unused += (Long) curVertex.GetValue(); //make sure not optimized
+//            sendMessage(curVertex, message);
+//        }
     }
 
     /**
