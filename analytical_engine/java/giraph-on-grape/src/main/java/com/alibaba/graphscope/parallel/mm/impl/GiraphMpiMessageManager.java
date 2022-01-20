@@ -38,6 +38,8 @@ public class GiraphMpiMessageManager<
 
     private FFIByteVectorOutputStream[] cacheOut;
 
+    private long unused;
+
     public GiraphMpiMessageManager(
         SimpleFragment fragment,
         DefaultMessageManager defaultMessageManager,
@@ -139,9 +141,11 @@ public class GiraphMpiMessageManager<
         Iterable<Nbr> iterable = adjList.iterable();
         com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex;
 
+
         for (Iterator<Nbr> it = iterable.iterator(); it.hasNext(); ) {
             curVertex = it.next().neighbor();
-            sendMessage(curVertex, message);
+            unused += (Long) curVertex.GetValue(); //make sure not optimized
+//            sendMessage(curVertex, message);
         }
     }
 
@@ -175,6 +179,7 @@ public class GiraphMpiMessageManager<
                 grapeMessager.sendToFragment(i, cacheOut[i].getVector());
             }
         }
+        logger.debug("[Unused res] {}", unused);
     }
 
 

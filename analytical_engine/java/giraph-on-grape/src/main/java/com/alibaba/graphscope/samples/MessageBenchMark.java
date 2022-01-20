@@ -52,9 +52,13 @@ public class MessageBenchMark
                 logger.debug("vertex: {} receive msg size: {}", vertex.getId(), msgCnt);
             }
         }
-        DoubleWritable msg = new DoubleWritable(vertex.getId().get());
+
         MessageBenchMarkWorkerContext.stepMessageSent += vertex.getNumEdges();
         MessageBenchMarkWorkerContext.totalMessageSent += vertex.getNumEdges();
+
+        //traverse graph
+
+        DoubleWritable msg = new DoubleWritable(vertex.getId().get());
         sendMessageToAllEdges(vertex, msg);
         // logger.info("Vertex [" + vertex.getId() + "] send to all edges " +  vertex.getId());
     }
