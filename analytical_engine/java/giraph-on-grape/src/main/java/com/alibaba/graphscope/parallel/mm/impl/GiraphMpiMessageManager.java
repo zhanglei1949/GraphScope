@@ -6,6 +6,7 @@ import static org.apache.giraph.utils.ByteUtils.SIZE_OF_LONG;
 import com.alibaba.graphscope.communication.FFICommunicator;
 import com.alibaba.graphscope.ds.GrapeAdjList;
 import com.alibaba.graphscope.ds.GrapeNbr;
+import com.alibaba.graphscope.ds.NbrBase;
 import com.alibaba.graphscope.ds.adaptor.AdjList;
 import com.alibaba.graphscope.ds.adaptor.GrapeAdjListAdaptor;
 import com.alibaba.graphscope.ds.adaptor.Nbr;
@@ -161,7 +162,7 @@ public class GiraphMpiMessageManager<
 //        else {
 //            throw new IllegalStateException("expect grape adjList");
 //        }
-        for (Nbr<GS_VID_T,?> nbr : adaptorAdjList.iterable()){
+        for (NbrBase<GS_VID_T,?> nbr : adaptorAdjList.nbrBases()){
             com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
             sendMessage(curVertex, message);
             unused += (Long) curVertex.GetValue();

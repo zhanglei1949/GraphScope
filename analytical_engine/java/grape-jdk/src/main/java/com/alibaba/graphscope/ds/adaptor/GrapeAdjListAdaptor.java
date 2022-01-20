@@ -12,7 +12,7 @@ public class GrapeAdjListAdaptor<VID_T, EDATA_T> implements AdjList<VID_T, EDATA
     public static final String TYPE = "GrapeAdjList";
     private GrapeAdjList<VID_T, EDATA_T> adjList;
 
-    public GrapeAdjList<VID_T,EDATA_T> getAdjList(){
+    public GrapeAdjList<VID_T, EDATA_T> getAdjList() {
         return adjList;
     }
 

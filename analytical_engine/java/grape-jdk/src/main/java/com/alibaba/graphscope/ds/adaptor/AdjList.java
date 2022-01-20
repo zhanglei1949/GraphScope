@@ -1,5 +1,6 @@
 package com.alibaba.graphscope.ds.adaptor;
 
+import com.alibaba.graphscope.ds.NbrBase;
 import java.util.Iterator;
 import java.util.Objects;
 
@@ -109,5 +110,13 @@ public interface AdjList<VID_T, EDATA_T> {
                     };
         }
         return null;
+    }
+
+    default Iterable<? extends NbrBase<VID_T, EDATA_T>> nbrBases() {
+        if (type().equals(GrapeAdjListAdaptor.TYPE)) {
+            return ((GrapeAdjListAdaptor<VID_T, EDATA_T>) this).getAdjList().locals();
+        } else {
+            throw new IllegalStateException("not supported");
+        }
     }
 }
