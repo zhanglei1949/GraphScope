@@ -147,8 +147,12 @@ public class GiraphMpiMessageManager<
             GrapeAdjList<GS_VID_T,?> grapeAdjList = ((GrapeAdjListAdaptor<GS_VID_T, ?>) adjList).getAdjList();
             for (GrapeNbr<GS_VID_T,?> nbr : grapeAdjList.locals()){
                 com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
-                unused += (Long) curVertex.GetValue();
+//                unused += (Long) curVertex.GetValue();
+                unused += 1;
             }
+        }
+        else {
+            throw new IllegalStateException("expect grape adjList");
         }
 
 //        Iterable<Nbr> iterable = adjList.iterable();
