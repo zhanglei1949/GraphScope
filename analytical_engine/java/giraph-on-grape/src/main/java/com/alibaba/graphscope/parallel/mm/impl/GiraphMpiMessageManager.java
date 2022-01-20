@@ -148,6 +148,7 @@ public class GiraphMpiMessageManager<
             for (GrapeNbr<GS_VID_T,?> nbr : grapeAdjList.locals()){
                 com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
 //                unused += (Long) curVertex.GetValue();
+//                sendMessage(curVertex, message);
                 unused += 1;
             }
         }
