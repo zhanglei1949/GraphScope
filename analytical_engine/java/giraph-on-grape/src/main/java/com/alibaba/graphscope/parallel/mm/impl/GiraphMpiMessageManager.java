@@ -150,23 +150,23 @@ public class GiraphMpiMessageManager<
 
         // send msg through outgoing adjlist
         AdjList<GS_VID_T,?> adaptorAdjList = fragment.getOutgoingAdjList(grapeVertex);
-//        if (adaptorAdjList instanceof GrapeAdjListAdaptor){
-//            GrapeAdjList<GS_VID_T,?> grapeAdjList = ((GrapeAdjListAdaptor<GS_VID_T, ?>) adaptorAdjList).getAdjList();
-//            for (GrapeNbr<GS_VID_T,?> nbr : grapeAdjList.locals()){
-//                com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
-////                unused += (Long) curVertex.GetValue();
-//                sendMessage(curVertex, message);
-//                unused += 1;
-//            }
-//        }
-//        else {
-//            throw new IllegalStateException("expect grape adjList");
-//        }
-        for (NbrBase<GS_VID_T,?> nbr : adaptorAdjList.nbrBases()){
-            com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
-            sendMessage(curVertex, message);
-            unused += (Long) curVertex.GetValue();
+        if (adaptorAdjList instanceof GrapeAdjListAdaptor){
+            GrapeAdjList<GS_VID_T,?> grapeAdjList = ((GrapeAdjListAdaptor<GS_VID_T, ?>) adaptorAdjList).getAdjList();
+            for (GrapeNbr<GS_VID_T,?> nbr : grapeAdjList.locals()){
+                com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
+//                unused += (Long) curVertex.GetValue();
+                sendMessage(curVertex, message);
+                unused += 1;
+            }
         }
+        else {
+            throw new IllegalStateException("expect grape adjList");
+        }
+//        for (NbrBase<GS_VID_T,?> nbr : adaptorAdjList.nbrBases()){
+//            com.alibaba.graphscope.ds.Vertex<GS_VID_T> curVertex = nbr.neighbor();
+//            sendMessage(curVertex, message);
+//            unused += (Long) curVertex.GetValue();
+//        }
 
         //profile for has next;
         //0. adaptor
