@@ -113,7 +113,8 @@ public interface AdjList<VID_T, EDATA_T> {
     }
 
     default Iterable<? extends NbrBase<VID_T, EDATA_T>> nbrBases() {
-        if (this instanceof GrapeAdjListAdaptor) { //use string equal cause performance degradation.
+        if (this
+                instanceof GrapeAdjListAdaptor) { // use string equal cause performance degradation.
             return ((GrapeAdjListAdaptor<VID_T, EDATA_T>) this).getAdjList().locals();
         } else {
             throw new IllegalStateException("not supported");
