@@ -45,6 +45,7 @@ static constexpr const char* OPTION_DRIVER_CONTEXT_CLASS =
 static constexpr const char* OPTION_LIB_PATH = "lib_path";
 static constexpr const char* OPTION_GRAPE_LOADER = "grape_loader";
 static constexpr const char* OPTION_DIRECTED = "directed";
+static constexpr const char* OPTION_IPC_SOCKET = "ipc_socket";
 
 static const std::string DEFAULT_JAVA_LOADER_CLASS =
     "com.alibaba.graphscope.loader.impl.FileLoader";

@@ -12,10 +12,12 @@
 #include "grape/fragment/immutable_edgecut_fragment.h"
 #include "grape/fragment/loader.h"
 #include "grape/grape.h"
+#include "vineyard/client/client.h"
 
 // #include "apps/java_pie/java_pie_default_app.h"
 #include "apps/java_pie/java_pie_projected_default_app.h"
 #include "core/io/property_parser.h"
+#include "core/loader/arrow_fragment_loader.h"
 
 #include "giraph_fragment_loader.h"
 #include "java_loader_invoker.h"
@@ -43,11 +45,11 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
     const std::string& efile, const std::string& vertex_input_format_class,
     const std::string& ipc_socket, bool directed) {
   // construct graph info
-  auto graph = std::make_shared<detail::Graph>();
+  auto graph = std::make_shared<gs::detail::Graph>();
   graph->directed = directed;
   graph->generate_eid = false;
 
-  auto vertex = std::make_shared<detail::Vertex>();
+  auto vertex = std::make_shared<gs::detail::Vertex>();
   vertex->label = "label1";
   vertex->vid = "0";
   vertex->protocol = "giraph";
@@ -85,7 +87,7 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
 
   MPI_Barrier(comm_spec.comm());
   std::shared_ptr<FragmentType> fragment =
-      std::dynamic_pointer_cast<FragmentType>(client.GetObject(id));
+      std::dynamic_pointer_cast<FragmentType>(client.GetObject(fragment_id));
   return fragment;
 
   //   Run(client, comm_spec, fragment_id, run_projected, run_property,
@@ -103,6 +105,7 @@ void CreateAndQuery(std::string params) {
   std::string vfile = getFromPtree<std::string>(pt, OPTION_VFILE);
   std::string vertex_input_format_class =
       getFromPtree<std::string>(pt, OPTION_VERTEX_INPUT_FORMAT_CLASS);
+  std::string ipc_socket = getFromPtree<std::string>(pt, OPTION_IPC_SOCKET);
   bool directed = getFromPtree<bool>(pt, OPTION_DIRECTED);
   VLOG(1) << "efile: " << efile << ", vfile: " << vfile
           << " vifc: " << vertex_input_format_class << "directed: " << directed;
@@ -112,11 +115,11 @@ void CreateAndQuery(std::string params) {
 
   std::shared_ptr<FragmentType> fragment;
   fragment = LoadGiraphFragment(comm_spec, efile, vfile,
-                                vertex_input_format_class, directed);
+                                vertex_input_format_class, ipc_socket, directed);
 
   VLOG(1) << fragment->fid()
           << ",total vertex num: " << fragment->GetTotalVerticesNum()
-          << "frag vnum: " << fragment->GetVerticesNum();
+          << "frag vnum: " << fragment->GetVerticesNum(0);
 }
 
 void Finalize() {

@@ -407,8 +407,7 @@ class ArrowFragmentLoader {
       bool load_vertex, const std::string& location, int index,
       int total_parts) {
     VLOG(1) << "location: " << location;
-    static JavaLoaderInvoker java_loader_invoker =
-        new JavaLoaderInvoker(index, total_parts);
+    static JavaLoaderInvoker java_loader_invoker(index, total_parts);
     if (load_vertex) {
       // There are cases both vertex and edges are specified in vertex file.
       // In this case, we load the data in this function, and suppose call
