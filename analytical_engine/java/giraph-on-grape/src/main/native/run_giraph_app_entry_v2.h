@@ -21,22 +21,10 @@
 #include "java_loader_invoker.h"
 #include "utils.h"
 
-#define QUOTE(X) #X
-
-#if !defined(GRAPH_TYPE)
-#error "Missing GRAPH_TYPE"
-#endif
-
-#if !defined(APP_TYPE)
-#error "Missing macro APP_TYPE"
-#endif
-
 namespace grape {
-
-using oid_t = GRAPH_TYPE::oid_t;
-using vdata_t = GRAPH_TYPE::vdata_t;
-using edata_t = GRAPH_TYPE::edata_t;
-using vid_t = uint64_t;
+using GRAPH_TYPE =
+    vineyard::ArrowFragment<vineyard::property_graph_types::OID_TYPE,
+                            vineyard::property_graph_types::VID_TYPE>;
 
 // using LOADER_TYPE = grape::GiraphFragmentLoader<GRAPH_TYPE>;
 
@@ -96,6 +84,9 @@ std::shared_ptr<GRAPH_TYPE> LoadGiraphFragment(
           << "] loaded graph to vineyard ...";
 
   MPI_Barrier(comm_spec.comm());
+  std::shared_ptr<FragmentType> fragment =
+      std::dynamic_pointer_cast<GRAPH_TYPE>(client.GetObject(id));
+  return fragment;
 
   //   Run(client, comm_spec, fragment_id, run_projected, run_property,
   //   app_name); MPI_Barrier(comm_spec.comm());
