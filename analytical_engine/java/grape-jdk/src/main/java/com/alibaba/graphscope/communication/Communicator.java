@@ -57,7 +57,7 @@ public abstract class Communicator {
             if (constructor.getParameterCount() == 1
                     && constructor.getParameterTypes()[0].getName().equals("long")) {
                 communicatorImpl = communicatorClass.cast(constructor.newInstance(appAddr));
-                System.out.println(communicatorImpl);
+                logger.info("Init communicator:" + communicatorImpl);
             }
         }
     }

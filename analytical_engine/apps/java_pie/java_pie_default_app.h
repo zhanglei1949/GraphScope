@@ -57,7 +57,6 @@ class JavaPIEDefaultApp : public AppBase<FRAG_T, JavaPIEDefaultContext<FRAG_T>>,
 
       jobject app_object = ctx.app_object();
       auto communicator = static_cast<grape::Communicator*>(this);
-      // used by aggregator
       InitJavaCommunicator(env, ctx.url_class_loader_object(), app_object,
                            reinterpret_cast<jlong>(communicator));
 
@@ -66,7 +65,7 @@ class JavaPIEDefaultApp : public AppBase<FRAG_T, JavaPIEDefaultContext<FRAG_T>>,
 
       const char* descriptor =
           "(Lcom/alibaba/graphscope/fragment/IFragment;"
-          "Lcom/alibaba/graphscope/app/DefaultContextBase;"
+          "Lcom/alibaba/graphscope/context/DefaultContextBase;"
           "Lcom/alibaba/graphscope/parallel/DefaultMessageManager;)V";
       jmethodID pEval_methodID =
           env->GetMethodID(app_class, "PEval", descriptor);
@@ -102,7 +101,7 @@ class JavaPIEDefaultApp : public AppBase<FRAG_T, JavaPIEDefaultContext<FRAG_T>>,
 
       const char* descriptor =
           "(Lcom/alibaba/graphscope/fragment/IFragment;"
-          "Lcom/alibaba/graphscope/app/DefaultContextBase;"
+          "Lcom/alibaba/graphscope/context/DefaultContextBase;"
           "Lcom/alibaba/graphscope/parallel/DefaultMessageManager;)V";
       jmethodID incEval_methodID =
           env->GetMethodID(app_class, "IncEval", descriptor);

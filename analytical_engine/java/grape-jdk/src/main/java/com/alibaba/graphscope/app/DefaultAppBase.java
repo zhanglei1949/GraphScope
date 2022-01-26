@@ -16,6 +16,7 @@
 
 package com.alibaba.graphscope.app;
 
+import com.alibaba.graphscope.context.DefaultContextBase;
 import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 

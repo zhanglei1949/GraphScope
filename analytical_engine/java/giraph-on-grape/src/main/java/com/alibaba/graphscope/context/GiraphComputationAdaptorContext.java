@@ -6,7 +6,6 @@ import static org.apache.giraph.conf.GiraphConstants.MESSAGE_MANAGER_TYPE;
 import static org.apache.giraph.job.HadoopUtils.makeTaskAttemptContext;
 
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.graphscope.app.DefaultContextBase;
 import com.alibaba.graphscope.communication.Communicator;
 import com.alibaba.graphscope.factory.GiraphComputationFactory;
 import com.alibaba.graphscope.fragment.IFragment;

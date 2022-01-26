@@ -72,7 +72,7 @@ public class FFITypeFactoryhelper {
         } else if (clz.getName() == Double.class.getName()) {
             return "double";
         } else {
-            System.err.println("Must be one of long, double, integer");
+            logger.error("Must be one of long, double, integer");
             return "null";
         }
     }
@@ -191,7 +191,8 @@ public class FFITypeFactoryhelper {
             return getVertexIntegerFactory().create();
         } else {
             throw new IllegalStateException(
-                    "Grape only support two kind of vertex, 32 bit and 64 bit, your are querying for: "
+                    "Grape only support two kind of vertex, 32 bit and 64 bit, your are querying"
+                            + " for: "
                             + vidClass.getName());
         }
     }
@@ -325,7 +326,7 @@ public class FFITypeFactoryhelper {
     public static String[] getTypeParams(Class<?> clz, int expectedNum) {
         // TypeVariable[] typeVariables = (TypeVariable[]) clz.getTypeParameters();
         Type clzz = (Type) clz;
-        System.out.println(clzz.getTypeName());
+        logger.info(clzz.getTypeName());
         if (clzz instanceof ParameterizedType) {
             ParameterizedType parameterizedType = (ParameterizedType) clzz;
             Type[] types = parameterizedType.getActualTypeArguments();

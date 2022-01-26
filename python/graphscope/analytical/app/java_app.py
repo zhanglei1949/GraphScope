@@ -16,14 +16,12 @@
 # limitations under the License.
 #
 
-# from coordinator.gscoordinator.io_utils import PipeWatcher
 import hashlib
 import json
 import logging
 import os
 import shutil
 import subprocess
-import tempfile
 import zipfile
 from pathlib import Path
 
@@ -38,6 +36,7 @@ from graphscope.framework.dag import DAGNode
 from graphscope.framework.dag_utils import bind_app
 from graphscope.framework.errors import InvalidArgumentError
 from graphscope.framework.graph import Graph
+from graphscope.framework.utils import get_tempdir
 from graphscope.proto import graph_def_pb2
 
 __all__ = ["JavaApp"]
@@ -48,7 +47,7 @@ logger = logging.getLogger("graphscope")
 try:
     WORKSPACE = os.environ["GRAPHSCOPE_RUNTIME"]
 except KeyError:
-    WORKSPACE = os.path.join("/", tempfile.gettempprefix(), "gs")
+    WORKSPACE = os.path.join(get_tempdir(), "gs")
 DEFAULT_GS_CONFIG_FILE = ".gs_conf.yaml"
 
 POSSIBLE_APP_TYPES = [
@@ -99,31 +98,18 @@ def _parse_user_app(java_app_class: str, java_jar_full_path: str):
             continue
         if line.find("DefaultPropertyApp") != -1:
             _java_app_type = "default_property"
-            continue
-        if line.find("ParallelPropertyApp") != -1:
+        elif line.find("ParallelPropertyApp") != -1:
             _java_app_type = "parallel_property"
-            continue
-        if line.find("DefaultAppBase") != -1:
+        elif line.find("DefaultAppBase") != -1:
             _java_app_type = "default_simple"
-        if line.find("ParallelAppBase") != -1:
+        elif line.find("ParallelAppBase") != -1:
             _java_app_type = "parallel_simple"
-            continue
-        if line.find("ParallelPropertyApp") != -1:
-            _java_app_type = "parallel_property"
-            continue 
-        if line.find("DefaultAppBase") != -1:
-            _java_app_type = "default_simple"
-        if line.find("ParallelAppBase") != -1:
-            _java_app_type = "parallel_simple"
-            continue
-        if line.find("Error") != -1:
+        elif line.find("Error") != -1:
             raise Exception("Error occured in verifying user app")
-        if line.find("TypeParams") != -1:
-            _frag_param_str = line.split(":")[1].strip()
-            continue
-        if line.find("ContextType") != -1:
-            _java_inner_context_type = line.split(":")[1].strip()
-            continue
+        elif line.find("TypeParams") != -1:
+            _frag_param_str = line.split(":")[-1].strip()
+        elif line.find("ContextType") != -1:
+            _java_inner_context_type = line.split(":")[-1].strip()
     logger.info(
         "Java app type: {}, frag type str: {}, ctx type: {}".format(
             _java_app_type, _frag_param_str, _java_inner_context_type
@@ -214,11 +200,15 @@ class JavaApp(AppAssets):
                 "driver_header"
             ] = "apps/java_pie/java_pie_projected_default_app.h"
             gs_config["app"][0]["class_name"] = "gs::JavaPIEProjectedDefaultApp"
-        else:
+        elif self._java_app_type == "parallel_simple":
             gs_config["app"][0][
                 "driver_header"
             ] = "apps/java_pie/java_pie_projected_parallel_app.h"
             gs_config["app"][0]["class_name"] = "gs::JavaPIEProjectedParallelApp"
+        else:
+            raise Exception(
+                "Unrecognizable java app type: {}".format(self._java_app_type)
+            )
 
         gar.append(DEFAULT_GS_CONFIG_FILE, yaml.dump(gs_config))
         super().__init__("java_app", _java_ctx_type, gar.read_bytes())
@@ -233,7 +223,7 @@ class JavaApp(AppAssets):
                 "Unrecoginizable graph template str: {}".format(graph.template_str)
             )
         if splited[0] == "vineyard::ArrowFragment":
-            if self.java_app_type != "property":
+            if self.java_app_type.find("property") == -1:
                 logger.error("Expected property app")
                 return False
             if len(java_app_type_params) != 1:
@@ -241,8 +231,8 @@ class JavaApp(AppAssets):
                 return False
             num_type_params = 1
         if splited[1] == "gs::ArrowProjectedFragment":
-            if self.java_app_type != "projected":
-                logger.error("Expected projected app")
+            if self.java_app_type.find("simple") == -1:
+                logger.error("Expected simple app")
                 return False
             if len(java_app_type_params) != 4:
                 logger.error("Expected 4 type params")
@@ -303,7 +293,7 @@ class JavaApp(AppAssets):
             raise InvalidArgumentError("Missing graph_type attribute in graph object.")
 
         if (
-            self.java_app_type == "projected"
+            self.java_app_type.find("simple") != -1
             and graph.graph_type == graph_def_pb2.ARROW_PROPERTY
         ):
             graph = graph._project_to_simple()
@@ -318,7 +308,12 @@ class JavaAppDagNode(AppDAGNode):
         self._graph = graph
         self._app_assets = app_assets
         self._session = graph.session
-        self._app_assets.is_compatible(self._graph)
+        if not self._app_assets.is_compatible(self._graph):
+            raise Exception(
+                "No compactiable app and graph: {} and {}".format(
+                    self._app_assets.java_app_type, self._graph.template_str
+                )
+            )
 
         self._op = bind_app(graph, self._app_assets)
         # add op to dag

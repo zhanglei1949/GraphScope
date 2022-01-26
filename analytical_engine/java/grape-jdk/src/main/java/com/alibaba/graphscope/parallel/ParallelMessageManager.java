@@ -29,6 +29,7 @@ import com.alibaba.fastffi.CXXHead;
 import com.alibaba.fastffi.CXXReference;
 import com.alibaba.fastffi.FFIGen;
 import com.alibaba.fastffi.FFINameAlias;
+import com.alibaba.fastffi.FFISkip;
 import com.alibaba.fastffi.FFITypeAlias;
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.fragment.ArrowProjectedFragment;
@@ -57,57 +58,97 @@ import java.util.function.Supplier;
 })
 public interface ParallelMessageManager extends MessageManagerBase {
 
-    default <FRAG_T extends IFragment, MSG_T> boolean syncStateOnOuterVertex(
+    default <FRAG_T extends IFragment, MSG_T, @FFISkip VDATA_T> boolean syncStateOnOuterVertex(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg,
-            int channelId) {
+            int channelId,
+            @FFISkip VDATA_T vdata) {
         if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
-            syncStateOnOuterVertex((ArrowProjectedFragment) frag, vertex, msg, channelId);
+            syncStateOnOuterVertexArrowProjected(
+                    (ArrowProjectedFragment) frag.getFFIPointer(), vertex, msg, channelId, vdata);
         } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
-            syncStateOnOuterVertex((ImmutableEdgecutFragment) frag, vertex, msg, channelId);
+            syncStateOnOuterVertexImmutable(
+                    (ImmutableEdgecutFragment) frag.getFFIPointer(), vertex, msg, channelId, vdata);
         }
         return false;
     }
 
-    default <FRAG_T extends IFragment, MSG_T> boolean sendMsgThroughOEdges(
+    default <FRAG_T extends IFragment, @FFISkip VDATA_T> boolean syncStateOnOuterVertexNoMsg(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
-            @CXXReference MSG_T msg,
-            int channelId) {
+            int channelId,
+            @FFISkip VDATA_T vdata) {
         if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
-            sendMsgThroughOEdges((ArrowProjectedFragment) frag, vertex, msg, channelId);
+            syncStateOnOuterVertexArrowProjectedNoMsg(
+                    (ArrowProjectedFragment) frag.getFFIPointer(), vertex, channelId, vdata);
         } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
-            sendMsgThroughOEdges((ImmutableEdgecutFragment) frag, vertex, msg, channelId);
+            syncStateOnOuterVertexImmutableNoMsg(
+                    (ImmutableEdgecutFragment) frag.getFFIPointer(), vertex, channelId, vdata);
         }
         return false;
     }
 
-    default <FRAG_T extends IFragment, MSG_T> boolean sendMsgThroughEdges(
+    default <FRAG_T extends IFragment, MSG_T, @FFISkip VDATA_T> boolean sendMsgThroughOEdges(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg,
-            int channelId) {
+            int channelId,
+            @FFISkip VDATA_T unused) {
         if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
-            sendMsgThroughEdges((ArrowProjectedFragment) frag, vertex, msg, channelId);
+            sendMsgThroughOEdgesArrowProjected(
+                    (ArrowProjectedFragment) frag.getFFIPointer(), vertex, msg, channelId, unused);
         } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
-            sendMsgThroughEdges((ImmutableEdgecutFragment) frag, vertex, msg, channelId);
+            sendMsgThroughOEdgesImmutable(
+                    (ImmutableEdgecutFragment) frag.getFFIPointer(),
+                    vertex,
+                    msg,
+                    channelId,
+                    unused);
         }
         return false;
     }
 
-    default <FRAG_T extends IFragment, MSG_T> boolean sendMsgThroughIEdges(
+    default <FRAG_T extends IFragment, MSG_T, @FFISkip VDATA_T> boolean sendMsgThroughEdges(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg,
-            int channelId) {
+            int channelId,
+            @FFISkip VDATA_T unused) {
         if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
-            sendMsgThroughIEdges((ArrowProjectedFragment) frag, vertex, msg, channelId);
+            sendMsgThroughEdgesArrowProjected(
+                    (ArrowProjectedFragment) frag.getFFIPointer(), vertex, msg, channelId, unused);
         } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
-            sendMsgThroughIEdges((ImmutableEdgecutFragment) frag, vertex, msg, channelId);
+            sendMsgThroughEdgesImmutable(
+                    (ImmutableEdgecutFragment) frag.getFFIPointer(),
+                    vertex,
+                    msg,
+                    channelId,
+                    unused);
         }
         return false;
     }
+
+    default <FRAG_T extends IFragment, MSG_T, @FFISkip VDATA_T> boolean sendMsgThroughIEdges(
+            @CXXReference FRAG_T frag,
+            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+            @CXXReference MSG_T msg,
+            int channelId,
+            @FFISkip VDATA_T unused) {
+        if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
+            sendMsgThroughIEdgesArrowProjected(
+                    (ArrowProjectedFragment) frag.getFFIPointer(), vertex, msg, channelId, unused);
+        } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
+            sendMsgThroughIEdgesImmutable(
+                    (ImmutableEdgecutFragment) frag.getFFIPointer(),
+                    vertex,
+                    msg,
+                    channelId,
+                    unused);
+        }
+        return false;
+    }
+
     /**
      * Init the message manager which number of possible channels. Each channel will swap messages
      * in parallel.
@@ -116,6 +157,15 @@ public interface ParallelMessageManager extends MessageManagerBase {
      */
     @FFINameAlias("InitChannels")
     void initChannels(int channel_num);
+
+    /**
+     * Retrive a message archive.
+     *
+     * @param buf place to store the archive.
+     * @return true if got one.
+     */
+    @FFINameAlias("GetMessageInBuffer")
+    boolean getMessageInBuffer(@CXXReference MessageInBuffer buf);
 
     /**
      * Send a msg to the fragment where the querying outer vertex is an inner vertexin another
@@ -129,11 +179,13 @@ public interface ParallelMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SyncStateOnOuterVertex")
-    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void syncStateOnOuterVertex(
-            @CXXReference FRAG_T frag,
-            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
-            @CXXReference MSG_T msg,
-            int channel_id);
+    <FRAG_T extends ImmutableEdgecutFragment, MSG_T, @FFISkip VDATA_T>
+            void syncStateOnOuterVertexImmutable(
+                    @CXXReference FRAG_T frag,
+                    @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+                    @CXXReference MSG_T msg,
+                    int channel_id,
+                    @FFISkip VDATA_T unused);
 
     /**
      * Send a msg to the fragment where the querying outer vertex is an inner vertexin another
@@ -147,11 +199,13 @@ public interface ParallelMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SyncStateOnOuterVertex")
-    <FRAG_T extends ArrowProjectedFragment, MSG_T> void syncStateOnOuterVertex(
-            @CXXReference FRAG_T frag,
-            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
-            @CXXReference MSG_T msg,
-            int channel_id);
+    <FRAG_T extends ArrowProjectedFragment, MSG_T, @FFISkip VDATA_T>
+            void syncStateOnOuterVertexArrowProjected(
+                    @CXXReference FRAG_T frag,
+                    @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+                    @CXXReference MSG_T msg,
+                    int channel_id,
+                    @FFISkip VDATA_T unused);
 
     /**
      * SyncState on outer vertex without message, used in bfs etc.
@@ -162,19 +216,28 @@ public interface ParallelMessageManager extends MessageManagerBase {
      * @param <FRAG_T> fragment type.
      */
     @FFINameAlias("SyncStateOnOuterVertex")
-    <FRAG_T> void syncStateOnOuterVertex(
-            @CXXReference FRAG_T frag,
-            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
-            int channel_id);
+    <FRAG_T extends ImmutableEdgecutFragment, @FFISkip VDATA_T>
+            void syncStateOnOuterVertexImmutableNoMsg(
+                    @CXXReference FRAG_T frag,
+                    @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+                    int channel_id,
+                    @FFISkip VDATA_T vdata);
 
     /**
-     * Retrive a message archive.
+     * SyncState on outer vertex without message, used in bfs etc.
      *
-     * @param buf place to store the archive.
-     * @return true if got one.
+     * @param frag fragment.
+     * @param vertex query vertex.
+     * @param channel_id message channel id.
+     * @param <FRAG_T> fragment type.
      */
-    @FFINameAlias("GetMessageInBuffer")
-    boolean getMessageInBuffer(@CXXReference MessageInBuffer buf);
+    @FFINameAlias("SyncStateOnOuterVertex")
+    <FRAG_T extends ArrowProjectedFragment, @FFISkip VDATA_T>
+            void syncStateOnOuterVertexArrowProjectedNoMsg(
+                    @CXXReference FRAG_T frag,
+                    @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+                    int channel_id,
+                    @FFISkip VDATA_T vdata);
 
     /**
      * Send the a vertex's data to other fragment througn outgoing edges.
@@ -187,11 +250,13 @@ public interface ParallelMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SendMsgThroughOEdges")
-    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void sendMsgThroughOEdges(
-            @CXXReference FRAG_T frag,
-            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
-            @CXXReference MSG_T msg,
-            int channel_id);
+    <FRAG_T extends ImmutableEdgecutFragment, MSG_T, @FFISkip VDATA_T>
+            void sendMsgThroughOEdgesImmutable(
+                    @CXXReference FRAG_T frag,
+                    @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+                    @CXXReference MSG_T msg,
+                    int channel_id,
+                    @FFISkip VDATA_T unused);
 
     /**
      * Send the a vertex's data to other fragment througn outgoing edges.
@@ -204,45 +269,13 @@ public interface ParallelMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SendMsgThroughOEdges")
-    <FRAG_T extends ArrowProjectedFragment, MSG_T> void sendMsgThroughOEdges(
-            @CXXReference FRAG_T frag,
-            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
-            @CXXReference MSG_T msg,
-            int channel_id);
-
-    /**
-     * Send the a vertex's data to other fragment througn incoming edges.
-     *
-     * @param frag ImmutableEdgecutFragment.
-     * @param vertex querying vertex.
-     * @param msg msg to send.
-     * @param channel_id channel_id.
-     * @param <FRAG_T> fragment type.
-     * @param <MSG_T> message type.
-     */
-    @FFINameAlias("SendMsgThroughIEdges")
-    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void sendMsgThroughIEdges(
-            @CXXReference FRAG_T frag,
-            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
-            @CXXReference MSG_T msg,
-            int channel_id);
-
-    /**
-     * Send the a vertex's data to other fragment througn incoming edges.
-     *
-     * @param <FRAG_T> fragment type.
-     * @param <MSG_T> message type.
-     * @param frag ArrowProjectedFragment.
-     * @param vertex querying vertex.
-     * @param msg msg to send.
-     * @param channel_id channel_id.
-     */
-    @FFINameAlias("SendMsgThroughIEdges")
-    <FRAG_T extends ArrowProjectedFragment, MSG_T> void sendMsgThroughIEdges(
-            @CXXReference FRAG_T frag,
-            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
-            @CXXReference MSG_T msg,
-            int channel_id);
+    <FRAG_T extends ArrowProjectedFragment, MSG_T, @FFISkip VDATA_T>
+            void sendMsgThroughOEdgesArrowProjected(
+                    @CXXReference FRAG_T frag,
+                    @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+                    @CXXReference MSG_T msg,
+                    int channel_id,
+                    @FFISkip VDATA_T unused);
 
     /**
      * Send the a vertex's data to other fragment through incoming and outgoing edges.
@@ -255,11 +288,13 @@ public interface ParallelMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SendMsgThroughEdges")
-    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void sendMsgThroughEdges(
-            @CXXReference FRAG_T frag,
-            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
-            @CXXReference MSG_T msg,
-            int channel_id);
+    <FRAG_T extends ImmutableEdgecutFragment, MSG_T, @FFISkip VDATA_T>
+            void sendMsgThroughEdgesImmutable(
+                    @CXXReference FRAG_T frag,
+                    @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+                    @CXXReference MSG_T msg,
+                    int channel_id,
+                    @FFISkip VDATA_T unused);
 
     /**
      * Send the a vertex's data to other fragment through incoming and outgoing edges.
@@ -272,11 +307,51 @@ public interface ParallelMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SendMsgThroughEdges")
-    <FRAG_T extends ArrowProjectedFragment, MSG_T> void sendMsgThroughEdges(
-            @CXXReference FRAG_T frag,
-            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
-            @CXXReference MSG_T msg,
-            int channel_id);
+    <FRAG_T extends ArrowProjectedFragment, MSG_T, @FFISkip VDATA_T>
+            void sendMsgThroughEdgesArrowProjected(
+                    @CXXReference FRAG_T frag,
+                    @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+                    @CXXReference MSG_T msg,
+                    int channel_id,
+                    @FFISkip VDATA_T unused);
+
+    /**
+     * Send the a vertex's data to other fragment througn incoming edges.
+     *
+     * @param frag ImmutableEdgecutFragment.
+     * @param vertex querying vertex.
+     * @param msg msg to send.
+     * @param channel_id channel_id.
+     * @param <FRAG_T> fragment type.
+     * @param <MSG_T> message type.
+     */
+    @FFINameAlias("SendMsgThroughIEdges")
+    <FRAG_T extends ImmutableEdgecutFragment, MSG_T, @FFISkip VDATA_T>
+            void sendMsgThroughIEdgesImmutable(
+                    @CXXReference FRAG_T frag,
+                    @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+                    @CXXReference MSG_T msg,
+                    int channel_id,
+                    @FFISkip VDATA_T unused);
+
+    /**
+     * Send the a vertex's data to other fragment througn incoming edges.
+     *
+     * @param <FRAG_T> fragment type.
+     * @param <MSG_T> message type.
+     * @param frag ArrowProjectedFragment.
+     * @param vertex querying vertex.
+     * @param msg msg to send.
+     * @param channel_id channel_id.
+     */
+    @FFINameAlias("SendMsgThroughIEdges")
+    <FRAG_T extends ArrowProjectedFragment, MSG_T, @FFISkip VDATA_T>
+            void sendMsgThroughIEdgesArrowProjected(
+                    @CXXReference FRAG_T frag,
+                    @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+                    @CXXReference MSG_T msg,
+                    int channel_id,
+                    @FFISkip VDATA_T unused);
 
     /**
      * Parallel processing the messages received from last super step. The user just need to provide
@@ -290,12 +365,13 @@ public interface ParallelMessageManager extends MessageManagerBase {
      * @param msgSupplier a producer function creating a msg instance.
      * @param consumer lambda function.
      */
-    default <FRAG_T, MSG_T> void parallelProcess(
+    default <FRAG_T extends IFragment, MSG_T, @FFISkip VDATA_T> void parallelProcess(
             FRAG_T frag,
             int threadNum,
             ExecutorService executor,
             Supplier<MSG_T> msgSupplier,
-            BiConsumer<Vertex<Long>, MSG_T> consumer) {
+            BiConsumer<Vertex<Long>, MSG_T> consumer,
+            @FFISkip VDATA_T unused) {
         CountDownLatch countDownLatch = new CountDownLatch(threadNum);
         MessageInBuffer.Factory bufferFactory = FFITypeFactoryhelper.newMessageInBuffer();
         int chunkSize = 1024;
@@ -312,7 +388,7 @@ public interface ParallelMessageManager extends MessageManagerBase {
                             while (true) {
                                 result = getMessageInBuffer(messageInBuffer);
                                 if (result) {
-                                    while (messageInBuffer.getMessage(frag, vertex, msg)) {
+                                    while (messageInBuffer.getMessage(frag, vertex, msg, unused)) {
                                         consumer.accept(vertex, msg);
                                     }
                                 } else {

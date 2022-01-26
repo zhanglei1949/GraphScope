@@ -1,6 +1,7 @@
 package com.alibaba.graphscope.fragment.adaptor;
 
 import com.alibaba.fastffi.CXXReference;
+import com.alibaba.fastffi.FFIPointer;
 import com.alibaba.graphscope.ds.DestList;
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.ds.VertexRange;
@@ -29,6 +30,16 @@ public class ArrowProjectedAdaptor<OID_T, VID_T, VDATA_T, EDATA_T>
     @Override
     public String fragmentType() {
         return fragmentType;
+    }
+
+    /**
+     * Get the actual fragment FFIPointer we are using.
+     *
+     * @return a ffipointer
+     */
+    @Override
+    public FFIPointer getFFIPointer() {
+        return fragment;
     }
 
     @Override

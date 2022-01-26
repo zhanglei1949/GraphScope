@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef ANALYTICAL_ENGINE_APPS_JAVA_PIE_JAVA_PIE_PROPERTY_PARALLEL_APP_H_
-#define ANALYTICAL_ENGINE_APPS_JAVA_PIE_JAVA_PIE_PROPERTY_PARALLEL_APP_H_
+#ifndef ANALYTICAL_ENGINE_APPS_JAVA_PIE_JAVA_PIE_PROJECTED_PARALLEL_APP_H_
+#define ANALYTICAL_ENGINE_APPS_JAVA_PIE_JAVA_PIE_PROJECTED_PARALLEL_APP_H_
 
 #ifdef ENABLE_JAVA_SDK
 
@@ -24,28 +24,26 @@ limitations under the License.
 #include "grape/grape.h"
 #include "grape/types.h"
 
-#include "core/app/parallel_property_app_base.h"
-#include "core/context/java_pie_property_context.h"
+#include "core/context/java_pie_projected_context.h"
 #include "core/error.h"
-#include "core/worker/parallel_property_worker.h"
+
 namespace gs {
 
 /**
- * @brief This is a driver app for Java property prallel app. The driven java
- * app should be inherited from ParallelPropertyAppBase.
+ * @brief This is a driver app for Java app. The driven java app should be
+ * inherited from ProjectedDefaultAppBase.
  *
- * @tparam FRAG_T Should be vineyard::ArrowFragment<...>
+ * @tparam FRAG_T Should be gs::ArrowProjectedFragment<...>
  */
 template <typename FRAG_T>
-class JavaPIEPropertyParallelApp
-    : public ParallelPropertyAppBase<FRAG_T,
-                                     JavaPIEPropertyParallelContext<FRAG_T>>,
+class JavaPIEProjectedParallelApp
+    : public grape::ParallelAppBase<FRAG_T,
+                                    JavaPIEProjectedParallelContext<FRAG_T>>,
       public grape::Communicator {
  public:
   // specialize the templated worker.
-  INSTALL_PARALLEL_PROPERTY_WORKER(JavaPIEPropertyParallelApp<FRAG_T>,
-                                   JavaPIEPropertyParallelContext<FRAG_T>,
-                                   FRAG_T)
+  INSTALL_PARALLEL_WORKER(JavaPIEProjectedParallelApp<FRAG_T>,
+                          JavaPIEProjectedParallelContext<FRAG_T>, FRAG_T)
   static constexpr grape::LoadStrategy load_strategy =
       grape::LoadStrategy::kBothOutIn;
   static constexpr grape::MessageStrategy message_strategy =
@@ -67,9 +65,9 @@ class JavaPIEPropertyParallelApp
       jclass app_class = env->GetObjectClass(app_object);
 
       const char* descriptor =
-          "(Lcom/alibaba/graphscope/fragment/ArrowFragment;"
-          "Lcom/alibaba/graphscope/context/PropertyParallelContextBase;"
-          "Lcom/alibaba/graphscope/parallel/ParallelPropertyMessageManager;)V";
+          "(Lcom/alibaba/graphscope/fragment/IFragment;"
+          "Lcom/alibaba/graphscope/context/ParallelContextBase;"
+          "Lcom/alibaba/graphscope/parallel/ParallelMessageManager;)V";
       jmethodID pEval_methodID =
           env->GetMethodID(app_class, "PEval", descriptor);
       CHECK_NOTNULL(pEval_methodID);
@@ -100,11 +98,12 @@ class JavaPIEPropertyParallelApp
       jobject app_object = ctx.app_object();
 
       jclass app_class = env->GetObjectClass(app_object);
+      CHECK_NOTNULL(app_class);
 
       const char* descriptor =
-          "(Lcom/alibaba/graphscope/fragment/ArrowFragment;"
-          "Lcom/alibaba/graphscope/context/PropertyParallelContextBase;"
-          "Lcom/alibaba/graphscope/parallel/ParallelPropertyMessageManager;)V";
+          "(Lcom/alibaba/graphscope/fragment/IFragment;"
+          "Lcom/alibaba/graphscope/context/ParallelContextBase;"
+          "Lcom/alibaba/graphscope/parallel/ParallelMessageManager;)V";
       jmethodID incEval_methodID =
           env->GetMethodID(app_class, "IncEval", descriptor);
       CHECK_NOTNULL(incEval_methodID);
@@ -123,4 +122,4 @@ class JavaPIEPropertyParallelApp
 
 }  // namespace gs
 #endif
-#endif  // ANALYTICAL_ENGINE_APPS_JAVA_PIE_JAVA_PIE_PROPERTY_PARALLEL_APP_H_
+#endif  // ANALYTICAL_ENGINE_APPS_JAVA_PIE_JAVA_PIE_PROJECTED_PARALLEL_APP_H_

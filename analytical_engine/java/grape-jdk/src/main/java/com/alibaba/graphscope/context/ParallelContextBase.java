@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-package com.alibaba.graphscope.app;
+package com.alibaba.graphscope.context;
 
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.graphscope.context.ContextBase;
 import com.alibaba.graphscope.fragment.IFragment;
-import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.ParallelMessageManager;
-import com.alibaba.graphscope.stdcxx.StdVector;
 
 /**
  * ParallelContextBase is the base class for user-defined contexts for parallel apps. A context
@@ -36,8 +33,7 @@ import com.alibaba.graphscope.stdcxx.StdVector;
  * @param <VDATA_T> vertex data type
  * @param <EDATA_T> edge data type
  */
-public interface ParallelContextBase<OID_T, VID_T, VDATA_T, EDATA_T>
-        extends ContextBase<OID_T, VID_T, VDATA_T, EDATA_T> {
+public interface ParallelContextBase<OID_T, VID_T, VDATA_T, EDATA_T> extends ContextBase {
     /**
      * Called by grape framework, before any PEval. You can initiating data structures need during
      * super steps here.
@@ -46,8 +42,8 @@ public interface ParallelContextBase<OID_T, VID_T, VDATA_T, EDATA_T>
      * @param messageManager The message manger which manages messages between fragments.
      * @param jsonObject String args from cmdline.
      * @see IFragment
-     * @see DefaultMessageManager
-     * @see StdVector
+     * @see ParallelMessageManager
+     * @see JSONObject
      */
     void Init(
             IFragment<OID_T, VID_T, VDATA_T, EDATA_T> frag,

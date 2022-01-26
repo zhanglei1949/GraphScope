@@ -28,16 +28,12 @@ static JavaVM* _jvm = NULL;
 // utilities for creating class loader and load classes with this
 // URLClassLoader.
 static jclass gs_class_loader_clz = NULL;
-static jclass adaptor_factory_clz = NULL;
 static jmethodID class_loader_create_ffipointer_methodID = NULL;
 static jmethodID class_loader_load_class_methodID = NULL;
 static jmethodID class_loader_load_communicator_class_methodID = NULL;
 static jmethodID class_loader_load_and_create_methodID = NULL;
 static jmethodID class_loader_new_gs_class_loader_methodID = NULL;
 static jmethodID class_loader_new_simple_gs_class_loader_methodID = NULL;
-static jmethodID class_loader_adapt2SimpleFragment_methodID = NULL;
-static jmethodID adaptor_factory_create_giraph_adaptor_methodID = NULL;
-static jmethodID adaptor_factory_create_giraph_adaptor_context_methodID = NULL;
 static jclass system_class = NULL;
 static jmethodID gc_methodID = NULL;
 
@@ -65,10 +61,6 @@ bool InitWellKnownClasses(JNIEnv* env) {
   gs_class_loader_clz = env->FindClass(GRAPHSCOPE_CLASS_LOADER);
   CHECK_NOTNULL(gs_class_loader_clz);
   gs_class_loader_clz = (jclass) env->NewGlobalRef(gs_class_loader_clz);
-
-  adaptor_factory_clz = env->FindClass(GIRAPH_COMPUTATION_FACTORY);
-  CHECK_NOTNULL(adaptor_factory_clz);
-  adaptor_factory_clz = (jclass) env->NewGlobalRef(adaptor_factory_clz);
 
   class_loader_create_ffipointer_methodID = env->GetStaticMethodID(
       gs_class_loader_clz, "CreateFFIPointer",
@@ -107,23 +99,6 @@ bool InitWellKnownClasses(JNIEnv* env) {
   gc_methodID = env->GetStaticMethodID(system_class, "gc", "()V");
   CHECK_NOTNULL(gc_methodID);
 
-  class_loader_adapt2SimpleFragment_methodID = env->GetStaticMethodID(
-      gs_class_loader_clz, "adapt2SimpleFragment",
-      "(Ljava/lang/Object;)Lcom/alibaba/graphscope/fragment/IFragment;");
-  CHECK_NOTNULL(class_loader_adapt2SimpleFragment_methodID);
-
-  adaptor_factory_create_giraph_adaptor_methodID = env->GetStaticMethodID(
-      adaptor_factory_clz, "createGiraphComputationAdaptor",
-      "(Ljava/lang/String;Lcom/alibaba/graphscope/fragment/adaptor/ImmutableEdgecutFragmentAdaptor;)Lcom/alibaba/"
-      "graphscope/app/GiraphComputationAdaptor;");
-  CHECK_NOTNULL(adaptor_factory_create_giraph_adaptor_methodID);
-
-  adaptor_factory_create_giraph_adaptor_context_methodID =
-      env->GetStaticMethodID(
-          adaptor_factory_clz, "createGiraphComputationAdaptorContext",
-          "(Ljava/lang/String;Lcom/alibaba/graphscope/fragment/adaptor/ImmutableEdgecutFragmentAdaptor;)Lcom/alibaba/"
-          "graphscope/context/GiraphComputationAdaptorContext;");
-  CHECK_NOTNULL(adaptor_factory_create_giraph_adaptor_context_methodID);
   return true;
 }
 
@@ -395,7 +370,7 @@ char* JavaClassNameDashToSlash(const std::string& str) {
 // judge whether java app class instance of Communicator, if yes, we call
 // the init communicator method.
 void InitJavaCommunicator(JNIEnv* env, const jobject& url_class_loader,
-                          const jobject& java_obj, jlong app_address) {
+                          const jobject& java_app, jlong app_address) {
   CHECK_NOTNULL(env);
   CHECK_NE(app_address, 0);
   // load communicator class with url_class_loader
@@ -403,11 +378,11 @@ void InitJavaCommunicator(JNIEnv* env, const jobject& url_class_loader,
       gs_class_loader_clz, class_loader_load_communicator_class_methodID,
       url_class_loader);
   CHECK_NOTNULL(communicator_class);
-  if (env->IsInstanceOf(java_obj, communicator_class)) {
+  if (env->IsInstanceOf(java_app, communicator_class)) {
     jmethodID init_communicator_method =
         env->GetMethodID(communicator_class, "initCommunicator", "(J)V");
     CHECK_NOTNULL(init_communicator_method);
-    env->CallVoidMethod(java_obj, init_communicator_method, app_address);
+    env->CallVoidMethod(java_app, init_communicator_method, app_address);
     if (env->ExceptionCheck()) {
       LOG(ERROR) << "Exception occurred in init communicator";
       env->ExceptionDescribe();
@@ -450,15 +425,6 @@ jclass LoadClassWithClassLoader(JNIEnv* env, const jobject& url_class_loader,
   return result_class;
 }
 
-jobject ImmutableFragment2Simple(JNIEnv* env,
-                                 const jobject& fragment_impl_obj) {
-  jobject res = (jobject) env->CallStaticObjectMethod(
-      gs_class_loader_clz, class_loader_adapt2SimpleFragment_methodID,
-      fragment_impl_obj);
-  CHECK_NOTNULL(res);
-  return env->NewGlobalRef(res);
-}
-
 jobject CreateGiraphAdaptor(JNIEnv* env, const char* app_class_name,
                             const jobject& fragment_obj) {
   jstring app_class_name_jstring = env->NewStringUTF(app_class_name);
@@ -491,5 +457,6 @@ jobject CreateGiraphAdaptorContext(JNIEnv* env, const char* context_class_name,
   CHECK_NOTNULL(res);
   return env->NewGlobalRef(res);
 }
+
 }  // namespace gs
 #endif

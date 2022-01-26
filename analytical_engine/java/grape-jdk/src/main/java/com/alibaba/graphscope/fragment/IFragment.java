@@ -3,11 +3,21 @@ package com.alibaba.graphscope.fragment;
 import com.alibaba.fastffi.CXXReference;
 import com.alibaba.fastffi.CXXValue;
 import com.alibaba.fastffi.FFINameAlias;
+import com.alibaba.fastffi.FFIPointer;
 import com.alibaba.graphscope.ds.DestList;
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.ds.adaptor.AdjList;
 
+/**
+ * IFragment defines a simple fragment interface, which conforms two different simple fragment
+ * {@link ArrowProjectedFragment} and {@link ImmutableEdgecutFragment} into one.
+ *
+ * @param <OID_T> original vertex id type.
+ * @param <VID_T> vertex id type.
+ * @param <VDATA_T> vertex data type.
+ * @param <EDATA_T> edge data type.
+ */
 public interface IFragment<OID_T, VID_T, VDATA_T, EDATA_T> {
 
     /**
@@ -16,6 +26,14 @@ public interface IFragment<OID_T, VID_T, VDATA_T, EDATA_T> {
      * @return underlying fragment type.
      */
     String fragmentType();
+
+    /**
+     * Get the actual fragment FFIPointer we are using.
+     *
+     * @return a ffipointer
+     */
+    FFIPointer getFFIPointer();
+
     /** @return The id of current fragment. */
     int fid();
 

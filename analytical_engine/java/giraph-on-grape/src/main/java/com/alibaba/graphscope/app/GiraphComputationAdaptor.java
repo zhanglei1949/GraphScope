@@ -1,6 +1,7 @@
 package com.alibaba.graphscope.app;
 
 import com.alibaba.graphscope.communication.Communicator;
+import com.alibaba.graphscope.context.DefaultContextBase;
 import com.alibaba.graphscope.context.GiraphComputationAdaptorContext;
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.fragment.IFragment;
@@ -58,7 +59,7 @@ public class GiraphComputationAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> extends Co
     @Override
     public void PEval(
             IFragment<OID_T, VID_T, VDATA_T, EDATA_T> graph,
-            DefaultContextBase<OID_T, VID_T, VDATA_T, EDATA_T> context,
+        DefaultContextBase<OID_T, VID_T, VDATA_T, EDATA_T> context,
             DefaultMessageManager messageManager) {
 
         GiraphComputationAdaptorContext ctx = (GiraphComputationAdaptorContext) context;

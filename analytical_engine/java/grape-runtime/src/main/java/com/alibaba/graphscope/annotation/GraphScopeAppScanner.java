@@ -139,7 +139,10 @@ public class GraphScopeAppScanner {
         // sb.append("gs::DoubleMsg=com.alibaba.graphscopescope.parallel.message.DoubleMsg,");
         //        sb.append("gs::LongMsg=com.alibaba.graphscopescope.parallel.message.LongMsg,");
         String temp = sb.toString();
-        String messageTypes = temp.substring(0, temp.length() - 1);
+        String messageTypes = "";
+        if (!temp.isEmpty()) {
+            messageTypes = temp.substring(0, temp.length() - 1);
+        }
         // create a dummy graphConfig, oid type should never be used.
         logger.info("message types:" + messageTypes);
 
@@ -228,7 +231,8 @@ public class GraphScopeAppScanner {
         List<String> ffiMirrorNames = new ArrayList<>(this.ffiMirrors.keySet());
         Collections.sort(ffiMirrorNames);
         if (ffiMirrorNames.isEmpty()) {
-            throw new IllegalStateException("No FFIMirror is detected.");
+            logger.warn("No FFIMirror is detected.");
+            return "";
         }
         StringBuilder sb = new StringBuilder();
         sb.append("@FFIGenBatch({\n");
@@ -302,7 +306,7 @@ public class GraphScopeAppScanner {
                 throw new IllegalStateException("Oops, cannot write files ", e);
             }
         } else if (status == Compilation.Status.FAILURE) {
-            compilation.errors().forEach(d -> System.out.println(d));
+            compilation.errors().forEach(d -> logger.info("" + d));
             return null;
         } else {
             throw new IllegalStateException("Oops, should not reach here");
@@ -414,7 +418,7 @@ public class GraphScopeAppScanner {
                     } catch (ClassNotFoundException | NoClassDefFoundError e) {
                         if (Main.ignoreError) {
                             if (Main.verbose) {
-                                System.err.println("WARNING: Cannot load class " + className);
+                                logger.error("WARNING: Cannot load class " + className);
                             }
                         } else {
                             throw new IllegalStateException(e);
@@ -422,8 +426,7 @@ public class GraphScopeAppScanner {
                     } catch (IncompatibleClassChangeError e) {
                         if (Main.ignoreError) {
                             if (Main.verbose) {
-                                System.err.println(
-                                        "WARNING: incompatible class error " + className);
+                                logger.error("WARNING: incompatible class error " + className);
                             }
                         } else {
                             throw new IllegalStateException(e);

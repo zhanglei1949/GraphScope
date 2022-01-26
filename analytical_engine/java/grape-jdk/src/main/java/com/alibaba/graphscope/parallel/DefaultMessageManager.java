@@ -58,33 +58,9 @@ public interface DefaultMessageManager extends MessageManagerBase {
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg) {
         if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
-            getMessage((ArrowProjectedFragment) frag, vertex, msg);
+            getMessageArrowProjected((ArrowProjectedFragment) frag.getFFIPointer(), vertex, msg);
         } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
-            getMessage((ImmutableEdgecutFragment) frag, vertex, msg);
-        }
-        return false;
-    }
-
-    default <FRAG_T extends IFragment, MSG_T> boolean syncStateOnOuterVertex(
-            @CXXReference FRAG_T frag,
-            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
-            @CXXReference MSG_T msg) {
-        if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
-            syncStateOnOuterVertex((ArrowProjectedFragment) frag, vertex, msg);
-        } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
-            syncStateOnOuterVertex((ImmutableEdgecutFragment) frag, vertex, msg);
-        }
-        return false;
-    }
-
-    default <FRAG_T extends IFragment, MSG_T> boolean sendMsgThroughOEdges(
-            @CXXReference FRAG_T frag,
-            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
-            @CXXReference MSG_T msg) {
-        if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
-            sendMsgThroughOEdges((ArrowProjectedFragment) frag, vertex, msg);
-        } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
-            sendMsgThroughOEdges((ImmutableEdgecutFragment) frag, vertex, msg);
+            getMessageImmutable((ImmutableEdgecutFragment) frag.getFFIPointer(), vertex, msg);
         }
         return false;
     }
@@ -94,9 +70,39 @@ public interface DefaultMessageManager extends MessageManagerBase {
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg) {
         if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
-            sendMsgThroughEdges((ArrowProjectedFragment) frag, vertex, msg);
+            sendMsgThroughEdgesArrowProjected(
+                    (ArrowProjectedFragment) frag.getFFIPointer(), vertex, msg);
         } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
-            sendMsgThroughEdges((ImmutableEdgecutFragment) frag, vertex, msg);
+            sendMsgThroughEdgesImmutable(
+                    (ImmutableEdgecutFragment) frag.getFFIPointer(), vertex, msg);
+        }
+        return false;
+    }
+
+    default <FRAG_T extends IFragment, MSG_T> boolean sendMsgThroughOEdges(
+            @CXXReference FRAG_T frag,
+            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+            @CXXReference MSG_T msg) {
+        if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
+            sendMsgThroughOEdgesArrowProjected(
+                    (ArrowProjectedFragment) frag.getFFIPointer(), vertex, msg);
+        } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
+            sendMsgThroughOEdgesImmutable(
+                    (ImmutableEdgecutFragment) frag.getFFIPointer(), vertex, msg);
+        }
+        return false;
+    }
+
+    default <FRAG_T extends IFragment, MSG_T> boolean syncStateOnOuterVertex(
+            @CXXReference FRAG_T frag,
+            @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
+            @CXXReference MSG_T msg) {
+        if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
+            syncStateOnOuterVertexArrowProjected(
+                    (ArrowProjectedFragment) frag.getFFIPointer(), vertex, msg);
+        } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
+            syncStateOnOuterVertexImmutable(
+                    (ImmutableEdgecutFragment) frag.getFFIPointer(), vertex, msg);
         }
         return false;
     }
@@ -106,9 +112,11 @@ public interface DefaultMessageManager extends MessageManagerBase {
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg) {
         if (frag.fragmentType().equals(ArrowProjectedAdaptor.fragmentType)) {
-            sendMsgThroughIEdges((ArrowProjectedFragment) frag, vertex, msg);
+            sendMsgThroughIEdgesArrowProjected(
+                    (ArrowProjectedFragment) frag.getFFIPointer(), vertex, msg);
         } else if (frag.fragmentType().equals(ImmutableEdgecutFragmentAdaptor.fragmentType)) {
-            sendMsgThroughIEdges((ImmutableEdgecutFragment) frag, vertex, msg);
+            sendMsgThroughIEdgesImmutable(
+                    (ImmutableEdgecutFragment) frag.getFFIPointer(), vertex, msg);
         }
         return false;
     }
@@ -142,7 +150,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
      * @return true if really got a message.
      */
     @FFINameAlias("GetMessage")
-    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> boolean getMessage(
+    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> boolean getMessageImmutable(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg);
@@ -158,7 +166,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
      * @return true if really got a message.
      */
     @FFINameAlias("GetMessage")
-    <FRAG_T extends ArrowProjectedFragment, MSG_T> boolean getMessage(
+    <FRAG_T extends ArrowProjectedFragment, MSG_T> boolean getMessageArrowProjected(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg);
@@ -173,7 +181,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SyncStateOnOuterVertex")
-    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void syncStateOnOuterVertex(
+    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void syncStateOnOuterVertexImmutable(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg);
@@ -188,7 +196,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SyncStateOnOuterVertex")
-    <FRAG_T extends ArrowProjectedFragment, MSG_T> void syncStateOnOuterVertex(
+    <FRAG_T extends ArrowProjectedFragment, MSG_T> void syncStateOnOuterVertexArrowProjected(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg);
@@ -203,7 +211,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SendMsgThroughOEdges")
-    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void sendMsgThroughOEdges(
+    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void sendMsgThroughOEdgesImmutable(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg);
@@ -218,7 +226,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SendMsgThroughOEdges")
-    <FRAG_T extends ArrowProjectedFragment, MSG_T> void sendMsgThroughOEdges(
+    <FRAG_T extends ArrowProjectedFragment, MSG_T> void sendMsgThroughOEdgesArrowProjected(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg);
@@ -233,7 +241,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SendMsgThroughIEdges")
-    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void sendMsgThroughIEdges(
+    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void sendMsgThroughIEdgesImmutable(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg);
@@ -248,7 +256,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SendMsgThroughIEdges")
-    <FRAG_T extends ArrowProjectedFragment, MSG_T> void sendMsgThroughIEdges(
+    <FRAG_T extends ArrowProjectedFragment, MSG_T> void sendMsgThroughIEdgesArrowProjected(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg);
@@ -263,7 +271,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SendMsgThroughEdges")
-    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void sendMsgThroughEdges(
+    <FRAG_T extends ImmutableEdgecutFragment, MSG_T> void sendMsgThroughEdgesImmutable(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg);
@@ -278,7 +286,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
      * @param <MSG_T> message type.
      */
     @FFINameAlias("SendMsgThroughEdges")
-    <FRAG_T extends ArrowProjectedFragment, MSG_T> void sendMsgThroughEdges(
+    <FRAG_T extends ArrowProjectedFragment, MSG_T> void sendMsgThroughEdgesArrowProjected(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg);
