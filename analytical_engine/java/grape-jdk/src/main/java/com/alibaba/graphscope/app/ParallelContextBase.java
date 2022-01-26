@@ -18,7 +18,7 @@ package com.alibaba.graphscope.app;
 
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.graphscope.context.ContextBase;
-import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.ParallelMessageManager;
 import com.alibaba.graphscope.stdcxx.StdVector;
@@ -45,12 +45,12 @@ public interface ParallelContextBase<OID_T, VID_T, VDATA_T, EDATA_T>
      * @param frag The graph fragment providing accesses to graph data.
      * @param messageManager The message manger which manages messages between fragments.
      * @param jsonObject String args from cmdline.
-     * @see SimpleFragment
+     * @see IFragment
      * @see DefaultMessageManager
      * @see StdVector
      */
     void Init(
-            SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> frag,
+            IFragment<OID_T, VID_T, VDATA_T, EDATA_T> frag,
             ParallelMessageManager messageManager,
             JSONObject jsonObject);
 
@@ -59,7 +59,7 @@ public interface ParallelContextBase<OID_T, VID_T, VDATA_T, EDATA_T>
      * shall be outputted here.
      *
      * @param frag The graph fragment contains the graph info.
-     * @see SimpleFragment
+     * @see IFragment
      */
-    void Output(SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> frag);
+    void Output(IFragment<OID_T, VID_T, VDATA_T, EDATA_T> frag);
 }

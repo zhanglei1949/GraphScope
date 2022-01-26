@@ -4,12 +4,11 @@ import com.alibaba.graphscope.ds.NbrBase;
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.ds.adaptor.AdjList;
 import com.alibaba.graphscope.ds.adaptor.Nbr;
-import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.serialization.FFIByteVectorInputStream;
 import com.alibaba.graphscope.serialization.FFIByteVectorOutputStream;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
-import java.io.IOException;
-import java.util.Iterator;
+
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.edge.DefaultEdge;
@@ -23,41 +22,48 @@ import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.Iterator;
+
 /**
  * Edge management for immutable EdgeCut fragment. In all time, there shall be only one
  * EdgeManagerImpl, but multiple iterables.
  *
- * @param <OID_T>         giraph vertex id type
- * @param <EDATA_T>       giraph edge data type
- * @param <GRAPE_OID_T>   grape fragment oid type
- * @param <GRAPE_VID_T>   grape fragment vid type
+ * @param <OID_T> giraph vertex id type
+ * @param <EDATA_T> giraph edge data type
+ * @param <GRAPE_OID_T> grape fragment oid type
+ * @param <GRAPE_VID_T> grape fragment vid type
  * @param <GRAPE_VDATA_T> grape vdata type
  * @param <GRAPE_EDATA_T> grape edge data type
  */
-public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T extends Writable,
-    GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> implements
-    EdgeManager<OID_T, EDATA_T> {
+public class ImmutableEdgeManagerImpl<
+                OID_T extends WritableComparable,
+                EDATA_T extends Writable,
+                GRAPE_OID_T,
+                GRAPE_VID_T,
+                GRAPE_VDATA_T,
+                GRAPE_EDATA_T>
+        implements EdgeManager<OID_T, EDATA_T> {
 
     private static Logger logger = LoggerFactory.getLogger(ImmutableEdgeManagerImpl.class);
 
-    private SimpleFragment<GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> fragment;
+    private IFragment<GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> fragment;
     private ImmutableClassesGiraphConfiguration<OID_T, ?, EDATA_T> configuration;
-    /**
-     * Grape store edge by (lid, edata) we need a converter.
-     */
+    /** Grape store edge by (lid, edata) we need a converter. */
     private VertexIdManager<OID_T> vertexIdManager;
+
     private Vertex<GRAPE_VID_T> grapeVertex;
 
-
     public ImmutableEdgeManagerImpl(
-        SimpleFragment<GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> fragment,
-        VertexIdManager<OID_T> idManager,
-        ImmutableClassesGiraphConfiguration<OID_T, ?, EDATA_T> configuration) {
+            IFragment<GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> fragment,
+            VertexIdManager<OID_T> idManager,
+            ImmutableClassesGiraphConfiguration<OID_T, ?, EDATA_T> configuration) {
         this.fragment = fragment;
         this.vertexIdManager = idManager;
         this.configuration = configuration;
-        grapeVertex = (Vertex<GRAPE_VID_T>) FFITypeFactoryhelper.newVertex(
-            configuration.getGrapeVidClass());
+        grapeVertex =
+                (Vertex<GRAPE_VID_T>)
+                        FFITypeFactoryhelper.newVertex(configuration.getGrapeVidClass());
     }
 
     /**
@@ -75,10 +81,11 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
             logger.error("grape vid class can only be long or integer");
             throw new IllegalStateException("grape vid class can only be long or integer");
         }
-//        return (int) (fragment.getOutgoingAdjList(grapeVertex).size() + fragment.getIncomingAdjList(
-//            grapeVertex).size());
+        //        return (int) (fragment.getOutgoingAdjList(grapeVertex).size() +
+        // fragment.getIncomingAdjList(
+        //            grapeVertex).size());
         return (int) (fragment.getOutgoingAdjList(grapeVertex).size());
-     }
+    }
 
     /**
      * Get a read-only view of the out-edges of this vertex. Note: edge objects returned by this
@@ -142,7 +149,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
      * with strict graphs.
      *
      * @param targetVertexId Target vertex id
-     * @param edgeValue      EDATA_Tdge value
+     * @param edgeValue EDATA_Tdge value
      */
     @Override
     public void setEdgeValue(OID_T targetVertexId, EDATA_T edgeValue) {
@@ -185,19 +192,19 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
     }
 
     //    /**
-//     * If a {@link MutableEdgesWrapper} was used to provide a mutable iterator, copy any remaining
-//     * edges to the new {@link OutEdges} data structure and keep a direct reference to it (thus
-//     * discarding the wrapper). Called by the Giraph infrastructure after computation.
-//     */
+    //     * If a {@link MutableEdgesWrapper} was used to provide a mutable iterator, copy any
+    // remaining
+    //     * edges to the new {@link OutEdges} data structure and keep a direct reference to it
+    // (thus
+    //     * discarding the wrapper). Called by the Giraph infrastructure after computation.
+    //     */
     @Override
     public void unwrapMutableEdges() {
         logger.error("Not implemented");
         throw new NotImplementedException();
     }
 
-    /**
-     * Iterable for edges from one vertex. oid=long
-     */
+    /** Iterable for edges from one vertex. oid=long */
     public class LongEdgeIterable implements Iterable<Edge<OID_T, EDATA_T>> {
 
         private long lid;
@@ -205,9 +212,10 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
 
         public LongEdgeIterable(long lid) {
             this.lid = lid;
-            vertex = (Vertex<GRAPE_VID_T>) FFITypeFactoryhelper.newVertex(
-                configuration.getGrapeVidClass());
-            //It is safe to cast Integer to Long, but not vice-verse.
+            vertex =
+                    (Vertex<GRAPE_VID_T>)
+                            FFITypeFactoryhelper.newVertex(configuration.getGrapeVidClass());
+            // It is safe to cast Integer to Long, but not vice-verse.
             vertex.SetValue((GRAPE_VID_T) configuration.getGrapeVidClass().cast(this.lid));
         }
 
@@ -220,20 +228,18 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
         @Override
         public Iterator<Edge<OID_T, EDATA_T>> iterator() {
             return new LongNbrIterator(vertex);
-//            if (configuration.getGrapeVidClass().equals(Long.class)){
-//                return new LongNbrIterator(vertex);
-//            }
-//            else if (configuration.getGrapeVidClass().equals(Integer.class)){
-//                return new IntNbrIterator(vertex);
-//            }
-//            logger.error("Only accept long and int as vid class");
-//            return null;
+            //            if (configuration.getGrapeVidClass().equals(Long.class)){
+            //                return new LongNbrIterator(vertex);
+            //            }
+            //            else if (configuration.getGrapeVidClass().equals(Integer.class)){
+            //                return new IntNbrIterator(vertex);
+            //            }
+            //            logger.error("Only accept long and int as vid class");
+            //            return null;
         }
     }
 
-    /**
-     * Iterable for edges from one vertex. oid=int
-     */
+    /** Iterable for edges from one vertex. oid=int */
     public class IntEdgeIterable implements Iterable<Edge<OID_T, EDATA_T>> {
 
         private int lid;
@@ -241,9 +247,10 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
 
         public IntEdgeIterable(int lid) {
             this.lid = lid;
-            vertex = (Vertex<GRAPE_VID_T>) FFITypeFactoryhelper.newVertex(
-                configuration.getGrapeVidClass());
-            //It is safe to cast Integer to Long, but not vice-verse.
+            vertex =
+                    (Vertex<GRAPE_VID_T>)
+                            FFITypeFactoryhelper.newVertex(configuration.getGrapeVidClass());
+            // It is safe to cast Integer to Long, but not vice-verse.
             vertex.SetValue((GRAPE_VID_T) configuration.getGrapeVidClass().cast(this.lid));
         }
 
@@ -256,20 +263,18 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
         @Override
         public Iterator<Edge<OID_T, EDATA_T>> iterator() {
             return new IntNbrIterator(vertex);
-//            if (configuration.getGrapeVidClass().equals(Long.class)){
-//                return new LongNbrIterator(vertex);
-//            }
-//            else if (configuration.getGrapeVidClass().equals(Integer.class)){
-//                return new IntNbrIterator(vertex);
-//            }
-//            logger.error("Only accept long and int as vid class");
-//            return null;
+            //            if (configuration.getGrapeVidClass().equals(Long.class)){
+            //                return new LongNbrIterator(vertex);
+            //            }
+            //            else if (configuration.getGrapeVidClass().equals(Integer.class)){
+            //                return new IntNbrIterator(vertex);
+            //            }
+            //            logger.error("Only accept long and int as vid class");
+            //            return null;
         }
     }
 
-    /**
-     * Specialized iterator for vid=long64
-     */
+    /** Specialized iterator for vid=long64 */
     public class LongNbrIterator implements Iterator<Edge<OID_T, EDATA_T>> {
 
         private ReusableEdge<OID_T, EDATA_T> edge;
@@ -305,7 +310,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
             OID_T oid = vertexIdManager.getId(neighborLid);
             edge.setTargetVertexId(oid);
             try {
-                //Try catch introduces no performance cost.
+                // Try catch introduces no performance cost.
                 edge.getValue().readFields(this.inputStream);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -314,9 +319,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
         }
     }
 
-    /**
-     * Specialized iterator for vid=int32
-     */
+    /** Specialized iterator for vid=int32 */
     public class IntNbrIterator implements Iterator<Edge<OID_T, EDATA_T>> {
 
         private ReusableEdge<OID_T, EDATA_T> edge;
@@ -352,7 +355,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
             OID_T oid = vertexIdManager.getId(neighborLid);
             edge.setTargetVertexId(oid);
             try {
-                //Try catch introduces no performance cost.
+                // Try catch introduces no performance cost.
                 edge.getValue().readFields(this.inputStream);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -362,7 +365,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
     }
 
     private FFIByteVectorInputStream generateEdataInputStream(
-        AdjList<GRAPE_VID_T, GRAPE_EDATA_T> adjList) {
+            AdjList<GRAPE_VID_T, GRAPE_EDATA_T> adjList) {
         FFIByteVectorOutputStream stream = new FFIByteVectorOutputStream();
         try {
             if (configuration.getGrapeEdataClass().equals(Long.class)) {
@@ -382,10 +385,12 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
                     stream.writeInt((Integer) tmpNbr.data());
                 }
             }
-            //TODO: for user defined edge data.
+            // TODO: for user defined edge data.
             else {
-                logger.error("Edata class: " + configuration.getGrapeEdataClass().getName()
-                    + "Not supported now");
+                logger.error(
+                        "Edata class: "
+                                + configuration.getGrapeEdataClass().getName()
+                                + "Not supported now");
             }
         } catch (Exception e) {
             e.printStackTrace();

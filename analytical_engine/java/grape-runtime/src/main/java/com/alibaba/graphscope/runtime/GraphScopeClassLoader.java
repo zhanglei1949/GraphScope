@@ -16,11 +16,6 @@
 
 package com.alibaba.graphscope.runtime;
 
-import com.alibaba.graphscope.fragment.ArrowProjectedFragment;
-import com.alibaba.graphscope.fragment.ImmutableEdgecutFragment;
-import com.alibaba.graphscope.fragment.SimpleFragment;
-import com.alibaba.graphscope.fragment.adaptor.ArrowProjectedAdaptor;
-import com.alibaba.graphscope.fragment.adaptor.ImmutableEdgecutFragmentAdaptor;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -49,6 +44,7 @@ import org.slf4j.LoggerFactory;
 public class GraphScopeClassLoader {
 
     private static Logger logger = LoggerFactory.getLogger(GraphScopeClassLoader.class);
+    private static String FFI_TYPE_FACTORY_CLASS = "com.alibaba.graphscope.runtime.FFITypeFactory";
 
     static {
         try {
@@ -57,13 +53,11 @@ public class GraphScopeClassLoader {
                 GS_HOME = "/opt/graphscope";
             }
             System.load(GS_HOME + "/lib/libgrape-jni.so");
-            System.out.println("loaded jni lib");
+            logger.info("loaded jni lib");
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
-    private static String FFI_TYPE_FACTORY_CLASS = "com.alibaba.fastffi.FFITypeFactory";
 
     /**
      * Create a new URLClassLoaders with given classPaths. The classPath shall be in form {@code
@@ -78,8 +72,14 @@ public class GraphScopeClassLoader {
         String[] libraries = ClassScope.getLoadedLibraries(ClassLoader.getSystemClassLoader());
         //        log("Loaded lib: " + String.join(" ", libraries));
         logger.info("Loaded lib: " + String.join(" ", libraries));
-        return new URLClassLoader(
-                classPath2URLArray(classPath), GraphScopeClassLoader.class.getClassLoader());
+        URLClassLoader urlClassLoader =
+                new URLClassLoader(
+                        classPath2URLArray(classPath),
+                        GraphScopeClassLoader.class.getClassLoader());
+        logger.info(
+                "URLClassLoader loaded lib: "
+                        + String.join(",", ClassScope.getLoadedLibraries(urlClassLoader)));
+        return urlClassLoader;
     }
 
     /**
@@ -140,8 +140,10 @@ public class GraphScopeClassLoader {
                         + "], address ["
                         + address
                         + "]"
-                        + ", ffi type factor ["
-                        + ffiTypeFactoryClass);
+                        + ", ffi type factory ["
+                        + ffiTypeFactoryClass
+                        + "], loaded by "
+                        + ffiTypeFactoryClass.getClassLoader());
         // a new classLoader contains new class path, we load the ffi.properties
         // here.
         Method loadClassLoaderMethod =
@@ -150,14 +152,13 @@ public class GraphScopeClassLoader {
 
         // To make FFITypeFactor use our classLoader to find desired type matching,
         // we load FFIType with our classLoader.
-        Class<?> ffiTypeClass = classLoader.loadClass("com.alibaba.fastffi.FFIType");
-        System.out.println(
-                "ffitype cl :" + ffiTypeClass.getClassLoader() + ", url cl: " + classLoader);
+        // Class<?> ffiTypeClass = classLoader.loadClass("com.alibaba.fastffi.FFIType");
+        // logger.info("ffitype cl :" + ffiTypeClass.getClassLoader() + ", url cl: " + classLoader);
 
         // First load class by FFITypeFactor
         Method getTypeMethod =
-                ffiTypeFactoryClass.getDeclaredMethod("getType", Class.class, String.class);
-        Class<?> ffiJavaClass = (Class<?>) getTypeMethod.invoke(null, ffiTypeClass, foreignName);
+                ffiTypeFactoryClass.getDeclaredMethod("getType", ClassLoader.class, String.class);
+        Class<?> ffiJavaClass = (Class<?>) getTypeMethod.invoke(null, classLoader, foreignName);
         // The class loaded by FFITypeFactor's classLoader can not be directly used
         // by us. We load again with our class loader.
         Class<?> javaClass = classLoader.loadClass(ffiJavaClass.getName());
@@ -204,86 +205,6 @@ public class GraphScopeClassLoader {
         return loadClass(classLoader, "com.alibaba.graphscope.communication.Communicator");
     }
 
-    public static SimpleFragment adapt2SimpleFragment(Object fragmentImpl) {
-        if (fragmentImpl instanceof ArrowProjectedFragment) {
-            ArrowProjectedFragment projectedFragment = (ArrowProjectedFragment) fragmentImpl;
-            Class<?>[] classes =
-                    getTypeArgumentFromInterface(
-                            ArrowProjectedFragment.class, projectedFragment.getClass());
-            if (classes.length != 4) {
-                logger.error("Expected 4 actural type arguments, received: " + classes.length);
-                return null;
-            }
-            return createArrowProjectedAdaptor(
-                    classes[0], classes[1], classes[2], classes[3], projectedFragment);
-        } else if (fragmentImpl instanceof ImmutableEdgecutFragment) {
-            ImmutableEdgecutFragment immutableEdgecutFragment =
-                    (ImmutableEdgecutFragment) fragmentImpl;
-            Class<?>[] classes =
-                    getTypeArgumentFromInterface(
-                            ImmutableEdgecutFragment.class, immutableEdgecutFragment.getClass());
-            if (classes.length != 4) {
-                logger.error("Expected 4 actural type arguments, received: " + classes.length);
-                return null;
-            }
-            return createImmutableFragmentAdaptor(
-                    classes[0], classes[1], classes[2], classes[3], immutableEdgecutFragment);
-        } else {
-            logger.info(
-                    "Provided fragment is neither a projected fragment nor a immutable fragment.");
-            return null;
-        }
-    }
-
-    /**
-     * Create a parameterized arrowProjectedFragment Adaptor.
-     *
-     * @param oidClass oidclass
-     * @param vidClass vidclass
-     * @param vdataClass vertex data class
-     * @param edataClass edge data class
-     * @param fragment actual fragment obj
-     * @param <OID_T> oid
-     * @param <VID_T> vid
-     * @param <VDATA_T> vdata
-     * @param <EDATA_T> edata
-     * @return created adaptor.
-     */
-    private static <OID_T, VID_T, VDATA_T, EDATA_T>
-            ArrowProjectedAdaptor<OID_T, VID_T, VDATA_T, EDATA_T> createArrowProjectedAdaptor(
-                    Class<? extends OID_T> oidClass,
-                    Class<? extends VID_T> vidClass,
-                    Class<? extends VDATA_T> vdataClass,
-                    Class<? extends EDATA_T> edataClass,
-                    ArrowProjectedFragment<OID_T, VID_T, VDATA_T, EDATA_T> fragment) {
-        return new ArrowProjectedAdaptor<OID_T, VID_T, VDATA_T, EDATA_T>(fragment);
-    }
-
-    /**
-     * Create a parameterized immutableFragment Adaptor.
-     *
-     * @param oidClass oidclass
-     * @param vidClass vidclass
-     * @param vdataClass vertex data class
-     * @param edataClass edge data class
-     * @param fragment actual fragment obj
-     * @param <OID_T> oid
-     * @param <VID_T> vid
-     * @param <VDATA_T> vdata
-     * @param <EDATA_T> edata
-     * @return created adaptor.
-     */
-    private static <OID_T, VID_T, VDATA_T, EDATA_T>
-            ImmutableEdgecutFragmentAdaptor<OID_T, VID_T, VDATA_T, EDATA_T>
-                    createImmutableFragmentAdaptor(
-                            Class<? extends OID_T> oidClass,
-                            Class<? extends VID_T> vidClass,
-                            Class<? extends VDATA_T> vdataClass,
-                            Class<? extends EDATA_T> edataClass,
-                            ImmutableEdgecutFragment<OID_T, VID_T, VDATA_T, EDATA_T> fragment) {
-        return new ImmutableEdgecutFragmentAdaptor<>(fragment);
-    }
-
     private static String formatting(String className) {
         if (!className.contains("/")) {
             return className;
@@ -293,7 +214,7 @@ public class GraphScopeClassLoader {
 
     private static URL[] classPath2URLArray(String classPath) {
         if (Objects.isNull(classPath) || classPath.length() == 0) {
-            System.err.println("Empty class Path!");
+            logger.error("Empty class Path!");
             return new URL[] {};
         }
         String[] splited = classPath.split(":");

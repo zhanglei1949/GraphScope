@@ -6,13 +6,13 @@ import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.ds.adaptor.AdjList;
 import com.alibaba.graphscope.ds.adaptor.GrapeAdjListAdaptor;
+import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.fragment.ImmutableEdgecutFragment;
-import com.alibaba.graphscope.fragment.SimpleFragment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ImmutableEdgecutFragmentAdaptor<OID_T, VID_T, VDATA_T, EDATA_T>
-        implements SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> {
+        implements IFragment<OID_T, VID_T, VDATA_T, EDATA_T> {
     private static Logger logger = LoggerFactory.getLogger(ImmutableEdgecutFragmentAdaptor.class);
     public static String fragmentType = "ImmutableEdgecutFragment";
     private ImmutableEdgecutFragment<OID_T, VID_T, VDATA_T, EDATA_T> fragment;

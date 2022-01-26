@@ -33,8 +33,8 @@ import com.alibaba.fastffi.FFITypeAlias;
 import com.alibaba.graphscope.app.DefaultAppBase;
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.fragment.ArrowProjectedFragment;
+import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.fragment.ImmutableEdgecutFragment;
-import com.alibaba.graphscope.fragment.SimpleFragment;
 import com.alibaba.graphscope.fragment.adaptor.ArrowProjectedAdaptor;
 import com.alibaba.graphscope.fragment.adaptor.ImmutableEdgecutFragmentAdaptor;
 
@@ -53,7 +53,7 @@ import com.alibaba.graphscope.fragment.adaptor.ImmutableEdgecutFragmentAdaptor;
 })
 public interface DefaultMessageManager extends MessageManagerBase {
 
-    default <FRAG_T extends SimpleFragment, MSG_T> boolean getMessage(
+    default <FRAG_T extends IFragment, MSG_T> boolean getMessage(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg) {
@@ -65,7 +65,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
         return false;
     }
 
-    default <FRAG_T extends SimpleFragment, MSG_T> boolean syncStateOnOuterVertex(
+    default <FRAG_T extends IFragment, MSG_T> boolean syncStateOnOuterVertex(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg) {
@@ -77,7 +77,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
         return false;
     }
 
-    default <FRAG_T extends SimpleFragment, MSG_T> boolean sendMsgThroughOEdges(
+    default <FRAG_T extends IFragment, MSG_T> boolean sendMsgThroughOEdges(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg) {
@@ -89,7 +89,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
         return false;
     }
 
-    default <FRAG_T extends SimpleFragment, MSG_T> boolean sendMsgThroughEdges(
+    default <FRAG_T extends IFragment, MSG_T> boolean sendMsgThroughEdges(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg) {
@@ -101,7 +101,7 @@ public interface DefaultMessageManager extends MessageManagerBase {
         return false;
     }
 
-    default <FRAG_T extends SimpleFragment, MSG_T> boolean sendMsgThroughIEdges(
+    default <FRAG_T extends IFragment, MSG_T> boolean sendMsgThroughIEdges(
             @CXXReference FRAG_T frag,
             @CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex,
             @CXXReference MSG_T msg) {

@@ -18,16 +18,14 @@
 
 package org.apache.giraph.conf;
 
-import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.utils.ExtendedByteArrayDataInput;
 import com.alibaba.graphscope.utils.ExtendedByteArrayDataOutput;
 import com.alibaba.graphscope.utils.ExtendedDataInput;
 import com.alibaba.graphscope.utils.ExtendedDataOutput;
 import com.alibaba.graphscope.utils.UnsafeByteArrayInputStream;
 import com.alibaba.graphscope.utils.UnsafeByteArrayOutputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Objects;
+
 import org.apache.giraph.combiner.MessageCombiner;
 import org.apache.giraph.factories.MessageValueFactory;
 import org.apache.giraph.graph.Computation;
@@ -42,48 +40,54 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Objects;
 
 /**
  * The classes set here are immutable, the remaining configuration is mutable. Classes are immutable
- * and final to provide the best performance for instantiation.  Everything is thread-safe.
+ * and final to provide the best performance for instantiation. Everything is thread-safe.
  *
  * @param <I> Vertex id
  * @param <V> Vertex data
  * @param <E> Edge data
  */
 @SuppressWarnings("unchecked")
-public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
-    V extends Writable, E extends Writable> extends GiraphConfiguration{
+public class ImmutableClassesGiraphConfiguration<
+                I extends WritableComparable, V extends Writable, E extends Writable>
+        extends GiraphConfiguration {
     /** Holder for all the classes */
     private final GiraphClasses classes;
     /** holder for grape fragment class types */
     private final GrapeTypes grapeClasses;
+
     private int workerId;
     private int workerNum;
     private int inetAddressMaxResolveTime;
     /**
-     * Use unsafe serialization? Cached for fast access to instantiate the
-     * extended data input/output classes
+     * Use unsafe serialization? Cached for fast access to instantiate the extended data
+     * input/output classes
      */
     private final boolean useUnsafeSerialization;
 
-    private static String DEFAULT_WORKER_FILE_PREFIX= "giraph-on-grape";
+    private static String DEFAULT_WORKER_FILE_PREFIX = "giraph-on-grape";
 
     /**
      * Non- simplefragment parameterized constructor use for VertexInputForm.
+     *
      * @param configuration configuration.
      */
-    public ImmutableClassesGiraphConfiguration(Configuration configuration){
+    public ImmutableClassesGiraphConfiguration(Configuration configuration) {
         super(configuration);
-        classes = new GiraphClasses<I,V,E>(configuration);
+        classes = new GiraphClasses<I, V, E>(configuration);
         useUnsafeSerialization = USE_UNSAFE_SERIALIZATION.get(this);
         inetAddressMaxResolveTime = INET_ADDRESS_MAX_RESOLVE_TIMES.get(configuration);
         grapeClasses = null;
     }
 
-    public ImmutableClassesGiraphConfiguration(Configuration configuration, SimpleFragment fragment){
+    public ImmutableClassesGiraphConfiguration(Configuration configuration, IFragment fragment) {
         super(configuration);
-        classes = new GiraphClasses<I,V,E>(configuration);
+        classes = new GiraphClasses<I, V, E>(configuration);
         useUnsafeSerialization = USE_UNSAFE_SERIALIZATION.get(this);
         grapeClasses = new GrapeTypes(fragment);
         workerId = fragment.fid();
@@ -102,7 +106,6 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
         }
     }
 
-
     /**
      * Create a vertex
      *
@@ -112,8 +115,7 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
         Class vertexClass = classes.getVertexClass();
         try {
             return (Vertex<I, V, E>) vertexClass.newInstance();
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
@@ -125,60 +127,54 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
     }
 
     /**
-     * Create a wrapper for user vertex output format,
-     * which makes sure that Configuration parameters are set properly in all
-     * methods related to this format.
+     * Create a wrapper for user vertex output format, which makes sure that Configuration
+     * parameters are set properly in all methods related to this format.
      *
      * @return Wrapper around user vertex output format
      */
     public WrappedVertexOutputFormat<I, V, E> createWrappedVertexOutputFormat() {
         WrappedVertexOutputFormat<I, V, E> wrappedVertexOutputFormat =
-            new WrappedVertexOutputFormat<I, V, E>(createVertexOutputFormat());
+                new WrappedVertexOutputFormat<I, V, E>(createVertexOutputFormat());
         configureIfPossible(wrappedVertexOutputFormat);
         return wrappedVertexOutputFormat;
     }
 
-//    /**
-//     * Get the user's subclassed
-//     * {@link org.apache.giraph.io.VertexOutputFormat}.
-//     *
-//     * @return User's vertex output format class
-//     */
-//    public Class<? extends VertexOutputFormat<I, V, E>>
-//    getVertexOutputFormatClass() {
-//        return classes.getVertexOutputFormatClass();
-//    }
+    //    /**
+    //     * Get the user's subclassed
+    //     * {@link org.apache.giraph.io.VertexOutputFormat}.
+    //     *
+    //     * @return User's vertex output format class
+    //     */
+    //    public Class<? extends VertexOutputFormat<I, V, E>>
+    //    getVertexOutputFormatClass() {
+    //        return classes.getVertexOutputFormatClass();
+    //    }
 
     /**
-     * Get the user's subclassed
-     * {@link org.apache.giraph.io.VertexOutputFormat}.
+     * Get the user's subclassed {@link org.apache.giraph.io.VertexOutputFormat}.
      *
      * @return User's vertex output format class
      */
-    public Class<? extends VertexOutputFormat<I, V, E>>
-    getVertexOutputFormatClass() {
+    public Class<? extends VertexOutputFormat<I, V, E>> getVertexOutputFormatClass() {
         return classes.getVertexOutputFormatClass();
     }
 
     /**
-     * Create a user vertex output format class.
-     * Note: Giraph should only use WrappedVertexOutputFormat,
-     * which makes sure that Configuration parameters are set properly.
+     * Create a user vertex output format class. Note: Giraph should only use
+     * WrappedVertexOutputFormat, which makes sure that Configuration parameters are set properly.
      *
      * @return Instantiated user vertex output format class
      */
     private VertexOutputFormat<I, V, E> createVertexOutputFormat() {
-        Class<? extends VertexOutputFormat<I, V, E>> klass =
-            getVertexOutputFormatClass();
+        Class<? extends VertexOutputFormat<I, V, E>> klass = getVertexOutputFormatClass();
         return ReflectionUtils.newInstance(klass, this);
     }
 
-    /**
-     * Generate the string for default work file to write data to. shall be unique for each run.
-     */
-    public String getDefaultWorkerFile(){
+    /** Generate the string for default work file to write data to. shall be unique for each run. */
+    public String getDefaultWorkerFile() {
         String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
-        return String.join("-", DEFAULT_WORKER_FILE_PREFIX, getComputationClass().getSimpleName(), timeStamp);
+        return String.join(
+                "-", DEFAULT_WORKER_FILE_PREFIX, getComputationClass().getSimpleName(), timeStamp);
     }
 
     /**
@@ -201,9 +197,8 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
     }
 
     @Override
-    public Class<? extends Computation<I, V, E,
-            ? extends Writable, ? extends Writable>>
-    getComputationClass() {
+    public Class<? extends Computation<I, V, E, ? extends Writable, ? extends Writable>>
+            getComputationClass() {
         return classes.getComputationClass();
     }
 
@@ -216,47 +211,47 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
         return classes.getVertexIdClass();
     }
 
-    public  I createVertexId(){
+    public I createVertexId() {
         return (I) ReflectionUtils.newInstance(classes.getVertexIdClass());
     }
 
-    public Class<V> getVertexValueClass(){
+    public Class<V> getVertexValueClass() {
         return classes.getVertexValueClass();
     }
 
-    public V createVertexValue(){
+    public V createVertexValue() {
         return (V) ReflectionUtils.newInstance(classes.getVertexValueClass());
     }
 
-    public Class<E> getEdgeValueClass(){
+    public Class<E> getEdgeValueClass() {
         return classes.getEdgeValueClass();
     }
 
-    public E createEdgeValue(){
-        return (E)ReflectionUtils.newInstance(classes.getEdgeValueClass());
+    public E createEdgeValue() {
+        return (E) ReflectionUtils.newInstance(classes.getEdgeValueClass());
     }
 
-    public Writable createInComingMessageValue(){
+    public Writable createInComingMessageValue() {
         return (Writable) ReflectionUtils.newInstance(classes.getIncomingMessageClass());
     }
 
-    public Writable createOutgoingMessageValue(){
+    public Writable createOutgoingMessageValue() {
         return (Writable) ReflectionUtils.newInstance(classes.getOutgoingMessageClass());
     }
 
-    public Class<?> getGrapeOidClass(){
+    public Class<?> getGrapeOidClass() {
         return grapeClasses.getOidClass();
     }
 
-    public Class<?> getGrapeVidClass(){
+    public Class<?> getGrapeVidClass() {
         return grapeClasses.getVidClass();
     }
 
-    public Class<?> getGrapeVdataClass(){
+    public Class<?> getGrapeVdataClass() {
         return grapeClasses.getVdataClass();
     }
 
-    public Class<?> getGrapeEdataClass(){
+    public Class<?> getGrapeEdataClass() {
         return grapeClasses.getEdataClass();
     }
 
@@ -282,49 +277,48 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
 
     /**
      * Get incoming message classes
+     *
      * @param <M> message type
      * @return incoming message classes
      */
-    public <M extends Writable>
-    MessageClasses<I, M> getIncomingMessageClasses() {
+    public <M extends Writable> MessageClasses<I, M> getIncomingMessageClasses() {
         return classes.getIncomingMessageClasses();
     }
 
     /**
      * Get outgoing message classes
+     *
      * @param <M> message type
      * @return outgoing message classes
      */
-    public <M extends Writable>
-    MessageClasses<I, M> getOutgoingMessageClasses() {
+    public <M extends Writable> MessageClasses<I, M> getOutgoingMessageClasses() {
         return classes.getOutgoingMessageClasses();
     }
 
     /**
      * Create new outgoing message value factory
+     *
      * @param <M> message type
      * @return outgoing message value factory
      */
-    public <M extends Writable>
-    MessageValueFactory<M> createOutgoingMessageValueFactory() {
+    public <M extends Writable> MessageValueFactory<M> createOutgoingMessageValueFactory() {
         return classes.getOutgoingMessageClasses().createMessageValueFactory(this);
     }
 
     /**
      * Create new incoming message value factory
+     *
      * @param <M> message type
      * @return incoming message value factory
      */
-    public <M extends Writable>
-    MessageValueFactory<M> createIncomingMessageValueFactory() {
+    public <M extends Writable> MessageValueFactory<M> createIncomingMessageValueFactory() {
         return classes.getIncomingMessageClasses().createMessageValueFactory(this);
     }
 
     @Override
-    public void setMessageCombinerClass(
-        Class<? extends MessageCombiner> messageCombinerClass) {
+    public void setMessageCombinerClass(Class<? extends MessageCombiner> messageCombinerClass) {
         throw new IllegalArgumentException(
-            "Cannot set message combiner on ImmutableClassesGiraphConfigurable");
+                "Cannot set message combiner on ImmutableClassesGiraphConfigurable");
     }
 
     /**
@@ -333,8 +327,7 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
      * @param <M> Message data
      * @return Instantiated user combiner class
      */
-    public <M extends Writable> MessageCombiner<? super I, M>
-    createOutgoingMessageCombiner() {
+    public <M extends Writable> MessageCombiner<? super I, M> createOutgoingMessageCombiner() {
         return classes.getOutgoingMessageClasses().createMessageCombiner(this);
     }
 
@@ -374,15 +367,15 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
         return ReflectionUtils.newInstance(getMasterComputeClass(), this);
     }
 
-    public int getWorkerId(){
+    public int getWorkerId() {
         return workerId;
     }
 
-    public int getWorkerNum(){
+    public int getWorkerNum() {
         return workerNum;
     }
 
-    public int getInetAddressMaxResolveTime(){
+    public int getInetAddressMaxResolveTime() {
         return inetAddressMaxResolveTime;
     }
 
@@ -429,8 +422,7 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
      * @param pos How much of the buffer is already used
      * @return ExtendedDataOutput object
      */
-    public ExtendedDataOutput createExtendedDataOutput(byte[] buf,
-        int pos) {
+    public ExtendedDataOutput createExtendedDataOutput(byte[] buf, int pos) {
         if (useUnsafeSerialization) {
             return new UnsafeByteArrayOutputStream(buf, pos);
         } else {
@@ -446,8 +438,7 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
      * @param length Maximum length of the buffer
      * @return ExtendedDataInput object
      */
-    public ExtendedDataInput createExtendedDataInput(
-        byte[] buf, int off, int length) {
+    public ExtendedDataInput createExtendedDataInput(byte[] buf, int off, int length) {
         if (useUnsafeSerialization) {
             return new UnsafeByteArrayInputStream(buf, off, length);
         } else {
@@ -475,23 +466,21 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
      * @param extendedDataOutput extendedDataOutput
      * @return extendedDataInput
      */
-    public ExtendedDataInput createExtendedDataInput(
-        ExtendedDataOutput extendedDataOutput) {
-        return createExtendedDataInput(extendedDataOutput.getByteArray(), 0,
-            extendedDataOutput.getPos());
+    public ExtendedDataInput createExtendedDataInput(ExtendedDataOutput extendedDataOutput) {
+        return createExtendedDataInput(
+                extendedDataOutput.getByteArray(), 0, extendedDataOutput.getPos());
     }
 
-    public String getOutMessageCacheType(){
+    public String getOutMessageCacheType() {
         String messageCacheType = System.getenv("OUT_MESSAGE_CACHE_TYPE");
-        if (Objects.nonNull(messageCacheType)){
-            if (messageCacheType.equals("ByteBuf") || messageCacheType.equals("BatchWritable")){
+        if (Objects.nonNull(messageCacheType)) {
+            if (messageCacheType.equals("ByteBuf") || messageCacheType.equals("BatchWritable")) {
                 return messageCacheType;
-            }
-            else {
-                throw new IllegalStateException("Wrong type of out message cache type {}" + messageCacheType);
+            } else {
+                throw new IllegalStateException(
+                        "Wrong type of out message cache type {}" + messageCacheType);
             }
         }
         return OUT_MESSAGE_CACHE_TYPE.get(this);
     }
-
 }

@@ -1,10 +1,8 @@
 package org.apache.giraph.graph;
 
-import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.parallel.mm.GiraphMessageManager;
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.Objects;
+
 import org.apache.giraph.conf.DefaultImmutableClassesGiraphConfigurable;
 import org.apache.giraph.edge.Edge;
 import org.apache.giraph.edge.OutEdges;
@@ -15,22 +13,27 @@ import org.apache.hadoop.mapreduce.Mapper.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Objects;
+
 /**
  * Implement all methods in Computation other than compute, which left for user to define.
  *
- * @param <OID_T>     original vertex id.
- * @param <VDATA_T>   vertex data type.
- * @param <EDATA_T>   edata type.
- * @param <IN_MSG_T>  incoming msg type.
+ * @param <OID_T> original vertex id.
+ * @param <VDATA_T> vertex data type.
+ * @param <EDATA_T> edata type.
+ * @param <IN_MSG_T> incoming msg type.
  * @param <OUT_MSG_T> outgoing msg type.
  */
-public abstract class AbstractComputation<OID_T extends WritableComparable,
-    VDATA_T extends Writable,
-    EDATA_T extends Writable,
-    IN_MSG_T extends Writable,
-    OUT_MSG_T extends Writable> extends
-    DefaultImmutableClassesGiraphConfigurable<OID_T, VDATA_T, EDATA_T> implements
-    Computation<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T>, Communicator {
+public abstract class AbstractComputation<
+                OID_T extends WritableComparable,
+                VDATA_T extends Writable,
+                EDATA_T extends Writable,
+                IN_MSG_T extends Writable,
+                OUT_MSG_T extends Writable>
+        extends DefaultImmutableClassesGiraphConfigurable<OID_T, VDATA_T, EDATA_T>
+        implements Computation<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T>, Communicator {
 
     private static Logger logger = LoggerFactory.getLogger(AbstractComputation.class);
 
@@ -38,42 +41,43 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      * We hold a communicatorImpl rather that directly inherit from CommunicatorImpl. So
      * CommunicatorImpl can also be reference in workerContext.
      */
-//    private Communicator communicator;
-        private AggregatorManager aggregatorManager;
-    private GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,?,?> giraphMessageManager;
-    private SimpleFragment fragment;
+    //    private Communicator communicator;
+    private AggregatorManager aggregatorManager;
+
+    private GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, ?, ?>
+            giraphMessageManager;
+    private IFragment fragment;
     private int curStep = 0;
     private WorkerContext workerContext;
-//    private AggregatorManager aggregatorManager;
+    //    private AggregatorManager aggregatorManager;
 
     public void setGiraphMessageManager(
-        GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T,?,?> giraphMessageManager) {
+            GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, ?, ?>
+                    giraphMessageManager) {
         this.giraphMessageManager = giraphMessageManager;
     }
 
-    public void setFragment(SimpleFragment fragment) {
+    public void setFragment(IFragment fragment) {
         this.fragment = fragment;
     }
 
-//    public void setCommunicator(Communicator communicator) {
-//        this.communicator = communicator;
-//    }
+    //    public void setCommunicator(Communicator communicator) {
+    //        this.communicator = communicator;
+    //    }
 
-//    public Communicator getCommunicator() {
-//        return this.communicator;
-//    }
+    //    public Communicator getCommunicator() {
+    //        return this.communicator;
+    //    }
 
     public void setWorkerContext(WorkerContext workerContext) {
         this.workerContext = workerContext;
     }
 
-    public void setAggregatorManager(AggregatorManager aggregatorManager){
+    public void setAggregatorManager(AggregatorManager aggregatorManager) {
         this.aggregatorManager = aggregatorManager;
     }
 
-    /**
-     * Called by our framework after each super step.
-     */
+    /** Called by our framework after each super step. */
     public void incStep() {
         curStep++;
     }
@@ -83,18 +87,14 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
      * #compute(Vertex, Iterable)} being called for any of the vertices in the partition.
      */
     @Override
-    public void preSuperstep() {
-
-    }
+    public void preSuperstep() {}
 
     /**
      * Finish computation. This method is executed exactly once after computation for all vertices
      * in the partition is complete.
      */
     @Override
-    public void postSuperstep() {
-
-    }
+    public void postSuperstep() {}
 
     /**
      * Retrieves the current superstep.
@@ -148,7 +148,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
 
     @Override
     public void addVertexRequest(OID_T id, VDATA_T value, OutEdges<OID_T, EDATA_T> edges)
-        throws IOException {
+            throws IOException {
         logger.error("Not implemented");
     }
 
@@ -168,8 +168,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
     }
 
     @Override
-    public void removeEdgesRequest(OID_T sourceVertexId,
-        OID_T targetVertexId) throws IOException {
+    public void removeEdgesRequest(OID_T sourceVertexId, OID_T targetVertexId) throws IOException {
         logger.error("Not implemented");
     }
 
@@ -184,9 +183,7 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
     }
 
     @Override
-    public void sendMessageToMultipleEdges(Iterator<OID_T> vertexIdIterator, OUT_MSG_T message) {
-
-    }
+    public void sendMessageToMultipleEdges(Iterator<OID_T> vertexIdIterator, OUT_MSG_T message) {}
 
     /**
      * Get number of workers
@@ -220,15 +217,14 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
     }
 
     /**
-     * ----------------------------------------------------------------------------
-     *                  Communicator related methods.
-     * ----------------------------------------------------------------------------
+     * ---------------------------------------------------------------------------- Communicator
+     * related methods. ----------------------------------------------------------------------------
      */
 
     /**
      * Add a new value
      *
-     * @param name  Name of aggregator
+     * @param name Name of aggregator
      * @param value Value to add
      */
     @Override
@@ -267,14 +263,14 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
             logger.error("Null aggregator manager, set to a valid reference first.");
             return null;
         }
-        //TODO: get value broadcast from master
+        // TODO: get value broadcast from master
         return null;
     }
 
     /**
      * Reduce given value.
      *
-     * @param name  Name of the reducer
+     * @param name Name of the reducer
      * @param value Single value to reduce
      */
     @Override
@@ -283,13 +279,13 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
             logger.error("Null aggregator manager, set to a valid reference first.");
             return;
         }
-        //TODO: reduce value
+        // TODO: reduce value
     }
 
     /**
      * Reduce given partial value.
      *
-     * @param name  Name of the reducer
+     * @param name Name of the reducer
      * @param value Single value to reduce
      */
     @Override
@@ -298,6 +294,6 @@ public abstract class AbstractComputation<OID_T extends WritableComparable,
             logger.error("Null aggregator manager, set to a valid reference first.");
             return;
         }
-        //TODO: reduce merge
+        // TODO: reduce merge
     }
 }

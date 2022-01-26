@@ -1,7 +1,7 @@
 package com.alibaba.graphscope.parallel.message;
 
-import com.alibaba.graphscope.fragment.SimpleFragment;
-import java.util.Objects;
+import com.alibaba.graphscope.fragment.IFragment;
+
 import org.apache.giraph.combiner.MessageCombiner;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.conf.MessageClasses;
@@ -12,13 +12,14 @@ import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DefaultMessageStoreFactory<I extends WritableComparable,
-    M extends Writable, GS_VID_T> implements
-    MessageStoreFactory<I, M, MessageStore<I, M, GS_VID_T>> {
+import java.util.Objects;
+
+public class DefaultMessageStoreFactory<I extends WritableComparable, M extends Writable, GS_VID_T>
+        implements MessageStoreFactory<I, M, MessageStore<I, M, GS_VID_T>> {
 
     private static Logger logger = LoggerFactory.getLogger(DefaultMessageStoreFactory.class);
 
-    private SimpleFragment<?, GS_VID_T, ?, ?> fragment;
+    private IFragment<?, GS_VID_T, ?, ?> fragment;
     private ImmutableClassesGiraphConfiguration<I, ?, ?> conf;
 
     /**
@@ -34,32 +35,39 @@ public class DefaultMessageStoreFactory<I extends WritableComparable,
             if (messageStoreType.equals("simple")) {
                 return new SimpleMessageStore<>(fragment, conf);
             } else if (messageStoreType.equals("primitive")) {
-                //try to use primitive store for better performace.
-                if (conf.getGrapeVidClass().equals(Long.class) && messageClasses.getMessageClass()
-                    .equals(DoubleWritable.class)) {
+                // try to use primitive store for better performace.
+                if (conf.getGrapeVidClass().equals(Long.class)
+                        && messageClasses.getMessageClass().equals(DoubleWritable.class)) {
                     if (messageClasses.useMessageCombiner()) {
                         if (logger.isDebugEnabled()) {
                             logger.debug(
-                                "creating LongDoubleMessageDoubleMessageStore with combiner");
+                                    "creating LongDoubleMessageDoubleMessageStore with combiner");
                         }
-                        return (MessageStore<I, M, GS_VID_T>) new LongDoubleMessageStoreWithCombiner(
-                            fragment,
-                            (ImmutableClassesGiraphConfiguration<? extends LongWritable, ? extends Writable, ? extends Writable>) conf,
-                            (MessageCombiner<? super LongWritable, DoubleWritable>) messageClasses.createMessageCombiner(conf));
+                        return (MessageStore<I, M, GS_VID_T>)
+                                new LongDoubleMessageStoreWithCombiner(
+                                        fragment,
+                                        (ImmutableClassesGiraphConfiguration<
+                                                        ? extends LongWritable,
+                                                        ? extends Writable,
+                                                        ? extends Writable>)
+                                                conf,
+                                        (MessageCombiner<? super LongWritable, DoubleWritable>)
+                                                messageClasses.createMessageCombiner(conf));
                     } else {
                         if (logger.isDebugEnabled()) {
                             logger.debug(
-                                "creating LongDoubleMessageDoubleMessageStore with no combiner");
+                                    "creating LongDoubleMessageDoubleMessageStore with no"
+                                        + " combiner");
                         }
-                        return (MessageStore<I, M, GS_VID_T>) new LongDoubleMessageStore<I>(
-                            fragment,
-                            conf);
+                        return (MessageStore<I, M, GS_VID_T>)
+                                new LongDoubleMessageStore<I>(fragment, conf);
                     }
                 } else {
                     throw new IllegalStateException(
-                        "Not supported primitve store: vid:" + conf.getGrapeVidClass()
-                            .getSimpleName() + ", msg:" + messageClasses.getMessageClass()
-                            .getSimpleName());
+                            "Not supported primitve store: vid:"
+                                    + conf.getGrapeVidClass().getSimpleName()
+                                    + ", msg:"
+                                    + messageClasses.getMessageClass().getSimpleName());
                 }
             }
         }
@@ -67,15 +75,13 @@ public class DefaultMessageStoreFactory<I extends WritableComparable,
     }
 
     /**
-     * Implementation class should use this method of initialization of any required internal
-     * state.
+     * Implementation class should use this method of initialization of any required internal state.
      *
      * @param fragment fragment used for partition querying
-     * @param conf     Configuration
+     * @param conf Configuration
      */
     @Override
-    public void initialize(SimpleFragment fragment,
-        ImmutableClassesGiraphConfiguration<I, ?, ?> conf) {
+    public void initialize(IFragment fragment, ImmutableClassesGiraphConfiguration<I, ?, ?> conf) {
         this.fragment = fragment;
         this.conf = conf;
     }

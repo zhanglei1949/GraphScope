@@ -7,12 +7,12 @@ import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.ds.adaptor.AdjList;
 import com.alibaba.graphscope.ds.adaptor.ProjectedAdjListAdaptor;
 import com.alibaba.graphscope.fragment.ArrowProjectedFragment;
-import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.fragment.IFragment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ArrowProjectedAdaptor<OID_T, VID_T, VDATA_T, EDATA_T>
-        implements SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> {
+        implements IFragment<OID_T, VID_T, VDATA_T, EDATA_T> {
     private static Logger logger = LoggerFactory.getLogger(ArrowProjectedAdaptor.class.getName());
 
     public static String fragmentType = "ArrowProjectedFragment";

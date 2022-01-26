@@ -1,50 +1,48 @@
 package com.alibaba.graphscope.parallel.message;
 
 import com.alibaba.graphscope.ds.Vertex;
-import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.serialization.FFIByteVectorInputStream;
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
+
 import io.netty.buffer.ByteBuf;
+
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Iterator;
+
 /**
  * Specialized store for double msgs.
  *
  * @param <OID_T>
  */
-public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
-    MessageStore<OID_T, DoubleWritable, Long> {
+public class LongDoubleMessageStore<OID_T extends WritableComparable>
+        implements MessageStore<OID_T, DoubleWritable, Long> {
 
     private static Logger logger = LoggerFactory.getLogger(LongDoubleMessageStore.class);
     private static int INIT_CAPACITY = 2;
 
-    private SimpleFragment<?, Long, ?, ?> fragment;
+    private IFragment<?, Long, ?, ?> fragment;
     private ImmutableClassesGiraphConfiguration<OID_T, ?, ?> conf;
     private Vertex<Long> vertex;
-    /**
-     * lid 2 messages
-     */
-//    private Map<Long, List<Double>> messages;
+    /** lid 2 messages */
+    //    private Map<Long, List<Double>> messages;
     private Long2DoubleOpenHashMap messages;
+
     private DoubleWritableIterable iterable;
     private long innerVerticesNum;
 
-
-    public LongDoubleMessageStore(SimpleFragment fragment,
-        ImmutableClassesGiraphConfiguration<OID_T, ?, ?> conf) {
+    public LongDoubleMessageStore(
+            IFragment fragment, ImmutableClassesGiraphConfiguration<OID_T, ?, ?> conf) {
         this.fragment = fragment;
         this.conf = conf;
         vertex = (Vertex<Long>) FFITypeFactoryhelper.newVertex(java.lang.Long.class);
@@ -58,19 +56,19 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         if (lid >= innerVerticesNum) {
             throw new IllegalStateException("lid exceeded upper bound");
         }
-        messages.put((long)lid, writable.get());
+        messages.put((long) lid, writable.get());
     }
 
-    public void addLidMessage(Long lid, double msg){
+    public void addLidMessage(Long lid, double msg) {
         if (lid >= innerVerticesNum) {
             throw new IllegalStateException("lid exceeded upper bound");
         }
-        messages.put((long)lid, msg);
+        messages.put((long) lid, msg);
     }
 
     @Override
-    public void addGidMessages(Iterator<Long> gidIterator,
-        Iterator<DoubleWritable> writableIterator) {
+    public void addGidMessages(
+            Iterator<Long> gidIterator, Iterator<DoubleWritable> writableIterator) {
         int cnt = 0;
         while (gidIterator.hasNext() && writableIterator.hasNext()) {
             long gid = gidIterator.next();
@@ -88,12 +86,12 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
     /**
      * For messages bound with gid, first get lid.
      *
-     * @param gid      global id
+     * @param gid global id
      * @param writable msg
      */
     @Override
     public synchronized void addGidMessage(Long gid, DoubleWritable writable) {
-        addGidMessage0((Long)gid, writable.get());
+        addGidMessage0((Long) gid, writable.get());
     }
 
     private synchronized void addGidMessage0(Long gid, double msg) {
@@ -106,26 +104,31 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
 
     /**
      * For input byteBuf, parse and update our store.
-     * <p>
-     * The received buf contains 4+1+data.
+     *
+     * <p>The received buf contains 4+1+data.
      *
      * @param buf
      */
     public void digestByteBuf(ByteBuf buf) {
-        //FIXME: why we are copying?
+        // FIXME: why we are copying?
         buf.skipBytes(5);
         if (buf.readableBytes() % 16 != 0) {
             throw new IllegalStateException("Expect number of bytes times of 16");
         }
-        logger.debug("LongDoubleMsgStore digest bytebuf size {} direct {}", buf.readableBytes(),
-            buf.isDirect());
+        logger.debug(
+                "LongDoubleMsgStore digest bytebuf size {} direct {}",
+                buf.readableBytes(),
+                buf.isDirect());
         while (buf.readableBytes() >= 16) {
             long gid = buf.readLong();
             double msg = buf.readDouble();
             addGidMessage0(gid, msg);
             if (logger.isDebugEnabled()) {
-                logger.debug("worker [{}] resolving message to self, gid {}, msg {}",
-                    fragment.fid(), gid, msg);
+                logger.debug(
+                        "worker [{}] resolving message to self, gid {}, msg {}",
+                        fragment.fid(),
+                        gid,
+                        msg);
             }
         }
         if (buf.readableBytes() != 0) {
@@ -136,15 +139,16 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
     @Override
     public void swap(MessageStore<OID_T, DoubleWritable, Long> other) {
         if (other instanceof LongDoubleMessageStore) {
-            LongDoubleMessageStore<OID_T> longDoubleMessageStore = (LongDoubleMessageStore<OID_T>) other;
+            LongDoubleMessageStore<OID_T> longDoubleMessageStore =
+                    (LongDoubleMessageStore<OID_T>) other;
             if (!this.fragment.equals(longDoubleMessageStore.fragment)) {
                 logger.error("fragment not the same");
                 return;
             }
             Long2DoubleOpenHashMap tmp;
             if (logger.isDebugEnabled()) {
-                logger.debug("Before swap {} vs {}", this.messages,
-                    longDoubleMessageStore.messages);
+                logger.debug(
+                        "Before swap {} vs {}", this.messages, longDoubleMessageStore.messages);
             }
             tmp = this.messages;
             this.messages = longDoubleMessageStore.messages;
@@ -162,9 +166,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         messages.clear();
     }
 
-    /**
-     * Check whether any messages received.
-     */
+    /** Check whether any messages received. */
     @Override
     public boolean anyMessageReceived() {
         return !messages.isEmpty();
@@ -199,7 +201,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
             iterable.init(messages.get(lid));
             return iterable;
         } else {
-            //actually a static empty iterator.
+            // actually a static empty iterator.
             return () -> Collections.emptyIterator();
         }
     }
@@ -226,8 +228,11 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
                 double msg = inputStream.readDouble();
                 addGidMessage0(gid, msg);
                 if (logger.isDebugEnabled()) {
-                    logger.debug("worker [{}] resolving message to self, gid {}, msg {}",
-                        fragment.fid(), gid, msg);
+                    logger.debug(
+                            "worker [{}] resolving message to self, gid {}, msg {}",
+                            fragment.fid(),
+                            gid,
+                            msg);
                 }
             }
         } catch (IOException e) {
@@ -243,19 +248,20 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
         private DoubleWritable writable;
         boolean res = true;
 
-        private Iterator<DoubleWritable> iterator = new Iterator<DoubleWritable>() {
+        private Iterator<DoubleWritable> iterator =
+                new Iterator<DoubleWritable>() {
 
-            @Override
-            public boolean hasNext() {
-                return res;
-            }
+                    @Override
+                    public boolean hasNext() {
+                        return res;
+                    }
 
-            @Override
-            public DoubleWritable next() {
-                res = false;
-                return writable;
-            }
-        };
+                    @Override
+                    public DoubleWritable next() {
+                        res = false;
+                        return writable;
+                    }
+                };
 
         public DoubleWritableIterable() {
             writable = new DoubleWritable();
@@ -268,7 +274,7 @@ public class LongDoubleMessageStore<OID_T extends WritableComparable> implements
 
         @Override
         public Iterator<DoubleWritable> iterator() {
-            //Return a single iterator rather than creating for each call;
+            // Return a single iterator rather than creating for each call;
             return iterator;
         }
     }

@@ -1,6 +1,7 @@
 package com.alibaba.graphscope.context;
 
 import static com.alibaba.graphscope.parallel.utils.Utils.getAllHostNames;
+
 import static org.apache.giraph.conf.GiraphConstants.MESSAGE_MANAGER_TYPE;
 import static org.apache.giraph.job.HadoopUtils.makeTaskAttemptContext;
 
@@ -8,17 +9,12 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.graphscope.app.DefaultContextBase;
 import com.alibaba.graphscope.communication.Communicator;
 import com.alibaba.graphscope.factory.GiraphComputationFactory;
-import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.mm.GiraphMessageManager;
 import com.alibaba.graphscope.parallel.mm.GiraphMessageManagerFactory;
 import com.alibaba.graphscope.parallel.utils.NetworkMap;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.BitSet;
-import java.util.Objects;
+
 import org.apache.giraph.conf.GiraphConfiguration;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.AbstractComputation;
@@ -41,6 +37,13 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.BitSet;
+import java.util.Objects;
+
 /**
  * Generic adaptor context class. The type parameter OID,VID_VDATA_T,EDATA_T is irrelevant to User
  * writables. They are type parameters for grape fragment. We need them to support multiple set of
@@ -52,7 +55,7 @@ import org.slf4j.LoggerFactory;
  * @param <EDATA_T>
  */
 public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> extends Communicator
-    implements DefaultContextBase<OID_T, VID_T, VDATA_T, EDATA_T> {
+        implements DefaultContextBase<OID_T, VID_T, VDATA_T, EDATA_T> {
 
     private static Logger logger = LoggerFactory.getLogger(GiraphComputationAdaptorContext.class);
 
@@ -61,32 +64,22 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
     private long fragVerticesNum;
 
     private WorkerContext workerContext;
-    /**
-     * Only executed by the master, in our case, the coordinator worker in mpi world
-     */
+    /** Only executed by the master, in our case, the coordinator worker in mpi world */
     private MasterCompute masterCompute;
 
     private AbstractComputation userComputation;
     public VertexImpl vertex;
     private GiraphMessageManager giraphMessageManager;
 
-    /**
-     * Manages the vertex original id.
-     */
+    /** Manages the vertex original id. */
     private VertexIdManager vertexIdManager;
-    /**
-     * Manages the vertex data.
-     */
+    /** Manages the vertex data. */
     private VertexDataManager vertexDataManager;
 
-    /**
-     * Edge manager. We can choose to use a immutable edge manager or others.
-     */
+    /** Edge manager. We can choose to use a immutable edge manager or others. */
     private EdgeManager edgeManager;
 
-    /**
-     * Aggregator manager.
-     */
+    /** Aggregator manager. */
     private AggregatorManager aggregatorManager;
 
     public AbstractComputation getUserComputation() {
@@ -117,21 +110,20 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
 
     /**
      * <em>CAUTION: THIS METHOD SHALL BE CALLED in JNI after initCommunicator.</em>.
-     * <p>
-     * With communicatorAddress passed, we init a FFICommunicator obj with that address.
+     *
+     * <p>With communicatorAddress passed, we init a FFICommunicator obj with that address.
      */
-
     @Override
     public void Init(
-        SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> frag,
-        DefaultMessageManager messageManager,
-        JSONObject jsonObject) {
+            IFragment<OID_T, VID_T, VDATA_T, EDATA_T> frag,
+            DefaultMessageManager messageManager,
+            JSONObject jsonObject) {
 
         /** Construct a configuration obj. */
         ImmutableClassesGiraphConfiguration conf = generateConfiguration(jsonObject, frag);
 
         userComputation =
-            (AbstractComputation) ReflectionUtils.newInstance(conf.getComputationClass());
+                (AbstractComputation) ReflectionUtils.newInstance(conf.getComputationClass());
         userComputation.setFragment(frag);
         userComputation.setConf(conf);
 
@@ -153,45 +145,48 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
         halted = new BitSet((int) frag.getInnerVerticesNum());
 
         // Init vertex data/oid manager
-        //vertex data and vertex id manager should contains out vertices.
+        // vertex data and vertex id manager should contains out vertices.
         vertexDataManager =
-            GiraphComputationFactory.createDefaultVertexDataManager(conf, frag, fragVerticesNum);
+                GiraphComputationFactory.createDefaultVertexDataManager(
+                        conf, frag, fragVerticesNum);
         vertexIdManager =
-            GiraphComputationFactory.createDefaultVertexIdManager(conf, frag, fragVerticesNum);
+                GiraphComputationFactory.createDefaultVertexIdManager(conf, frag, fragVerticesNum);
         edgeManager =
-            GiraphComputationFactory.createImmutableEdgeManager(
-                conf,
-                frag,
-                vertexIdManager);
+                GiraphComputationFactory.createImmutableEdgeManager(conf, frag, vertexIdManager);
 
         vertex =
-            VertexFactory.createDefaultVertex(
-                conf.getVertexIdClass(),
-                conf.getVertexValueClass(),
-                conf.getEdgeValueClass(),
-                this);
+                VertexFactory.createDefaultVertex(
+                        conf.getVertexIdClass(),
+                        conf.getVertexValueClass(),
+                        conf.getEdgeValueClass(),
+                        this);
         vertex.setVertexIdManager(vertexIdManager);
         vertex.setVertexDataManager(vertexDataManager);
         vertex.setEdgeManager(edgeManager);
 
         // VertexIdManager is needed since we need oid <-> lid converting.
         String giraphMessageManagerType = System.getenv("MESSAGE_MANAGER_TYPE");
-        if (Objects.isNull(giraphMessageManagerType) || giraphMessageManagerType.isEmpty()){
+        if (Objects.isNull(giraphMessageManagerType) || giraphMessageManagerType.isEmpty()) {
             giraphMessageManagerType = MESSAGE_MANAGER_TYPE.get(conf);
         }
         if (giraphMessageManagerType.equals("netty")) {
-            String[] allHostsNames = getAllHostNames(conf.getWorkerId(), conf.getWorkerNum(),
-                getFFICommunicator());
+            String[] allHostsNames =
+                    getAllHostNames(conf.getWorkerId(), conf.getWorkerNum(), getFFICommunicator());
             logger.info(String.join(",", allHostsNames));
-            NetworkMap networkMap = new NetworkMap(conf.getWorkerId(), conf.getWorkerNum(),
-                conf.getMessagerInitServerPort(), allHostsNames);
-            giraphMessageManager = GiraphMessageManagerFactory
-                .create("netty", frag, null, networkMap, conf, getFFICommunicator());
-        } else if (giraphMessageManagerType.equals("mpi")){
-            giraphMessageManager = GiraphMessageManagerFactory
-                .create("mpi", frag, messageManager, null, conf, getFFICommunicator());
-        }
-        else {
+            NetworkMap networkMap =
+                    new NetworkMap(
+                            conf.getWorkerId(),
+                            conf.getWorkerNum(),
+                            conf.getMessagerInitServerPort(),
+                            allHostsNames);
+            giraphMessageManager =
+                    GiraphMessageManagerFactory.create(
+                            "netty", frag, null, networkMap, conf, getFFICommunicator());
+        } else if (giraphMessageManagerType.equals("mpi")) {
+            giraphMessageManager =
+                    GiraphMessageManagerFactory.create(
+                            "mpi", frag, messageManager, null, conf, getFFICommunicator());
+        } else {
             throw new IllegalStateException("Expect a netty or mpi messager");
         }
         userComputation.setGiraphMessageManager(giraphMessageManager);
@@ -201,7 +196,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
         //        String masterWorkerIp = getMasterWorkerIp(frag.fid(), frag.fnum());
 
         aggregatorManager = new AggregatorManagerImpl(conf, frag.fid(), frag.fnum());
-//        aggregatorManager = new AggregatorManagerNettyImpl(conf, frag.fid(), frag.fnum());
+        //        aggregatorManager = new AggregatorManagerNettyImpl(conf, frag.fid(), frag.fnum());
         userComputation.setAggregatorManager(aggregatorManager);
         workerContext.setAggregatorManager(aggregatorManager);
 
@@ -232,11 +227,9 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
      * @param frag The graph fragment contains the graph info.
      */
     @Override
-    public void Output(SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> frag) {
+    public void Output(IFragment<OID_T, VID_T, VDATA_T, EDATA_T> frag) {
         workerContext.postApplication();
-        /**
-         * Closing netty client and server here.
-         */
+        /** Closing netty client and server here. */
         giraphMessageManager.postApplication();
         ImmutableClassesGiraphConfiguration conf = userComputation.getConf();
         String filePath = conf.getDefaultWorkerFile() + "-frag-" + frag.fid();
@@ -250,7 +243,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
             {
                 try {
                     VertexWriter vertexWriter =
-                        vertexOutputFormat.createVertexWriter(taskAttemptContext);
+                            vertexOutputFormat.createVertexWriter(taskAttemptContext);
 
                     vertexWriter.setConf(conf);
                     vertexWriter.initialize(taskAttemptContext);
@@ -290,10 +283,10 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
                 logger.debug("inner vertices: " + innerVerticesNum + frag.innerVertices().size());
                 for (long i = 0; i < innerVerticesNum; ++i) {
                     bufferedWriter.write(
-                        vertexIdManager.getId(i)
-                            + "\t"
-                            + vertexDataManager.getVertexData(i)
-                            + "\n");
+                            vertexIdManager.getId(i)
+                                    + "\t"
+                                    + vertexDataManager.getVertexData(i)
+                                    + "\n");
                 }
                 bufferedWriter.close();
             } catch (Exception e) {
@@ -324,7 +317,7 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
      * @param params received params.
      */
     private ImmutableClassesGiraphConfiguration generateConfiguration(
-        JSONObject params, SimpleFragment fragment) {
+            JSONObject params, IFragment fragment) {
         Configuration configuration = new Configuration();
         GiraphConfiguration giraphConfiguration = new GiraphConfiguration(configuration);
 
@@ -334,14 +327,14 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-        ImmutableClassesGiraphConfiguration conf = new ImmutableClassesGiraphConfiguration<>(
-            giraphConfiguration, fragment);
+        ImmutableClassesGiraphConfiguration conf =
+                new ImmutableClassesGiraphConfiguration<>(giraphConfiguration, fragment);
         if (checkConsistency(conf)) {
             logger.info(
-                "Okay, the type parameters in user computation is consistent with fragment");
+                    "Okay, the type parameters in user computation is consistent with fragment");
         } else {
             throw new IllegalStateException(
-                "User computation type parameters not consistent with fragment types");
+                    "User computation type parameters not consistent with fragment types");
         }
         return conf;
     }
@@ -354,10 +347,10 @@ public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T> ext
      */
     private boolean checkConsistency(ImmutableClassesGiraphConfiguration configuration) {
         return ConfigurationUtils.checkTypeConsistency(
-            configuration.getGrapeOidClass(), configuration.getVertexIdClass())
-            && ConfigurationUtils.checkTypeConsistency(
-            configuration.getGrapeEdataClass(), configuration.getEdgeValueClass())
-            && ConfigurationUtils.checkTypeConsistency(
-            configuration.getGrapeVdataClass(), configuration.getVertexValueClass());
+                        configuration.getGrapeOidClass(), configuration.getVertexIdClass())
+                && ConfigurationUtils.checkTypeConsistency(
+                        configuration.getGrapeEdataClass(), configuration.getEdgeValueClass())
+                && ConfigurationUtils.checkTypeConsistency(
+                        configuration.getGrapeVdataClass(), configuration.getVertexValueClass());
     }
 }

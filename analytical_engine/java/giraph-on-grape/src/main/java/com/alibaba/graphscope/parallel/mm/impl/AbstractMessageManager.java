@@ -3,13 +3,13 @@ package com.alibaba.graphscope.parallel.mm.impl;
 import static org.apache.giraph.conf.GiraphConstants.MESSAGE_STORE_FACTORY_CLASS;
 
 import com.alibaba.graphscope.communication.FFICommunicator;
-import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.parallel.DefaultMessageManager;
 import com.alibaba.graphscope.parallel.message.MessageStore;
 import com.alibaba.graphscope.parallel.message.MessageStoreFactory;
 import com.alibaba.graphscope.parallel.mm.GiraphMessageManager;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
-import org.apache.commons.math3.exception.OutOfRangeException;
+
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.utils.ReflectionUtils;
 import org.apache.hadoop.io.Writable;
@@ -28,15 +28,17 @@ import org.apache.hadoop.io.WritableComparable;
  * @param <GS_OID_T>
  */
 public abstract class AbstractMessageManager<
-    OID_T extends WritableComparable,
-    VDATA_T extends Writable,
-    EDATA_T extends Writable,
-    IN_MSG_T extends Writable,
-    OUT_MSG_T extends Writable, GS_VID_T, GS_OID_T>
-    implements
-    GiraphMessageManager<OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T> {
+                OID_T extends WritableComparable,
+                VDATA_T extends Writable,
+                EDATA_T extends Writable,
+                IN_MSG_T extends Writable,
+                OUT_MSG_T extends Writable,
+                GS_VID_T,
+                GS_OID_T>
+        implements GiraphMessageManager<
+                OID_T, VDATA_T, EDATA_T, IN_MSG_T, OUT_MSG_T, GS_VID_T, GS_OID_T> {
 
-    protected SimpleFragment<GS_OID_T, GS_VID_T, ?, ?> fragment;
+    protected IFragment<GS_OID_T, GS_VID_T, ?, ?> fragment;
     protected DefaultMessageManager grapeMessager;
     protected com.alibaba.graphscope.ds.Vertex<GS_VID_T> grapeVertex;
     private FFICommunicator communicator;
@@ -45,7 +47,7 @@ public abstract class AbstractMessageManager<
     private long maxInnerVertexLid;
 
     private MessageStoreFactory<OID_T, IN_MSG_T, MessageStore<OID_T, IN_MSG_T, GS_VID_T>>
-        messageStoreFactory;
+            messageStoreFactory;
     protected volatile MessageStore<OID_T, IN_MSG_T, GS_VID_T> nextIncomingMessageStore;
     protected volatile MessageStore<OID_T, IN_MSG_T, GS_VID_T> currentIncomingMessageStore;
 
@@ -55,44 +57,47 @@ public abstract class AbstractMessageManager<
         return conf;
     }
 
-    public SimpleFragment<GS_OID_T, GS_VID_T, ?, ?> getFragment() {
+    public IFragment<GS_OID_T, GS_VID_T, ?, ?> getFragment() {
         return fragment;
     }
-    public FFICommunicator getCommunicator(){
+
+    public FFICommunicator getCommunicator() {
         return communicator;
     }
 
-    public AbstractMessageManager(SimpleFragment<GS_OID_T, GS_VID_T, ?, ?> fragment,
-        DefaultMessageManager mm,
-        ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf,
-        FFICommunicator communicator) {
+    public AbstractMessageManager(
+            IFragment<GS_OID_T, GS_VID_T, ?, ?> fragment,
+            DefaultMessageManager mm,
+            ImmutableClassesGiraphConfiguration<OID_T, VDATA_T, EDATA_T> conf,
+            FFICommunicator communicator) {
         this.communicator = communicator;
         this.conf = conf;
         this.fragment = fragment;
         this.grapeMessager = mm;
-        this.grapeVertex = (com.alibaba.graphscope.ds.Vertex<GS_VID_T>) FFITypeFactoryhelper.newVertex(
-            conf.getGrapeVidClass());
+        this.grapeVertex =
+                (com.alibaba.graphscope.ds.Vertex<GS_VID_T>)
+                        FFITypeFactoryhelper.newVertex(conf.getGrapeVidClass());
         this.fragId = fragment.fid();
         this.fragNum = fragment.fnum();
         this.maxInnerVertexLid = fragment.getInnerVerticesNum();
 
         messageStoreFactory = createMessageStoreFactory();
         nextIncomingMessageStore = messageStoreFactory.newStore(conf.getIncomingMessageClasses());
-        currentIncomingMessageStore = messageStoreFactory
-            .newStore(conf.getIncomingMessageClasses());
+        currentIncomingMessageStore =
+                messageStoreFactory.newStore(conf.getIncomingMessageClasses());
     }
 
-    private MessageStoreFactory<OID_T, IN_MSG_T, MessageStore<OID_T, IN_MSG_T, GS_VID_T>> createMessageStoreFactory() {
+    private MessageStoreFactory<OID_T, IN_MSG_T, MessageStore<OID_T, IN_MSG_T, GS_VID_T>>
+            createMessageStoreFactory() {
         Class<? extends MessageStoreFactory> messageStoreFactoryClass =
-            MESSAGE_STORE_FACTORY_CLASS.get(conf);
+                MESSAGE_STORE_FACTORY_CLASS.get(conf);
 
         MessageStoreFactory messageStoreFactoryInstance =
-            ReflectionUtils.newInstance(messageStoreFactoryClass);
+                ReflectionUtils.newInstance(messageStoreFactoryClass);
         messageStoreFactoryInstance.initialize(fragment, conf);
 
         return messageStoreFactoryInstance;
     }
-
 
     /**
      * Get the messages received from last round.
@@ -105,7 +110,6 @@ public abstract class AbstractMessageManager<
         checkLid(lid);
         return currentIncomingMessageStore.getMessages(lid);
     }
-
 
     /**
      * Check any message available on this vertex.
@@ -135,8 +139,8 @@ public abstract class AbstractMessageManager<
         grapeMessager.ForceContinue();
     }
 
-    protected void checkLid(long lid){
-        if (lid >= maxInnerVertexLid){
+    protected void checkLid(long lid) {
+        if (lid >= maxInnerVertexLid) {
             throw new IndexOutOfBoundsException("lid: " + lid + " max lid " + maxInnerVertexLid);
         }
     }

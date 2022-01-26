@@ -8,7 +8,7 @@ import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.ds.adaptor.AdjList;
 
-public interface SimpleFragment<OID_T, VID_T, VDATA_T, EDATA_T> {
+public interface IFragment<OID_T, VID_T, VDATA_T, EDATA_T> {
 
     /**
      * Return the underlying fragment type,i.e. ArrowProjected or Simple.

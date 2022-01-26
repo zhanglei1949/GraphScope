@@ -1,8 +1,9 @@
 package org.apache.giraph.graph.impl;
 
 import com.alibaba.graphscope.ds.Vertex;
-import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
+
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.graph.VertexDataManager;
 import org.apache.hadoop.io.DoubleWritable;
@@ -12,29 +13,35 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Vertex data type = double
+ *
  * @param <VDATA_T>
  * @param <GRAPE_OID_T>
  * @param <GRAPE_VID_T>
  * @param <GRAPE_VDATA_T>
  * @param <GRAPE_EDATA_T>
  */
-public class LongVidDoubleVertexDataManagerImpl<VDATA_T extends Writable,GRAPE_OID_T,GRAPE_VID_T,GRAPE_VDATA_T,GRAPE_EDATA_T> implements
-    VertexDataManager<VDATA_T> {
+public class LongVidDoubleVertexDataManagerImpl<
+                VDATA_T extends Writable, GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T>
+        implements VertexDataManager<VDATA_T> {
 
-    private static Logger logger = LoggerFactory.getLogger(LongVidDoubleVertexDataManagerImpl.class);
+    private static Logger logger =
+            LoggerFactory.getLogger(LongVidDoubleVertexDataManagerImpl.class);
 
-    private SimpleFragment<GRAPE_OID_T,GRAPE_VID_T,GRAPE_VDATA_T,GRAPE_EDATA_T> fragment;
+    private IFragment<GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> fragment;
     private long vertexNum;
-    private ImmutableClassesGiraphConfiguration<?, VDATA_T,?> conf;
+    private ImmutableClassesGiraphConfiguration<?, VDATA_T, ?> conf;
     private Vertex<Long> grapeVertex;
 
-    public LongVidDoubleVertexDataManagerImpl(SimpleFragment<GRAPE_OID_T,GRAPE_VID_T,GRAPE_VDATA_T,GRAPE_EDATA_T> fragment, long vertexNum,
-        ImmutableClassesGiraphConfiguration<?,VDATA_T,?> configuration) {
+    public LongVidDoubleVertexDataManagerImpl(
+            IFragment<GRAPE_OID_T, GRAPE_VID_T, GRAPE_VDATA_T, GRAPE_EDATA_T> fragment,
+            long vertexNum,
+            ImmutableClassesGiraphConfiguration<?, VDATA_T, ?> configuration) {
         this.fragment = fragment;
         this.vertexNum = vertexNum;
         this.conf = configuration;
 
-        if (!conf.getGrapeVidClass().equals(Long.class) || !conf.getGrapeVdataClass().equals(Double.class)){
+        if (!conf.getGrapeVidClass().equals(Long.class)
+                || !conf.getGrapeVdataClass().equals(Double.class)) {
             throw new IllegalStateException("Expect fragment with long vid and double vdata");
         }
         grapeVertex = FFITypeFactoryhelper.newVertex(Long.class);

@@ -18,7 +18,8 @@
 
 package com.alibaba.graphscope.parallel.message;
 
-import com.alibaba.graphscope.fragment.SimpleFragment;
+import com.alibaba.graphscope.fragment.IFragment;
+
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.conf.MessageClasses;
 import org.apache.hadoop.io.Writable;
@@ -31,8 +32,7 @@ import org.apache.hadoop.io.WritableComparable;
  * @param <M> Message data
  * @param <MS> Message store
  */
-public interface MessageStoreFactory<I extends WritableComparable,
-    M extends Writable, MS> {
+public interface MessageStoreFactory<I extends WritableComparable, M extends Writable, MS> {
     /**
      * Creates new message store.
      *
@@ -42,12 +42,10 @@ public interface MessageStoreFactory<I extends WritableComparable,
     MS newStore(MessageClasses<I, M> messageClasses);
 
     /**
-     * Implementation class should use this method of initialization
-     * of any required internal state.
+     * Implementation class should use this method of initialization of any required internal state.
      *
      * @param fragment fragment used for partition querying
      * @param conf Configuration
      */
-    void initialize(SimpleFragment fragment,
-        ImmutableClassesGiraphConfiguration<I, ?, ?> conf);
+    void initialize(IFragment fragment, ImmutableClassesGiraphConfiguration<I, ?, ?> conf);
 }

@@ -163,7 +163,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
           env->CallStaticObjectMethod(json_class, parse_method, args_jstring);
       CHECK_NOTNULL(json_object);
       const char* descriptor =
-          "(Lcom/alibaba/graphscope/fragment/SimpleFragment;"
+          "(Lcom/alibaba/graphscope/fragment/IFragment;"
           "Lcom/alibaba/graphscope/parallel/DefaultMessageManager;"
           "Lcom/alibaba/fastjson/JSONObject;)V";
 
@@ -192,8 +192,7 @@ class JavaPIEDefaultContext : public grape::ContextBase {
       jclass context_class = env->FindClass(context_class_name_);
       CHECK_NOTNULL(context_class);
 
-      const char* descriptor =
-          "(Lcom/alibaba/graphscope/fragment/SimpleFragment;)V";
+      const char* descriptor = "(Lcom/alibaba/graphscope/fragment/IFragment;)V";
       jmethodID output_methodID =
           env->GetMethodID(context_class, "Output", descriptor);
       CHECK_NOTNULL(output_methodID);

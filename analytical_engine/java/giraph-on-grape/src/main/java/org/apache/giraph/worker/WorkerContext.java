@@ -18,12 +18,8 @@
 
 package org.apache.giraph.worker;
 
-import com.alibaba.graphscope.fragment.SimpleFragment;
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
+import com.alibaba.graphscope.fragment.IFragment;
+
 import org.apache.giraph.graph.AggregatorManager;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -31,30 +27,34 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+
 /**
  * WorkerContext allows for the execution of user code on a per-worker basis. There's one
  * WorkerContext per worker.
- * <p>
- * Giraph worker context is abstract. Our implementation should contains all necessary interfaces
+ *
+ * <p>Giraph worker context is abstract. Our implementation should contains all necessary interfaces
  * needed. see {@link org.apache.giraph.worker.impl.DefaultWorkerContext}
  */
 @SuppressWarnings("rawtypes")
 public abstract class WorkerContext
-    implements WorkerAggregator, Writable, WorkerIndexUsage<WritableComparable> {
+        implements WorkerAggregator, Writable, WorkerIndexUsage<WritableComparable> {
 
     private static Logger logger = LoggerFactory.getLogger(WorkerContext.class);
 
-    private SimpleFragment fragment;
-    /**
-     * Set to -1, so if not manually set, error will be reported.
-     */
+    private IFragment fragment;
+    /** Set to -1, so if not manually set, error will be reported. */
     private int curStep = -1;
+
     private AggregatorManager aggregatorManager;
 
-    public void setFragment(SimpleFragment fragment) {
+    public void setFragment(IFragment fragment) {
         this.fragment = fragment;
     }
-
 
     public void setAggregatorManager(AggregatorManager aggregatorManager) {
         this.aggregatorManager = aggregatorManager;
@@ -95,8 +95,8 @@ public abstract class WorkerContext
 
     /**
      * Get number of workers.
-     * <p>
-     * We use fragment fnum to represent fragment number.
+     *
+     * <p>We use fragment fnum to represent fragment number.
      *
      * @return Number of workers
      */
@@ -143,16 +143,14 @@ public abstract class WorkerContext
     /**
      * Send message to another worker
      *
-     * @param message     Message to send
+     * @param message Message to send
      * @param workerIndex Index of the worker to send the message to
      */
     public void sendMessageToWorker(Writable message, int workerIndex) {
         logger.error("Not implemented");
     }
 
-    /**
-     * Execute user code. This method is executed once on each Worker after each superstep ends.
-     */
+    /** Execute user code. This method is executed once on each Worker after each superstep ends. */
     public abstract void postSuperstep();
 
     /**
@@ -211,21 +209,17 @@ public abstract class WorkerContext
     }
 
     @Override
-    public void write(DataOutput dataOutput) throws IOException {
-    }
+    public void write(DataOutput dataOutput) throws IOException {}
 
     @Override
-    public void readFields(DataInput dataInput) throws IOException {
-    }
+    public void readFields(DataInput dataInput) throws IOException {}
 
-    /**
-     * Methods provided by CommunicatorImpl.
-     */
+    /** Methods provided by CommunicatorImpl. */
 
     /**
      * Reduce value by name.
      *
-     * @param name  key
+     * @param name key
      * @param value value
      */
     @Override
@@ -234,7 +228,6 @@ public abstract class WorkerContext
             logger.error("Set communicator first");
             return;
         }
-
     }
 
     @Override
@@ -251,7 +244,7 @@ public abstract class WorkerContext
             logger.error("Set communicator first");
             return null;
         }
-        //TODO: fix
+        // TODO: fix
         return null;
     }
 
