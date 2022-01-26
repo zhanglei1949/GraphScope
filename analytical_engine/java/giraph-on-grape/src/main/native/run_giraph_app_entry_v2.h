@@ -43,11 +43,11 @@ std::shared_ptr<GRAPH_TYPE> LoadGiraphFragment(
     const std::string& efile, const std::string& vertex_input_format_class,
     const std::string& ipc_socket, bool directed) {
   // construct graph info
-  auto graph = std::make_shared<detail::Graph>();
+  auto graph = std::make_shared<gs::detail::Graph>();
   graph->directed = directed;
   graph->generate_eid = false;
 
-  auto vertex = std::make_shared<detail::Vertex>();
+  auto vertex = std::make_shared<gs::detail::Vertex>();
   vertex->label = "label1";
   vertex->vid = "0";
   vertex->protocol = "giraph";
@@ -85,7 +85,7 @@ std::shared_ptr<GRAPH_TYPE> LoadGiraphFragment(
 
   MPI_Barrier(comm_spec.comm());
   std::shared_ptr<FragmentType> fragment =
-      std::dynamic_pointer_cast<GRAPH_TYPE>(client.GetObject(id));
+      std::dynamic_pointer_cast<GRAPH_TYPE>(client.GetObject(fragment_id));
   return fragment;
 
   //   Run(client, comm_spec, fragment_id, run_projected, run_property,
@@ -103,6 +103,7 @@ void CreateAndQuery(std::string params) {
   std::string vfile = getFromPtree<std::string>(pt, OPTION_VFILE);
   std::string vertex_input_format_class =
       getFromPtree<std::string>(pt, OPTION_VERTEX_INPUT_FORMAT_CLASS);
+  std::string ipc_socket = getFromPtree<std::string>(pt, OPTION_IPC_SOCKET);
   bool directed = getFromPtree<bool>(pt, OPTION_DIRECTED);
   VLOG(1) << "efile: " << efile << ", vfile: " << vfile
           << " vifc: " << vertex_input_format_class << "directed: " << directed;
@@ -111,8 +112,8 @@ void CreateAndQuery(std::string params) {
   }
 
   std::shared_ptr<GRAPH_TYPE> fragment;
-  fragment = LoadGiraphFragment(comm_spec, efile, vfile,
-                                vertex_input_format_class, directed);
+  fragment = LoadGiraphFragment(
+      comm_spec, efile, vfile, vertex_input_format_class, ipc_socket, directed);
 
   VLOG(1) << fragment->fid()
           << ",total vertex num: " << fragment->GetTotalVerticesNum()

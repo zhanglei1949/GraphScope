@@ -40,6 +40,7 @@ DEFINE_string(serialize_prefix, "",
               "where to load/store the serialization files");
 DEFINE_bool(grape_loader, false, "whether to use grape loader rather than udf loader");
 DEFINE_bool(directed, true, "load direct graph or indirect graph");
+DEFINE_string(ipc_socket, "/tmp/vineyard.sock", "vineyard socket");
 
 inline void* open_lib(const char* path) {
   void* handle = dlopen(path, RTLD_LAZY);
@@ -86,6 +87,7 @@ std::string flags2JsonStr() {
   pt.put("serialize_prefix", FLAGS_serialize_prefix);
   pt.put("grape_loader", FLAGS_grape_loader);
   pt.put("directed", FLAGS_directed);
+  pt.put("ipc_socket", FLAGS_ipc_socket);
 
 
   std::stringstream ss;
