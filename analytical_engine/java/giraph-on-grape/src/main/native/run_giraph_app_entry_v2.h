@@ -22,11 +22,11 @@
 #include "utils.h"
 
 namespace grape {
-using GRAPH_TYPE =
+using FragmentType =
     vineyard::ArrowFragment<vineyard::property_graph_types::OID_TYPE,
                             vineyard::property_graph_types::VID_TYPE>;
 
-// using LOADER_TYPE = grape::GiraphFragmentLoader<GRAPH_TYPE>;
+// using LOADER_TYPE = grape::GiraphFragmentLoader<FragmentType>;
 
 void Init(const std::string& params) {
   grape::InitMPIComm();
@@ -38,7 +38,7 @@ void Init(const std::string& params) {
   verifyClasses(params);
 }
 
-std::shared_ptr<GRAPH_TYPE> LoadGiraphFragment(
+std::shared_ptr<FragmentType> LoadGiraphFragment(
     const grape::CommSpec& comm_spec, const std::string& vfile,
     const std::string& efile, const std::string& vertex_input_format_class,
     const std::string& ipc_socket, bool directed) {
@@ -85,7 +85,7 @@ std::shared_ptr<GRAPH_TYPE> LoadGiraphFragment(
 
   MPI_Barrier(comm_spec.comm());
   std::shared_ptr<FragmentType> fragment =
-      std::dynamic_pointer_cast<GRAPH_TYPE>(client.GetObject(id));
+      std::dynamic_pointer_cast<FragmentType>(client.GetObject(id));
   return fragment;
 
   //   Run(client, comm_spec, fragment_id, run_projected, run_property,
@@ -110,7 +110,7 @@ void CreateAndQuery(std::string params) {
     LOG(FATAL) << "Make sure efile and vfile are avalibale";
   }
 
-  std::shared_ptr<GRAPH_TYPE> fragment;
+  std::shared_ptr<FragmentType> fragment;
   fragment = LoadGiraphFragment(comm_spec, efile, vfile,
                                 vertex_input_format_class, directed);
 

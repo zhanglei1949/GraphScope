@@ -568,11 +568,11 @@ class ArrowFragmentLoader {
           } else {
             VLOG(2) << "vertex table is null";
           }
-        } else if (vertices[i]->protocal == "giraph") {
+        } else if (vertices[i]->protocol == "giraph") {
           BOOST_LEAF_ASSIGN(
               table,
               readTableFromGiraph(true, vertices[i]->values, index,
-                                  totoal_parts));  // true means to load vertex.
+                                  total_parts));  // true means to load vertex.
         } else {
           // Let the IOFactory to parse other protocols.
           auto path = vertices[i]->values;
@@ -773,7 +773,7 @@ class ArrowFragmentLoader {
           } else if (sub_labels[j].protocol == "giraph") {
             BOOST_LEAF_ASSIGN(
                 table, readTableFromGiraph(false, sub_labels[j].values, index,
-                                           totoal_parts));
+                                           total_parts));
           } else {
             // Let the IOFactory to parse other protocols.
             BOOST_LEAF_ASSIGN(table, readTableFromLocation(sub_labels[j].values,

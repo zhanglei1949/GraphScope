@@ -3,10 +3,11 @@
 #define JAVA_LOADER_INVOKER_H
 
 #include <vector>
-#include "arrow/array/array.h"
-#include "arrow/array/builder/builder_binary.h"
+#include "arrow/array.h"
+#include "arrow/array/builder_binary.h"
 #include "core/java/javasdk.h"
 #include "grape/grape.h"
+#include "grape/util.h"
 #include "vineyard/graph/loader/arrow_fragment_loader.h"
 
 namespace gs {
@@ -40,19 +41,19 @@ class JavaLoaderInvoker {
     worker_num_ = worker_num;
     load_thread_num = 1;
     if (getenv("LOAD_THREAD_NUM")) {
-      load_thread_num = atoi(getenv("USER_JAR_PATH").c_str());
+      load_thread_num = atoi(getenv("USER_JAR_PATH"));
     }
-    oids = new std::vector<std::vector<char>>(load_thread_num);
-    vdatas = new std::vector<std::vector<char>>(load_thread_num);
-    esrcs = new std::vector<std::vector<char>>(load_thread_num);
-    edsts = new std::vector<std::vector<char>>(load_thread_num);
-    edatas = new std::vector<std::vector<char>>(load_thread_num);
+    oids.resize(load_thread_num);
+    vdatas.resize(load_thread_num);
+    esrcs.resize(load_thread_num);
+    edsts.resize(load_thread_num);
+    edatas.resize(load_thread_num);
 
-    oid_offsets = new std::vector<std::vector<int>>(load_thread_num);
-    vdata_offsets = new std::vector<std::vector<int>>(load_thread_num);
-    esrc_offsets = new std::vector<std::vector<int>>(load_thread_num);
-    edst_offsets = new std::vector<std::vector<int>>(load_thread_num);
-    edata_offsets = new std::vector<std::vector<int>>(load_thread_num);
+    oid_offsets.resize(load_thread_num);
+    vdata_offsets.resize(load_thread_num);
+    esrc_offsets.resize(load_thread_num);
+    edst_offsets.resize(load_thread_num);
+    edata_offsets.resize(load_thread_num);
     // Construct the FFIPointer
     create_FFIPointers();
 
@@ -60,18 +61,15 @@ class JavaLoaderInvoker {
   }
 
   ~JavaLoaderInvoker() {
-    delete oids, vdatas, esrcs, edsts, edatas;
-    delete oid_offsets, vdata_offsets, esrc_offsets, edst_offsets,
-        edata_offsets;
   }
 
   void load_vertices_and_edges(const std::string& vertex_location) {
     size_t arg_pos = vertex_location.find_first_of('#');
     if (arg_pos != std::string::npos) {
-      char* file_path = vertex_location.substr(0, arg_pos).c_str();
+      const char* file_path = vertex_location.substr(0, arg_pos).c_str();
       std::string vertex_input_format_class =
           vertex_location.substr(arg_pos + 1);
-      char* vertex_input_format_class_cstr =
+      const char* vertex_input_format_class_cstr =
           JavaClassNameDashToSlash(vertex_input_format_class);
       call_java_loader(file_path, vertex_input_format_class_cstr);
     } else {
@@ -83,7 +81,7 @@ class JavaLoaderInvoker {
     LOG(ERROR) << "not implemented";
   }
 
-  std::shared_ptr<Arrow::table> get_edge_table() {
+  std::shared_ptr<arrow::Table> get_edge_table() {
     // copy the data in std::vector<char> to arrowBinary builder.
     int64_t esrc_total_length = 0, edst_total_length = 0,
             edata_total_length = 0;
@@ -116,7 +114,7 @@ class JavaLoaderInvoker {
     edata_array_builder.Reserve(edata_total_length);  // the number of elements
     edata_array_builder.ReserveData(edata_total_bytes);
 
-    double edgeTableBuildingTime = -GetCurrentTime();
+    double edgeTableBuildingTime = -grape::GetCurrentTime();
 
     for (int i = 0; i < load_thread_num; ++i) {
       std::vector<char> cur_esrc_array = esrcs[i];
@@ -131,7 +129,7 @@ class JavaLoaderInvoker {
       std::vector<char>::iterator edst_iter = cur_edst_array.begin();
       std::vector<char>::iterator edata_iter = cur_edata_array.begin();
 
-      for (int j = 0; j < cur_esrc_offset.size(); ++j) {
+      for (size_t j = 0; j < cur_esrc_offset.size(); ++j) {
         std::string tmp_esrc(esrc_iter, esrc_iter + cur_esrc_offset[j]);
         std::string tmp_edst(edst_iter, edst_iter + cur_edst_offset[j]);
         std::string tmp_edata(edata_iter, edata_iter + cur_edata_offset[j]);
@@ -163,16 +161,16 @@ class JavaLoaderInvoker {
     auto res =
         arrow::Table::Make(schema, {esrc_array, edst_array, edata_array});
     VLOG(1) << "worker " << worker_id_
-            << " generated table, rows:" << res.num_rows()
-            << " cols: " << res.num_columns() << ": " << res.ToString();
+            << " generated table, rows:" << res->num_rows()
+            << " cols: " << res->num_columns() << ": " << res->ToString();
 
-    edgeTableBuildingTime += GetCurrentTIme();
+    edgeTableBuildingTime += grape::GetCurrentTime();
     VLOG(1) << "worker " << worker_id_
             << " Building vertex table cost: " << edgeTableBuildingTime;
     return res;
   }
 
-  std::shared_ptr<Arrow::table> get_vertex_table() {
+  std::shared_ptr<arrow::Table> get_vertex_table() {
     // copy the data in std::vector<char> to arrowBinary builder.
     int64_t oid_length = 0;
     int64_t oid_total_bytes = 0;
@@ -198,7 +196,7 @@ class JavaLoaderInvoker {
     vdata_array_builder.Reserve(vdata_total_length);
     vdata_array_builder.ReserveData(vdata_total_bytes);
 
-    double vertexTableBuildingTime = -GetCurrentTime();
+    double vertexTableBuildingTime = -grape::GetCurrentTime();
 
     for (int i = 0; i < load_thread_num; ++i) {
       std::vector<char> cur_oid_array = oids[i];
@@ -209,7 +207,7 @@ class JavaLoaderInvoker {
       std::vector<char>::iterator oid_iter = cur_oid_array.begin();
       std::vector<char>::iterator vdata_iter = cur_vdata_array.begin();
 
-      for (int j = 0; j < cur_oid_offset.size(); ++j) {
+      for (size_t j = 0; j < cur_oid_offset.size(); ++j) {
         std::string tmp_oid(oid_iter, oid_iter + cur_oid_offset[j]);
         std::string tmp_vdata(vdata_iter, vdata_iter + cur_vdata_offset[j]);
         oid_iter += cur_oid_offset[j];
@@ -234,10 +232,10 @@ class JavaLoaderInvoker {
 
     auto res = arrow::Table::Make(schema, {oid_array, vdata_array});
     VLOG(1) << "worker " << worker_id_
-            << " generated table, rows:" << res.num_rows()
-            << " cols: " << res.num_columns() << ": " << res.ToString();
+            << " generated table, rows:" << res->num_rows()
+            << " cols: " << res->num_columns() << ": " << res->ToString();
 
-    vertexTableBuildingTime += GetCurrentTIme();
+    vertexTableBuildingTime += grape::GetCurrentTime();
     VLOG(1) << "worker " << worker_id_
             << " Building vertex table cost: " << vertexTableBuildingTime;
     return res;
@@ -253,36 +251,36 @@ class JavaLoaderInvoker {
       {
         oids_jobj =
             gs::CreateFFIPointer(env, DATA_VECTOR_VECTOR, gs_class_loader_obj,
-                                 reinterpret_cast<jlong>(oids));
+                                 reinterpret_cast<jlong>(&oids));
         vdatas_jobj =
             gs::CreateFFIPointer(env, DATA_VECTOR_VECTOR, gs_class_loader_obj,
-                                 reinterpret_cast<jlong>(vdatas));
+                                 reinterpret_cast<jlong>(&vdatas));
         esrcs_jobj =
             gs::CreateFFIPointer(env, DATA_VECTOR_VECTOR, gs_class_loader_obj,
-                                 reinterpret_cast<jlong>(esrcs));
+                                 reinterpret_cast<jlong>(&esrcs));
         edsts_jobj =
             gs::CreateFFIPointer(env, DATA_VECTOR_VECTOR, gs_class_loader_obj,
-                                 reinterpret_cast<jlong>(edsts));
+                                 reinterpret_cast<jlong>(&edsts));
         edatas_jobj =
             gs::CreateFFIPointer(env, DATA_VECTOR_VECTOR, gs_class_loader_obj,
-                                 reinterpret_cast<jlong>(edatas));
+                                 reinterpret_cast<jlong>(&edatas));
       }
       {
         oid_offsets_jobj =
             gs::CreateFFIPointer(env, OFFSET_VECTOR_VECTOR, gs_class_loader_obj,
-                                 reinterpret_cast<jlong>(oid_offsets));
+                                 reinterpret_cast<jlong>(&oid_offsets));
         vdata_offsets_jobj =
             gs::CreateFFIPointer(env, DATA_VECTOR_VECTOR, gs_class_loader_obj,
-                                 reinterpret_cast<jlong>(vdata_offsets));
+                                 reinterpret_cast<jlong>(&vdata_offsets));
         esrc_offsets_jobj =
             gs::CreateFFIPointer(env, OFFSET_VECTOR_VECTOR, gs_class_loader_obj,
-                                 reinterpret_cast<jlong>(esrc_offsets));
+                                 reinterpret_cast<jlong>(&esrc_offsets));
         edst_offsets_jobj =
             gs::CreateFFIPointer(env, OFFSET_VECTOR_VECTOR, gs_class_loader_obj,
-                                 reinterpret_cast<jlong>(edst_offsets));
+                                 reinterpret_cast<jlong>(&edst_offsets));
         edata_offsets_jobj =
             gs::CreateFFIPointer(env, OFFSET_VECTOR_VECTOR, gs_class_loader_obj,
-                                 reinterpret_cast<jlong>(edata_offsets));
+                                 reinterpret_cast<jlong>(&edata_offsets));
       }
     }
     VLOG(1) << "Finish creating ffi wrappers";
@@ -328,7 +326,7 @@ class JavaLoaderInvoker {
 
       jstring file_path_jstring = env->NewStringUTF(file_path);
       jstring java_class_jstring = env->NewStringUTF(java_class);
-      double javaLoadingTime = -GetCurrentTime();
+      double javaLoadingTime = -grape::GetCurrentTime();
 
       env->CallStaticVoidMethod(loader_class, loader_method, file_path_jstring,
                                 java_class_jstring);
@@ -339,7 +337,7 @@ class JavaLoaderInvoker {
         return;
       }
 
-      javaLoadingTime += GetCurrentTime();
+      javaLoadingTime += grape::GetCurrentTime();
       VLOG(1) << "Successfully Loaded graph data from Java loader, duration: "
               << javaLoadingTime;
     } else {
@@ -348,17 +346,17 @@ class JavaLoaderInvoker {
   }
 
   int worker_id_, worker_num_, load_thread_num;
-  std::vector<std::vector<char>>* oids;
-  std::vector<std::vector<char>>* vdatas;
-  std::vector<std::vector<char>>* esrcs;
-  std::vector<std::vector<char>>* edsts;
-  std::vector<std::vector<char>>* edatas;
+  std::vector<std::vector<char>> oids;
+  std::vector<std::vector<char>> vdatas;
+  std::vector<std::vector<char>> esrcs;
+  std::vector<std::vector<char>> edsts;
+  std::vector<std::vector<char>> edatas;
 
-  std::vector<std::vector<int>>* oid_offsets;
-  std::vector<std::vector<int>>* vdata_offsets;
-  std::vector<std::vector<int>>* esrc_offsets;
-  std::vector<std::vector<int>>* edst_offsets;
-  std::vector<std::vector<int>>* edata_offsets;
+  std::vector<std::vector<int>> oid_offsets;
+  std::vector<std::vector<int>> vdata_offsets;
+  std::vector<std::vector<int>> esrc_offsets;
+  std::vector<std::vector<int>> edst_offsets;
+  std::vector<std::vector<int>> edata_offsets;
 
   jobject gs_class_loader_obj;
 
