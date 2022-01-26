@@ -822,6 +822,13 @@ class CoordinatorServiceServicer(
                 )
                 func.attr[types_pb2.PROTOCOL].CopyFrom(utils.s_to_attr(new_protocol))
                 func.attr[types_pb2.VALUES].CopyFrom(utils.s_to_attr(new_source))
+            if protocol in ("giraph"):
+                source = func.attr[types_pb2.VALUES].s.decode()
+                storage_options = json.loads(
+                    func.attr[types_pb2.STORAGE_OPTIONS].s.decode()
+                )
+                new_source = "{}#{}".format(source, storage_options)
+                func.attr[types_pb2.VALUES].CopyFrom(utils.s_to_attr(new_source))
 
         for label in op.attr[types_pb2.ARROW_PROPERTY_DEFINITION].list.func:
             # vertex label or edge label

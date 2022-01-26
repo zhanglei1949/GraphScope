@@ -14,7 +14,7 @@ limitations under the License.
 */
 
 #include <string>
-#include "run_giraph_app_entry.h"
+#include "run_giraph_app_entry_v2.h"
 
 extern "C"{
 void Run(std::string params) {

@@ -69,6 +69,17 @@ public class ImmutableClassesGiraphConfiguration<I extends WritableComparable,
 
     private static String DEFAULT_WORKER_FILE_PREFIX= "giraph-on-grape";
 
+    /**
+     * Non- simplefragment parameterized constructor use for VertexInputForm.
+     * @param configuration configuration.
+     */
+    public ImmutableClassesGiraphConfiguration(Configuration configuration){
+        super(configuration);
+        classes = new GiraphClasses<I,V,E>(configuration);
+        useUnsafeSerialization = USE_UNSAFE_SERIALIZATION.get(this);
+        inetAddressMaxResolveTime = INET_ADDRESS_MAX_RESOLVE_TIMES.get(configuration);
+        grapeClasses = null;
+    }
 
     public ImmutableClassesGiraphConfiguration(Configuration configuration, SimpleFragment fragment){
         super(configuration);

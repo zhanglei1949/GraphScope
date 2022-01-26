@@ -16,6 +16,11 @@ public class FFIByteVectorOutputStream extends OutputStream
         vector = (FFIByteVector) FFIByteVectorFactory.INSTANCE.create();
         offset = 0;
     }
+
+    public FFIByteVectorOutputStream(FFIByteVector vector){
+        this.vector = vector;
+        offset = 0;
+    }
     
     public void resize(long size){
         vector.resize(size);

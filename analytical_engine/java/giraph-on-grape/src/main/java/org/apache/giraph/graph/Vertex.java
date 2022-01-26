@@ -18,6 +18,7 @@
 
 package org.apache.giraph.graph;
 
+import org.apache.giraph.conf.ImmutableClassesGiraphConfigurable;
 import org.apache.giraph.edge.Edge;
 import org.apache.giraph.edge.MutableEdge;
 import org.apache.hadoop.io.Writable;
@@ -31,7 +32,8 @@ import org.apache.hadoop.io.WritableComparable;
  * @param <EDATA_T> EDATA_Tdge data
  */
 public interface Vertex<
-        OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable> {
+        OID_T extends WritableComparable, VDATA_T extends Writable, EDATA_T extends Writable> extends
+    ImmutableClassesGiraphConfigurable<OID_T, VDATA_T, EDATA_T> {
     /**
      * Initialize id, value, and edges. This method (or the alternative form initialize(id, value))
      * must be called after instantiation, unless readFields() is called.

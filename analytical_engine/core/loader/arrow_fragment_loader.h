@@ -16,6 +16,7 @@
 #ifndef ANALYTICAL_ENGINE_CORE_LOADER_ARROW_FRAGMENT_LOADER_H_
 #define ANALYTICAL_ENGINE_CORE_LOADER_ARROW_FRAGMENT_LOADER_H_
 
+#include <jni.h>
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -39,6 +40,7 @@
 
 #include "core/error.h"
 #include "core/io/property_parser.h"
+#include "core/java/java_loader_invoker.h"
 
 #define HASH_PARTITION
 
@@ -400,6 +402,27 @@ class ArrowFragmentLoader {
   }
 
  private:
+  // Location like giraph://filename#input_format_class=className
+  boost::leaf::result<std::shared_ptr<arrow::Table>> readTableFromGiraph(
+      bool load_vertex, const std::string& location, int index,
+      int total_parts) {
+    VLOG(1) << "location: " << location;
+    static JavaLoaderInvoker java_loader_invoker =
+        new JavaLoaderInvoker(index, total_parts);
+    if (load_vertex) {
+      // There are cases both vertex and edges are specified in vertex file.
+      // In this case, we load the data in this function, and suppose call
+      // add_edges will be called(empty location),
+      // if location is empty, we just return the previous loaded data.
+      java_loader_invoker.load_vertices_and_edges(location);
+      return java_loader_invoker.get_vertex_table();
+    } else {
+      java_loader_invoker.load_edges(location);
+      return java_loader_invoker.get_edge_table();
+    }
+    // once set, we will read.
+  }
+
   boost::leaf::result<std::shared_ptr<arrow::Table>> readTableFromPandas(
       const std::string& data) {
     std::shared_ptr<arrow::Table> table;
@@ -545,6 +568,11 @@ class ArrowFragmentLoader {
           } else {
             VLOG(2) << "vertex table is null";
           }
+        } else if (vertices[i]->protocal == "giraph") {
+          BOOST_LEAF_ASSIGN(
+              table,
+              readTableFromGiraph(true, vertices[i]->values, index,
+                                  totoal_parts));  // true means to load vertex.
         } else {
           // Let the IOFactory to parse other protocols.
           auto path = vertices[i]->values;
@@ -742,6 +770,10 @@ class ArrowFragmentLoader {
               VLOG(2) << "schema of edge table: "
                       << table->schema()->ToString();
             }
+          } else if (sub_labels[j].protocol == "giraph") {
+            BOOST_LEAF_ASSIGN(
+                table, readTableFromGiraph(false, sub_labels[j].values, index,
+                                           totoal_parts));
           } else {
             // Let the IOFactory to parse other protocols.
             BOOST_LEAF_ASSIGN(table, readTableFromLocation(sub_labels[j].values,

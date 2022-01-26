@@ -35,6 +35,11 @@ public class VertexImpl<
     /** EdgeManager manages all vertex's edges. */
     private EdgeManager<OID_T, EDATA_T> edgeManager;
 
+    //data set in initialization.
+    private OID_T initializeOid;
+    private VDATA_T initializeVdata;
+    private Iterable<Edge<OID_T,EDATA_T>> initializeEdges;
+
     public VertexImpl(GiraphComputationAdaptorContext ctx) {
         lid = -1; // set to a negative value to ensure set lid to be called later.
         this.giraphComputationContext = ctx;
@@ -74,7 +79,9 @@ public class VertexImpl<
      */
     @Override
     public void initialize(OID_T id, VDATA_T value, Iterable<Edge<OID_T, EDATA_T>> edges) {
-        logger.error("Initialization not implemented");
+        initializeOid = id;
+        initializeVdata = value;
+        initializeEdges = edges;
     }
 
     /**
@@ -87,7 +94,8 @@ public class VertexImpl<
      */
     @Override
     public void initialize(OID_T id, VDATA_T value) {
-        logger.error("Initialization not implemented");
+        initializeOid = id;
+        initializeVdata = value;
     }
 
     /**

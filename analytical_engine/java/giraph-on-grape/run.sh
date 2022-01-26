@@ -28,7 +28,7 @@ GLOG_v=2 mpirun \
 --efile ./lei.e --vfile ./lei.v \
 # com 
 GLOG_v=10 mpirun \
--n 4 \x
+-n 4 \
 -f ~/hostfile \
 -envlist GLOG_v,GRAPE_JVM_OPTS,USER_JAR_PATH,GRAPH_TYPE,APP_TYPE,MAX_SUPER_STEP,MESSAGE_MANAGER_TYPE,OUT_MESSAGE_CACHE_TYPE,MESSAGE_STORE_TYPE \
 ./giraph_runner --app_class com.alibaba.graphscope.samples.MessageBenchMark \
@@ -62,8 +62,12 @@ GLOG_v=10 mpirun \
 
 osscmd multiget --thread_num=16 oss://lei-benchdata/datagen-9_0-fb.v datagen.v
 
-osscmd multiget --thread_num=16 oss://grape-data/com-friendster/evr/com-friendster.v com.v
-osscmd multiget --thread_num=16 oss://grape-data/com-friendster/evr/com-friendster.e com.e
+nohup osscmd multiget --thread_num=16 oss://grape-data/com-friendster/evr/com-friendster.v com.v && nohup osscmd multiget --thread_num=16 oss://grape-data/com-friendster/evr/com-friendster.e com.e &
 
 GLOG_v=10 mpirun -envlist GLOG_v,GRAPE_JVM_OPTS,USER_JAR_PATH,GRAPH_TYPE,APP_TYPE,MAX_SUPER_STEP,MESSAGE_MANAGER_TYPE -n 4 ./giraph_runner --app_class com.alibaba.graphscope.samples.MessageBenchMark  --efile ~/libgrape-lite/dataset/p2p-31.e --vfile ~/libgrape-lite/dataset/p2p-31.v --worker_context_class com.alibaba.graphscope.samples.MessageBenchMark\$MessageBenchMarkWorkerContext --lib_path /opt/graphscope/lib/libgiraph-jni.so --loading_thread_num 1
 # --efile ./datagen-9_0.e --vfile ./datagen-9_0.v \
+
+I0119 19:44:51.927856  4862 message_bench.h:83] Frag [1] send msg size: 36559 in step: 8
+I0119 19:44:51.927870  4861 message_bench.h:83] Frag [0] send msg size: 37340 in step: 8
+I0119 19:44:51.927908  4863 message_bench.h:83] Frag [2] send msg size: 37125 in step: 8
+I0119 19:44:51.927927  4864 message_bench.h:83] Frag [3] send msg size: 36868 in step: 8

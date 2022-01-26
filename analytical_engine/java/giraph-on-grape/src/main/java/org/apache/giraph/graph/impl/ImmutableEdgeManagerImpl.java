@@ -1,5 +1,6 @@
 package org.apache.giraph.graph.impl;
 
+import com.alibaba.graphscope.ds.NbrBase;
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.ds.adaptor.AdjList;
 import com.alibaba.graphscope.ds.adaptor.Nbr;
@@ -272,8 +273,8 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
     public class LongNbrIterator implements Iterator<Edge<OID_T, EDATA_T>> {
 
         private ReusableEdge<OID_T, EDATA_T> edge;
-        private Iterator<Nbr<GRAPE_VID_T, GRAPE_EDATA_T>> nbrIterator;
-        private Nbr<GRAPE_VID_T, GRAPE_EDATA_T> nbr;
+        private Iterator<? extends NbrBase<GRAPE_VID_T, GRAPE_EDATA_T>> nbrIterator;
+        private NbrBase<GRAPE_VID_T, GRAPE_EDATA_T> nbr;
         private FFIByteVectorInputStream inputStream;
 
         /**
@@ -285,8 +286,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
         public LongNbrIterator(Vertex<GRAPE_VID_T> vertex) {
             this.edge = new DefaultEdge<>();
             AdjList<GRAPE_VID_T, GRAPE_EDATA_T> adjList = fragment.getOutgoingAdjList(vertex);
-            this.nbrIterator = adjList.iterable()
-                .iterator(); //The first <iterator> is a method returns a iterator.
+            this.nbrIterator = adjList.nbrBases().iterator();
             edge.setTargetVertexId(configuration.createVertexId());
             edge.setValue(configuration.createEdgeValue());
 
@@ -320,8 +320,8 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
     public class IntNbrIterator implements Iterator<Edge<OID_T, EDATA_T>> {
 
         private ReusableEdge<OID_T, EDATA_T> edge;
-        private Iterator<Nbr<GRAPE_VID_T, GRAPE_EDATA_T>> nbrIterator;
-        private Nbr<GRAPE_VID_T, GRAPE_EDATA_T> nbr;
+        private Iterator<? extends NbrBase<GRAPE_VID_T, GRAPE_EDATA_T>> nbrIterator;
+        private NbrBase<GRAPE_VID_T, GRAPE_EDATA_T> nbr;
         private FFIByteVectorInputStream inputStream;
 
         /**
@@ -333,8 +333,7 @@ public class ImmutableEdgeManagerImpl<OID_T extends WritableComparable, EDATA_T 
         public IntNbrIterator(Vertex<GRAPE_VID_T> vertex) {
             this.edge = new DefaultEdge<>();
             AdjList<GRAPE_VID_T, GRAPE_EDATA_T> adjList = fragment.getOutgoingAdjList(vertex);
-            this.nbrIterator = adjList.iterable()
-                .iterator(); //The first <iterator> is a method returns a iterator.
+            this.nbrIterator = adjList.nbrBases().iterator();
             edge.setTargetVertexId((OID_T) configuration.createVertexId());
             edge.setValue((EDATA_T) configuration.createEdgeValue());
 

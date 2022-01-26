@@ -23,10 +23,24 @@ public class FFIIntVector extends FFIPointerImpl implements StdVector<Integer> {
     public static final int SIZE = _elementSize$$$();
     private long objAddress;
     public static final int HASH_SHIFT;
+    //We don't use reserve to allocate memory ,we use resize.
+    //It seems reserved memory isn't allowed to be set directly.
+    public long size;
+    private int curIndex;
 
     public FFIIntVector(long address) {
         super(address);
         objAddress = JavaRuntime.getLong(address);
+        size = nativeSize(this.address);
+        curIndex = 0;
+    }
+
+    /**
+     * update the cached objAddress.
+     */
+    public void touch(){
+        objAddress = JavaRuntime.getLong(address);
+        size = nativeSize(this.address);
     }
 
     private static final int _elementSize$$$() {
@@ -105,7 +119,16 @@ public class FFIIntVector extends FFIPointerImpl implements StdVector<Integer> {
     }
 
     public void push_back(@CXXValue Integer arg0) {
-        nativePush_back(this.address, arg0);
+        if (size == 0){
+            resize(8);
+            touch();
+        }
+        else if (curIndex >= size){
+            resize(size + (size >> 1));
+            touch();
+        }
+        set(curIndex++, arg0);
+//        nativePush_back(this.address, arg0);
     }
 
     public static native void nativePush_back(long var0, int var2);

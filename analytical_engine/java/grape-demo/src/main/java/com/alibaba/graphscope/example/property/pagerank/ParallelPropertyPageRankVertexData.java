@@ -53,7 +53,7 @@ public class ParallelPropertyPageRankVertexData extends Communicator
         ctx.superStep = 0;
         messageManager.initChannels(ctx.threadNum);
 
-        int totalVertexNum = (int) fragment.getTotalVerticesNum(0);
+        int totalVertexNum = fragment.getTotalVerticesNum(0);
         VertexRange<Long> innerVertices = fragment.innerVertices(0);
         double base = 1.0 / totalVertexNum;
 

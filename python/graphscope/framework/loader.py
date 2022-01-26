@@ -252,6 +252,11 @@ class Loader(object):
             )
         elif self.protocol == "pandas":
             attr.func.attr[types_pb2.VALUES].CopyFrom(utils.bytes_to_attr(self.source))
+        elif self.protocol == "giraph":
+            attr.func.attr[types_pb2.VALUES].CopyFrom(utils.bytes_to_attr(self.source.encode("utf-8")))
+            attr.func.attr[types_pb2.STORAGE_OPTIONS].CopyFrom(
+                    utils.s_to_attr(json.dumps(self.storage_options))
+                )
         else:  # Let vineyard handle other data source.
             attr.func.attr[types_pb2.VALUES].CopyFrom(
                 utils.bytes_to_attr(self.source.encode("utf-8"))
