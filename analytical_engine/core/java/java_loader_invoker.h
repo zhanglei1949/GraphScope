@@ -60,8 +60,7 @@ class JavaLoaderInvoker {
     init_java_loader();
   }
 
-  ~JavaLoaderInvoker() {
-  }
+  ~JavaLoaderInvoker() {}
 
   void load_vertices_and_edges(const std::string& vertex_location) {
     size_t arg_pos = vertex_location.find_first_of('#');
@@ -246,7 +245,10 @@ class JavaLoaderInvoker {
     gs::JNIEnvMark m;
     if (m.env()) {
       JNIEnv* env = m.env();
-      gs_class_loader_obj = gs::CreateClassLoader(env);
+
+      std::string user_jar_path = getenv("USER_JAR_PATH");
+
+      gs_class_loader_obj = gs::CreateClassLoader(env, user_jar_path);
       CHECK_NOTNULL(gs_class_loader_obj);
       {
         oids_jobj =
