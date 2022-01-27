@@ -17,7 +17,7 @@ static constexpr const char* JAVA_LOADER_CLASS =
 static constexpr const char* JAVA_LOADER_LOAD_VE_METHOD =
     "loadVerticesAndEdges";
 static constexpr const char* JAVA_LOADER_LOAD_VE_SIG =
-    "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V";
+    "(Ljava/lang/String;Ljava/lang/String;)V";
 static constexpr const char* JAVA_LOADER_INIT_METHOD = "init";
 static constexpr const char* JAVA_LOADER_INIT_SIG =
     "(IIILcom/alibaba/graphscope/stdcxx/FFIByteVecVector;"
@@ -65,21 +65,16 @@ class JavaLoaderInvoker {
   void load_vertices_and_edges(const std::string& vertex_location) {
     size_t arg_pos = vertex_location.find_first_of('#');
     if (arg_pos != std::string::npos) {
-      size_t sec_arg_pos = vector_location.find_first_of('#', arg_pos + 1);
-      if (sec_arg_pos != std::string::npos) {
-        const char* file_path = vertex_location.substr(0, arg_pos - 1).c_str();
-        std::string vertex_input_format_class =
-            vertex_location.substr(arg_pos + 1, sec_arg_pos - 1);
-        std::string json_params = vertex_location.substr(sec_arg_pos + 1);
-        const char* vertex_input_format_class_cstr =
-            JavaClassNameDashToSlash(vertex_input_format_class);
+      const char* file_path = vertex_location.substr(0, arg_pos - 1).c_str();
+      std::string json_params = vertex_location.substr(arg_pos + 1);
+      VLOG(1) << "input path: " std::string(file_path)
+              << " json params: " << json_params;
 
-        call_java_loader(file_path, vertex_input_format_class_cstr,
-                         json_params.c_str());
-      } else {
-        LOG(ERROR) << "Second # not found, please provide giraph json params";
-      }
+      call_java_loader(file_path, json_params.c_str());
     } else {
+      LOG(ERROR) << "Second # not found, please provide giraph json params";
+    }
+    else {
       LOG(ERROR) << "No # found in vertex location";
     }
   }
@@ -322,8 +317,7 @@ class JavaLoaderInvoker {
     VLOG(1) << "Successfully init java loader with params ";
   }
 
-  void call_java_loader(const char* file_path, const char* java_class,
-                        const char* java_params) {
+  void call_java_loader(const char* file_path, const char* java_params) {
     gs::JNIEnvMark m;
     if (m.env()) {
       JNIEnv* env = m.env();
@@ -336,12 +330,11 @@ class JavaLoaderInvoker {
       CHECK_NOTNULL(loader_method);
 
       jstring file_path_jstring = env->NewStringUTF(file_path);
-      jstring java_class_jstring = env->NewStringUTF(java_class);
       jstring java_params_jstring = env->NewStringUTF(java_params);
       double javaLoadingTime = -grape::GetCurrentTime();
 
       env->CallStaticVoidMethod(loader_class, loader_method, file_path_jstring,
-                                java_class_jstring, java_params_jstring);
+                                java_params_jstring);
       if (env->ExceptionCheck()) {
         env->ExceptionDescribe();
         env->ExceptionClear();

@@ -94,26 +94,25 @@ public class FileLoader implements LoaderBase {
     /**
      *
      * @param inputPath
-     * @param vertexInputFormatClass
      * @param params the json params contains giraph configuration.
      */
     public static void loadVerticesAndEdges(String inputPath,
-        String vertexInputFormatClass, String params){
+        String params){
 //        FileLoader.inputPath = inputPath;
         //Vertex input format class has already been verified, just load.
+        JSONObject jsonObject = JSONObject.parseObject(params);
         Configuration configuration = new Configuration();
         GiraphConfiguration giraphConfiguration = new GiraphConfiguration(configuration);
 
         try {
-            ConfigurationUtils.parseArgs(giraphConfiguration, JSONObject.parseObject(params));
+            ConfigurationUtils.parseArgs(giraphConfiguration, jsonObject);
             //            ConfigurationUtils.parseJavaFragment(giraphConfiguration, fragment);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
         ImmutableClassesGiraphConfiguration conf = new ImmutableClassesGiraphConfiguration(giraphConfiguration);
         try {
-            inputFormatClz = (Class<? extends VertexInputFormat>) Class
-                .forName(vertexInputFormatClass);
+            inputFormatClz = conf.getVertexInputFormatClass();
             vertexInputFormat = inputFormatClz.newInstance();
             vertexInputFormat.setConf(conf);
             Method loadClassLoaderMethod =
