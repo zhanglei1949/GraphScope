@@ -134,7 +134,7 @@ public class FileLoader implements LoaderBase {
             TaskAttemptContext taskAttemptContext = new TaskAttemptContext(configuration,
                 taskAttemptID);
             vertexReader = (VertexReader) loadClassLoaderMethod
-                .invoke(vertexInputFormat, inputSplit, taskAttemptID);
+                .invoke(vertexInputFormat, inputSplit, taskAttemptContext);
             logger.info("vertex reader: " + vertexReader.getClass().toString());
             vertexReaderClz = vertexReader.getClass();
         } catch (Exception e) {

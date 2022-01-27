@@ -58,6 +58,7 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
   // vertex->values += vertex_input_format_class;
   vertex->values += "#";
   vertex->values += params;
+  // VLOG(1) << "vertex->values " << vertex->values;
 
   graph->vertices.push_back(vertex);
 
