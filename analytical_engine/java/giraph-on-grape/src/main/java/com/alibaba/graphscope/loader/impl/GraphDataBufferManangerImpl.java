@@ -167,14 +167,17 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
             bytesEdgeSrcOffset = (int) -edgeSrcIdOutputStream[threadId].bytesWriten();
             id.write(edgeSrcIdOutputStream[threadId]);
             bytesEdgeSrcOffset += edgeSrcIdOutputStream[threadId].bytesWriten();
+            edgeSrcIdOffsetArr[threadId].push_back(bytesEdgeSrcOffset);
 
             bytesEdgeDstOffset = (int) -edgeDstOutputStream[threadId].bytesWriten();
             edge.getTargetVertexId().write(edgeDstOutputStream[threadId]);
             bytesEdgeDstOffset += edgeDstOutputStream[threadId].bytesWriten();
+            edgeDstIdOffsetArr[threadId].push_back(bytesEdgeDstOffset);
 
             bytesDataOffsets = (int) -edgeDataOutStream[threadId].bytesWriten();
             edge.getValue().write(edgeDataOutStream[threadId]);
             bytesDataOffsets += edgeDataOutStream[threadId].bytesWriten();
+            edgeDataOffsetsArr[threadId].push_back(bytesDataOffsets);
 
             logger.debug("worker [{}] adding edge [{}]->[{}], value {}", workerId, id, edge.getTargetVertexId(), edge.getValue());
         }
