@@ -101,7 +101,7 @@ class JavaLoaderInvoker {
             << " edst len:" << edst_total_length
             << " esrc total bytes: " << edst_total_bytes
             << " edata len:" << edata_total_length
-            << " edata total bytes: " << edata_total_length;
+            << " edata total bytes: " << edata_total_bytes;
     arrow::LargeStringBuilder esrc_array_builder, edst_array_builder,
         edata_array_builder;
 
