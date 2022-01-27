@@ -180,7 +180,7 @@ public class FileLoader implements LoaderBase {
             }
             logger.info("worker {} loaded {} lines ", workerId, sum);
         } catch (Exception e) {
-            throw new IllegalStateException(e.getMessage());
+            throw new IllegalStateException(e.getCause());
         }
     }
 
