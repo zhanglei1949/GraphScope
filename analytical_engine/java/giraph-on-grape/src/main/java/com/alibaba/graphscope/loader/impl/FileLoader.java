@@ -98,6 +98,7 @@ public class FileLoader implements LoaderBase {
      */
     public static void loadVerticesAndEdges(String inputPath,
         String params){
+        logger.debug("input path {}, params {}", inputPath, params);
 //        FileLoader.inputPath = inputPath;
         //Vertex input format class has already been verified, just load.
         JSONObject jsonObject = JSONObject.parseObject(params);
