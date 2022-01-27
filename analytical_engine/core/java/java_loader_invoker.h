@@ -272,7 +272,7 @@ class JavaLoaderInvoker {
             gs::CreateFFIPointer(env, OFFSET_VECTOR_VECTOR, gs_class_loader_obj,
                                  reinterpret_cast<jlong>(&oid_offsets));
         vdata_offsets_jobj =
-            gs::CreateFFIPointer(env, DATA_VECTOR_VECTOR, gs_class_loader_obj,
+            gs::CreateFFIPointer(env, OFFSET_VECTOR_VECTOR, gs_class_loader_obj,
                                  reinterpret_cast<jlong>(&vdata_offsets));
         esrc_offsets_jobj =
             gs::CreateFFIPointer(env, OFFSET_VECTOR_VECTOR, gs_class_loader_obj,
