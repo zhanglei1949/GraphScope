@@ -65,7 +65,7 @@ class JavaLoaderInvoker {
   void load_vertices_and_edges(const std::string& vertex_location) {
     size_t arg_pos = vertex_location.find_first_of('#');
     if (arg_pos != std::string::npos) {
-      std::string file_path = vertex_location.substr(0, arg_pos - 1);
+      std::string file_path = vertex_location.substr(0, arg_pos);
       std::string json_params = vertex_location.substr(arg_pos + 1);
       VLOG(1) << "input path: " << file_path << " json params: " << json_params;
 
