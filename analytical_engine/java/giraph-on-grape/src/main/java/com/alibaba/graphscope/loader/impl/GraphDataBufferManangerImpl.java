@@ -226,7 +226,13 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
             edgeDstOutputStream[i].finishSetting();
             edgeDataOutStream[i].finishSetting();
 
-            //offset array need no finish setting, since they have been resized.
+            idOffsetsArr[i].finishSetting();
+            vdataOffsetsArr[i].finishSetting();
+            edgeSrcIdOffsetArr[i].finishSetting();
+            edgeDstIdOffsetArr[i].finishSetting();
+            edgeDataOffsetsArr[i].finishSetting();
+
+
         }
     }
 }
