@@ -8,6 +8,7 @@ import com.alibaba.graphscope.loader.GraphDataBufferManager;
 import com.alibaba.graphscope.loader.LoaderBase;
 import com.alibaba.graphscope.stdcxx.FFIByteVecVector;
 import com.alibaba.graphscope.stdcxx.FFIIntVecVector;
+import com.alibaba.graphscope.utils.LoadLibrary;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -39,6 +40,7 @@ import org.slf4j.LoggerFactory;
  * Load from a file on system.
  */
 public class FileLoader implements LoaderBase {
+    private static final String LIB_PATH = "lib_path";
 
     private static Logger logger = LoggerFactory.getLogger(FileLoader.class);
     private static int threadNum;
@@ -102,6 +104,9 @@ public class FileLoader implements LoaderBase {
 //        FileLoader.inputPath = inputPath;
         //Vertex input format class has already been verified, just load.
         JSONObject jsonObject = JSONObject.parseObject(params);
+        //try to Load user library
+        loadUserLibrary(jsonObject);
+
         Configuration configuration = new Configuration();
         GiraphConfiguration giraphConfiguration = new GiraphConfiguration(configuration);
 
@@ -236,5 +241,10 @@ public class FileLoader implements LoaderBase {
             }
             return cnt;
         }
+    }
+
+    private static void loadUserLibrary(JSONObject object){
+        String libPath = object.getString(LIB_PATH);
+        LoadLibrary.invoke(libPath);
     }
 }
