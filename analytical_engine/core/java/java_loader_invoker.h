@@ -67,12 +67,10 @@ class JavaLoaderInvoker {
     if (arg_pos != std::string::npos) {
       const char* file_path = vertex_location.substr(0, arg_pos - 1).c_str();
       std::string json_params = vertex_location.substr(arg_pos + 1);
-      VLOG(1) << "input path: " std::string(file_path)
+      VLOG(1) << "input path: "<< std::string(file_path)
               << " json params: " << json_params;
 
       call_java_loader(file_path, json_params.c_str());
-    } else {
-      LOG(ERROR) << "Second # not found, please provide giraph json params";
     }
     else {
       LOG(ERROR) << "No # found in vertex location";
