@@ -62,6 +62,20 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
 
   graph->vertices.push_back(vertex);
 
+
+  auto edge = std::make_shared<gs::detail::Edge>();
+  edge->label = "label2";
+  auto subLabel = std::make_shared<gs::detail::Edge::SubLabel>();
+  subLabel->src_label = "label1";
+  subLabel->src_vid = "0";
+  subLabel->dst_label = "label1";
+  subLabel->dst_vid = "0";
+  subLabel->protocol = "giraph";
+  subLabel->values = efile; //shall not be used
+  edge->sub_labels.push_back(*subLabel.get());
+
+  graph->edges.push_back(edge);
+ 
   vineyard::Client client;
   VINEYARD_CHECK_OK(client.Connect(ipc_socket));
 
@@ -70,7 +84,7 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
   vineyard::ObjectID fragment_id;
   {
     auto loader = std::make_unique<
-        gs::ArrowFragmentLoader<vineyard::property_graph_types::OID_TYPE,
+        gs::ArrowFragmentLoader<std::string,
                                 vineyard::property_graph_types::VID_TYPE>>(
         client, comm_spec, graph);
     fragment_id = boost::leaf::try_handle_all(

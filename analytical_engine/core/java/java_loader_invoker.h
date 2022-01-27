@@ -102,7 +102,7 @@ class JavaLoaderInvoker {
             << " esrc total bytes: " << edst_total_bytes
             << " edata len:" << edata_total_length
             << " edata total bytes: " << edata_total_length;
-    arrow::StringBuilder esrc_array_builder, edst_array_builder,
+    arrow::LargeStringBuilder esrc_array_builder, edst_array_builder,
         edata_array_builder;
 
     esrc_array_builder.Reserve(esrc_total_length);  // the number of elements
@@ -153,8 +153,8 @@ class JavaLoaderInvoker {
     edata_array_builder.Finish(&edata_array);
 
     std::shared_ptr<arrow::Schema> schema = arrow::schema(
-        {arrow::field("src", arrow::utf8()), arrow::field("dst", arrow::utf8()),
-         arrow::field("data", arrow::utf8())});
+        {arrow::field("src", arrow::large_utf8()), arrow::field("dst", arrow::large_utf8()),
+         arrow::field("data", arrow::large_utf8())});
 
     auto res =
         arrow::Table::Make(schema, {esrc_array, edst_array, edata_array});
@@ -186,8 +186,8 @@ class JavaLoaderInvoker {
             << " oid total bytes: " << oid_total_bytes
             << " vdata size: " << vdata_total_length
             << " total bytes: " << vdata_total_bytes;
-    arrow::StringBuilder oid_array_builder;
-    arrow::StringBuilder vdata_array_builder;
+    arrow::LargeStringBuilder oid_array_builder;
+    arrow::LargeStringBuilder vdata_array_builder;
 
     oid_array_builder.Reserve(oid_length);  // the number of elements
     oid_array_builder.ReserveData(oid_total_bytes);
