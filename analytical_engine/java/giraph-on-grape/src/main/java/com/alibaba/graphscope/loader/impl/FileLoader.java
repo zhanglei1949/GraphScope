@@ -3,6 +3,7 @@ package com.alibaba.graphscope.loader.impl;
 import static com.alibaba.graphscope.loader.LoaderUtils.checkFileExist;
 import static com.alibaba.graphscope.loader.LoaderUtils.getNumLinesOfFile;
 
+import com.alibaba.fastjson.JSONObject;
 import com.alibaba.graphscope.loader.GraphDataBufferManager;
 import com.alibaba.graphscope.loader.LoaderBase;
 import com.alibaba.graphscope.stdcxx.FFIByteVecVector;
@@ -24,6 +25,7 @@ import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.giraph.io.VertexInputFormat;
 import org.apache.giraph.io.VertexReader;
+import org.apache.giraph.utils.ConfigurationUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -89,12 +91,25 @@ public class FileLoader implements LoaderBase {
             edgeDataOffsets);
     }
 
+    /**
+     *
+     * @param inputPath
+     * @param vertexInputFormatClass
+     * @param params the json params contains giraph configuration.
+     */
     public static void loadVerticesAndEdges(String inputPath,
-        String vertexInputFormatClass){
+        String vertexInputFormatClass, String params){
 //        FileLoader.inputPath = inputPath;
         //Vertex input format class has already been verified, just load.
         Configuration configuration = new Configuration();
         GiraphConfiguration giraphConfiguration = new GiraphConfiguration(configuration);
+
+        try {
+            ConfigurationUtils.parseArgs(giraphConfiguration, JSONObject.parseObject(params));
+            //            ConfigurationUtils.parseJavaFragment(giraphConfiguration, fragment);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
         ImmutableClassesGiraphConfiguration conf = new ImmutableClassesGiraphConfiguration(giraphConfiguration);
         try {
             inputFormatClz = (Class<? extends VertexInputFormat>) Class
