@@ -231,8 +231,7 @@ public class FileLoader implements LoaderBase {
             VIFBufferedReaderField.set(vertexInputFormat, bufferedReader);
             vertexReader.initialize(inputSplit, taskAttemptContext);
 
-            while (cnt < end) {
-                if (vertexReader.nextVertex()) {
+                while (cnt < end && vertexReader.nextVertex()) {
                     Vertex vertex = vertexReader.getCurrentVertex();
                     Writable vertexId = (Writable) vertexIdField.get(vertex);
                     Writable vertexValue = (Writable) vertexValueField.get(vertex);
@@ -241,9 +240,9 @@ public class FileLoader implements LoaderBase {
                     proxy.addVertex(threadId, vertexId, vertexValue);
                     //suppose directed.
                     proxy.addEdges(threadId, vertexId, vertexEdges);
+                    cnt += 1;
                 }
-            }
-            return cnt;
+            return cnt - start;
         }
     }
 

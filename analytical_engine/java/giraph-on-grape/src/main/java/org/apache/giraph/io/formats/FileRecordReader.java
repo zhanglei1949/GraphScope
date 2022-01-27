@@ -50,6 +50,7 @@ public class FileRecordReader extends RecordReader<LongWritable, Text> {
     public Text getCurrentValue() throws IOException, InterruptedException {
         reusableText.set(cachedLine);
         logger.debug("Getting cur value: {}, text{}", cachedLine, reusableText);
+        cachedLine = null;
         return reusableText;
     }
 

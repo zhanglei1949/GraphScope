@@ -11,9 +11,12 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SampleTextVertexInputFormat extends
     TextVertexInputFormat<LongWritable, SccVertexValue, LongWritable> {
+    private static final Logger logger = LoggerFactory.getLogger(SampleTextVertexInputFormat.class);
 
     /**
      * The factory method which produces the {@link TextVertexReader} used by this input format.
@@ -43,7 +46,9 @@ public class SampleTextVertexInputFormat extends
 
         @Override
         protected String[] preprocessLine(Text line) throws IOException {
-            String[] tokens = SEPARATOR.split(line.toString());
+            logger.debug("line: " + line.toString());
+            String[] tokens = line.toString().split(SEPARATOR);
+            logger.debug(String.join(",", tokens));
             id = new LongWritable(Long.parseLong(tokens[0]));
             return tokens;
         }
