@@ -40,6 +40,13 @@ public class VertexImpl<
     private VDATA_T initializeVdata;
     private Iterable<Edge<OID_T,EDATA_T>> initializeEdges;
 
+    /**
+     * Usually the default constructor is only used when we load vertex with vif.
+     */
+    public VertexImpl(){
+        lid = -1;
+    }
+
     public VertexImpl(GiraphComputationAdaptorContext ctx) {
         lid = -1; // set to a negative value to ensure set lid to be called later.
         this.giraphComputationContext = ctx;
