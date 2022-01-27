@@ -56,6 +56,22 @@ public class FileLoader implements LoaderBase {
     private static Field vertexValueField;
     private static Field vertexEdgesField;
     private static Field VIFBufferedReaderField;
+    private static InputSplit inputSplit = new InputSplit() {
+        @Override
+        public long getLength() throws IOException, InterruptedException {
+            return 0;
+        }
+
+        @Override
+        public String[] getLocations() throws IOException, InterruptedException {
+            return new String[0];
+        }
+    };
+    private static Configuration configuration = new Configuration();
+    private static GiraphConfiguration giraphConfiguration = new GiraphConfiguration(configuration);
+    private static TaskAttemptID taskAttemptID = new TaskAttemptID();
+    private static TaskAttemptContext taskAttemptContext = new TaskAttemptContext(configuration,
+        taskAttemptID);
 
     static {
         try {
@@ -109,8 +125,7 @@ public class FileLoader implements LoaderBase {
         //try to Load user library
         loadUserLibrary(jsonObject);
 
-        Configuration configuration = new Configuration();
-        GiraphConfiguration giraphConfiguration = new GiraphConfiguration(configuration);
+
 
         try {
             ConfigurationUtils.parseArgs(giraphConfiguration, jsonObject);
@@ -126,23 +141,9 @@ public class FileLoader implements LoaderBase {
             Method loadClassLoaderMethod =
                 inputFormatClz.getDeclaredMethod("createVertexReader", InputSplit.class,
                     TaskAttemptContext.class);
-            InputSplit inputSplit = new InputSplit() {
-                @Override
-                public long getLength() throws IOException, InterruptedException {
-                    return 0;
-                }
 
-                @Override
-                public String[] getLocations() throws IOException, InterruptedException {
-                    return new String[0];
-                }
-            };
-            TaskAttemptID taskAttemptID = new TaskAttemptID();
-            TaskAttemptContext taskAttemptContext = new TaskAttemptContext(configuration,
-                taskAttemptID);
             vertexReader = (VertexReader) loadClassLoaderMethod
                 .invoke(vertexInputFormat, inputSplit, taskAttemptContext);
-            vertexReader.initialize(inputSplit, taskAttemptContext);
             logger.info("vertex reader: " + vertexReader.getClass().toString());
             vertexReaderClz = vertexReader.getClass();
         } catch (Exception e) {
@@ -228,6 +229,7 @@ public class FileLoader implements LoaderBase {
             }
             //For text vertex reader, we set the data source manually.
             VIFBufferedReaderField.set(vertexInputFormat, bufferedReader);
+            vertexReader.initialize(inputSplit, taskAttemptContext);
 
             while (cnt < end) {
                 if (vertexReader.nextVertex()) {
