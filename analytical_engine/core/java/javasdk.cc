@@ -28,12 +28,15 @@ static JavaVM* _jvm = NULL;
 // utilities for creating class loader and load classes with this
 // URLClassLoader.
 static jclass gs_class_loader_clz = NULL;
+static jclass adaptor_factory_clz = NULL;
 static jmethodID class_loader_create_ffipointer_methodID = NULL;
 static jmethodID class_loader_load_class_methodID = NULL;
 static jmethodID class_loader_load_communicator_class_methodID = NULL;
 static jmethodID class_loader_load_and_create_methodID = NULL;
 static jmethodID class_loader_new_gs_class_loader_methodID = NULL;
 static jmethodID class_loader_new_simple_gs_class_loader_methodID = NULL;
+static jmethodID adaptor_factory_create_giraph_adaptor_methodID = NULL;
+static jmethodID adaptor_factory_create_giraph_adaptor_context_methodID = NULL;
 static jclass system_class = NULL;
 static jmethodID gc_methodID = NULL;
 

@@ -27,13 +27,13 @@ else()
     message(STATUS "Your compiler is ${CMAKE_CXX_COMPILER}")
 endif()
 
-if (NOT DEFINED ENV{GRAPH_TYPE})
-    message(FATAL_ERROR "Need GRAPH_TYPE")
-endif()
+#if (NOT DEFINED ENV{GRAPH_TYPE})
+#    message(FATAL_ERROR "Need GRAPH_TYPE")
+#endif()
 
-if (NOT DEFINED ENV{APP_TYPE})
-    message(FATAL_ERROR "Need APP_TYPE")
-endif()
+#if (NOT DEFINED ENV{APP_TYPE})
+#    message(FATAL_ERROR "Need APP_TYPE")
+#endif()
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g -std=gnu++14 -Wall -Werror")
 

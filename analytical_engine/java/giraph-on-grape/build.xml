@@ -24,7 +24,7 @@
 
     <property environment="env"/>
     <fail unless="env.LLVM11_HOME" message="LLVM11_HOME not set."/>
-    <fail unless="env.GRAPH_TYPE" message="graph type not set"/>
+    <!--<fail unless="env.GRAPH_TYPE" message="graph type not set"/>-->
     <!--<fail unless="env.APP_TYPE" message="app type not set"/>-->
 
     <condition property="platform" value="mac">
