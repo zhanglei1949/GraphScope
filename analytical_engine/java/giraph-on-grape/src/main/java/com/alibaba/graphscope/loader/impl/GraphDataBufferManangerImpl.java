@@ -204,15 +204,15 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
             edgeDataOutStream[i].getVector().resize(leastSize);
             edgeDataOutStream[i].getVector().touch();
 
-            idOffsetsArr[i].resize(length);
+            idOffsetsArr[i].reserve(length); //may not enough
             idOffsetsArr[i].touch();
-            vdataOffsetsArr[i].resize(length);
+            vdataOffsetsArr[i].reserve(length);
             vdataOffsetsArr[i].touch();
-            edgeSrcIdOffsetArr[i].resize(length);
+            edgeSrcIdOffsetArr[i].reserve(length);
             edgeSrcIdOffsetArr[i].touch();
-            edgeDstIdOffsetArr[i].resize(length);
+            edgeDstIdOffsetArr[i].reserve(length);
             edgeDstIdOffsetArr[i].touch();
-            edgeDataOffsetsArr[i].resize(length);
+            edgeDataOffsetsArr[i].reserve(length);
             edgeDataOffsetsArr[i].touch();
         }
     }
