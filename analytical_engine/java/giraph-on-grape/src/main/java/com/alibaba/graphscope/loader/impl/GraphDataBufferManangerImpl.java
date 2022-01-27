@@ -161,7 +161,7 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
 
     @Override
     public void addEdges(int threadId, Writable id, Iterable<Edge> edges)throws IOException {
-        int bytesEdgeSrcOffset, bytesEdgeDstOffset, bytesDataOffsets;
+        int bytesEdgeSrcOffset = 0, bytesEdgeDstOffset = 0, bytesDataOffsets = 0;
 
         for (Edge edge : edges){
             bytesEdgeSrcOffset = (int) -edgeSrcIdOutputStream[threadId].bytesWriten();
@@ -178,6 +178,7 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
 
             logger.debug("worker [{}] adding edge [{}]->[{}], value {}", workerId, id, edge.getTargetVertexId(), edge.getValue());
         }
+        logger.debug("esrc/dst/data Total length : {} {} {}", bytesEdgeSrcOffset, bytesEdgeDstOffset, bytesDataOffsets);
     }
 
     /**
