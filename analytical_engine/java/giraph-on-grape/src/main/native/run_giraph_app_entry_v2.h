@@ -43,7 +43,7 @@ void Init(const std::string& params) {
 std::shared_ptr<FragmentType> LoadGiraphFragment(
     const grape::CommSpec& comm_spec, const std::string& vfile,
     const std::string& efile, const std::string& vertex_input_format_class,
-    const std::string& ipc_socket, bool directed) {
+    const std::string& ipc_socket, bool directed, const std::string params) {
   // construct graph info
   auto graph = std::make_shared<gs::detail::Graph>();
   graph->directed = directed;
@@ -56,6 +56,8 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
   vertex->values = vfile;
   vertex->values += "#";
   vertex->values += vertex_input_format_class;
+  vertex->values += "#";
+  vertex->values += params;
 
   graph->vertices.push_back(vertex);
 
@@ -114,8 +116,9 @@ void CreateAndQuery(std::string params) {
   }
 
   std::shared_ptr<FragmentType> fragment;
-  fragment = LoadGiraphFragment(comm_spec, efile, vfile,
-                                vertex_input_format_class, ipc_socket, directed);
+  fragment =
+      LoadGiraphFragment(comm_spec, efile, vfile, vertex_input_format_class,
+                         ipc_socket, directed, params);
 
   VLOG(1) << fragment->fid()
           << ",total vertex num: " << fragment->GetTotalVerticesNum()
