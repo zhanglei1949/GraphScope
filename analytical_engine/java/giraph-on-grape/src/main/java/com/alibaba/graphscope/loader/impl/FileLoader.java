@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -117,7 +118,7 @@ public class FileLoader implements LoaderBase {
      * @param params the json params contains giraph configuration.
      */
     public static void loadVerticesAndEdges(String inputPath,
-        String params){
+        String params) throws ExecutionException, InterruptedException {
         logger.debug("input path {}, params {}", inputPath, params);
 //        FileLoader.inputPath = inputPath;
         //Vertex input format class has already been verified, just load.
@@ -153,7 +154,8 @@ public class FileLoader implements LoaderBase {
         loadVertices(inputPath);
     }
 
-    public static void loadVertices(String inputPath) {
+    public static void loadVertices(String inputPath)
+        throws ExecutionException, InterruptedException {
         //Try to get number of lines
         long numOfLines = getNumLinesOfFile(inputPath);
         long linesPerWorker = (numOfLines + (workerNum - 1)) / workerNum;
@@ -173,15 +175,15 @@ public class FileLoader implements LoaderBase {
             cur += chunkSize;
         }
 
-        try {
+//        try {
             long sum = 0;
             for (int i = 0; i < threadNum; ++i) {
                 sum += (int) futures[i].get();
             }
             logger.info("worker {} loaded {} lines ", workerId, sum);
-        } catch (Exception e) {
-            throw new IllegalStateException(e.getCause());
-        }
+//        } catch (Exception e) {
+//            throw new IllegalStateException(e.getCause());
+//        }
     }
 
     @Override
