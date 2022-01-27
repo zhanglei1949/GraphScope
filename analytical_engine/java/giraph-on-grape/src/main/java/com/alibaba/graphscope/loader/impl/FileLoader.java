@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
  * Load from a file on system.
  */
 public class FileLoader implements LoaderBase {
+
     private static final String LIB_PATH = "lib_path";
 
     private static Logger logger = LoggerFactory.getLogger(FileLoader.class);
@@ -49,7 +50,7 @@ public class FileLoader implements LoaderBase {
     private static VertexInputFormat vertexInputFormat;
     private static VertexReader vertexReader;
     private static ExecutorService executor;
-//    private static String inputPath;
+    //    private static String inputPath;
     private static int workerId;
     private static int workerNum;
     private static GraphDataBufferManager proxy;
@@ -93,7 +94,8 @@ public class FileLoader implements LoaderBase {
 
     }
 
-    public static void init(int workerId, int workerNum, int threadNum, FFIByteVecVector vidBuffers, FFIByteVecVector vertexDataBuffers,
+    public static void init(int workerId, int workerNum, int threadNum, FFIByteVecVector vidBuffers,
+        FFIByteVecVector vertexDataBuffers,
         FFIByteVecVector edgeSrcIdBuffers, FFIByteVecVector edgeDstIdBuffers,
         FFIByteVecVector edgeDataBuffers,
         FFIIntVecVector vidOffsets,
@@ -113,9 +115,8 @@ public class FileLoader implements LoaderBase {
     }
 
     /**
-     *
      * @param inputPath
-     * @param params the json params contains giraph configuration.
+     * @param params    the json params contains giraph configuration.
      */
     public static void loadVerticesAndEdges(String inputPath,
         String params) throws ExecutionException, InterruptedException {
@@ -126,15 +127,14 @@ public class FileLoader implements LoaderBase {
         //try to Load user library
         loadUserLibrary(jsonObject);
 
-
-
         try {
             ConfigurationUtils.parseArgs(giraphConfiguration, jsonObject);
             //            ConfigurationUtils.parseJavaFragment(giraphConfiguration, fragment);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-        ImmutableClassesGiraphConfiguration conf = new ImmutableClassesGiraphConfiguration(giraphConfiguration);
+        ImmutableClassesGiraphConfiguration conf = new ImmutableClassesGiraphConfiguration(
+            giraphConfiguration);
         try {
             inputFormatClz = conf.getVertexInputFormatClass();
             vertexInputFormat = inputFormatClz.newInstance();
@@ -152,6 +152,10 @@ public class FileLoader implements LoaderBase {
             logger.error(e.getMessage());
         }
         loadVertices(inputPath);
+
+
+        //Finish output stream, such that offset == size;
+        proxy.finishAdding();
     }
 
     public static void loadVertices(String inputPath)
@@ -175,15 +179,11 @@ public class FileLoader implements LoaderBase {
             cur += chunkSize;
         }
 
-//        try {
-            long sum = 0;
-            for (int i = 0; i < threadNum; ++i) {
-                sum += (int) futures[i].get();
-            }
-            logger.info("worker {} loaded {} lines ", workerId, sum);
-//        } catch (Exception e) {
-//            throw new IllegalStateException(e.getCause());
-//        }
+        long sum = 0;
+        for (int i = 0; i < threadNum; ++i) {
+            sum += (int) futures[i].get();
+        }
+        logger.info("worker {} loaded {} lines ", workerId, sum);
     }
 
     @Override
@@ -233,22 +233,22 @@ public class FileLoader implements LoaderBase {
             VIFBufferedReaderField.set(vertexInputFormat, bufferedReader);
             vertexReader.initialize(inputSplit, taskAttemptContext);
 
-                while (cnt < end && vertexReader.nextVertex()) {
-                    Vertex vertex = vertexReader.getCurrentVertex();
-                    Writable vertexId = (Writable) vertexIdField.get(vertex);
-                    Writable vertexValue = (Writable) vertexValueField.get(vertex);
-                    Iterable<Edge> vertexEdges = (Iterable<Edge>) vertexEdgesField.get(vertex);
-                    logger.debug("id {} value {} edges {}", vertexId, vertexValue, vertexEdges);
-                    proxy.addVertex(threadId, vertexId, vertexValue);
-                    //suppose directed.
-                    proxy.addEdges(threadId, vertexId, vertexEdges);
-                    cnt += 1;
-                }
+            while (cnt < end && vertexReader.nextVertex()) {
+                Vertex vertex = vertexReader.getCurrentVertex();
+                Writable vertexId = (Writable) vertexIdField.get(vertex);
+                Writable vertexValue = (Writable) vertexValueField.get(vertex);
+                Iterable<Edge> vertexEdges = (Iterable<Edge>) vertexEdgesField.get(vertex);
+                logger.debug("id {} value {} edges {}", vertexId, vertexValue, vertexEdges);
+                proxy.addVertex(threadId, vertexId, vertexValue);
+                //suppose directed.
+                proxy.addEdges(threadId, vertexId, vertexEdges);
+                cnt += 1;
+            }
             return cnt - start;
         }
     }
 
-    private static void loadUserLibrary(JSONObject object){
+    private static void loadUserLibrary(JSONObject object) {
         String libPath = object.getString(LIB_PATH);
         LoadLibrary.invoke(libPath);
     }

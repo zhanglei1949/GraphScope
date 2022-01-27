@@ -213,4 +213,17 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
             edgeDataOffsetsArr[i].touch();
         }
     }
+
+    @Override
+    public void finishAdding(){
+        for (int i = 0; i < threadNum; ++i){
+            vidOutputStream[i].finishSetting();
+            vdataOutputStream[i].finishSetting();
+            edgeSrcIdOutputStream[i].finishSetting();
+            edgeDstOutputStream[i].finishSetting();
+            edgeDataOutStream[i].finishSetting();
+
+            //offset array need no finish setting, since they have been resized.
+        }
+    }
 }

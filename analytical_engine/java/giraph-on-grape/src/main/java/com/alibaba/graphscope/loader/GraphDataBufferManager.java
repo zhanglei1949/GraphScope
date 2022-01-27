@@ -14,4 +14,6 @@ public interface GraphDataBufferManager {
     void addEdges(int threadId, Writable id, Iterable<Edge> edges)throws IOException;
 
     void reserveNumVertices(int length);
+
+    void finishAdding();
 }
