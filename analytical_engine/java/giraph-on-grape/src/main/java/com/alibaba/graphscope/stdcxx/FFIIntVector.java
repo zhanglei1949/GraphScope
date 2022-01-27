@@ -131,6 +131,10 @@ public class FFIIntVector extends FFIPointerImpl implements StdVector<Integer> {
 //        nativePush_back(this.address, arg0);
     }
 
+    public void finishSetting(){
+        nativeResize(this.address, curIndex);
+    }
+
     public static native void nativePush_back(long var0, int var2);
 
     public void reserve(long arg0) {
