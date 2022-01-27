@@ -1,6 +1,5 @@
 package com.alibaba.graphscope.loader.impl;
 
-import static com.alibaba.graphscope.loader.LoaderUtils.checkFileExist;
 import static com.alibaba.graphscope.loader.LoaderUtils.getNumLinesOfFile;
 
 import com.alibaba.fastjson.JSONObject;
@@ -26,9 +25,9 @@ import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.graph.impl.VertexImpl;
 import org.apache.giraph.io.VertexInputFormat;
 import org.apache.giraph.io.VertexReader;
+import org.apache.giraph.io.formats.TextVertexInputFormat;
 import org.apache.giraph.utils.ConfigurationUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -56,6 +55,7 @@ public class FileLoader implements LoaderBase {
     private static Field vertexIdField;
     private static Field vertexValueField;
     private static Field vertexEdgesField;
+    private static Field VIFBufferedReaderField;
 
     static {
         try {
@@ -65,6 +65,8 @@ public class FileLoader implements LoaderBase {
             vertexValueField.setAccessible(true);
             vertexEdgesField = VertexImpl.class.getDeclaredField("initializeEdges");
             vertexEdgesField.setAccessible(true);
+            VIFBufferedReaderField = TextVertexInputFormat.class.getDeclaredField("fileReader");
+            VIFBufferedReaderField.setAccessible(true);
         } catch (NoSuchFieldException e) {
             throw new IllegalStateException(e.getMessage());
         }
@@ -140,6 +142,7 @@ public class FileLoader implements LoaderBase {
                 taskAttemptID);
             vertexReader = (VertexReader) loadClassLoaderMethod
                 .invoke(vertexInputFormat, inputSplit, taskAttemptContext);
+            vertexReader.initialize(inputSplit, taskAttemptContext);
             logger.info("vertex reader: " + vertexReader.getClass().toString());
             vertexReaderClz = vertexReader.getClass();
         } catch (Exception e) {
@@ -176,8 +179,7 @@ public class FileLoader implements LoaderBase {
             }
             logger.info("worker {} loaded {} lines ", workerId, sum);
         } catch (Exception e) {
-            logger.error(e.getMessage());
-            return;
+            throw new IllegalStateException(e.getMessage());
         }
     }
 
@@ -224,10 +226,10 @@ public class FileLoader implements LoaderBase {
             while (cnt < start) {
                 bufferedReader.readLine();
             }
-            while (cnt < end) {
-                String line = bufferedReader.readLine();
-                Text text = new Text(line);
+            //For text vertex reader, we set the data source manually.
+            VIFBufferedReaderField.set(vertexInputFormat, bufferedReader);
 
+            while (cnt < end) {
                 if (vertexReader.nextVertex()) {
                     Vertex vertex = vertexReader.getCurrentVertex();
                     Writable vertexId = (Writable) vertexIdField.get(vertex);

@@ -18,6 +18,10 @@
 
 package org.apache.giraph.io.formats;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
 import org.apache.giraph.edge.Edge;
 import org.apache.giraph.graph.Vertex;
 import org.apache.giraph.io.VertexInputFormat;
@@ -32,12 +36,8 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-import java.io.IOException;
-import java.util.List;
-
 /**
- * Abstract class that users should subclass to use their own text based
- * vertex input format.
+ * Abstract class that users should subclass to use their own text based vertex input format.
  *
  * @param <I> Vertex index value
  * @param <V> Vertex value
@@ -48,7 +48,14 @@ public abstract class TextVertexInputFormat<I extends WritableComparable,
     V extends Writable, E extends Writable>
     extends VertexInputFormat<I, V, E> {
 
-    @Override public void checkInputSpecs(Configuration conf) { }
+    //In our implementation, we read from local file.
+    //This private is not public, we access with reflection.
+    //We need to set this filed before call initialize.
+    private BufferedReader fileReader;
+
+    @Override
+    public void checkInputSpecs(Configuration conf) {
+    }
 
     @Override
     public List<InputSplit> getSplits(JobContext context, int minSplitCountHint)
@@ -60,35 +67,34 @@ public abstract class TextVertexInputFormat<I extends WritableComparable,
     }
 
     /**
-     * The factory method which produces the {@link TextVertexReader} used by this
-     * input format.
+     * The factory method which produces the {@link TextVertexReader} used by this input format.
      *
-     * @param split
-     *          the split to be read
-     * @param context
-     *          the information about the task
-     * @return
-     *         the text vertex reader to be used
+     * @param split   the split to be read
+     * @param context the information about the task
+     * @return the text vertex reader to be used
      */
     @Override
     public abstract TextVertexReader createVertexReader(InputSplit split,
         TaskAttemptContext context) throws IOException;
 
     /**
-     * Abstract class to be implemented by the user based on their specific
-     * vertex input. Easiest to ignore the key value separator and only use
-     * key instead.
-     *
-     * When reading a vertex from each line, extend
-     * {@link TextVertexReaderFromEachLine}. If you need to preprocess each line
-     * first, then extend {@link TextVertexReaderFromEachLineProcessed}. If you
-     * need common exception handling while preprocessing, then extend
-     * {@link TextVertexReaderFromEachLineProcessedHandlingExceptions}.
+     * Abstract class to be implemented by the user based on their specific vertex input. Easiest to
+     * ignore the key value separator and only use key instead.
+     * <p>
+     * When reading a vertex from each line, extend {@link TextVertexReaderFromEachLine}. If you
+     * need to preprocess each line first, then extend {@link TextVertexReaderFromEachLineProcessed}.
+     * If you need common exception handling while preprocessing, then extend {@link
+     * TextVertexReaderFromEachLineProcessedHandlingExceptions}.
      */
     protected abstract class TextVertexReader extends VertexReader<I, V, E> {
-        /** Internal line record reader */
+
+        /**
+         * Internal line record reader
+         */
         private RecordReader<LongWritable, Text> lineRecordReader;
-        /** Context passed to initialize */
+        /**
+         * Context passed to initialize
+         */
         private TaskAttemptContext context;
 
         @Override
@@ -97,27 +103,27 @@ public abstract class TextVertexInputFormat<I extends WritableComparable,
             this.context = context;
             lineRecordReader = createLineRecordReader(inputSplit, context);
             lineRecordReader.initialize(inputSplit, context);
+            if (lineRecordReader instanceof FileRecordReader && Objects.nonNull(fileReader)) {
+                ((FileRecordReader) lineRecordReader).setReader(fileReader);
+            } else {
+                throw new IllegalStateException("not TextLineRecordReader or file reader not set");
+            }
         }
 
         /**
-         * Create the line record reader. Override this to use a different
-         * underlying record reader (useful for testing).
+         * Create the line record reader. Override this to use a different underlying record reader
+         * (useful for testing).
          *
-         * @param inputSplit
-         *          the split to read
-         * @param context
-         *          the context passed to initialize
-         * @return
-         *         the record reader to be used
-         * @throws IOException
-         *           exception that can be thrown during creation
-         * @throws InterruptedException
-         *           exception that can be thrown during creation
+         * @param inputSplit the split to read
+         * @param context    the context passed to initialize
+         * @return the record reader to be used
+         * @throws IOException          exception that can be thrown during creation
+         * @throws InterruptedException exception that can be thrown during creation
          */
         protected RecordReader<LongWritable, Text>
         createLineRecordReader(InputSplit inputSplit, TaskAttemptContext context)
             throws IOException, InterruptedException {
-            return null;
+            return new FileRecordReader();
         }
 
         @Override
@@ -150,8 +156,7 @@ public abstract class TextVertexInputFormat<I extends WritableComparable,
     }
 
     /**
-     * Abstract class to be implemented by the user to read a vertex from each
-     * text line.
+     * Abstract class to be implemented by the user to read a vertex from each text line.
      */
     protected abstract class TextVertexReaderFromEachLine extends
         TextVertexReader {
@@ -173,36 +178,27 @@ public abstract class TextVertexInputFormat<I extends WritableComparable,
         /**
          * Reads vertex id from the current line.
          *
-         * @param line
-         *          the current line
-         * @return
-         *         the vertex id corresponding to the line
-         * @throws IOException
-         *           exception that can be thrown while reading
+         * @param line the current line
+         * @return the vertex id corresponding to the line
+         * @throws IOException exception that can be thrown while reading
          */
         protected abstract I getId(Text line) throws IOException;
 
         /**
          * Reads vertex value from the current line.
          *
-         * @param line
-         *          the current line
-         * @return
-         *         the vertex value corresponding to the line
-         * @throws IOException
-         *           exception that can be thrown while reading
+         * @param line the current line
+         * @return the vertex value corresponding to the line
+         * @throws IOException exception that can be thrown while reading
          */
         protected abstract V getValue(Text line) throws IOException;
 
         /**
          * Reads edges value from the current line.
          *
-         * @param line
-         *          the current line
-         * @return
-         *         the edges
-         * @throws IOException
-         *           exception that can be thrown while reading
+         * @param line the current line
+         * @return the edges
+         * @throws IOException exception that can be thrown while reading
          */
         protected abstract Iterable<Edge<I, E>> getEdges(Text line) throws
             IOException;
@@ -210,11 +206,10 @@ public abstract class TextVertexInputFormat<I extends WritableComparable,
     }
 
     /**
-     * Abstract class to be implemented by the user to read a vertex from each
-     * text line after preprocessing it.
+     * Abstract class to be implemented by the user to read a vertex from each text line after
+     * preprocessing it.
      *
-     * @param <T>
-     *          The resulting type of preprocessing.
+     * @param <T> The resulting type of preprocessing.
      */
     protected abstract class TextVertexReaderFromEachLineProcessed<T> extends
         TextVertexReader {
@@ -237,66 +232,52 @@ public abstract class TextVertexInputFormat<I extends WritableComparable,
         }
 
         /**
-         * Preprocess the line so other methods can easily read necessary
-         * information for creating vertex.
+         * Preprocess the line so other methods can easily read necessary information for creating
+         * vertex.
          *
-         * @param line
-         *          the current line to be read
-         * @return
-         *         the preprocessed object
-         * @throws IOException
-         *           exception that can be thrown while reading
+         * @param line the current line to be read
+         * @return the preprocessed object
+         * @throws IOException exception that can be thrown while reading
          */
         protected abstract T preprocessLine(Text line) throws IOException;
 
         /**
          * Reads vertex id from the preprocessed line.
          *
-         * @param line
-         *          the object obtained by preprocessing the line
-         * @return
-         *         the vertex id
-         * @throws IOException
-         *           exception that can be thrown while reading
+         * @param line the object obtained by preprocessing the line
+         * @return the vertex id
+         * @throws IOException exception that can be thrown while reading
          */
         protected abstract I getId(T line) throws IOException;
 
         /**
          * Reads vertex value from the preprocessed line.
          *
-         * @param line
-         *          the object obtained by preprocessing the line
-         * @return
-         *         the vertex value
-         * @throws IOException
-         *           exception that can be thrown while reading
+         * @param line the object obtained by preprocessing the line
+         * @return the vertex value
+         * @throws IOException exception that can be thrown while reading
          */
         protected abstract V getValue(T line) throws IOException;
 
         /**
          * Reads edges from the preprocessed line.
          *
-         *
-         * @param line
-         *          the object obtained by preprocessing the line
-         * @return
-         *         the edges
-         * @throws IOException
-         *           exception that can be thrown while reading
+         * @param line the object obtained by preprocessing the line
+         * @return the edges
+         * @throws IOException exception that can be thrown while reading
          */
         protected abstract Iterable<Edge<I, E>> getEdges(T line) throws IOException;
 
     }
 
     // CHECKSTYLE: stop RedundantThrows
+
     /**
-     * Abstract class to be implemented by the user to read a vertex from each
-     * text line after preprocessing it with exception handling.
+     * Abstract class to be implemented by the user to read a vertex from each text line after
+     * preprocessing it with exception handling.
      *
-     * @param <T>
-     *          The resulting type of preprocessing.
-     * @param <X>
-     *          The exception type that can be thrown due to preprocessing.
+     * @param <T> The resulting type of preprocessing.
+     * @param <X> The exception type that can be thrown due to preprocessing.
      */
     protected abstract class
     TextVertexReaderFromEachLineProcessedHandlingExceptions<T, X extends
@@ -331,63 +312,43 @@ public abstract class TextVertexInputFormat<I extends WritableComparable,
         }
 
         /**
-         * Preprocess the line so other methods can easily read necessary
-         * information for creating vertex.
+         * Preprocess the line so other methods can easily read necessary information for creating
+         * vertex.
          *
-         * @param line
-         *          the current line to be read
-         * @return
-         *         the preprocessed object
-         * @throws X
-         *           exception that can be thrown while preprocessing the line
-         * @throws IOException
-         *           exception that can be thrown while reading
+         * @param line the current line to be read
+         * @return the preprocessed object
+         * @throws X           exception that can be thrown while preprocessing the line
+         * @throws IOException exception that can be thrown while reading
          */
         protected abstract T preprocessLine(Text line) throws X, IOException;
 
         /**
          * Reads vertex id from the preprocessed line.
          *
-         * @param line
-         *          the object obtained by preprocessing the line
-         * @return
-         *         the vertex id
-         * @throws X
-         *           exception that can be thrown while reading the preprocessed
-         *           object
-         * @throws IOException
-         *           exception that can be thrown while reading
+         * @param line the object obtained by preprocessing the line
+         * @return the vertex id
+         * @throws X           exception that can be thrown while reading the preprocessed object
+         * @throws IOException exception that can be thrown while reading
          */
         protected abstract I getId(T line) throws X, IOException;
 
         /**
          * Reads vertex value from the preprocessed line.
          *
-         * @param line
-         *          the object obtained by preprocessing the line
-         * @return
-         *         the vertex value
-         * @throws X
-         *           exception that can be thrown while reading the preprocessed
-         *           object
-         * @throws IOException
-         *           exception that can be thrown while reading
+         * @param line the object obtained by preprocessing the line
+         * @return the vertex value
+         * @throws X           exception that can be thrown while reading the preprocessed object
+         * @throws IOException exception that can be thrown while reading
          */
         protected abstract V getValue(T line) throws X, IOException;
 
         /**
          * Reads edges from the preprocessed line.
          *
-         *
-         * @param line
-         *          the object obtained by preprocessing the line
-         * @return
-         *         the edges
-         * @throws X
-         *           exception that can be thrown while reading the preprocessed
-         *           object
-         * @throws IOException
-         *           exception that can be thrown while reading
+         * @param line the object obtained by preprocessing the line
+         * @return the edges
+         * @throws X           exception that can be thrown while reading the preprocessed object
+         * @throws IOException exception that can be thrown while reading
          */
         protected abstract Iterable<Edge<I, E>> getEdges(T line) throws X,
             IOException;
@@ -395,13 +356,10 @@ public abstract class TextVertexInputFormat<I extends WritableComparable,
         /**
          * Handles exceptions while reading vertex from each line.
          *
-         * @param line
-         *          the line that was being read when the exception was thrown
-         * @param processed
-         *          the object obtained by preprocessing the line. Can be null if
-         *          exception was thrown during preprocessing.
-         * @param e
-         *          the exception thrown while reading the line
+         * @param line      the line that was being read when the exception was thrown
+         * @param processed the object obtained by preprocessing the line. Can be null if exception
+         *                  was thrown during preprocessing.
+         * @param e         the exception thrown while reading the line
          * @return the recovered/alternative vertex to be used
          */
         protected Vertex<I, V, E> handleException(Text line, T processed, X e) {
