@@ -8,17 +8,7 @@ import com.alibaba.graphscope.loader.LoaderBase;
 import com.alibaba.graphscope.stdcxx.FFIByteVecVector;
 import com.alibaba.graphscope.stdcxx.FFIIntVecVector;
 import com.alibaba.graphscope.utils.LoadLibrary;
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+
 import org.apache.giraph.conf.GiraphConfiguration;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.edge.Edge;
@@ -36,9 +26,19 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Load from a file on system.
- */
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+/** Load from a file on system. */
 public class FileLoader implements LoaderBase {
 
     private static final String LIB_PATH = "lib_path";
@@ -58,22 +58,23 @@ public class FileLoader implements LoaderBase {
     private static Field vertexValueField;
     private static Field vertexEdgesField;
     private static Field VIFBufferedReaderField;
-    private static InputSplit inputSplit = new InputSplit() {
-        @Override
-        public long getLength() throws IOException, InterruptedException {
-            return 0;
-        }
+    private static InputSplit inputSplit =
+            new InputSplit() {
+                @Override
+                public long getLength() throws IOException, InterruptedException {
+                    return 0;
+                }
 
-        @Override
-        public String[] getLocations() throws IOException, InterruptedException {
-            return new String[0];
-        }
-    };
+                @Override
+                public String[] getLocations() throws IOException, InterruptedException {
+                    return new String[0];
+                }
+            };
     private static Configuration configuration = new Configuration();
     private static GiraphConfiguration giraphConfiguration = new GiraphConfiguration(configuration);
     private static TaskAttemptID taskAttemptID = new TaskAttemptID();
-    private static TaskAttemptContext taskAttemptContext = new TaskAttemptContext(configuration,
-        taskAttemptID);
+    private static TaskAttemptContext taskAttemptContext =
+            new TaskAttemptContext(configuration, taskAttemptID);
 
     static {
         try {
@@ -90,41 +91,54 @@ public class FileLoader implements LoaderBase {
         }
     }
 
-    public FileLoader() {
+    public FileLoader() {}
 
-    }
-
-    public static void init(int workerId, int workerNum, int threadNum, FFIByteVecVector vidBuffers,
-        FFIByteVecVector vertexDataBuffers,
-        FFIByteVecVector edgeSrcIdBuffers, FFIByteVecVector edgeDstIdBuffers,
-        FFIByteVecVector edgeDataBuffers,
-        FFIIntVecVector vidOffsets,
-        FFIIntVecVector vertexDataOffsets,
-        FFIIntVecVector edgeSrcIdOffsets,
-        FFIIntVecVector edgeDstIdOffsets,
-        FFIIntVecVector edgeDataOffsets) {
+    public static void init(
+            int workerId,
+            int workerNum,
+            int threadNum,
+            FFIByteVecVector vidBuffers,
+            FFIByteVecVector vertexDataBuffers,
+            FFIByteVecVector edgeSrcIdBuffers,
+            FFIByteVecVector edgeDstIdBuffers,
+            FFIByteVecVector edgeDataBuffers,
+            FFIIntVecVector vidOffsets,
+            FFIIntVecVector vertexDataOffsets,
+            FFIIntVecVector edgeSrcIdOffsets,
+            FFIIntVecVector edgeDstIdOffsets,
+            FFIIntVecVector edgeDataOffsets) {
         FileLoader.workerId = workerId;
         FileLoader.workerNum = workerNum;
         FileLoader.threadNum = threadNum;
         FileLoader.executor = Executors.newFixedThreadPool(threadNum);
-        //Create a proxy form adding vertex and adding edges
-        proxy = new GraphDataBufferManangerImpl(workerId, threadNum, vidBuffers,
-            vertexDataBuffers, edgeSrcIdBuffers, edgeDstIdBuffers
-            , edgeDataBuffers, vidOffsets, vertexDataOffsets, edgeSrcIdOffsets, edgeDstIdOffsets,
-            edgeDataOffsets);
+        // Create a proxy form adding vertex and adding edges
+        proxy =
+                new GraphDataBufferManangerImpl(
+                        workerId,
+                        threadNum,
+                        vidBuffers,
+                        vertexDataBuffers,
+                        edgeSrcIdBuffers,
+                        edgeDstIdBuffers,
+                        edgeDataBuffers,
+                        vidOffsets,
+                        vertexDataOffsets,
+                        edgeSrcIdOffsets,
+                        edgeDstIdOffsets,
+                        edgeDataOffsets);
     }
 
     /**
      * @param inputPath
-     * @param params    the json params contains giraph configuration.
+     * @param params the json params contains giraph configuration.
      */
-    public static void loadVerticesAndEdges(String inputPath,
-        String params) throws ExecutionException, InterruptedException {
+    public static void loadVerticesAndEdges(String inputPath, String params)
+            throws ExecutionException, InterruptedException {
         logger.debug("input path {}, params {}", inputPath, params);
-//        FileLoader.inputPath = inputPath;
-        //Vertex input format class has already been verified, just load.
+        //        FileLoader.inputPath = inputPath;
+        // Vertex input format class has already been verified, just load.
         JSONObject jsonObject = JSONObject.parseObject(params);
-        //try to Load user library
+        // try to Load user library
         loadUserLibrary(jsonObject);
 
         try {
@@ -133,18 +147,20 @@ public class FileLoader implements LoaderBase {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
-        ImmutableClassesGiraphConfiguration conf = new ImmutableClassesGiraphConfiguration(
-            giraphConfiguration);
+        ImmutableClassesGiraphConfiguration conf =
+                new ImmutableClassesGiraphConfiguration(giraphConfiguration);
         try {
             inputFormatClz = conf.getVertexInputFormatClass();
             vertexInputFormat = inputFormatClz.newInstance();
             vertexInputFormat.setConf(conf);
             Method loadClassLoaderMethod =
-                inputFormatClz.getDeclaredMethod("createVertexReader", InputSplit.class,
-                    TaskAttemptContext.class);
+                    inputFormatClz.getDeclaredMethod(
+                            "createVertexReader", InputSplit.class, TaskAttemptContext.class);
 
-            vertexReader = (VertexReader) loadClassLoaderMethod
-                .invoke(vertexInputFormat, inputSplit, taskAttemptContext);
+            vertexReader =
+                    (VertexReader)
+                            loadClassLoaderMethod.invoke(
+                                    vertexInputFormat, inputSplit, taskAttemptContext);
             logger.info("vertex reader: " + vertexReader.getClass().toString());
             vertexReaderClz = vertexReader.getClass();
         } catch (Exception e) {
@@ -153,28 +169,33 @@ public class FileLoader implements LoaderBase {
         }
         loadVertices(inputPath);
 
-
-        //Finish output stream, such that offset == size;
+        // Finish output stream, such that offset == size;
         proxy.finishAdding();
     }
 
     public static void loadVertices(String inputPath)
-        throws ExecutionException, InterruptedException {
-        //Try to get number of lines
+            throws ExecutionException, InterruptedException {
+        // Try to get number of lines
         long numOfLines = getNumLinesOfFile(inputPath);
         long linesPerWorker = (numOfLines + (workerNum - 1)) / workerNum;
         long start = Math.min(linesPerWorker * workerId, numOfLines);
         long end = Math.min(linesPerWorker * (workerId + 1), numOfLines);
         long chunkSize = (end - start + threadNum - 1) / threadNum;
-        logger.debug("total lines {}, worker {} read {}, thread num {}, chunkSize {}", numOfLines,
-            workerId, end - start, threadNum, chunkSize);
+        logger.debug(
+                "total lines {}, worker {} read {}, thread num {}, chunkSize {}",
+                numOfLines,
+                workerId,
+                end - start,
+                threadNum,
+                chunkSize);
         long cur = start;
 
         Future[] futures = new Future[threadNum];
 
         for (int i = 0; i < threadNum; ++i) {
-            LoaderCallable loaderCallable = new LoaderCallable(i, inputPath, Math.min(cur, end),
-                Math.min(cur + chunkSize, end));
+            LoaderCallable loaderCallable =
+                    new LoaderCallable(
+                            i, inputPath, Math.min(cur, end), Math.min(cur + chunkSize, end));
             futures[i] = executor.submit(loaderCallable);
             cur += chunkSize;
         }
@@ -201,7 +222,7 @@ public class FileLoader implements LoaderBase {
         private int threadId;
         private BufferedReader bufferedReader;
         private long start;
-        private long end; //exclusive
+        private long end; // exclusive
 
         public LoaderCallable(int threadId, String inputPath, long startLine, long endLine) {
             try {
@@ -229,7 +250,7 @@ public class FileLoader implements LoaderBase {
             while (cnt < start) {
                 bufferedReader.readLine();
             }
-            //For text vertex reader, we set the data source manually.
+            // For text vertex reader, we set the data source manually.
             VIFBufferedReaderField.set(vertexInputFormat, bufferedReader);
             vertexReader.initialize(inputSplit, taskAttemptContext);
 
@@ -240,7 +261,7 @@ public class FileLoader implements LoaderBase {
                 Iterable<Edge> vertexEdges = (Iterable<Edge>) vertexEdgesField.get(vertex);
                 logger.debug("id {} value {} edges {}", vertexId, vertexValue, vertexEdges);
                 proxy.addVertex(threadId, vertexId, vertexValue);
-                //suppose directed.
+                // suppose directed.
                 proxy.addEdges(threadId, vertexId, vertexEdges);
                 cnt += 1;
             }
