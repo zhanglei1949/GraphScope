@@ -60,7 +60,7 @@ class JavaLoaderInvoker {
     init_java_loader();
   }
 
-  ~JavaLoaderInvoker() {}
+  ~JavaLoaderInvoker() { VLOG(1) << "Destructing java loader invoker"; }
 
   void load_vertices_and_edges(const std::string& vertex_location) {
     size_t arg_pos = vertex_location.find_first_of('#');
@@ -152,9 +152,10 @@ class JavaLoaderInvoker {
     edst_array_builder.Finish(&edst_array);
     edata_array_builder.Finish(&edata_array);
 
-    std::shared_ptr<arrow::Schema> schema = arrow::schema(
-        {arrow::field("src", arrow::large_utf8()), arrow::field("dst", arrow::large_utf8()),
-         arrow::field("data", arrow::large_utf8())});
+    std::shared_ptr<arrow::Schema> schema =
+        arrow::schema({arrow::field("src", arrow::large_utf8()),
+                       arrow::field("dst", arrow::large_utf8()),
+                       arrow::field("data", arrow::large_utf8())});
 
     auto res =
         arrow::Table::Make(schema, {esrc_array, edst_array, edata_array});

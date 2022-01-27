@@ -62,7 +62,6 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
 
   graph->vertices.push_back(vertex);
 
-
   auto edge = std::make_shared<gs::detail::Edge>();
   edge->label = "label2";
   auto subLabel = std::make_shared<gs::detail::Edge::SubLabel>();
@@ -71,11 +70,11 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
   subLabel->dst_label = "label1";
   subLabel->dst_vid = "0";
   subLabel->protocol = "giraph";
-  subLabel->values = efile; //shall not be used
+  subLabel->values = efile;  // shall not be used
   edge->sub_labels.push_back(*subLabel.get());
 
   graph->edges.push_back(edge);
- 
+
   vineyard::Client client;
   VINEYARD_CHECK_OK(client.Connect(ipc_socket));
 
@@ -83,9 +82,8 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
 
   vineyard::ObjectID fragment_id;
   {
-    auto loader = std::make_unique<
-        gs::ArrowFragmentLoader<std::string,
-                                vineyard::property_graph_types::VID_TYPE>>(
+    auto loader = std::make_unique<gs::ArrowFragmentLoader<
+        std::string, vineyard::property_graph_types::VID_TYPE>>(
         client, comm_spec, graph);
     fragment_id = boost::leaf::try_handle_all(
         [&loader]() { return loader->LoadFragment(); },
@@ -105,7 +103,8 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
   MPI_Barrier(comm_spec.comm());
   std::shared_ptr<FragmentType> fragment =
       std::dynamic_pointer_cast<FragmentType>(client.GetObject(fragment_id));
-  VLOG(1) << "[worker-" << comm_spec.worker_id() << "] got fragment "<< fragment_id;
+  VLOG(1) << "[worker-" << comm_spec.worker_id() << "] got fragment "
+          << fragment_id;
   return fragment;
 
   //   Run(client, comm_spec, fragment_id, run_projected, run_property,
@@ -136,9 +135,14 @@ void CreateAndQuery(std::string params) {
       LoadGiraphFragment(comm_spec, efile, vfile, vertex_input_format_class,
                          ipc_socket, directed, params);
 
-  //VLOG(1) << fragment->fid()
-   //       << ",total vertex num: " << fragment->GetTotalVerticesNum()
-   //       << "frag vnum: " << fragment->GetVerticesNum(0);
+  // VLOG(1) << fragment->fid()
+  //       << ",total vertex num: " << fragment->GetTotalVerticesNum()
+  //       << "frag vnum: " << fragment->GetVerticesNum(0);
+  VLOG(1) << "fid: " << fragment->fid();
+  VLOG(1) << "fnum: " << fragment->fnum();
+  VLOG(1) << "v label num: " << fragment->vertex_label_num();
+  VLOG(1) << "e label num: " << fragment->edge_label_num();
+  VLOG(1) << "total v num: " << fragment->GetTotalVerticesNum();
 }
 
 void Finalize() {
