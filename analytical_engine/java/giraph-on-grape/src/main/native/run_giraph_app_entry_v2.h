@@ -105,6 +105,7 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
   MPI_Barrier(comm_spec.comm());
   std::shared_ptr<FragmentType> fragment =
       std::dynamic_pointer_cast<FragmentType>(client.GetObject(fragment_id));
+  VLOG(1) << "[worker-" << comm_spec.worker_id() << "] got fragment "<< fragment_id;
   return fragment;
 
   //   Run(client, comm_spec, fragment_id, run_projected, run_property,
@@ -135,9 +136,9 @@ void CreateAndQuery(std::string params) {
       LoadGiraphFragment(comm_spec, efile, vfile, vertex_input_format_class,
                          ipc_socket, directed, params);
 
-  VLOG(1) << fragment->fid()
-          << ",total vertex num: " << fragment->GetTotalVerticesNum()
-          << "frag vnum: " << fragment->GetVerticesNum(0);
+  //VLOG(1) << fragment->fid()
+   //       << ",total vertex num: " << fragment->GetTotalVerticesNum()
+   //       << "frag vnum: " << fragment->GetVerticesNum(0);
 }
 
 void Finalize() {
