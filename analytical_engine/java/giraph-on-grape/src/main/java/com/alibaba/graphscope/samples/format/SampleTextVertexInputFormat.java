@@ -15,7 +15,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-public class SampleTextVertexInputFormat extends TextVertexInputFormat<LongWritable, SccVertexValue, NullWritable> {
+public class SampleTextVertexInputFormat extends TextVertexInputFormat<LongWritable, SccVertexValue, LongWritable> {
 
     /**
      * The factory method which produces the {@link TextVertexReader} used by this input format.
@@ -58,13 +58,13 @@ public class SampleTextVertexInputFormat extends TextVertexInputFormat<LongWrita
         }
 
         @Override
-        protected Iterable<Edge<LongWritable, NullWritable>> getEdges(
+        protected Iterable<Edge<LongWritable, LongWritable>> getEdges(
             String[] tokens) throws IOException {
-            List<Edge<LongWritable, NullWritable>> edges =
+            List<Edge<LongWritable, LongWritable>> edges =
                 Lists.newArrayListWithCapacity(tokens.length - 1);
             for (int n = 1; n < tokens.length; n++) {
                 edges.add(EdgeFactory.create(
-                    new LongWritable(Long.parseLong(tokens[n]))));
+                    new LongWritable(Long.parseLong(tokens[n])), new LongWritable(Long.parseLong(tokens[n]))));
             }
             return edges;
         }
