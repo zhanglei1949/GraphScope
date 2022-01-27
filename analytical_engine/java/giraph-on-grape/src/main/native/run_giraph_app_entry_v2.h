@@ -54,8 +54,8 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
   vertex->vid = "0";
   vertex->protocol = "giraph";
   vertex->values = vfile;
-  vertex->values += "#";
-  vertex->values += vertex_input_format_class;
+  // vertex->values += "#";
+  // vertex->values += vertex_input_format_class;
   vertex->values += "#";
   vertex->values += params;
 

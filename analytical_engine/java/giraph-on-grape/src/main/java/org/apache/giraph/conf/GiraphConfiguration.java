@@ -105,12 +105,10 @@ public class GiraphConfiguration extends Configuration implements GiraphConstant
     }
 
     /**
-     * Set vertex input class.
+     * get vertex input class.
      *
-     * @param vertexInputFormatClass User specified computation class.
      */
-    public final Class<? extends VertexInputFormat> getVertexInputFormatClass(
-        Class<? extends VertexInputFormat> vertexInputFormatClass) {
+    public final Class<? extends VertexInputFormat> getVertexInputFormatClass() {
         return VERTEX_INPUT_FORMAT_CLASS.get(this);
     }
 
