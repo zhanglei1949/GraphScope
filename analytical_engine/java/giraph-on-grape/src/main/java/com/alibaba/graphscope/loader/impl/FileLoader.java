@@ -178,7 +178,7 @@ public class FileLoader implements LoaderBase {
 //        try {
             long sum = 0;
             for (int i = 0; i < threadNum; ++i) {
-                sum += (int) futures[i].get();
+                sum += (Long) futures[i].get();
             }
             logger.info("worker {} loaded {} lines ", workerId, sum);
 //        } catch (Exception e) {

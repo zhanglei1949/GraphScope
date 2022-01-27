@@ -25,7 +25,7 @@
 
 namespace grape {
 using FragmentType =
-    vineyard::ArrowFragment<vineyard::property_graph_types::OID_TYPE,
+    vineyard::ArrowFragment<std::string,
                             vineyard::property_graph_types::VID_TYPE>;
 
 // using LOADER_TYPE = grape::GiraphFragmentLoader<FragmentType>;

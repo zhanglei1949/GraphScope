@@ -225,8 +225,8 @@ class JavaLoaderInvoker {
     vdata_array_builder.Finish(&vdata_array);
 
     std::shared_ptr<arrow::Schema> schema =
-        arrow::schema({arrow::field("oid", arrow::utf8()),
-                       arrow::field("vdata", arrow::utf8())});
+        arrow::schema({arrow::field("oid", arrow::large_utf8()),
+                       arrow::field("vdata", arrow::large_utf8())});
 
     auto res = arrow::Table::Make(schema, {oid_array, vdata_array});
     VLOG(1) << "worker " << worker_id_
