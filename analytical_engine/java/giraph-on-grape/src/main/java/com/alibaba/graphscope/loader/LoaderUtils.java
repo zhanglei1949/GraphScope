@@ -57,9 +57,9 @@ public class LoaderUtils {
         int res = 0;
         for (Class<? extends Writable> clz : clzs){
             res <<= CODE_WIDTH;
-            res &= writable2Int(clz);
+            res |= writable2Int(clz);
         }
-        logger.info(Integer.toBinaryString(res).substring(32 - clzs.length - 1));
+        logger.info(Integer.toBinaryString(res));
         return res;
     }
 
