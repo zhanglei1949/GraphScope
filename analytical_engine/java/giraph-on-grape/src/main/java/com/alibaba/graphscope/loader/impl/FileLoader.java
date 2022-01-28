@@ -1,6 +1,9 @@
 package com.alibaba.graphscope.loader.impl;
 
+import static com.alibaba.graphscope.loader.LoaderUtils.generateTypeInt;
 import static com.alibaba.graphscope.loader.LoaderUtils.getNumLinesOfFile;
+
+import static org.apache.giraph.utils.ReflectionUtils.getTypeArguments;
 
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.graphscope.loader.GraphDataBufferManager;
@@ -8,6 +11,7 @@ import com.alibaba.graphscope.loader.LoaderBase;
 import com.alibaba.graphscope.stdcxx.FFIByteVecVector;
 import com.alibaba.graphscope.stdcxx.FFIIntVecVector;
 import com.alibaba.graphscope.utils.LoadLibrary;
+import com.google.common.base.Preconditions;
 
 import org.apache.giraph.conf.GiraphConfiguration;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
@@ -20,6 +24,7 @@ import org.apache.giraph.io.formats.TextVertexInputFormat;
 import org.apache.giraph.utils.ConfigurationUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
@@ -76,6 +81,10 @@ public class FileLoader implements LoaderBase {
     private static TaskAttemptContext taskAttemptContext =
             new TaskAttemptContext(configuration, taskAttemptID);
 
+    private static Class<? extends WritableComparable> giraphOidClass;
+    private static Class<? extends Writable> giraphVDataClass;
+    private static Class<? extends Writable> giraphEDataClass;
+
     static {
         try {
             vertexIdField = VertexImpl.class.getDeclaredField("initializeOid");
@@ -131,9 +140,10 @@ public class FileLoader implements LoaderBase {
     /**
      * @param inputPath
      * @param params the json params contains giraph configuration.
+     * @return Return an integer contains type params info.
      */
-    public static void loadVerticesAndEdges(String inputPath, String params)
-            throws ExecutionException, InterruptedException {
+    public static int loadVerticesAndEdges(String inputPath, String params)
+            throws ExecutionException, InterruptedException, ClassNotFoundException {
         logger.debug("input path {}, params {}", inputPath, params);
         //        FileLoader.inputPath = inputPath;
         // Vertex input format class has already been verified, just load.
@@ -141,16 +151,18 @@ public class FileLoader implements LoaderBase {
         // try to Load user library
         loadUserLibrary(jsonObject);
 
-        try {
-            ConfigurationUtils.parseArgs(giraphConfiguration, jsonObject);
-            //            ConfigurationUtils.parseJavaFragment(giraphConfiguration, fragment);
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+        //        try {
+        ConfigurationUtils.parseArgs(giraphConfiguration, jsonObject);
+        //        } catch (ClassNotFoundException e) {
+        //            e.printStackTrace();
+        //        }
         ImmutableClassesGiraphConfiguration conf =
                 new ImmutableClassesGiraphConfiguration(giraphConfiguration);
         try {
             inputFormatClz = conf.getVertexInputFormatClass();
+
+            inferGiraphTypesFromJSON(inputFormatClz);
+
             vertexInputFormat = inputFormatClz.newInstance();
             vertexInputFormat.setConf(conf);
             Method loadClassLoaderMethod =
@@ -171,6 +183,7 @@ public class FileLoader implements LoaderBase {
 
         // Finish output stream, such that offset == size;
         proxy.finishAdding();
+        return generateTypeInt(giraphOidClass, giraphVDataClass, giraphEDataClass);
     }
 
     public static void loadVertices(String inputPath)
@@ -272,5 +285,18 @@ public class FileLoader implements LoaderBase {
     private static void loadUserLibrary(JSONObject object) {
         String libPath = object.getString(LIB_PATH);
         LoadLibrary.invoke(libPath);
+    }
+
+    private static void inferGiraphTypesFromJSON(Class<? extends VertexInputFormat> child) {
+        Class<?>[] classList = getTypeArguments(VertexInputFormat.class, child);
+        Preconditions.checkArgument(classList.length == 3);
+        giraphOidClass = (Class<? extends WritableComparable>) classList[0];
+        giraphVDataClass = (Class<? extends Writable>) classList[1];
+        giraphEDataClass = (Class<? extends Writable>) classList[2];
+        logger.info(
+                "infer from json params: oid {}, vdata {}, edata {}",
+                giraphOidClass.getName(),
+                giraphVDataClass.getName(),
+                giraphEDataClass.getName());
     }
 }
