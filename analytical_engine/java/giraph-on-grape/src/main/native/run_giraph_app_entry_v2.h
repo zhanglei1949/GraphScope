@@ -23,11 +23,17 @@
 #include "java_loader_invoker.h"
 #include "utils.h"
 
+#define QUOTE(X) #X
+
+#if !defined(OID_TYPE)
+#error "Missing OID_TYPE"
+#endif
+
 namespace grape {
 using FragmentType =
-    vineyard::ArrowFragment<std::string,
-                            vineyard::property_graph_types::VID_TYPE>;
-
+    vineyard::ArrowFragment<OID_TYPE, vineyard::property_graph_types::VID_TYPE>;
+using FragmentLoaderType =
+    gs::ArrowFragmentLoader<OID_TYPE, vineyard::property_graph_types::VID_TYPE>;
 // using LOADER_TYPE = grape::GiraphFragmentLoader<FragmentType>;
 
 void Init(const std::string& params) {
@@ -82,9 +88,8 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
 
   vineyard::ObjectID fragment_id;
   {
-    auto loader = std::make_unique<gs::ArrowFragmentLoader<
-        std::string, vineyard::property_graph_types::VID_TYPE>>(
-        client, comm_spec, graph);
+    auto loader =
+        std::make_unique<FragmentLoaderType>(client, comm_spec, graph);
     fragment_id = boost::leaf::try_handle_all(
         [&loader]() { return loader->LoadFragment(); },
         [](const vineyard::GSError& e) {
