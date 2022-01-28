@@ -12,12 +12,50 @@
 
 namespace gs {
 
+// consistent with vineyard::TypeToInt
+template <size_t T>
+struct IntToType {};
+
+template <>
+struct IntToType<2> {
+  using TypeName = int32_t;
+  using BuilderType =
+      typename vineyard::ConvertToArrowType<TypeName>::BuilderType;
+};
+template <>
+struct IntToType<4> {
+  using TypeName = int64_t;
+  using BuilderType =
+      typename vineyard::ConvertToArrowType<TypeName>::BuilderType;
+};
+
+template <>
+struct IntToType<6> {
+  using TypeName = float;
+  using BuilderType =
+      typename vineyard::ConvertToArrowType<TypeName>::BuilderType;
+};
+
+template <>
+struct IntToType<7> {
+  using TypeName = double;
+  using BuilderType =
+      typename vineyard::ConvertToArrowType<TypeName>::BuilderType;
+};
+
+// indicates udf
+template <>
+struct IntToType<9> {
+  using TypeName = std::string;
+  using BuilderType = arrow::LargeStringBuilder;
+};
+
 static constexpr const char* JAVA_LOADER_CLASS =
     "com/alibaba/graphscope/loader/impl/FileLoader";
 static constexpr const char* JAVA_LOADER_LOAD_VE_METHOD =
     "loadVerticesAndEdges";
 static constexpr const char* JAVA_LOADER_LOAD_VE_SIG =
-    "(Ljava/lang/String;Ljava/lang/String;)V";
+    "(Ljava/lang/String;Ljava/lang/String;)I";
 static constexpr const char* JAVA_LOADER_INIT_METHOD = "init";
 static constexpr const char* JAVA_LOADER_INIT_SIG =
     "(IIILcom/alibaba/graphscope/stdcxx/FFIByteVecVector;"
@@ -34,6 +72,7 @@ static constexpr const char* DATA_VECTOR_VECTOR =
     "std::vector<std::vector<char>>";
 static constexpr const char* OFFSET_VECTOR_VECTOR =
     "std::vector<std::vector<int>>";
+static constexpr int GIRAPH_TYPE_CODE_LENGTH = 4;
 class JavaLoaderInvoker {
  public:
   JavaLoaderInvoker(int worker_id, int worker_num) {
@@ -55,9 +94,10 @@ class JavaLoaderInvoker {
     edst_offsets.resize(load_thread_num);
     edata_offsets.resize(load_thread_num);
     // Construct the FFIPointer
-    create_FFIPointers();
+    createFFIPointers();
 
-    init_java_loader();
+    initJavaLoader();
+    oid_type = vdata_type = edata_type = -1;
   }
 
   ~JavaLoaderInvoker() { VLOG(1) << "Destructing java loader invoker"; }
@@ -69,7 +109,14 @@ class JavaLoaderInvoker {
       std::string json_params = vertex_location.substr(arg_pos + 1);
       VLOG(1) << "input path: " << file_path << " json params: " << json_params;
 
-      call_java_loader(file_path.c_str(), json_params.c_str());
+      int giraph_type_int =
+          callJavaLoader(file_path.c_str(), json_params.c_str());
+      CHECK(giraph_type_int >= 0);
+
+      // fetch giraph graph types infos, so we can optimizing graph store by use
+      // primitive types for LongWritable.
+      parseGiraphTypeInt(giraph_type_int);
+
     } else {
       LOG(ERROR) << "No # found in vertex location";
     }
@@ -80,6 +127,7 @@ class JavaLoaderInvoker {
   }
 
   std::shared_ptr<arrow::Table> get_edge_table() {
+    CHECK(oid_type > 0 && edata_type > 0);
     // copy the data in std::vector<char> to arrowBinary builder.
     int64_t esrc_total_length = 0, edst_total_length = 0,
             edata_total_length = 0;
@@ -96,54 +144,20 @@ class JavaLoaderInvoker {
     CHECK((esrc_total_length == edst_total_length) &&
           (edst_total_length == edata_total_length));
     VLOG(1) << "worker " << worker_id_ << " Building edge table "
-            << " esrc len:" << esrc_total_length
-            << " esrc total bytes: " << esrc_total_bytes
-            << " edst len:" << edst_total_length
-            << " esrc total bytes: " << edst_total_bytes
-            << " edata len:" << edata_total_length
-            << " edata total bytes: " << edata_total_bytes;
-    arrow::LargeStringBuilder esrc_array_builder, edst_array_builder,
-        edata_array_builder;
+            << " esrc len: [" << esrc_total_length << "] esrc total bytes: ["
+            << esrc_total_bytes << "] edst len: [" << edst_total_length
+            << "] esrc total bytes: [" << edst_total_bytes << "] edata len: ["
+            << edata_total_length << "] edata total bytes: ["
+            << edata_total_bytes << "]";
 
-    esrc_array_builder.Reserve(esrc_total_length);  // the number of elements
-    esrc_array_builder.ReserveData(esrc_total_bytes);
-    edst_array_builder.Reserve(edst_total_length);  // the number of elements
-    edst_array_builder.ReserveData(edst_total_bytes);
-    edata_array_builder.Reserve(edata_total_length);  // the number of elements
-    edata_array_builder.ReserveData(edata_total_bytes);
-
-    double edgeTableBuildingTime = -grape::GetCurrentTime();
-
-    for (int i = 0; i < load_thread_num; ++i) {
-      std::vector<char> cur_esrc_array = esrcs[i];
-      std::vector<char> cur_edst_array = edsts[i];
-      std::vector<char> cur_edata_array = edatas[i];
-
-      std::vector<int> cur_esrc_offset = esrc_offsets[i];
-      std::vector<int> cur_edst_offset = edst_offsets[i];
-      std::vector<int> cur_edata_offset = edata_offsets[i];
-
-      const char* cur_esrc_array_ptr = cur_esrc_array.data();
-      const char* cur_edst_array_ptr = cur_edst_array.data();
-      const char* cur_edata_array_ptr = cur_edata_array.begin();
-
-      for (size_t j = 0; j < cur_esrc_offset.size(); ++j) {
-        esrc_array_builder.UnsafeAppend(cur_esrc_array_ptr, cur_esrc_offset[j]);
-        edst_array_builder.UnsafeAppend(cur_edst_array_ptr, cur_edst_offset[j]);
-        edata_array_builder.UnsafeAppend(cur_edata_array_ptr,
-                                         cur_edata_offset[j]);
-
-        cur_esrc_array_ptr += cur_esrc_offset[j];
-        cur_edst_array_ptr += cur_edst_offset[j];
-        cur_edata_array_ptr += cur_edata_offset[j];
-      }
-      VLOG(10) << "arrow array builder, finish build part: " << i;
-    }
+    double vertexTableBuildingTime = -grape::GetCurrentTime();
 
     std::shared_ptr<arrow::Array> esrc_array, edst_array, edata_array;
-    esrc_array_builder.Finish(&esrc_array);
-    edst_array_builder.Finish(&edst_array);
-    edata_array_builder.Finish(&edata_array);
+
+    buildArray<oid_type>(esrc_array, esrcs, esrc_offsets);
+    buildArray<oid_type>(edst_array, edsts, edst_offsets);
+    buildArray<edata_type>(edata_array, edatas, edata_offsets);
+    VLOG(1) << "Finish edge array building";
 
     std::shared_ptr<arrow::Schema> schema =
         arrow::schema({arrow::field("src", arrow::large_utf8()),
@@ -163,6 +177,7 @@ class JavaLoaderInvoker {
   }
 
   std::shared_ptr<arrow::Table> get_vertex_table() {
+    CHECK(oid_type > 0 && vdata_type > 0);
     // copy the data in std::vector<char> to arrowBinary builder.
     int64_t oid_length = 0;
     int64_t oid_total_bytes = 0;
@@ -176,47 +191,20 @@ class JavaLoaderInvoker {
     }
     CHECK(oid_length == vdata_total_length);
     VLOG(1) << "worker " << worker_id_
-            << " Building vertex table from oid array of size " << oid_length
-            << " oid total bytes: " << oid_total_bytes
-            << " vdata size: " << vdata_total_length
-            << " total bytes: " << vdata_total_bytes;
-    arrow::LargeStringBuilder oid_array_builder;
-    arrow::LargeStringBuilder vdata_array_builder;
-
-    oid_array_builder.Reserve(oid_length);  // the number of elements
-    oid_array_builder.ReserveData(oid_total_bytes);
-    vdata_array_builder.Reserve(vdata_total_length);
-    vdata_array_builder.ReserveData(vdata_total_bytes);
+            << " Building vertex table from oid array of size [" << oid_length
+            << "] oid total bytes: [" << oid_total_bytes << "] vdata size: ["
+            << vdata_total_length << "] total bytes: [" << vdata_total_bytes
+            << "]";
 
     double vertexTableBuildingTime = -grape::GetCurrentTime();
 
-    for (int i = 0; i < load_thread_num; ++i) {
-      std::vector<char> cur_oid_array = oids[i];
-      std::vector<int> cur_oid_offset = oid_offsets[i];
-      std::vector<char> cur_vdata_array = vdatas[i];
-      std::vector<int> cur_vdata_offset = vdata_offsets[i];
-
-      const char* cur_oid_array_ptr = cur_oid_array.data();
-      const char* cur_vdata_array_ptr = cur_vdata_array.data();
-
-      for (size_t j = 0; j < cur_oid_offset.size(); ++j) {
-        // for appending data to arrow_binary_builder, we use raw pointer to
-        // avoid copy.
-
-        oid_array_builder.UnsafeAppend(cur_oid_array_ptr, cur_oid_offset[j]);
-        vdata_array_builder.UnsafeAppend(cur_vdata_array_ptr,
-                                         cur_vdata_offset[j]);
-        cur_oid_array_ptr += cur_oid_offset[j];
-        cur_vdata_array_ptr += cur_vdata_offset[j];
-      }
-      VLOG(10) << "arrow array builder, finish build part: " << i;
-    }
-
     std::shared_ptr<arrow::Array> oid_array;
     std::shared_ptr<arrow::Array> vdata_array;
-    oid_array_builder.Finish(&oid_array);
-    vdata_array_builder.Finish(&vdata_array);
 
+    buildArray<oid_type>(oid_array, oids, oid_offsets);
+    buildArray<vdata_type>(vdata_array, vdatas, vdata_offsets);
+
+    VLOG(1) << "Finish vertex array building";
     std::shared_ptr<arrow::Schema> schema =
         arrow::schema({arrow::field("oid", arrow::large_utf8()),
                        arrow::field("vdata", arrow::large_utf8())});
@@ -233,7 +221,68 @@ class JavaLoaderInvoker {
   }
 
  private:
-  void create_FFIPointers() {
+  template <size_t T>
+  void buildArray(std::shared_ptr<arrow::Array>& array,
+                  const std::vector<std::vector<char>>& data_arr,
+                  const std::vector<std::vector<int>>& offset_arr) {
+    VLOG(10) << "Building pod array with string builder";
+    using elementType = typename IntToType<T>::TypeName;
+    using builderType = typename IntToType<T>::BuilderType;
+    builderType array_builder;
+    int64_t total_length, total_bytes;
+    for (auto i = 0; i < data_arr.size(); ++i) {
+      total_bytes += data_arr[i].size();
+      total_length += offset_arr[i].size();
+    }
+    array_builder.Reserve(total_length);  // the number of elements
+    array_builder.ReserveData(total_bytes);
+
+    for (auto i = 0; i < data_arr.size(); ++i) {
+      auto ptr = static_cast<elementType*>(data_arr[i].data());
+      auto cur_offset = offset_arr[i];
+
+      for (size_t j = 0; j < cur_offset.size(); ++j) {
+        // for appending data to arrow_binary_builder, we use raw pointer to
+        // avoid copy.
+        array_builder.UnsafeAppend(*ptr);
+        CHECK(sizeof(*ptr) == cur_offset[j]);
+        ptr += 1;  // We have convert to T*, so plus 1 is ok.
+      }
+    }
+    array_builder.Finish(&array);
+  }
+
+  template <>
+  void buildArray<9>(std::shared_ptr<arrow::Array>& array,
+                     const std::vector<std::vector<char>>& data_arr,
+                     const std::vector<std::vector<int>>& offset_arr) {
+    VLOG(10) << "Building utf array with string builder";
+    using elementType = typename IntToType<T>::TypeName;
+    using builderType = typename IntToType<T>::BuilderType;
+    builderType array_builder;
+    int64_t total_length, total_bytes;
+    for (auto i = 0; i < data_arr.size(); ++i) {
+      total_bytes += data_arr[i].size();
+      total_length += offset_arr[i].size();
+    }
+    array_builder.Reserve(total_length);  // the number of elements
+    array_builder.ReserveData(total_bytes);
+
+    for (auto i = 0; i < data_arr.size(); ++i) {
+      const char* ptr = data_arr[i].data();
+      auto cur_offset = offset_arr[i];
+
+      for (size_t j = 0; j < cur_offset.size(); ++j) {
+        // for appending data to arrow_binary_builder, we use raw pointer to
+        // avoid copy.
+        array_builder.UnsafeAppend(ptr, cur_offset[j]);
+        ptr += cur_offset[j];  // We have convert to T*, so plus 1 is ok.
+      }
+    }
+    array_builder.Finish(&array);
+  }
+
+  void createFFIPointers() {
     gs::JNIEnvMark m;
     if (m.env()) {
       JNIEnv* env = m.env();
@@ -280,7 +329,7 @@ class JavaLoaderInvoker {
     VLOG(1) << "Finish creating ffi wrappers";
   }
   // load the class and call init method
-  void init_java_loader() {
+  void initJavaLoader() {
     gs::JNIEnvMark m;
     if (m.env()) {
       JNIEnv* env = m.env();
@@ -306,7 +355,7 @@ class JavaLoaderInvoker {
     VLOG(1) << "Successfully init java loader with params ";
   }
 
-  void call_java_loader(const char* file_path, const char* java_params) {
+  int callJavaLoader(const char* file_path, const char* java_params) {
     gs::JNIEnvMark m;
     if (m.env()) {
       JNIEnv* env = m.env();
@@ -322,8 +371,8 @@ class JavaLoaderInvoker {
       jstring java_params_jstring = env->NewStringUTF(java_params);
       double javaLoadingTime = -grape::GetCurrentTime();
 
-      env->CallStaticVoidMethod(loader_class, loader_method, file_path_jstring,
-                                java_params_jstring);
+      jint res = env->CallStaticIntMethod(
+          loader_class, loader_method, file_path_jstring, java_params_jstring);
       if (env->ExceptionCheck()) {
         env->ExceptionDescribe();
         env->ExceptionClear();
@@ -334,12 +383,26 @@ class JavaLoaderInvoker {
       javaLoadingTime += grape::GetCurrentTime();
       VLOG(1) << "Successfully Loaded graph data from Java loader, duration: "
               << javaLoadingTime;
+      return res;
     } else {
       LOG(ERROR) << "Java env not available.";
+      return -1;
     }
   }
 
+  void parseGiraphTypeInt(const int giraph_type_int) {
+    int edata_type = (giraph_type_int & 0x000F);
+    giraph_type_int = giraph_type_int >> GIRAPH_TYPE_CODE_LENGTH);
+    int vdata_type = (giraph_type_int & 0x000F);
+    giraph_type_int = giraph_type_int >> GIRAPH_TYPE_CODE_LENGTH);
+    int oid_type = (giraph_type_int & 0x000F);
+    giraph_type_int = giraph_type_int >> GIRAPH_TYPE_CODE_LENGTH;
+    CHECK(giraph_type_int == 0);
+    VLOG(1) << "giraph types: " << oid_type << vdata_type << edata_type;
+  }
+
   int worker_id_, worker_num_, load_thread_num;
+  int oid_type, vdata_type, edata_type;
   std::vector<std::vector<char>> oids;
   std::vector<std::vector<char>> vdatas;
   std::vector<std::vector<char>> esrcs;
@@ -365,7 +428,6 @@ class JavaLoaderInvoker {
   jobject esrc_offsets_jobj;
   jobject edst_offsets_jobj;
   jobject edata_offsets_jobj;
-
 };  // namespace gs
 };  // namespace gs
 
