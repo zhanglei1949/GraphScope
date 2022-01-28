@@ -259,7 +259,7 @@ public class FileLoader implements LoaderBase {
                 Writable vertexId = (Writable) vertexIdField.get(vertex);
                 Writable vertexValue = (Writable) vertexValueField.get(vertex);
                 Iterable<Edge> vertexEdges = (Iterable<Edge>) vertexEdgesField.get(vertex);
-                logger.debug("id {} value {} edges {}", vertexId, vertexValue, vertexEdges);
+                // logger.debug("id {} value {} edges {}", vertexId, vertexValue, vertexEdges);
                 proxy.addVertex(threadId, vertexId, vertexValue);
                 // suppose directed.
                 proxy.addEdges(threadId, vertexId, vertexEdges);

@@ -123,26 +123,19 @@ class JavaLoaderInvoker {
       std::vector<int> cur_edst_offset = edst_offsets[i];
       std::vector<int> cur_edata_offset = edata_offsets[i];
 
-      std::vector<char>::iterator esrc_iter = cur_esrc_array.begin();
-      std::vector<char>::iterator edst_iter = cur_edst_array.begin();
-      std::vector<char>::iterator edata_iter = cur_edata_array.begin();
+      const char* cur_esrc_array_ptr = cur_esrc_array.data();
+      const char* cur_edst_array_ptr = cur_edst_array.data();
+      const char* cur_edata_array_ptr = cur_edata_array.begin();
 
       for (size_t j = 0; j < cur_esrc_offset.size(); ++j) {
-        std::string tmp_esrc(esrc_iter, esrc_iter + cur_esrc_offset[j]);
-        std::string tmp_edst(edst_iter, edst_iter + cur_edst_offset[j]);
-        std::string tmp_edata(edata_iter, edata_iter + cur_edata_offset[j]);
+        esrc_array_builder.UnsafeAppend(cur_esrc_array_ptr, cur_esrc_offset[j]);
+        edst_array_builder.UnsafeAppend(cur_edst_array_ptr, cur_edst_offset[j]);
+        edata_array_builder.UnsafeAppend(cur_edata_array_ptr,
+                                         cur_edata_offset[j]);
 
-        esrc_iter += cur_esrc_offset[j];
-        edst_iter += cur_edst_offset[j];
-        edata_iter += cur_edata_offset[j];
-        VLOG(10) << "arrow array bulider, thread: " << i << " index: " << j
-                 << " esrc : " << tmp_esrc.size()
-                 << " edst: " << tmp_edst.size()
-                 << " edata: " << tmp_edata.size();
-
-        esrc_array_builder.UnsafeAppend(tmp_esrc);
-        edst_array_builder.UnsafeAppend(tmp_edst);
-        edata_array_builder.UnsafeAppend(tmp_edata);
+        cur_esrc_array_ptr += cur_esrc_offset[j];
+        cur_edst_array_ptr += cur_edst_offset[j];
+        cur_edata_array_ptr += cur_edata_offset[j];
       }
       VLOG(10) << "arrow array builder, finish build part: " << i;
     }
@@ -161,7 +154,7 @@ class JavaLoaderInvoker {
         arrow::Table::Make(schema, {esrc_array, edst_array, edata_array});
     VLOG(1) << "worker " << worker_id_
             << " generated table, rows:" << res->num_rows()
-            << " cols: " << res->num_columns() << ": " << res->ToString();
+            << " cols: " << res->num_columns();
 
     edgeTableBuildingTime += grape::GetCurrentTime();
     VLOG(1) << "worker " << worker_id_
@@ -203,19 +196,18 @@ class JavaLoaderInvoker {
       std::vector<char> cur_vdata_array = vdatas[i];
       std::vector<int> cur_vdata_offset = vdata_offsets[i];
 
-      std::vector<char>::iterator oid_iter = cur_oid_array.begin();
-      std::vector<char>::iterator vdata_iter = cur_vdata_array.begin();
+      const char* cur_oid_array_ptr = cur_oid_array.data();
+      const char* cur_vdata_array_ptr = cur_vdata_array.data();
 
       for (size_t j = 0; j < cur_oid_offset.size(); ++j) {
-        std::string tmp_oid(oid_iter, oid_iter + cur_oid_offset[j]);
-        std::string tmp_vdata(vdata_iter, vdata_iter + cur_vdata_offset[j]);
-        oid_iter += cur_oid_offset[j];
-        vdata_iter += cur_vdata_offset[j];
-        VLOG(10) << "arrow array bulider, thread: " << i << " index: " << j
-                 << " oidstr: " << tmp_oid.size()
-                 << ", vdatastr: " << tmp_vdata.size();
-        oid_array_builder.UnsafeAppend(tmp_oid);
-        vdata_array_builder.UnsafeAppend(tmp_vdata);
+        // for appending data to arrow_binary_builder, we use raw pointer to
+        // avoid copy.
+
+        oid_array_builder.UnsafeAppend(cur_oid_array_ptr, cur_oid_offset[j]);
+        vdata_array_builder.UnsafeAppend(cur_vdata_array_ptr,
+                                         cur_vdata_offset[j]);
+        cur_oid_array_ptr += cur_oid_offset[j];
+        cur_vdata_array_ptr += cur_vdata_offset[j];
       }
       VLOG(10) << "arrow array builder, finish build part: " << i;
     }
@@ -232,7 +224,7 @@ class JavaLoaderInvoker {
     auto res = arrow::Table::Make(schema, {oid_array, vdata_array});
     VLOG(1) << "worker " << worker_id_
             << " generated table, rows:" << res->num_rows()
-            << " cols: " << res->num_columns() << ": " << res->ToString();
+            << " cols: " << res->num_columns();
 
     vertexTableBuildingTime += grape::GetCurrentTime();
     VLOG(1) << "worker " << worker_id_

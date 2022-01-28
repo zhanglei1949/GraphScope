@@ -6,11 +6,13 @@ import com.alibaba.graphscope.stdcxx.FFIByteVecVector;
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.stdcxx.FFIIntVecVector;
 import com.alibaba.graphscope.stdcxx.FFIIntVector;
-import java.io.IOException;
+
 import org.apache.giraph.edge.Edge;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 
 public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
 
@@ -41,20 +43,29 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
     private FFIIntVector[] edgeDstIdOffsetArr;
     private FFIIntVector[] edgeDataOffsetsArr;
 
-    public GraphDataBufferManangerImpl(int workerId, int threadNum,
-        FFIByteVecVector vidBuffers, FFIByteVecVector vertexDataBuffers,
-        FFIByteVecVector edgeSrcIdBuffers, FFIByteVecVector edgeDstIdBuffers,
-        FFIByteVecVector edgeDataBuffers,
-        FFIIntVecVector vidOffsets,
-        FFIIntVecVector vertexDataOffsets,
-        FFIIntVecVector edgeSrcIdOffsets,
-        FFIIntVecVector edgeDstIdOffsets,
-        FFIIntVecVector edgeDataOffsets) {
-        if (vidBuffers.getAddress() <= 0 || vidOffsets.getAddress() <= 0
-            || vertexDataBuffers.getAddress() <= 0 || vertexDataOffsets.getAddress() <= 0
-            || edgeSrcIdBuffers.getAddress() <= 0
-            || edgeDstIdBuffers.getAddress() <= 0 || edgeSrcIdOffsets.getAddress() <= 0|| edgeDstIdOffsets.getAddress() <= 0
-            || edgeDataBuffers.getAddress() <= 0 || edgeDataOffsets.getAddress() <= 0) {
+    public GraphDataBufferManangerImpl(
+            int workerId,
+            int threadNum,
+            FFIByteVecVector vidBuffers,
+            FFIByteVecVector vertexDataBuffers,
+            FFIByteVecVector edgeSrcIdBuffers,
+            FFIByteVecVector edgeDstIdBuffers,
+            FFIByteVecVector edgeDataBuffers,
+            FFIIntVecVector vidOffsets,
+            FFIIntVecVector vertexDataOffsets,
+            FFIIntVecVector edgeSrcIdOffsets,
+            FFIIntVecVector edgeDstIdOffsets,
+            FFIIntVecVector edgeDataOffsets) {
+        if (vidBuffers.getAddress() <= 0
+                || vidOffsets.getAddress() <= 0
+                || vertexDataBuffers.getAddress() <= 0
+                || vertexDataOffsets.getAddress() <= 0
+                || edgeSrcIdBuffers.getAddress() <= 0
+                || edgeDstIdBuffers.getAddress() <= 0
+                || edgeSrcIdOffsets.getAddress() <= 0
+                || edgeDstIdOffsets.getAddress() <= 0
+                || edgeDataBuffers.getAddress() <= 0
+                || edgeDataOffsets.getAddress() <= 0) {
             throw new IllegalStateException("Empty buffer");
         }
         this.workerId = workerId;
@@ -81,14 +92,14 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
 
         for (int i = 0; i < threadNum; ++i) {
             vidOutputStream[i] = new FFIByteVectorOutputStream((FFIByteVector) vidBuffers.get(i));
-            vdataOutputStream[i] = new FFIByteVectorOutputStream(
-                (FFIByteVector) vertexDataBuffers.get(i));
-            edgeSrcIdOutputStream[i] = new FFIByteVectorOutputStream(
-                (FFIByteVector) edgeSrcIdBuffers.get(i));
-            edgeDstOutputStream[i] = new FFIByteVectorOutputStream(
-                (FFIByteVector) edgeDstIdBuffers.get(i));
-            edgeDataOutStream[i] = new FFIByteVectorOutputStream(
-                (FFIByteVector) edgeDataBuffers.get(i));
+            vdataOutputStream[i] =
+                    new FFIByteVectorOutputStream((FFIByteVector) vertexDataBuffers.get(i));
+            edgeSrcIdOutputStream[i] =
+                    new FFIByteVectorOutputStream((FFIByteVector) edgeSrcIdBuffers.get(i));
+            edgeDstOutputStream[i] =
+                    new FFIByteVectorOutputStream((FFIByteVector) edgeDstIdBuffers.get(i));
+            edgeDataOutStream[i] =
+                    new FFIByteVectorOutputStream((FFIByteVector) edgeDataBuffers.get(i));
         }
 
         this.idOffsetsArr = new FFIIntVector[threadNum];
@@ -97,7 +108,7 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
         this.edgeDstIdOffsetArr = new FFIIntVector[threadNum];
         this.edgeDataOffsetsArr = new FFIIntVector[threadNum];
 
-        for (int i = 0; i < threadNum; ++i){
+        for (int i = 0; i < threadNum; ++i) {
             idOffsetsArr[i] = (FFIIntVector) vidOffsets.get(i);
             vdataOffsetsArr[i] = (FFIIntVector) vertexDataOffsets.get(i);
             edgeSrcIdOffsetArr[i] = (FFIIntVector) edgeSrcIdOffsets.get(i);
@@ -140,7 +151,6 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
         }
     }
 
-
     @Override
     public void addVertex(int threadId, Writable id, Writable value) throws IOException {
         int bytes = (int) -vidOutputStream[threadId].bytesWriten();
@@ -153,17 +163,18 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
         bytes2 += vdataOutputStream[threadId].bytesWriten();
         vdataOffsetsArr[threadId].push_back(bytes2);
 
-        logger.debug(
-            "adding vertex id {}, value {}, id offset {}, data offset {}, total bytes writen vid buffer {}, vdata buffer {}",
-            id, value, bytes, bytes2, vidOutputStream[threadId].bytesWriten(),
-            vdataOutputStream[threadId].bytesWriten());
+        // logger.debug(
+        //     "adding vertex id {}, value {}, id offset {}, data offset {}, total bytes writen vid
+        // buffer {}, vdata buffer {}",
+        //     id, value, bytes, bytes2, vidOutputStream[threadId].bytesWriten(),
+        //     vdataOutputStream[threadId].bytesWriten());
     }
 
     @Override
-    public void addEdges(int threadId, Writable id, Iterable<Edge> edges)throws IOException {
+    public void addEdges(int threadId, Writable id, Iterable<Edge> edges) throws IOException {
         int bytesEdgeSrcOffset = 0, bytesEdgeDstOffset = 0, bytesDataOffsets = 0;
 
-        for (Edge edge : edges){
+        for (Edge edge : edges) {
             bytesEdgeSrcOffset = (int) -edgeSrcIdOutputStream[threadId].bytesWriten();
             id.write(edgeSrcIdOutputStream[threadId]);
             bytesEdgeSrcOffset += edgeSrcIdOutputStream[threadId].bytesWriten();
@@ -179,9 +190,11 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
             bytesDataOffsets += edgeDataOutStream[threadId].bytesWriten();
             edgeDataOffsetsArr[threadId].push_back(bytesDataOffsets);
 
-            logger.debug("worker [{}] adding edge [{}]->[{}], value {}", workerId, id, edge.getTargetVertexId(), edge.getValue());
+            // logger.debug("worker [{}] adding edge [{}]->[{}], value {}", workerId, id,
+            // edge.getTargetVertexId(), edge.getValue());
         }
-        logger.debug("esrc/dst/data Total length : {} {} {}", bytesEdgeSrcOffset, bytesEdgeDstOffset, bytesDataOffsets);
+        // logger.debug("esrc/dst/data Total length : {} {} {}", bytesEdgeSrcOffset,
+        // bytesEdgeDstOffset, bytesDataOffsets);
     }
 
     /**
@@ -204,7 +217,7 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
             edgeDataOutStream[i].getVector().resize(leastSize);
             edgeDataOutStream[i].getVector().touch();
 
-            idOffsetsArr[i].reserve(length); //may not enough
+            idOffsetsArr[i].reserve(length); // may not enough
             idOffsetsArr[i].touch();
             vdataOffsetsArr[i].reserve(length);
             vdataOffsetsArr[i].touch();
@@ -218,8 +231,8 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
     }
 
     @Override
-    public void finishAdding(){
-        for (int i = 0; i < threadNum; ++i){
+    public void finishAdding() {
+        for (int i = 0; i < threadNum; ++i) {
             vidOutputStream[i].finishSetting();
             vdataOutputStream[i].finishSetting();
             edgeSrcIdOutputStream[i].finishSetting();
@@ -231,8 +244,6 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
             edgeSrcIdOffsetArr[i].finishSetting();
             edgeDstIdOffsetArr[i].finishSetting();
             edgeDataOffsetsArr[i].finishSetting();
-
-
         }
     }
 }
