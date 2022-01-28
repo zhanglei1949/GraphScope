@@ -125,7 +125,7 @@ class JavaLoaderInvoker {
 
       const char* cur_esrc_array_ptr = cur_esrc_array.data();
       const char* cur_edst_array_ptr = cur_edst_array.data();
-      const char* cur_edata_array_ptr = cur_edata_array.begin();
+      const char* cur_edata_array_ptr = cur_edata_array.data();
 
       for (size_t j = 0; j < cur_esrc_offset.size(); ++j) {
         esrc_array_builder.UnsafeAppend(cur_esrc_array_ptr, cur_esrc_offset[j]);
