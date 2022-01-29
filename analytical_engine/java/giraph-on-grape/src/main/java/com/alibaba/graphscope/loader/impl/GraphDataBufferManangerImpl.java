@@ -152,7 +152,7 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
     }
 
     @Override
-    public void addVertex(int threadId, Writable id, Writable value) throws IOException {
+    public synchronized void addVertex(int threadId, Writable id, Writable value) throws IOException {
         int bytes = (int) -vidOutputStream[threadId].bytesWriten();
         id.write(vidOutputStream[threadId]);
         bytes += vidOutputStream[threadId].bytesWriten();
@@ -171,7 +171,7 @@ public class GraphDataBufferManangerImpl implements GraphDataBufferManager {
     }
 
     @Override
-    public void addEdges(int threadId, Writable id, Iterable<Edge> edges) throws IOException {
+    public synchronized void addEdges(int threadId, Writable id, Iterable<Edge> edges) throws IOException {
         int bytesEdgeSrcOffset = 0, bytesEdgeDstOffset = 0, bytesDataOffsets = 0;
 
         for (Edge edge : edges) {
