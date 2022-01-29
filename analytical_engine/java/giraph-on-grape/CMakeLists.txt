@@ -27,7 +27,7 @@ else()
     message(STATUS "Your compiler is ${CMAKE_CXX_COMPILER}")
 endif()
 
-if (NOT DEFINED ENV{OID_TYPE})
+if (NOT DEFINED ENV{GIRAPH_OID_TYPE})
    message(FATAL_ERROR "Need OID_TYPE")
 endif()
 
@@ -68,7 +68,7 @@ find_package(Threads REQUIRED)
 
 add_library(giraph-jni SHARED ${SOURCES})
 # target_compile_definitions(giraph-jni PUBLIC ENABLE_JAVA_SDK GRAPH_TYPE=$ENV{GRAPH_TYPE} APP_TYPE=$ENV{APP_TYPE})
-target_compile_definitions(giraph-jni PUBLIC ENABLE_JAVA_SDK OID_TYPE=$ENV{OID_TYPE})
+target_compile_definitions(giraph-jni PUBLIC ENABLE_JAVA_SDK GIRAPH_OID_TYPE=$ENV{GIRAPH_OID_TYPE})
 target_link_libraries(giraph-jni ${CMAKE_JNI_LINKER_FLAGS}  ${LIBGRAPELITE_LIBRARIES} ${VINEYARD_LIBRARIES} ${GLOG_LIBRARIES})
 set_target_properties(giraph-jni PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_features(giraph-jni PRIVATE cxx_std_14)

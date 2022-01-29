@@ -25,15 +25,15 @@
 
 #define QUOTE(X) #X
 
-#if !defined(OID_TYPE)
-#error "Missing OID_TYPE"
+#if !defined(GIRAPH_OID_TYPE)
+#error "Missing GIRAPH_OID_TYPE"
 #endif
 
 namespace grape {
 using FragmentType =
-    vineyard::ArrowFragment<OID_TYPE, vineyard::property_graph_types::VID_TYPE>;
+    vineyard::ArrowFragment<GIRAPH_OID_TYPE, vineyard::property_graph_types::VID_TYPE>;
 using FragmentLoaderType =
-    gs::ArrowFragmentLoader<OID_TYPE, vineyard::property_graph_types::VID_TYPE>;
+    gs::ArrowFragmentLoader<GIRAPH_OID_TYPE, vineyard::property_graph_types::VID_TYPE>;
 // using LOADER_TYPE = grape::GiraphFragmentLoader<FragmentType>;
 
 void Init(const std::string& params) {

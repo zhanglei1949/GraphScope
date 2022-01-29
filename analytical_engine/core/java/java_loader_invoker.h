@@ -51,21 +51,21 @@ struct IntToType<9> {
 };
 
   template <typename T,typename std::enable_if<!std::is_same<T, std::string>::value,T>::type* = nullptr>
-  void buildArray(std::shared_ptr<arrow::Array>& array,
+  void BuildArray(std::shared_ptr<arrow::Array>& array,
                   const std::vector<std::vector<char>>& data_arr,
                   const std::vector<std::vector<int>>& offset_arr) {
-    VLOG(10) << "Building pod array with string builder";
+    VLOG(10) << "Building pod array with pod builder";
     using elementType = T; 
     using builderType = typename vineyard::ConvertToArrowType<T>::BuilderType;
     builderType array_builder;
     int64_t total_length;
-    for (auto i = 0; i < offset_arr.size(); ++i) {
+    for (size_t i = 0; i < offset_arr.size(); ++i) {
       total_length += offset_arr[i].size();
     }
     array_builder.Reserve(total_length);  // the number of elements
 
     for (size_t i = 0; i < data_arr.size(); ++i) {
-      auto ptr = static_cast<const elementType*>(data_arr[i].data());
+      auto ptr = reinterpret_cast<const elementType*>(data_arr[i].data());
       auto cur_offset = offset_arr[i];
 
       for (size_t j = 0; j < cur_offset.size(); ++j) {
@@ -80,7 +80,7 @@ struct IntToType<9> {
   }
 
   template <typename T,typename std::enable_if<std::is_same<T, std::string>::value,T>::type* = nullptr>
-  void buildArray(std::shared_ptr<arrow::Array>& array,
+  void BuildArray(std::shared_ptr<arrow::Array>& array,
                      const std::vector<std::vector<char>>& data_arr,
                      const std::vector<std::vector<int>>& offset_arr) {
     VLOG(10) << "Building utf array with string builder";
@@ -212,10 +212,10 @@ class JavaLoaderInvoker {
 
     std::shared_ptr<arrow::Array> esrc_array, edst_array, edata_array;
 
-    buildArray<std::string>(esrc_array, esrcs, esrc_offsets);
-    buildArray<std::string>(edst_array, edsts, edst_offsets);
-    buildArray<std::string>(edata_array, edatas, edata_offsets);
-    VLOG(1) << "Finish edge array building";
+    buildArray(oid_type, esrc_array, esrcs, esrc_offsets);
+    buildArray(oid_type, edst_array, edsts, edst_offsets);
+    buildArray(edata_type, edata_array, edatas, edata_offsets);
+    VLOG(1) << "Finish edge array building esrc: " << esrc_array->ToString() << " edst: " << edst_array->ToString() << " edata: " << edata_array->ToString();
 
     std::shared_ptr<arrow::Schema> schema =
         arrow::schema({arrow::field("src", arrow::large_utf8()),
@@ -259,9 +259,10 @@ class JavaLoaderInvoker {
     std::shared_ptr<arrow::Array> oid_array;
     std::shared_ptr<arrow::Array> vdata_array;
 
-        buildArray<std::string>(oid_array, oids, oid_offsets);
-        buildArray<std::string>(vdata_array, vdatas, vdata_offsets);
-    VLOG(1) << "Finish vertex array building";
+        buildArray(oid_type, oid_array, oids, oid_offsets);
+        buildArray(vdata_type, vdata_array, vdatas, vdata_offsets);
+    VLOG(1) << "Finish vertex array building oid array: " << oid_array->ToString() << " vdata: " << vdata_array->ToString();
+
     std::shared_ptr<arrow::Schema> schema =
         arrow::schema({arrow::field("oid", arrow::large_utf8()),
                        arrow::field("vdata", arrow::large_utf8())});
@@ -278,6 +279,26 @@ class JavaLoaderInvoker {
   }
 
  private:
+  void buildArray(int data_type, std::shared_ptr<arrow::Array>& array,
+                  const std::vector<std::vector<char>>& data_arr,
+                  const std::vector<std::vector<int>>& offset_arr){
+    if (data_type == 2){
+      BuildArray<int32_t>(array,data_arr, offset_arr);
+    }
+    else if (data_type == 4){
+      BuildArray<int64_t>(array,data_arr, offset_arr);
+    }
+    else if (data_type == 6){
+      BuildArray<float>(array,data_arr, offset_arr);
+    }else if (data_type == 7){
+      BuildArray<double>(array,data_arr, offset_arr);
+    }else if (data_type == 9){
+      BuildArray<std::string>(array,data_arr, offset_arr);
+    }
+    else {
+    LOG(ERROR) << "Wrong data type: " << data_type;
+    }
+  }
   void createFFIPointers() {
     gs::JNIEnvMark m;
     if (m.env()) {
@@ -387,11 +408,11 @@ class JavaLoaderInvoker {
   }
 
   void parseGiraphTypeInt(int giraph_type_int) {
-    int edata_type = (giraph_type_int & 0x000F);
+    edata_type = (giraph_type_int & 0x000F);
     giraph_type_int = giraph_type_int >> GIRAPH_TYPE_CODE_LENGTH;
-    int vdata_type = (giraph_type_int & 0x000F);
+    vdata_type = (giraph_type_int & 0x000F);
     giraph_type_int = giraph_type_int >> GIRAPH_TYPE_CODE_LENGTH;
-    int oid_type = (giraph_type_int & 0x000F);
+    oid_type = (giraph_type_int & 0x000F);
     giraph_type_int = giraph_type_int >> GIRAPH_TYPE_CODE_LENGTH;
     CHECK(giraph_type_int == 0);
     VLOG(1) << "giraph types: " << oid_type << vdata_type << edata_type;
