@@ -263,8 +263,8 @@ public class FileLoader implements LoaderBase {
             this.end = endLine;
 //            proxy.reserveNumVertices((int) this.end - (int) this.start);
             logger.debug(
-                "creating loader callable: {}, file : {}, reader {}, thread id {}, from {} to {}",
-                this, inputPath, bufferedReader, threadId, startLine, endLine);
+                "File loader {} creating loader callable: {}, file : {}, reader {}, thread id {}, from {} to {}", FileLoader.this,
+                LoaderCallable.this, inputPath, bufferedReader, threadId, startLine, endLine);
         }
 
         /**
