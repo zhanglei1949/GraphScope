@@ -50,63 +50,68 @@ struct IntToType<9> {
   using BuilderType = arrow::LargeStringBuilder;
 };
 
-  template <typename T,typename std::enable_if<!std::is_same<T, std::string>::value,T>::type* = nullptr>
-  void BuildArray(std::shared_ptr<arrow::Array>& array,
-                  const std::vector<std::vector<char>>& data_arr,
-                  const std::vector<std::vector<int>>& offset_arr) {
-    VLOG(10) << "Building pod array with pod builder";
-    using elementType = T; 
-    using builderType = typename vineyard::ConvertToArrowType<T>::BuilderType;
-    builderType array_builder;
-    int64_t total_length;
-    for (size_t i = 0; i < offset_arr.size(); ++i) {
-      total_length += offset_arr[i].size();
-    }
-    array_builder.Reserve(total_length);  // the number of elements
-
-    for (size_t i = 0; i < data_arr.size(); ++i) {
-      auto ptr = reinterpret_cast<const elementType*>(data_arr[i].data());
-      auto cur_offset = offset_arr[i];
-
-      for (size_t j = 0; j < cur_offset.size(); ++j) {
-        // for appending data to arrow_binary_builder, we use raw pointer to
-        // avoid copy.
-        array_builder.UnsafeAppend(*ptr);
-        CHECK(sizeof(*ptr) == cur_offset[j]);
-        ptr += 1;  // We have convert to T*, so plus 1 is ok.
-      }
-    }
-    array_builder.Finish(&array);
+template <typename T,
+          typename std::enable_if<!std::is_same<T, std::string>::value,
+                                  T>::type* = nullptr>
+void BuildArray(std::shared_ptr<arrow::Array>& array,
+                const std::vector<std::vector<char>>& data_arr,
+                const std::vector<std::vector<int>>& offset_arr) {
+  VLOG(10) << "Building pod array with pod builder";
+  using elementType = T;
+  using builderType = typename vineyard::ConvertToArrowType<T>::BuilderType;
+  builderType array_builder;
+  int64_t total_length;
+  for (size_t i = 0; i < offset_arr.size(); ++i) {
+    total_length += offset_arr[i].size();
   }
+  array_builder.Reserve(total_length);  // the number of elements
 
-  template <typename T,typename std::enable_if<std::is_same<T, std::string>::value,T>::type* = nullptr>
-  void BuildArray(std::shared_ptr<arrow::Array>& array,
-                     const std::vector<std::vector<char>>& data_arr,
-                     const std::vector<std::vector<int>>& offset_arr) {
-    VLOG(10) << "Building utf array with string builder";
-    arrow::LargeStringBuilder array_builder;
-    int64_t total_length, total_bytes;
-    for (size_t i = 0; i < data_arr.size(); ++i) {
-      total_bytes += data_arr[i].size();
-      total_length += offset_arr[i].size();
+  for (size_t i = 0; i < data_arr.size(); ++i) {
+    auto ptr = reinterpret_cast<const elementType*>(data_arr[i].data());
+    auto cur_offset = offset_arr[i];
+
+    for (size_t j = 0; j < cur_offset.size(); ++j) {
+      // for appending data to arrow_binary_builder, we use raw pointer to
+      // avoid copy.
+      VLOG(10) << "appending data: " << *ptr;
+      array_builder.UnsafeAppend(*ptr);
+      CHECK(sizeof(*ptr) == cur_offset[j]);
+      ptr += 1;  // We have convert to T*, so plus 1 is ok.
     }
-    array_builder.Reserve(total_length);  // the number of elements
-    array_builder.ReserveData(total_bytes);
-
-    for (size_t i = 0; i < data_arr.size(); ++i) {
-      const char* ptr = data_arr[i].data();
-      auto cur_offset = offset_arr[i];
-
-      for (size_t j = 0; j < cur_offset.size(); ++j) {
-        // for appending data to arrow_binary_builder, we use raw pointer to
-        // avoid copy.
-        array_builder.UnsafeAppend(ptr, cur_offset[j]);
-        ptr += cur_offset[j];  // We have convert to T*, so plus 1 is ok.
-      }
-    }
-    array_builder.Finish(&array);
   }
+  array_builder.Finish(&array);
+}
 
+template <typename T,
+          typename std::enable_if<std::is_same<T, std::string>::value,
+                                  T>::type* = nullptr>
+void BuildArray(std::shared_ptr<arrow::Array>& array,
+                const std::vector<std::vector<char>>& data_arr,
+                const std::vector<std::vector<int>>& offset_arr) {
+  VLOG(10) << "Building utf array with string builder";
+  arrow::LargeStringBuilder array_builder;
+  int64_t total_length, total_bytes;
+  for (size_t i = 0; i < data_arr.size(); ++i) {
+    total_bytes += data_arr[i].size();
+    total_length += offset_arr[i].size();
+  }
+  array_builder.Reserve(total_length);  // the number of elements
+  array_builder.ReserveData(total_bytes);
+
+  for (size_t i = 0; i < data_arr.size(); ++i) {
+    const char* ptr = data_arr[i].data();
+    auto cur_offset = offset_arr[i];
+
+    for (size_t j = 0; j < cur_offset.size(); ++j) {
+      // for appending data to arrow_binary_builder, we use raw pointer to
+      // avoid copy.
+      array_builder.UnsafeAppend(ptr, cur_offset[j]);
+      VLOG(10) << "appending data: " << std::string(ptr, cur_offset[j]);
+      ptr += cur_offset[j];
+    }
+  }
+  array_builder.Finish(&array);
+}
 
 static constexpr const char* JAVA_LOADER_CLASS =
     "com/alibaba/graphscope/loader/impl/FileLoader";
@@ -215,7 +220,9 @@ class JavaLoaderInvoker {
     buildArray(oid_type, esrc_array, esrcs, esrc_offsets);
     buildArray(oid_type, edst_array, edsts, edst_offsets);
     buildArray(edata_type, edata_array, edatas, edata_offsets);
-    VLOG(1) << "Finish edge array building esrc: " << esrc_array->ToString() << " edst: " << edst_array->ToString() << " edata: " << edata_array->ToString();
+    VLOG(1) << "Finish edge array building esrc: " << esrc_array->ToString()
+            << " edst: " << edst_array->ToString()
+            << " edata: " << edata_array->ToString();
 
     std::shared_ptr<arrow::Schema> schema =
         arrow::schema({arrow::field("src", arrow::large_utf8()),
@@ -259,9 +266,10 @@ class JavaLoaderInvoker {
     std::shared_ptr<arrow::Array> oid_array;
     std::shared_ptr<arrow::Array> vdata_array;
 
-        buildArray(oid_type, oid_array, oids, oid_offsets);
-        buildArray(vdata_type, vdata_array, vdatas, vdata_offsets);
-    VLOG(1) << "Finish vertex array building oid array: " << oid_array->ToString() << " vdata: " << vdata_array->ToString();
+    buildArray(oid_type, oid_array, oids, oid_offsets);
+    buildArray(vdata_type, vdata_array, vdatas, vdata_offsets);
+    VLOG(1) << "Finish vertex array building oid array: "
+            << oid_array->ToString() << " vdata: " << vdata_array->ToString();
 
     std::shared_ptr<arrow::Schema> schema =
         arrow::schema({arrow::field("oid", arrow::large_utf8()),
@@ -281,22 +289,19 @@ class JavaLoaderInvoker {
  private:
   void buildArray(int data_type, std::shared_ptr<arrow::Array>& array,
                   const std::vector<std::vector<char>>& data_arr,
-                  const std::vector<std::vector<int>>& offset_arr){
-    if (data_type == 2){
-      BuildArray<int32_t>(array,data_arr, offset_arr);
-    }
-    else if (data_type == 4){
-      BuildArray<int64_t>(array,data_arr, offset_arr);
-    }
-    else if (data_type == 6){
-      BuildArray<float>(array,data_arr, offset_arr);
-    }else if (data_type == 7){
-      BuildArray<double>(array,data_arr, offset_arr);
-    }else if (data_type == 9){
-      BuildArray<std::string>(array,data_arr, offset_arr);
-    }
-    else {
-    LOG(ERROR) << "Wrong data type: " << data_type;
+                  const std::vector<std::vector<int>>& offset_arr) {
+    if (data_type == 2) {
+      BuildArray<int32_t>(array, data_arr, offset_arr);
+    } else if (data_type == 4) {
+      BuildArray<int64_t>(array, data_arr, offset_arr);
+    } else if (data_type == 6) {
+      BuildArray<float>(array, data_arr, offset_arr);
+    } else if (data_type == 7) {
+      BuildArray<double>(array, data_arr, offset_arr);
+    } else if (data_type == 9) {
+      BuildArray<std::string>(array, data_arr, offset_arr);
+    } else {
+      LOG(ERROR) << "Wrong data type: " << data_type;
     }
   }
   void createFFIPointers() {
