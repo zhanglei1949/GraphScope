@@ -85,7 +85,7 @@ public class FileLoader implements LoaderBase {
     private Class<? extends Writable> giraphVDataClass;
     private Class<? extends Writable> giraphEDataClass;
 
-    public static FileLoader create(){
+    public static FileLoader create() {
         return new FileLoader();
     }
 
@@ -251,6 +251,9 @@ public class FileLoader implements LoaderBase {
             this.start = startLine;
             this.end = endLine;
             proxy.reserveNumVertices((int) this.end - (int) this.start);
+            logger.debug(
+                "creating loader callable: {}, file : {}, reader {}, thread id {}, from {} to {}",
+                this, inputPath, bufferedReader, threadId, startLine, endLine);
         }
 
         /**
@@ -280,6 +283,9 @@ public class FileLoader implements LoaderBase {
                 proxy.addEdges(threadId, vertexId, vertexEdges);
                 cnt += 1;
             }
+
+            bufferedReader.close();
+
             return cnt - start;
         }
     }

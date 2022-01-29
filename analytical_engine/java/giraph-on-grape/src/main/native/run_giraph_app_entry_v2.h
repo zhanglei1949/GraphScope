@@ -31,9 +31,11 @@
 
 namespace grape {
 using FragmentType =
-    vineyard::ArrowFragment<GIRAPH_OID_TYPE, vineyard::property_graph_types::VID_TYPE>;
+    vineyard::ArrowFragment<GIRAPH_OID_TYPE,
+                            vineyard::property_graph_types::VID_TYPE>;
 using FragmentLoaderType =
-    gs::ArrowFragmentLoader<GIRAPH_OID_TYPE, vineyard::property_graph_types::VID_TYPE>;
+    gs::ArrowFragmentLoader<GIRAPH_OID_TYPE,
+                            vineyard::property_graph_types::VID_TYPE>;
 // using LOADER_TYPE = grape::GiraphFragmentLoader<FragmentType>;
 
 void Init(const std::string& params) {
@@ -148,9 +150,22 @@ void CreateAndQuery(std::string params) {
   VLOG(1) << "v label num: " << fragment->vertex_label_num();
   VLOG(1) << "e label num: " << fragment->edge_label_num();
   VLOG(1) << "total v num: " << fragment->GetTotalVerticesNum();
-}
 
-void Finalize() {
+  for (int v_label = 0; v_label < fragment->vertex_label_num(); ++v_label) {
+    for (auto v : fragment->InnerVertices(v_label)) {
+      if (v.GetValue() < 5) {
+        for (int e_label = 0; e_label < fragment->vertex_label_num();
+             ++e_label) {
+          for (auto edges : fragment->GetOutgoingAdjList(v, e_label)) {
+            VLOG(10) << "v: " << v.GetValue()
+                     << " dst: " << edges.neighbor().GetValue();
+          }
+        }
+      }
+    }
+  }
+}
+s void Finalize() {
   grape::FinalizeMPIComm();
   VLOG(1) << "Workers finalized.";
 }
