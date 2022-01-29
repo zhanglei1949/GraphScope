@@ -54,9 +54,11 @@ public class FileLoader implements LoaderBase {
     private Class<? extends VertexInputFormat> inputFormatClz;
     private Class<? extends VertexReader> vertexReaderClz;
     private VertexInputFormat vertexInputFormat;
-    private VertexReader vertexReader;
+
     private ExecutorService executor;
     //    private static String inputPath;
+
+    private Method createVertexReaderMethod;
 
     private GraphDataBufferManager proxy;
     private Field vertexIdField;
@@ -167,16 +169,10 @@ public class FileLoader implements LoaderBase {
 
             vertexInputFormat = inputFormatClz.newInstance();
             vertexInputFormat.setConf(conf);
-            Method loadClassLoaderMethod =
+            createVertexReaderMethod =
                 inputFormatClz.getDeclaredMethod(
                     "createVertexReader", InputSplit.class, TaskAttemptContext.class);
 
-            vertexReader =
-                (VertexReader)
-                    loadClassLoaderMethod.invoke(
-                        vertexInputFormat, inputSplit, taskAttemptContext);
-            logger.info("vertex reader: " + vertexReader);
-            vertexReaderClz = vertexReader.getClass();
         } catch (Exception e) {
             e.printStackTrace();
             logger.error(e.getMessage());
@@ -196,6 +192,7 @@ public class FileLoader implements LoaderBase {
         long start = Math.min(linesPerWorker * workerId, numOfLines);
         long end = Math.min(linesPerWorker * (workerId + 1), numOfLines);
         long chunkSize = (end - start + threadNum - 1) / threadNum;
+        proxy.reserveNumVertices((int) (end - start));
         logger.debug(
             "total lines {}, worker {} read {}, thread num {}, chunkSize {}",
             numOfLines,
@@ -238,6 +235,7 @@ public class FileLoader implements LoaderBase {
         private BufferedReader bufferedReader;
         private long start;
         private long end; // exclusive
+        private VertexReader vertexReader;
 
         public LoaderCallable(int threadId, String inputPath, long startLine, long endLine) {
             try {
@@ -247,10 +245,23 @@ public class FileLoader implements LoaderBase {
                 e.printStackTrace();
             }
 
+            try{
+                //create vertex reader
+                vertexReader =
+                    (VertexReader)
+                        createVertexReaderMethod.invoke(
+                            vertexInputFormat, inputSplit, taskAttemptContext);
+                logger.info("vertex reader: " + vertexReader);
+                vertexReaderClz = vertexReader.getClass();
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+
             this.threadId = threadId;
             this.start = startLine;
             this.end = endLine;
-            proxy.reserveNumVertices((int) this.end - (int) this.start);
+//            proxy.reserveNumVertices((int) this.end - (int) this.start);
             logger.debug(
                 "creating loader callable: {}, file : {}, reader {}, thread id {}, from {} to {}",
                 this, inputPath, bufferedReader, threadId, startLine, endLine);
@@ -268,8 +279,11 @@ public class FileLoader implements LoaderBase {
             while (cnt < start) {
                 bufferedReader.readLine();
             }
+            logger.info("worker {} thread {} skipped lines {}", workerId, threadId, cnt);
             // For text vertex reader, we set the data source manually.
             VIFBufferedReaderField.set(vertexInputFormat, bufferedReader);
+            logger.info("worker {} thread {} has set the field {} to {}", workerId, threadId,
+                VIFBufferedReaderField, bufferedReader);
             vertexReader.initialize(inputSplit, taskAttemptContext);
 
             while (cnt < end && vertexReader.nextVertex()) {
