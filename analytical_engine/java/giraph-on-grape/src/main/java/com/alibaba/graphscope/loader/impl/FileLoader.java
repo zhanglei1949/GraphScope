@@ -289,6 +289,7 @@ public class FileLoader implements LoaderBase {
             long cnt = 0;
             while (cnt < start) {
                 bufferedReader.readLine();
+                cnt += 1;
             }
             logger.info("worker {} thread {} skipped lines {}", workerId, threadId, cnt);
             // For text vertex reader, we set the data source manually.
