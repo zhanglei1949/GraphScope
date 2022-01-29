@@ -9,6 +9,7 @@ import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +23,7 @@ public class LoaderUtils {
     private static final int DOUBLE_WRITABLE_CODE = 0x0007;
     private static final int FLOAT_WRITABLE_CODE = 0x0006;
     private static final int UDF_WRITABLE_CODE = 0x0009;
-
+    private static final int NULL_WRITABLE_CODE = 0x0001;
     public static boolean checkFileExist(String path){
         File temp;
         temp = new File(path);
@@ -80,6 +81,9 @@ public class LoaderUtils {
         }
         else if (FloatWritable.class.isAssignableFrom(clz)){
             return FLOAT_WRITABLE_CODE;
+        }
+        else if (NullWritable.class.isAssignableFrom(clz)){
+            return NULL_WRITABLE_CODE;
         }
         return UDF_WRITABLE_CODE;
     }
