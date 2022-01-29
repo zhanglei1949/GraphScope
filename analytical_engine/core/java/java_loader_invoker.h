@@ -123,6 +123,9 @@ void BuildArray(std::shared_ptr<arrow::Array>& array,
 
 static constexpr const char* JAVA_LOADER_CLASS =
     "com/alibaba/graphscope/loader/impl/FileLoader";
+static constexpr const char* JAVA_LOADER_CREATE_METHOD = "create";
+static constexpr const char* JAVA_LOADER_CREATE_SIG =
+    "()Lcom/alibaba/graphscope/loader/impl/FileLoader;";
 static constexpr const char* JAVA_LOADER_LOAD_VE_METHOD =
     "loadVerticesAndEdges";
 static constexpr const char* JAVA_LOADER_LOAD_VE_SIG =
@@ -384,14 +387,23 @@ class JavaLoaderInvoker {
       jclass loader_class =
           LoadClassWithClassLoader(env, gs_class_loader_obj, JAVA_LOADER_CLASS);
       CHECK_NOTNULL(loader_class);
-      jmethodID loader_method = env->GetStaticMethodID(
+      // construct java loader obj.
+      jmethodID create_method = env->GetStaticMethodID(
+          loader_class, JAVA_LOADER_CREATE_METHOD, JAVA_LOADER_CREATE_SIG);
+      CHECK(create_method);
+
+      java_loader_obj = env->NewGlobalRef(
+          env->CallStaticObjectMethod(loader_class, create_method));
+      CHECK(java_loader_obj);
+
+      jmethodID loader_method = env->GetMethodID(
           loader_class, JAVA_LOADER_INIT_METHOD, JAVA_LOADER_INIT_SIG);
       CHECK_NOTNULL(loader_method);
 
       env->CallStaticVoidMethod(
-          loader_class, loader_method, worker_id_, worker_num_, load_thread_num,
-          oids_jobj, vdatas_jobj, esrcs_jobj, edsts_jobj, edatas_jobj,
-          oid_offsets_jobj, vdata_offsets_jobj, esrc_offsets_jobj,
+          java_loader_obj, loader_method, worker_id_, worker_num_,
+          load_thread_num, oids_jobj, vdatas_jobj, esrcs_jobj, edsts_jobj,
+          edatas_jobj, oid_offsets_jobj, vdata_offsets_jobj, esrc_offsets_jobj,
           edst_offsets_jobj, edata_offsets_jobj);
       if (env->ExceptionCheck()) {
         env->ExceptionDescribe();
@@ -464,6 +476,7 @@ class JavaLoaderInvoker {
   std::vector<std::vector<int>> edata_offsets;
 
   jobject gs_class_loader_obj;
+  jobject java_loader_obj;
 
   jobject oids_jobj;
   jobject vdatas_jobj;

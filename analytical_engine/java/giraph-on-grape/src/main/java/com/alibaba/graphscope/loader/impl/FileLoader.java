@@ -2,7 +2,6 @@ package com.alibaba.graphscope.loader.impl;
 
 import static com.alibaba.graphscope.loader.LoaderUtils.generateTypeInt;
 import static com.alibaba.graphscope.loader.LoaderUtils.getNumLinesOfFile;
-
 import static org.apache.giraph.utils.ReflectionUtils.getTypeArguments;
 
 import com.alibaba.fastjson.JSONObject;
@@ -12,7 +11,17 @@ import com.alibaba.graphscope.stdcxx.FFIByteVecVector;
 import com.alibaba.graphscope.stdcxx.FFIIntVecVector;
 import com.alibaba.graphscope.utils.LoadLibrary;
 import com.google.common.base.Preconditions;
-
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.apache.giraph.conf.GiraphConfiguration;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.edge.Edge;
@@ -31,61 +40,56 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
-/** Load from a file on system. */
+/**
+ * Load from a file on system.
+ */
 public class FileLoader implements LoaderBase {
 
     private static final String LIB_PATH = "lib_path";
 
     private static Logger logger = LoggerFactory.getLogger(FileLoader.class);
-    private static int threadNum;
-    private static Class<? extends VertexInputFormat> inputFormatClz;
-    private static Class<? extends VertexReader> vertexReaderClz;
-    private static VertexInputFormat vertexInputFormat;
-    private static VertexReader vertexReader;
-    private static ExecutorService executor;
+    private int threadNum;
+    private int workerId;
+    private int workerNum;
+    private Class<? extends VertexInputFormat> inputFormatClz;
+    private Class<? extends VertexReader> vertexReaderClz;
+    private VertexInputFormat vertexInputFormat;
+    private VertexReader vertexReader;
+    private ExecutorService executor;
     //    private static String inputPath;
-    private static int workerId;
-    private static int workerNum;
-    private static GraphDataBufferManager proxy;
-    private static Field vertexIdField;
-    private static Field vertexValueField;
-    private static Field vertexEdgesField;
-    private static Field VIFBufferedReaderField;
-    private static InputSplit inputSplit =
-            new InputSplit() {
-                @Override
-                public long getLength() throws IOException, InterruptedException {
-                    return 0;
-                }
 
-                @Override
-                public String[] getLocations() throws IOException, InterruptedException {
-                    return new String[0];
-                }
-            };
-    private static Configuration configuration = new Configuration();
-    private static GiraphConfiguration giraphConfiguration = new GiraphConfiguration(configuration);
-    private static TaskAttemptID taskAttemptID = new TaskAttemptID();
-    private static TaskAttemptContext taskAttemptContext =
-            new TaskAttemptContext(configuration, taskAttemptID);
+    private GraphDataBufferManager proxy;
+    private Field vertexIdField;
+    private Field vertexValueField;
+    private Field vertexEdgesField;
+    private Field VIFBufferedReaderField;
+    private InputSplit inputSplit =
+        new InputSplit() {
+            @Override
+            public long getLength() throws IOException, InterruptedException {
+                return 0;
+            }
 
-    private static Class<? extends WritableComparable> giraphOidClass;
-    private static Class<? extends Writable> giraphVDataClass;
-    private static Class<? extends Writable> giraphEDataClass;
+            @Override
+            public String[] getLocations() throws IOException, InterruptedException {
+                return new String[0];
+            }
+        };
+    private Configuration configuration = new Configuration();
+    private GiraphConfiguration giraphConfiguration = new GiraphConfiguration(configuration);
+    private TaskAttemptID taskAttemptID = new TaskAttemptID();
+    private TaskAttemptContext taskAttemptContext =
+        new TaskAttemptContext(configuration, taskAttemptID);
 
-    static {
+    private Class<? extends WritableComparable> giraphOidClass;
+    private Class<? extends Writable> giraphVDataClass;
+    private Class<? extends Writable> giraphEDataClass;
+
+    public static FileLoader create(){
+        return new FileLoader();
+    }
+
+    public FileLoader() {
         try {
             vertexIdField = VertexImpl.class.getDeclaredField("initializeOid");
             vertexIdField.setAccessible(true);
@@ -100,50 +104,48 @@ public class FileLoader implements LoaderBase {
         }
     }
 
-    public FileLoader() {}
-
-    public static void init(
-            int workerId,
-            int workerNum,
-            int threadNum,
-            FFIByteVecVector vidBuffers,
-            FFIByteVecVector vertexDataBuffers,
-            FFIByteVecVector edgeSrcIdBuffers,
-            FFIByteVecVector edgeDstIdBuffers,
-            FFIByteVecVector edgeDataBuffers,
-            FFIIntVecVector vidOffsets,
-            FFIIntVecVector vertexDataOffsets,
-            FFIIntVecVector edgeSrcIdOffsets,
-            FFIIntVecVector edgeDstIdOffsets,
-            FFIIntVecVector edgeDataOffsets) {
-        FileLoader.workerId = workerId;
-        FileLoader.workerNum = workerNum;
-        FileLoader.threadNum = threadNum;
-        FileLoader.executor = Executors.newFixedThreadPool(threadNum);
+    public void init(
+        int workerId,
+        int workerNum,
+        int threadNum,
+        FFIByteVecVector vidBuffers,
+        FFIByteVecVector vertexDataBuffers,
+        FFIByteVecVector edgeSrcIdBuffers,
+        FFIByteVecVector edgeDstIdBuffers,
+        FFIByteVecVector edgeDataBuffers,
+        FFIIntVecVector vidOffsets,
+        FFIIntVecVector vertexDataOffsets,
+        FFIIntVecVector edgeSrcIdOffsets,
+        FFIIntVecVector edgeDstIdOffsets,
+        FFIIntVecVector edgeDataOffsets) {
+        this.workerId = workerId;
+        this.workerNum = workerNum;
+        this.threadNum = threadNum;
+        this.executor = Executors.newFixedThreadPool(threadNum);
         // Create a proxy form adding vertex and adding edges
         proxy =
-                new GraphDataBufferManangerImpl(
-                        workerId,
-                        threadNum,
-                        vidBuffers,
-                        vertexDataBuffers,
-                        edgeSrcIdBuffers,
-                        edgeDstIdBuffers,
-                        edgeDataBuffers,
-                        vidOffsets,
-                        vertexDataOffsets,
-                        edgeSrcIdOffsets,
-                        edgeDstIdOffsets,
-                        edgeDataOffsets);
+            new GraphDataBufferManangerImpl(
+                workerId,
+                threadNum,
+                vidBuffers,
+                vertexDataBuffers,
+                edgeSrcIdBuffers,
+                edgeDstIdBuffers,
+                edgeDataBuffers,
+                vidOffsets,
+                vertexDataOffsets,
+                edgeSrcIdOffsets,
+                edgeDstIdOffsets,
+                edgeDataOffsets);
     }
 
     /**
      * @param inputPath
-     * @param params the json params contains giraph configuration.
+     * @param params    the json params contains giraph configuration.
      * @return Return an integer contains type params info.
      */
-    public static int loadVerticesAndEdges(String inputPath, String params)
-            throws ExecutionException, InterruptedException, ClassNotFoundException {
+    public int loadVerticesAndEdges(String inputPath, String params)
+        throws ExecutionException, InterruptedException, ClassNotFoundException {
         logger.debug("input path {}, params {}", inputPath, params);
         //        FileLoader.inputPath = inputPath;
         // Vertex input format class has already been verified, just load.
@@ -157,7 +159,7 @@ public class FileLoader implements LoaderBase {
         //            e.printStackTrace();
         //        }
         ImmutableClassesGiraphConfiguration conf =
-                new ImmutableClassesGiraphConfiguration(giraphConfiguration);
+            new ImmutableClassesGiraphConfiguration(giraphConfiguration);
         try {
             inputFormatClz = conf.getVertexInputFormatClass();
 
@@ -166,13 +168,13 @@ public class FileLoader implements LoaderBase {
             vertexInputFormat = inputFormatClz.newInstance();
             vertexInputFormat.setConf(conf);
             Method loadClassLoaderMethod =
-                    inputFormatClz.getDeclaredMethod(
-                            "createVertexReader", InputSplit.class, TaskAttemptContext.class);
+                inputFormatClz.getDeclaredMethod(
+                    "createVertexReader", InputSplit.class, TaskAttemptContext.class);
 
             vertexReader =
-                    (VertexReader)
-                            loadClassLoaderMethod.invoke(
-                                    vertexInputFormat, inputSplit, taskAttemptContext);
+                (VertexReader)
+                    loadClassLoaderMethod.invoke(
+                        vertexInputFormat, inputSplit, taskAttemptContext);
             logger.info("vertex reader: " + vertexReader.getClass().toString());
             vertexReaderClz = vertexReader.getClass();
         } catch (Exception e) {
@@ -186,8 +188,8 @@ public class FileLoader implements LoaderBase {
         return generateTypeInt(giraphOidClass, giraphVDataClass, giraphEDataClass);
     }
 
-    public static void loadVertices(String inputPath)
-            throws ExecutionException, InterruptedException {
+    public void loadVertices(String inputPath)
+        throws ExecutionException, InterruptedException {
         // Try to get number of lines
         long numOfLines = getNumLinesOfFile(inputPath);
         long linesPerWorker = (numOfLines + (workerNum - 1)) / workerNum;
@@ -195,20 +197,20 @@ public class FileLoader implements LoaderBase {
         long end = Math.min(linesPerWorker * (workerId + 1), numOfLines);
         long chunkSize = (end - start + threadNum - 1) / threadNum;
         logger.debug(
-                "total lines {}, worker {} read {}, thread num {}, chunkSize {}",
-                numOfLines,
-                workerId,
-                end - start,
-                threadNum,
-                chunkSize);
+            "total lines {}, worker {} read {}, thread num {}, chunkSize {}",
+            numOfLines,
+            workerId,
+            end - start,
+            threadNum,
+            chunkSize);
         long cur = start;
 
         Future[] futures = new Future[threadNum];
 
         for (int i = 0; i < threadNum; ++i) {
             LoaderCallable loaderCallable =
-                    new LoaderCallable(
-                            i, inputPath, Math.min(cur, end), Math.min(cur + chunkSize, end));
+                new LoaderCallable(
+                    i, inputPath, Math.min(cur, end), Math.min(cur + chunkSize, end));
             futures[i] = executor.submit(loaderCallable);
             cur += chunkSize;
         }
@@ -230,7 +232,7 @@ public class FileLoader implements LoaderBase {
         return threadNum;
     }
 
-    static class LoaderCallable implements Callable<Long> {
+    class LoaderCallable implements Callable<Long> {
 
         private int threadId;
         private BufferedReader bufferedReader;
@@ -287,16 +289,16 @@ public class FileLoader implements LoaderBase {
         LoadLibrary.invoke(libPath);
     }
 
-    private static void inferGiraphTypesFromJSON(Class<? extends VertexInputFormat> child) {
+    private void inferGiraphTypesFromJSON(Class<? extends VertexInputFormat> child) {
         Class<?>[] classList = getTypeArguments(VertexInputFormat.class, child);
         Preconditions.checkArgument(classList.length == 3);
         giraphOidClass = (Class<? extends WritableComparable>) classList[0];
         giraphVDataClass = (Class<? extends Writable>) classList[1];
         giraphEDataClass = (Class<? extends Writable>) classList[2];
         logger.info(
-                "infer from json params: oid {}, vdata {}, edata {}",
-                giraphOidClass.getName(),
-                giraphVDataClass.getName(),
-                giraphEDataClass.getName());
+            "infer from json params: oid {}, vdata {}, edata {}",
+            giraphOidClass.getName(),
+            giraphVDataClass.getName(),
+            giraphEDataClass.getName());
     }
 }
