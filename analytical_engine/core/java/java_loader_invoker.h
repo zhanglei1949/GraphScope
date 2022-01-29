@@ -21,12 +21,14 @@ struct IntToType<2> {
   using TypeName = int32_t;
   using BuilderType =
       typename vineyard::ConvertToArrowType<TypeName>::BuilderType;
+  static std::shared_ptr<arrow::DataType> ArrowType(){ return vineyard::ConvertToArrowType<TypeName>::TypeValue();}
 };
 template <>
 struct IntToType<4> {
   using TypeName = int64_t;
   using BuilderType =
       typename vineyard::ConvertToArrowType<TypeName>::BuilderType;
+  static std::shared_ptr<arrow::DataType> ArrowType(){ return vineyard::ConvertToArrowType<TypeName>::TypeValue();}
 };
 
 template <>
@@ -34,6 +36,7 @@ struct IntToType<6> {
   using TypeName = float;
   using BuilderType =
       typename vineyard::ConvertToArrowType<TypeName>::BuilderType;
+  static std::shared_ptr<arrow::DataType> ArrowType(){ return vineyard::ConvertToArrowType<TypeName>::TypeValue();}
 };
 
 template <>
@@ -41,6 +44,7 @@ struct IntToType<7> {
   using TypeName = double;
   using BuilderType =
       typename vineyard::ConvertToArrowType<TypeName>::BuilderType;
+  static std::shared_ptr<arrow::DataType> ArrowType(){ return vineyard::ConvertToArrowType<TypeName>::TypeValue();}
 };
 
 // indicates udf
@@ -48,6 +52,7 @@ template <>
 struct IntToType<9> {
   using TypeName = std::string;
   using BuilderType = arrow::LargeStringBuilder;
+  static std::shared_ptr<arrow::DataType> ArrowType(){ return vineyard::ConvertToArrowType<TypeName>::TypeValue();}
 };
 
 template <typename T,
@@ -60,7 +65,7 @@ void BuildArray(std::shared_ptr<arrow::Array>& array,
   using elementType = T;
   using builderType = typename vineyard::ConvertToArrowType<T>::BuilderType;
   builderType array_builder;
-  int64_t total_length;
+  int64_t total_length = 0;
   for (size_t i = 0; i < offset_arr.size(); ++i) {
     total_length += offset_arr[i].size();
   }
@@ -79,6 +84,9 @@ void BuildArray(std::shared_ptr<arrow::Array>& array,
       ptr += 1;  // We have convert to T*, so plus 1 is ok.
     }
   }
+    for (int i = 0; i < total_length; ++i){
+        VLOG(10) << "oid [" << i << "] " << array_builder[i];
+    }
   array_builder.Finish(&array);
 }
 
@@ -90,7 +98,7 @@ void BuildArray(std::shared_ptr<arrow::Array>& array,
                 const std::vector<std::vector<int>>& offset_arr) {
   VLOG(10) << "Building utf array with string builder";
   arrow::LargeStringBuilder array_builder;
-  int64_t total_length, total_bytes;
+  int64_t total_length = 0, total_bytes = 0;
   for (size_t i = 0; i < data_arr.size(); ++i) {
     total_bytes += data_arr[i].size();
     total_length += offset_arr[i].size();
@@ -220,14 +228,15 @@ class JavaLoaderInvoker {
     buildArray(oid_type, esrc_array, esrcs, esrc_offsets);
     buildArray(oid_type, edst_array, edsts, edst_offsets);
     buildArray(edata_type, edata_array, edatas, edata_offsets);
+
     VLOG(1) << "Finish edge array building esrc: " << esrc_array->ToString()
             << " edst: " << edst_array->ToString()
             << " edata: " << edata_array->ToString();
 
     std::shared_ptr<arrow::Schema> schema =
-        arrow::schema({arrow::field("src", arrow::large_utf8()),
-                       arrow::field("dst", arrow::large_utf8()),
-                       arrow::field("data", arrow::large_utf8())});
+        arrow::schema({arrow::field("src", getArrowDataType(oid_type)),
+                       arrow::field("dst", getArrowDataType(oid_type)),
+                       arrow::field("data", getArrowDataType(edata_type))});
 
     auto res =
         arrow::Table::Make(schema, {esrc_array, edst_array, edata_array});
@@ -268,12 +277,13 @@ class JavaLoaderInvoker {
 
     buildArray(oid_type, oid_array, oids, oid_offsets);
     buildArray(vdata_type, vdata_array, vdatas, vdata_offsets);
+
     VLOG(1) << "Finish vertex array building oid array: "
             << oid_array->ToString() << " vdata: " << vdata_array->ToString();
 
     std::shared_ptr<arrow::Schema> schema =
-        arrow::schema({arrow::field("oid", arrow::large_utf8()),
-                       arrow::field("vdata", arrow::large_utf8())});
+        arrow::schema({arrow::field("oid", getArrowDataType(oid_type)),
+                       arrow::field("vdata", getArrowDataType(vdata_type))});
 
     auto res = arrow::Table::Make(schema, {oid_array, vdata_array});
     VLOG(1) << "worker " << worker_id_
@@ -287,6 +297,22 @@ class JavaLoaderInvoker {
   }
 
  private:
+  std::shared_ptr<arrow::DataType> getArrowDataType(int data_type){
+    if (data_type == 2) {
+      return vineyard::ConvertToArrowType<int32_t>::TypeValue();
+    } else if (data_type == 4) {
+      return vineyard::ConvertToArrowType<int64_t>::TypeValue();
+    } else if (data_type == 6) {
+      return vineyard::ConvertToArrowType<float>::TypeValue();
+    } else if (data_type == 7) {
+      return vineyard::ConvertToArrowType<double>::TypeValue();
+    } else if (data_type == 9) {
+      return vineyard::ConvertToArrowType<std::string>::TypeValue();
+    } else {
+      LOG(ERROR) << "Wrong data type: " << data_type;
+      return arrow::null();
+    }
+  }
   void buildArray(int data_type, std::shared_ptr<arrow::Array>& array,
                   const std::vector<std::vector<char>>& data_arr,
                   const std::vector<std::vector<int>>& offset_arr) {
