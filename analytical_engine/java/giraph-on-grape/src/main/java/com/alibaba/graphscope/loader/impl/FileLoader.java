@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.giraph.conf.GiraphConfiguration;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
 import org.apache.giraph.edge.Edge;
@@ -46,8 +47,11 @@ import org.slf4j.LoggerFactory;
 public class FileLoader implements LoaderBase {
 
     private static final String LIB_PATH = "lib_path";
+    private static AtomicInteger LOADER_ID = new AtomicInteger(0);
+    private static AtomicInteger CALLABLE_ID = new AtomicInteger(0);
 
     private static Logger logger = LoggerFactory.getLogger(FileLoader.class);
+    private int loaderId;
     private int threadNum;
     private int workerId;
     private int workerNum;
@@ -87,11 +91,12 @@ public class FileLoader implements LoaderBase {
     private Class<? extends Writable> giraphVDataClass;
     private Class<? extends Writable> giraphEDataClass;
 
-    public static FileLoader create() {
-        return new FileLoader();
+    public static synchronized FileLoader create() {
+        return new FileLoader(LOADER_ID.getAndAdd(1));
     }
 
-    public FileLoader() {
+    public FileLoader(int id) {
+        loaderId = id;
         try {
             vertexIdField = VertexImpl.class.getDeclaredField("initializeOid");
             vertexIdField.setAccessible(true);
@@ -232,12 +237,18 @@ public class FileLoader implements LoaderBase {
     class LoaderCallable implements Callable<Long> {
 
         private int threadId;
+        private int callableId;
         private BufferedReader bufferedReader;
         private long start;
         private long end; // exclusive
         private VertexReader vertexReader;
+        @Override
+        public String toString(){
+            return LoaderCallable.class.toString()+"@" + callableId;
+        }
 
         public LoaderCallable(int threadId, String inputPath, long startLine, long endLine) {
+            callableId = CALLABLE_ID.getAndAdd(1);
             try {
                 FileReader fileReader = new FileReader(inputPath);
                 bufferedReader = new BufferedReader(fileReader);
@@ -320,5 +331,10 @@ public class FileLoader implements LoaderBase {
             giraphOidClass.getName(),
             giraphVDataClass.getName(),
             giraphEDataClass.getName());
+    }
+
+    @Override
+    public String toString(){
+        return FileLoader.class.toString() + "@" + loaderId;
     }
 }
