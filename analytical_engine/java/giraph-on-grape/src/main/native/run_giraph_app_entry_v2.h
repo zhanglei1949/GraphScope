@@ -48,7 +48,7 @@ void Init(const std::string& params) {
   verifyClasses(params);
 }
 
-std::shared_ptr<FragmentType> LoadGiraphFragment(
+vineyard::ObjectID LoadGiraphFragment(
     const grape::CommSpec& comm_spec, const std::string& vfile,
     const std::string& efile, const std::string& vertex_input_format_class,
     const std::string& ipc_socket, bool directed, const std::string params) {
@@ -108,11 +108,10 @@ std::shared_ptr<FragmentType> LoadGiraphFragment(
           << "] loaded graph to vineyard ...";
 
   MPI_Barrier(comm_spec.comm());
-  std::shared_ptr<FragmentType> fragment =
-      std::dynamic_pointer_cast<FragmentType>(client.GetObject(fragment_id));
+
   VLOG(1) << "[worker-" << comm_spec.worker_id() << "] got fragment "
           << fragment_id;
-  return fragment;
+  return fragment_id;
 
   //   Run(client, comm_spec, fragment_id, run_projected, run_property,
   //   app_name); MPI_Barrier(comm_spec.comm());
@@ -137,37 +136,41 @@ void CreateAndQuery(std::string params) {
     LOG(FATAL) << "Make sure efile and vfile are avalibale";
   }
 
-  std::shared_ptr<FragmentType> fragment;
-  fragment =
+  auto fragment =
       LoadGiraphFragment(comm_spec, efile, vfile, vertex_input_format_class,
                          ipc_socket, directed, params);
+  std::shared_ptr<FragmentType> fragment =
+      std::dynamic_pointer_cast<FragmentType>(client.GetObject(fragment_id));
 
   // VLOG(1) << fragment->fid()
   //       << ",total vertex num: " << fragment->GetTotalVerticesNum()
   //       << "frag vnum: " << fragment->GetVerticesNum(0);
-  VLOG(1) << "fid: " << fragment->fid() << "fnum: " << fragment->fnum() << "v label num: " << fragment->vertex_label_num() << "e label num: " << fragment->edge_label_num() << "total v num: " << fragment->GetTotalVerticesNum(); 
-    VLOG(1) << "inner vertices: " << fragment->GetInnerVerticesNum(0);
-//    VLOG(1) <<" frag vnum: " << fragment->GetVerticesNum(0);
-/*
-  for (int v_label = 0; v_label < fragment->vertex_label_num(); ++v_label) {
-    auto iv = fragment->InnerVertices(v_label);
-    VLOG(10) << "iv size: " << iv.size();
-    for (auto v : fragment->InnerVertices(v_label)) {
-      VLOG(10) << "v: " << v.GetValue(); 
-      if (v.GetValue() < 5) {
-        for (int e_label = 0; e_label < fragment->vertex_label_num();
-             ++e_label) {
-            auto edges = fragment->GetOutgoingAdjList(v, e_label);
-            VLOG(10) << "e: " << edges.size();
-          for (auto edge : edges) {
-            VLOG(10) << "v: " << v.GetValue()
-                     << " dst: " << edge.neighbor().GetValue();
+  VLOG(1) << "fid: " << fragment->fid() << "fnum: " << fragment->fnum()
+          << "v label num: " << fragment->vertex_label_num()
+          << "e label num: " << fragment->edge_label_num()
+          << "total v num: " << fragment->GetTotalVerticesNum();
+  VLOG(1) << "inner vertices: " << fragment->GetInnerVerticesNum(0);
+  //    VLOG(1) <<" frag vnum: " << fragment->GetVerticesNum(0);
+  /*
+    for (int v_label = 0; v_label < fragment->vertex_label_num(); ++v_label) {
+      auto iv = fragment->InnerVertices(v_label);
+      VLOG(10) << "iv size: " << iv.size();
+      for (auto v : fragment->InnerVertices(v_label)) {
+        VLOG(10) << "v: " << v.GetValue();
+        if (v.GetValue() < 5) {
+          for (int e_label = 0; e_label < fragment->vertex_label_num();
+               ++e_label) {
+              auto edges = fragment->GetOutgoingAdjList(v, e_label);
+              VLOG(10) << "e: " << edges.size();
+            for (auto edge : edges) {
+              VLOG(10) << "v: " << v.GetValue()
+                       << " dst: " << edge.neighbor().GetValue();
+            }
           }
         }
       }
     }
-  }
-*/
+  */
 }
 void Finalize() {
   grape::FinalizeMPIComm();
