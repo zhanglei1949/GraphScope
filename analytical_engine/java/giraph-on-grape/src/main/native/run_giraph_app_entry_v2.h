@@ -51,7 +51,7 @@ void Init(const std::string& params) {
 vineyard::ObjectID LoadGiraphFragment(
     const grape::CommSpec& comm_spec, const std::string& vfile,
     const std::string& efile, const std::string& vertex_input_format_class,
-    const std::string& ipc_socket, bool directed, const std::string params) {
+    vineyard::Client& client,  bool directed, const std::string params) {
   // construct graph info
   auto graph = std::make_shared<gs::detail::Graph>();
   graph->directed = directed;
@@ -83,10 +83,7 @@ vineyard::ObjectID LoadGiraphFragment(
 
   graph->edges.push_back(edge);
 
-  vineyard::Client client;
-  VINEYARD_CHECK_OK(client.Connect(ipc_socket));
 
-  VLOG(1) << "Connected to IPCServer: " << ipc_socket;
 
   vineyard::ObjectID fragment_id;
   {
@@ -136,9 +133,13 @@ void CreateAndQuery(std::string params) {
     LOG(FATAL) << "Make sure efile and vfile are avalibale";
   }
 
-  auto fragment =
+  vineyard::Client client;
+  VINEYARD_CHECK_OK(client.Connect(ipc_socket));
+  VLOG(1) << "Connected to IPCServer: " << ipc_socket;
+
+  auto fragment_id =
       LoadGiraphFragment(comm_spec, efile, vfile, vertex_input_format_class,
-                         ipc_socket, directed, params);
+                         client, directed, params);
   std::shared_ptr<FragmentType> fragment =
       std::dynamic_pointer_cast<FragmentType>(client.GetObject(fragment_id));
 
