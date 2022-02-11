@@ -20,6 +20,7 @@ package org.apache.giraph.io;
 
 import java.io.IOException;
 import org.apache.giraph.graph.Vertex;
+import org.apache.giraph.worker.WorkerAggregatorDelegator;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -34,7 +35,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  */
 @SuppressWarnings("rawtypes")
 public abstract class VertexReader<I extends WritableComparable,
-    V extends Writable, E extends Writable> {
+    V extends Writable, E extends Writable> extends
+    WorkerAggregatorDelegator<I, V, E> {
 
     /**
      * Use the input split and context to setup reading the vertices. Guaranteed to be called prior

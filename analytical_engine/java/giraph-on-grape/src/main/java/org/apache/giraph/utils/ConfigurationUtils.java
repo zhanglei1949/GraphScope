@@ -16,7 +16,7 @@ import org.apache.giraph.io.VertexInputFormat;
 import org.apache.giraph.io.VertexOutputFormat;
 import org.apache.giraph.master.MasterCompute;
 import org.apache.giraph.worker.WorkerContext;
-import org.apache.giraph.worker.impl.DefaultWorkerContext;
+import org.apache.giraph.worker.DefaultWorkerContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.FloatWritable;

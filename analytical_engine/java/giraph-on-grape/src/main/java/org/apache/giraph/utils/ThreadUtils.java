@@ -17,7 +17,7 @@
  */
 package org.apache.giraph.utils;
 
-//import org.apache.log4j.Logger;
+//import org.slf4j.Logger;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.concurrent.Callable;

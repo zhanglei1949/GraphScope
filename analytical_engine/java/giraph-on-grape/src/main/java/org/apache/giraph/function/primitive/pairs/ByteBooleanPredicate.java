@@ -15,35 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.giraph.function.primitive.pairs;
 
-package org.apache.giraph.worker.impl;
+import java.io.Serializable;
 
-import org.apache.giraph.worker.WorkerContext;
+// AUTO-GENERATED class via class:
+// org.apache.giraph.generate.GeneratePrimitiveClasses
 
 /**
- * A dummy implementation of {@link org.apache.giraph.worker.WorkerContext}. This is the default
- * implementation when no WorkerContext is defined by the user. It does nothing.
- *
- * <p>
- * If worker specifies their self-defined worker context, we will that.
- * </p>
+ * Primitive specialization of Function:
+ * (byte, boolean) -&gt; boolean
  */
-public class DefaultWorkerContext extends WorkerContext {
-
-    @Override
-    public void preApplication()
-        throws InstantiationException, IllegalAccessException {
-    }
-
-    @Override
-    public void postApplication() {
-    }
-
-    @Override
-    public void preSuperstep() {
-    }
-
-    @Override
-    public void postSuperstep() {
-    }
+public interface ByteBooleanPredicate extends Serializable {
+  /**
+   * Returns the result of applying this predicate to {@code input}.
+   *
+   * @param input1 First input
+   * @param input2 Second input
+   * @return result
+   */
+  boolean apply(byte input1, boolean input2);
 }

@@ -13,42 +13,11 @@
 namespace gs {
 
 // consistent with vineyard::TypeToInt
-template <size_t T>
-struct IntToType {};
-
-template <>
-struct IntToType<2> {
-  using TypeName = int32_t;
-  using BuilderType =
-      typename vineyard::ConvertToArrowType<TypeName>::BuilderType;
-};
-template <>
-struct IntToType<4> {
-  using TypeName = int64_t;
-  using BuilderType =
-      typename vineyard::ConvertToArrowType<TypeName>::BuilderType;
-};
-
-template <>
-struct IntToType<6> {
-  using TypeName = float;
-  using BuilderType =
-      typename vineyard::ConvertToArrowType<TypeName>::BuilderType;
-};
-
-template <>
-struct IntToType<7> {
-  using TypeName = double;
-  using BuilderType =
-      typename vineyard::ConvertToArrowType<TypeName>::BuilderType;
-};
-
-// indicates udf
-template <>
-struct IntToType<9> {
-  using TypeName = std::string;
-  using BuilderType = arrow::LargeStringBuilder;
-};
+// 2=int32_t
+// 4=int64_t
+// 6=float
+// 7=double
+// 9=std::string(udf)
 
 template <typename T,
           typename std::enable_if<std::is_same<T, grape::EmptyType>::value,
@@ -67,7 +36,8 @@ void BuildArray(std::shared_ptr<arrow::Array>& array,
   array_builder.Finish(&array);
 }
 template <typename T,
-          typename std::enable_if<(!std::is_same<T, std::string>::value && !std::is_same<T, grape::EmptyType>::value),
+          typename std::enable_if<(!std::is_same<T, std::string>::value &&
+                                   !std::is_same<T, grape::EmptyType>::value),
                                   T>::type* = nullptr>
 void BuildArray(std::shared_ptr<arrow::Array>& array,
                 const std::vector<std::vector<char>>& data_arr,
@@ -95,9 +65,9 @@ void BuildArray(std::shared_ptr<arrow::Array>& array,
       ptr += 1;  // We have convert to T*, so plus 1 is ok.
     }
   }
-    for (int i = 0; i < total_length; ++i){
-        VLOG(10) << "oid [" << i << "] " << array_builder[i];
-    }
+  for (int i = 0; i < total_length; ++i) {
+    VLOG(10) << "oid [" << i << "] " << array_builder[i];
+  }
   array_builder.Finish(&array);
 }
 
@@ -311,7 +281,7 @@ class JavaLoaderInvoker {
   }
 
  private:
-  std::shared_ptr<arrow::DataType> getArrowDataType(int data_type){
+  std::shared_ptr<arrow::DataType> getArrowDataType(int data_type) {
     if (data_type == 2) {
       return vineyard::ConvertToArrowType<int32_t>::TypeValue();
     } else if (data_type == 4) {
@@ -322,7 +292,7 @@ class JavaLoaderInvoker {
       return vineyard::ConvertToArrowType<double>::TypeValue();
     } else if (data_type == 9) {
       return vineyard::ConvertToArrowType<std::string>::TypeValue();
-    } else if (data_type == 1){
+    } else if (data_type == 1) {
       return arrow::null();
     } else {
       LOG(ERROR) << "Wrong data type: " << data_type;
@@ -342,7 +312,7 @@ class JavaLoaderInvoker {
       BuildArray<double>(array, data_arr, offset_arr);
     } else if (data_type == 9) {
       BuildArray<std::string>(array, data_arr, offset_arr);
-    } else if (data_type == 1){
+    } else if (data_type == 1) {
       BuildArray<grape::EmptyType>(array, data_arr, offset_arr);
     } else {
       LOG(ERROR) << "Wrong data type: " << data_type;
@@ -415,11 +385,11 @@ class JavaLoaderInvoker {
           loader_class, JAVA_LOADER_INIT_METHOD, JAVA_LOADER_INIT_SIG);
       CHECK_NOTNULL(loader_method);
 
-      env->CallVoidMethod(
-          java_loader_obj, loader_method, worker_id_, worker_num_,
-          load_thread_num, oids_jobj, vdatas_jobj, esrcs_jobj, edsts_jobj,
-          edatas_jobj, oid_offsets_jobj, vdata_offsets_jobj, esrc_offsets_jobj,
-          edst_offsets_jobj, edata_offsets_jobj);
+      env->CallVoidMethod(java_loader_obj, loader_method, worker_id_,
+                          worker_num_, load_thread_num, oids_jobj, vdatas_jobj,
+                          esrcs_jobj, edsts_jobj, edatas_jobj, oid_offsets_jobj,
+                          vdata_offsets_jobj, esrc_offsets_jobj,
+                          edst_offsets_jobj, edata_offsets_jobj);
       if (env->ExceptionCheck()) {
         env->ExceptionDescribe();
         env->ExceptionClear();
@@ -446,8 +416,8 @@ class JavaLoaderInvoker {
       jstring java_params_jstring = env->NewStringUTF(java_params);
       double javaLoadingTime = -grape::GetCurrentTime();
 
-      jint res = env->CallIntMethod(
-          java_loader_obj, loader_method, file_path_jstring, java_params_jstring);
+      jint res = env->CallIntMethod(java_loader_obj, loader_method,
+                                    file_path_jstring, java_params_jstring);
       if (env->ExceptionCheck()) {
         env->ExceptionDescribe();
         env->ExceptionClear();

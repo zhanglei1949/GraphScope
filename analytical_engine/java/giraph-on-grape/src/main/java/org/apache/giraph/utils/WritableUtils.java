@@ -18,10 +18,16 @@
 
 package org.apache.giraph.utils;
 
+import com.alibaba.graphscope.utils.ExtendedByteArrayDataInput;
+import com.alibaba.graphscope.utils.ExtendedByteArrayDataOutput;
+import com.alibaba.graphscope.utils.UnsafeByteArrayInputStream;
+import com.alibaba.graphscope.utils.UnsafeByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import org.apache.giraph.conf.ImmutableClassesGiraphConfiguration;
+import org.apache.giraph.factories.ValueFactory;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
 
@@ -148,4 +154,218 @@ public class WritableUtils {
             return null;
         }
     }
+    /**
+     * Writes enum into a stream, by serializing class name and it's index
+     * @param enumValue Enum value
+     * @param output Output stream
+     * @param <T> Enum type
+     */
+    public static <T extends Enum<T>> void writeEnum(T enumValue,
+        DataOutput output) throws IOException {
+        writeClass(
+            enumValue != null ? enumValue.getDeclaringClass() : null, output);
+        if (enumValue != null) {
+            Varint.writeUnsignedVarInt(enumValue.ordinal(), output);
+        }
+    }
+
+    /**
+     * Reads enum from the stream, serialized by writeEnum
+     * @param input Input stream
+     * @param <T> Enum type
+     * @return Enum value
+     */
+    public static <T extends Enum<T>> T readEnum(DataInput input) throws
+        IOException {
+        Class<T> clazz = readClass(input);
+        if (clazz != null) {
+            int ordinal = Varint.readUnsignedVarInt(input);
+            try {
+                T[] values = (T[]) clazz.getDeclaredMethod("values").invoke(null);
+                return values[ordinal];
+            } catch (IllegalAccessException | IllegalArgumentException |
+                InvocationTargetException | NoSuchMethodException |
+                SecurityException e) {
+                throw new IOException("Cannot read enum", e);
+            }
+        } else {
+            return null;
+        }
+    }
+
+
+    /**
+     * Create a copy of Writable object, by serializing and deserializing it.
+     *
+     * @param reusableOut Reusable output stream to serialize into
+     * @param reusableIn Reusable input stream to deserialize out of
+     * @param original Original value of which to make a copy
+     * @param conf Configuration
+     * @param <T> Type of the object
+     * @return Copy of the original value
+     */
+    public static <T extends Writable> T createCopy(
+        UnsafeByteArrayOutputStream reusableOut,
+        UnsafeReusableByteArrayInput reusableIn, T original,
+        ImmutableClassesGiraphConfiguration conf) {
+        T copy = (T) createWritable(original.getClass(), conf);
+
+        try {
+            reusableOut.reset();
+            original.write(reusableOut);
+            reusableIn.initialize(
+                reusableOut.getByteArray(), 0, reusableOut.getPos());
+            copy.readFields(reusableIn);
+
+            if (reusableIn.available() != 0) {
+                throw new RuntimeException("Serialization of " +
+                    original.getClass() + " encountered issues, " +
+                    reusableIn.available() + " bytes left to be read");
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                "IOException occurred while trying to create a copy " +
+                    original.getClass(), e);
+        }
+        return copy;
+    }
+
+    /**
+     * Create a copy of Writable object, by serializing and deserializing it.
+     *
+     * @param original Original value of which to make a copy
+     * @return Copy of the original value
+     * @param <T> Type of the object
+     */
+    public static final <T extends Writable> T createCopy(T original) {
+        return (T) createCopy(original, original.getClass(), null);
+    }
+
+    /**
+     * Create a copy of Writable object, by serializing and deserializing it.
+     *
+     * @param original Original value of which to make a copy
+     * @param outputClass Expected copy class, needs to match original
+     * @param conf Configuration
+     * @return Copy of the original value
+     * @param <T> Type of the object
+     */
+    public static final <T extends Writable>
+    T createCopy(T original, Class<? extends T> outputClass,
+        ImmutableClassesGiraphConfiguration conf) {
+        T result = WritableUtils.createWritable(outputClass, conf);
+        copyInto(original, result);
+        return result;
+    }
+    /**
+     * Create a copy of Writable object, by serializing and deserializing it.
+     *
+     * @param original Original value of which to make a copy
+     * @param classFactory Factory to create new empty object from
+     * @param conf Configuration
+     * @return Copy of the original value
+     * @param <T> Type of the object
+     */
+    public static final <T extends Writable>
+    T createCopy(T original, ValueFactory<T> classFactory,
+        ImmutableClassesGiraphConfiguration conf) {
+        T result = classFactory.newInstance();
+        copyInto(original, result);
+        return result;
+    }
+
+    /**
+     * Copy {@code from} into {@code to}, by serializing and deserializing it.
+     * Since it is creating streams inside, it's mostly useful for
+     * tests/non-performant code.
+     *
+     * @param from Object to copy from
+     * @param to Object to copy into
+     * @param <T> Type of the object
+     */
+    public static <T extends Writable> void copyInto(T from, T to) {
+        copyInto(from, to, false);
+    }
+
+    /**
+     * Copy {@code from} into {@code to}, by serializing and deserializing it.
+     * Since it is creating streams inside, it's mostly useful for
+     * tests/non-performant code.
+     *
+     * @param from Object to copy from
+     * @param to Object to copy into
+     * @param checkOverRead if true, will add one more byte at the end of writing,
+     *                      to make sure read is not touching it. Useful for tests
+     * @param <T> Type of the object
+     */
+    public static <T extends Writable> void copyInto(
+        T from, T to, boolean checkOverRead) {
+        try {
+            if (from.getClass() != to.getClass()) {
+                throw new RuntimeException(
+                    "Trying to copy from " + from.getClass() +
+                        " into " + to.getClass());
+            }
+
+            UnsafeByteArrayOutputStream out = new UnsafeByteArrayOutputStream();
+            from.write(out);
+            if (checkOverRead) {
+                out.writeByte(0);
+            }
+
+            UnsafeByteArrayInputStream in =
+                new UnsafeByteArrayInputStream(out.getByteArray(), 0, out.getPos());
+            to.readFields(in);
+
+            if (in.available() != (checkOverRead ? 1 : 0)) {
+                throw new RuntimeException(
+                    "Serialization encountered issues with " + from.getClass() + ", " +
+                        (in.available() - (checkOverRead ? 1 : 0)) + " fewer bytes read");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    /**
+     * Deserialize from given byte array into given writable,
+     * using new instance of ExtendedByteArrayDataInput.
+     *
+     * @param data Byte array representing writable
+     * @param to Object to fill
+     * @param <T> Type of the object
+     */
+    public static <T extends Writable> void fromByteArray(byte[] data, T to) {
+        try {
+            ExtendedByteArrayDataInput in =
+                new ExtendedByteArrayDataInput(data, 0, data.length);
+            to.readFields(in);
+
+            if (in.available() != 0) {
+                throw new RuntimeException(
+                    "Serialization encountered issues, " + in.available() +
+                        " bytes left to be read");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Serialize given writable to byte array,
+     * using new instance of ExtendedByteArrayDataOutput.
+     *
+     * @param w Writable object
+     * @return array of bytes
+     * @param <T> Type of the object
+     */
+    public static <T extends Writable> byte[] toByteArray(T w) {
+        try {
+            ExtendedByteArrayDataOutput out = new ExtendedByteArrayDataOutput();
+            w.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

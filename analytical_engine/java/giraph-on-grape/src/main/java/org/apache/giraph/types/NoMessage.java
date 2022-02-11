@@ -30,13 +30,13 @@ import org.apache.hadoop.io.Writable;
  * to send a signal (whether a vertex receives a message or not)
  */
 public class NoMessage implements Writable {
-    @Override
-    public void readFields(DataInput in) throws IOException {
-        throw new IllegalStateException("NoMessage should never be read");
-    }
+  @Override
+  public void readFields(DataInput in) throws IOException {
+    throw new IllegalStateException("NoMessage should never be read");
+  }
 
-    @Override
-    public void write(DataOutput out) throws IOException {
-        throw new IllegalStateException("NoMessage should never be written");
-    }
+  @Override
+  public void write(DataOutput out) throws IOException {
+    throw new IllegalStateException("NoMessage should never be written");
+  }
 }
