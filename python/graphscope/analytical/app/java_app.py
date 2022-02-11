@@ -36,18 +36,12 @@ from graphscope.framework.dag import DAGNode
 from graphscope.framework.dag_utils import bind_app
 from graphscope.framework.errors import InvalidArgumentError
 from graphscope.framework.graph import Graph
-from graphscope.framework.utils import get_tempdir
 from graphscope.proto import graph_def_pb2
 
 __all__ = ["JavaApp"]
 
 logger = logging.getLogger("graphscope")
 
-# runtime workspace
-try:
-    WORKSPACE = os.environ["GRAPHSCOPE_RUNTIME"]
-except KeyError:
-    WORKSPACE = os.path.join(get_tempdir(), "gs")
 DEFAULT_GS_CONFIG_FILE = ".gs_conf.yaml"
 
 POSSIBLE_APP_TYPES = [
