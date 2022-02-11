@@ -297,6 +297,7 @@ public class FileLoader implements LoaderBase {
             logger.info("worker {} thread {} has set the field {} to {}", workerId, threadId,
                 VIFBufferedReaderField, bufferedReader);
             vertexReader.initialize(inputSplit, taskAttemptContext);
+            vertexReader.setConf(vertexInputFormat.getConf());
 
             while (cnt < end && vertexReader.nextVertex()) {
                 Vertex vertex = vertexReader.getCurrentVertex();
