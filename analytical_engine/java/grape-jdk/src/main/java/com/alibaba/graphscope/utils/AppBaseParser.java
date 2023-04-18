@@ -50,8 +50,8 @@ public class AppBaseParser {
         try {
             // we don't giraphAppBaseClass is defined in giraph-sdk, and we don't want to introduce
             // circular dependency.
-            Class<?> giraphDefaultAppBase = Class.forName(GIRAPH_APP_BASIC_NAME);
-            logger.info("loaded giraph default app base: " + giraphDefaultAppBase.getName());
+//            Class<?> giraphDefaultAppBase = Class.forName(GIRAPH_APP_BASIC_NAME);
+//            logger.info("loaded giraph default app base: " + giraphDefaultAppBase.getName());
             Class<?> clz = Class.forName(className);
             Type[] typeParams;
             // Input class name can be a giraph app, But we can use isAssignableFrom, since it

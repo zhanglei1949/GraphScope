@@ -219,7 +219,7 @@ public class Utils {
             return Integer.class.getName();
         } else if (cppType.equals("double")) {
             return Double.class.getName();
-        } else if (cppType.equals("std::string")) {
+        } else if (cppType.equals("vineyard::arrow_string_view")) {
             return StringView.class.getName();
         }
         throw new IllegalStateException("Not recognized cpp " + cppType);
@@ -237,7 +237,7 @@ public class Utils {
         } else if (javaType.equals("java.lang.Double") || javaType.equals("Double")) {
             return "double";
         } else if (javaType.equals("com.alibaba.graphscope.ds.StringView")) {
-            return "std::string";
+            return "vineyard::arrow_string_view";
         }
         throw new IllegalStateException("Unrecognized type " + javaType + " sign: " + signed);
     }
