@@ -1,8 +1,9 @@
-package com.alibaba.grapscope.example.stringApp;
+package com.alibaba.graphscope.example.stringApp;
 
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.graphscope.context.ParallelContextBase;
 import com.alibaba.graphscope.context.VertexDataContext;
+import com.alibaba.graphscope.ds.EmptyType;
 import com.alibaba.graphscope.ds.GSVertexArray;
 import com.alibaba.graphscope.ds.StringView;
 import com.alibaba.graphscope.ds.Vertex;
@@ -16,12 +17,12 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class BfsContext extends VertexDataContext<IFragment<StringView, Long, Long, Long>, Long> implements ParallelContextBase<StringView, Long, Long, Long> {
+public class BfsContext extends VertexDataContext<IFragment<Long, Long, EmptyType, EmptyType>, Long> implements ParallelContextBase<Long, Long, EmptyType, EmptyType> {
 
     private static Logger logger = LoggerFactory.getLogger(BfsContext.class);
 
     // bfs起点的原始id
-    public String sourceOid;
+    public Long sourceOid;
     //用来保存中间结果
     public IntArrayWrapper partialResults;
     // 用来保存点激活信息的bitset
@@ -34,7 +35,7 @@ public class BfsContext extends VertexDataContext<IFragment<StringView, Long, Lo
     public ExecutorService executor;
 
     @Override
-    public void Init(IFragment<StringView, Long, Long, Long> iFragment,  //代表当前的图分区
+    public void Init(IFragment<Long, Long, EmptyType, EmptyType> iFragment,  //代表当前的图分区
         ParallelMessageManager parallelMessageManager,
         JSONObject jsonObject) { //所有的用户参数通过json对象传入
         //必须调用这一句来初始化对应的c++ Context
@@ -43,7 +44,7 @@ public class BfsContext extends VertexDataContext<IFragment<StringView, Long, Lo
             logger.error("No src arg found");
             return;
         }
-        sourceOid = jsonObject.getString("src");
+        sourceOid = Long.valueOf(jsonObject.getString("src"));
         if (!jsonObject.containsKey("threadNum")) {
             logger.warn("No threadNum arg found");
             threadNum = 1;
@@ -59,7 +60,7 @@ public class BfsContext extends VertexDataContext<IFragment<StringView, Long, Lo
     }
 
     @Override
-    public void Output(IFragment<StringView, Long, Long, Long> iFragment) {
+    public void Output(IFragment<Long, Long, EmptyType, EmptyType> iFragment) {
         logger.info("depth: " + currentDepth);
         //c++context提供的VertexArray
         GSVertexArray<Long> vertexArray = data();

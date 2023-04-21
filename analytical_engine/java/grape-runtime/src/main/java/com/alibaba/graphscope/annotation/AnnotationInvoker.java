@@ -19,6 +19,7 @@ package com.alibaba.graphscope.annotation;
 import static com.alibaba.graphscope.utils.CppClassName.ARROW_FRAGMENT;
 import static com.alibaba.graphscope.utils.CppClassName.CPP_ARROW_PROJECTED_FRAGMENT;
 import static com.alibaba.graphscope.utils.CppClassName.DOUBLE_MSG;
+import static com.alibaba.graphscope.utils.CppClassName.GRAPE_EMPTY_TYPE;
 import static com.alibaba.graphscope.utils.CppClassName.GS_VERTEX_ARRAY;
 import static com.alibaba.graphscope.utils.CppClassName.LONG_MSG;
 import static com.alibaba.graphscope.utils.CppHeaderName.ARROW_FRAGMENT_GROUP_H;
@@ -29,6 +30,7 @@ import static com.alibaba.graphscope.utils.JavaClassName.INTEGER;
 import static com.alibaba.graphscope.utils.JavaClassName.JAVA_ARROW_PROJECTED_FRAGMENT;
 import static com.alibaba.graphscope.utils.JavaClassName.JAVA_ARROW_PROJECTED_FRAGMENT_GETTER;
 import static com.alibaba.graphscope.utils.JavaClassName.JAVA_ARROW_PROJECTED_FRAGMENT_MAPPER;
+import static com.alibaba.graphscope.utils.JavaClassName.JAVA_EMPTY_TYPE;
 import static com.alibaba.graphscope.utils.JavaClassName.LONG;
 import static com.alibaba.graphscope.utils.JavaClassName.STRING;
 import static com.alibaba.graphscope.utils.JavaClassName.STRING_VIEW;
@@ -38,6 +40,7 @@ import com.alibaba.fastffi.CXXTemplate;
 import com.alibaba.fastffi.FFIFunGen;
 import com.alibaba.fastffi.FFIGen;
 import com.alibaba.fastffi.FFIGenBatch;
+import com.alibaba.graphscope.ds.EmptyType;
 
 /**
  * In <em>GRAPE-jdk</em>, we split programming interfaces from actual implementation. As the
@@ -314,6 +317,10 @@ import com.alibaba.fastffi.FFIGenBatch;
                         @CXXTemplate(
                                 cxx = {"uint64_t", "std::string"},
                                 java = {"Long", STRING_VIEW}),
+                        @CXXTemplate(
+                            cxx = {"uint64_t", "grape::EmptyType"},
+                            java = {"Long", JAVA_EMPTY_TYPE}
+                        )
                     }),
             @FFIGen(
                     type = "com.alibaba.graphscope.ds.ProjectedAdjList",
@@ -330,6 +337,10 @@ import com.alibaba.fastffi.FFIGenBatch;
                         @CXXTemplate(
                                 cxx = {"uint64_t", "std::string"},
                                 java = {"Long", STRING_VIEW}),
+                        @CXXTemplate(
+                            cxx = {"uint64_t", "grape::EmptyType"},
+                            java = {"Long", JAVA_EMPTY_TYPE}
+                        )
                     }),
             @FFIGen(
                     type = JAVA_ARROW_PROJECTED_FRAGMENT,
@@ -347,6 +358,9 @@ import com.alibaba.fastffi.FFIGenBatch;
                                 cxx = {"int64_t", "uint64_t", "int64_t", "std::string"},
                                 java = {"Long", "Long", "Long", STRING_VIEW}),
                         @CXXTemplate(
+                            cxx = {"int64_t", "uint64_t", "int64_t", GRAPE_EMPTY_TYPE},
+                            java = {"Long", "Long", "Long", JAVA_EMPTY_TYPE}),
+                        @CXXTemplate(
                                 cxx = {"int64_t", "uint64_t", "int32_t", "int64_t"},
                                 java = {"Long", "Long", "Integer", "Long"}),
                         @CXXTemplate(
@@ -358,6 +372,9 @@ import com.alibaba.fastffi.FFIGenBatch;
                         @CXXTemplate(
                                 cxx = {"int64_t", "uint64_t", "int32_t", "std::string"},
                                 java = {"Long", "Long", "Integer", STRING_VIEW}),
+                        @CXXTemplate(
+                            cxx = {"int64_t", "uint64_t", "int32_t", GRAPE_EMPTY_TYPE},
+                            java = {"Long", "Long", "Integer", JAVA_EMPTY_TYPE}),
                         @CXXTemplate(
                                 cxx = {"int64_t", "uint64_t", "double", "int64_t"},
                                 java = {"Long", "Long", "Double", "Long"}),
@@ -371,6 +388,9 @@ import com.alibaba.fastffi.FFIGenBatch;
                                 cxx = {"int64_t", "uint64_t", "double", "std::string"},
                                 java = {"Long", "Long", "Double", STRING_VIEW}),
                         @CXXTemplate(
+                            cxx = {"int64_t", "uint64_t", "double", GRAPE_EMPTY_TYPE},
+                            java = {"Long", "Long", "Double", JAVA_EMPTY_TYPE}),
+                        @CXXTemplate(
                                 cxx = {"int64_t", "uint64_t", "std::string", "int64_t"},
                                 java = {"Long", "Long", STRING_VIEW, "Long"}),
                         @CXXTemplate(
@@ -382,6 +402,9 @@ import com.alibaba.fastffi.FFIGenBatch;
                         @CXXTemplate(
                                 cxx = {"int64_t", "uint64_t", "std::string", "std::string"},
                                 java = {"Long", "Long", STRING_VIEW, STRING_VIEW}),
+                        @CXXTemplate(
+                            cxx = {"int64_t", "uint64_t", "std::string", GRAPE_EMPTY_TYPE},
+                            java = {"Long", "Long", STRING_VIEW, JAVA_EMPTY_TYPE}),
                     }),
             @FFIGen(type = "com.alibaba.graphscope.fragment.getter.ArrowFragmentGroupGetter"),
             @FFIGen(
@@ -1338,6 +1361,27 @@ import com.alibaba.fastffi.FFIGenBatch;
                                 },
                                 templates = {
                                     @CXXTemplate(
+                                        cxx = {
+                                            "int64_t",
+                                            "uint64_t",
+                                            GRAPE_EMPTY_TYPE,
+                                            GRAPE_EMPTY_TYPE,
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                + "<int64_t,uint64_t,grape::EmptyType,grape::EmptyType>",
+                                            DOUBLE_MSG,
+                                            "any"
+                                        },
+                                        java = {
+                                            "Long",
+                                            "Long",
+                                            JAVA_EMPTY_TYPE,
+                                            JAVA_EMPTY_TYPE,
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                + "<Long,Long," + JAVA_EMPTY_TYPE + "," + JAVA_EMPTY_TYPE + ">",
+                                            "com.alibaba.graphscope.parallel.message.DoubleMsg",
+                                            "com.alibaba.graphscope.runtime.UnusedImpl.EmptyEmptyDouble"
+                                        }),
+                                    @CXXTemplate(
                                             cxx = {
                                                 "int64_t",
                                                 "uint64_t",
@@ -1390,6 +1434,25 @@ import com.alibaba.fastffi.FFIGenBatch;
                                     "UNUSED_T"
                                 },
                                 templates = {
+                                    @CXXTemplate(
+                                        cxx = {
+                                            "int64_t",
+                                            "uint64_t",
+                                            GRAPE_EMPTY_TYPE,
+                                            GRAPE_EMPTY_TYPE,
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                + "<int64_t,uint64_t,grape::EmptyType,grape::EmptyType>",
+                                            "any"
+                                        },
+                                        java = {
+                                            "Long",
+                                            "Long",
+                                            JAVA_EMPTY_TYPE,
+                                            JAVA_EMPTY_TYPE,
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                + "<Long,Long," + JAVA_EMPTY_TYPE + "," + JAVA_EMPTY_TYPE + ">",
+                                            "com.alibaba.graphscope.runtime.UnusedImpl.EmptyEmpty"
+                                        }),
                                     @CXXTemplate(
                                             cxx = {
                                                 "int64_t",

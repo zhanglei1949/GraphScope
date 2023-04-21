@@ -1,13 +1,8 @@
 package com.alibaba.graphscope.example.stringApp;
 
-import static com.alibaba.graphscope.utils.CppClassName.GS_ARROW_PROJECTED_FRAGMENT_IMPL_STRING_TYPED_ARRAY;
-
-import com.alibaba.fastffi.FFITypeFactory;
 import com.alibaba.graphscope.app.ParallelAppBase;
 import com.alibaba.graphscope.context.ParallelContextBase;
 import com.alibaba.graphscope.ds.EmptyType;
-import com.alibaba.graphscope.ds.StringTypedArray;
-import com.alibaba.graphscope.ds.StringView;
 import com.alibaba.graphscope.ds.Vertex;
 import com.alibaba.graphscope.ds.VertexRange;
 import com.alibaba.graphscope.ds.adaptor.AdjList;
@@ -16,7 +11,6 @@ import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.parallel.ParallelEngine;
 import com.alibaba.graphscope.parallel.ParallelMessageManager;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
-import com.alibaba.grapscope.example.stringApp.BfsContext;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -26,31 +20,24 @@ import org.slf4j.LoggerFactory;
  * 对于用户逻辑实现的App类，用户需要实现ParallelAppBase接口，并且实现PEval和IncEval接口
  */
 public class Bfs implements
-    ParallelAppBase<StringView, Long, Long, Long, com.alibaba.grapscope.example.stringApp.BfsContext>,
+    ParallelAppBase<Long, Long, EmptyType, EmptyType, BfsContext>,
     ParallelEngine {
 
     private static Logger logger = LoggerFactory.getLogger(Bfs.class);
     static final String STRING_VIEW_NAME = "vineyard::arrow_string_view";
 
     @Override
-    public void PEval(IFragment<StringView, Long, Long, Long> graph,
-        ParallelContextBase<StringView, Long, Long, Long> context,
+    public void PEval(IFragment<Long, Long, EmptyType, EmptyType> graph,
+        ParallelContextBase<Long, Long, EmptyType, EmptyType> context,
         ParallelMessageManager messageManager) {
-        com.alibaba.grapscope.example.stringApp.BfsContext ctx = (com.alibaba.grapscope.example.stringApp.BfsContext) context;
+        BfsContext ctx = (BfsContext) context;
         Vertex<Long> vertex = FFITypeFactoryhelper.newVertexLong();
-        StringView.Factory factory = FFITypeFactory.getFactory(
-            StringView.class, STRING_VIEW_NAME
-            );
-        StringView stringView = factory.create();
-        stringView.fromJavaString(ctx.sourceOid);
-        String recopied = stringView.toJavaString();
-        logger.info("oid : {}", recopied);
-        boolean inThisFrag = graph.getInnerVertex(stringView, vertex);
+        boolean inThisFrag = graph.getInnerVertex(ctx.sourceOid, vertex);
         ctx.currentDepth = 1;
         if (inThisFrag) {
             ctx.partialResults.set(vertex, 0);
-            AdjList<Long, Long> adjList = graph.getOutgoingAdjList(vertex);
-            for (Nbr<Long, Long> nbr : adjList.iterable()) {
+            AdjList<Long, EmptyType> adjList = graph.getOutgoingAdjList(vertex);
+            for (Nbr<Long, EmptyType> nbr : adjList.iterable()) {
                 Vertex<Long> neighbor = nbr.neighbor();
                 if (ctx.partialResults.get(neighbor) == Integer.MAX_VALUE) {
                     ctx.partialResults.set(neighbor, 1);
@@ -66,10 +53,10 @@ public class Bfs implements
     }
 
     @Override
-    public void IncEval(IFragment<StringView, Long, Long, Long> graph,
-        ParallelContextBase<StringView, Long, Long, Long> context,
+    public void IncEval(IFragment<Long, Long, EmptyType, EmptyType> graph,
+        ParallelContextBase<Long, Long, EmptyType, EmptyType> context,
         ParallelMessageManager messageManager) {
-        com.alibaba.grapscope.example.stringApp.BfsContext ctx = (BfsContext) context;
+        BfsContext ctx = (BfsContext) context;
         VertexRange<Long> innerVertices = graph.innerVertices();
         int nextDepth = ctx.currentDepth + 1;
         ctx.nextInnerUpdated.clear();
@@ -88,8 +75,8 @@ public class Bfs implements
 
         BiConsumer<Vertex<Long>, Integer> vertexIntegerBiConsumer =
             (cur, finalTid) -> {
-                AdjList<Long, Long> adjList = graph.getOutgoingAdjList(cur);
-                for (Nbr<Long, Long> nbr : adjList.iterable()) {
+                AdjList<Long, EmptyType> adjList = graph.getOutgoingAdjList(cur);
+                for (Nbr<Long, EmptyType> nbr : adjList.iterable()) {
                     Vertex<Long> vertex = nbr.neighbor();
                     if (ctx.partialResults.get(vertex) == Integer.MAX_VALUE) {
                         ctx.partialResults.set(vertex, nextDepth);

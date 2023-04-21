@@ -17,4 +17,5 @@ public class JavaClassName {
     public static final String JAVA_FFI_BYTE_STRING = "com.alibaba.fastffi.FFIByteString";
 
     public static final String STRING_VIEW = "com.alibaba.graphscope.ds.StringView";
+    public static final String JAVA_EMPTY_TYPE = "com.alibaba.graphscope.ds.EmptyType";
 }
