@@ -174,16 +174,10 @@ message Unfold {
 }
 
 message Range {
-  message Bound {
-    oneof item {
-      int32 value = 1;
-      common.DynamicParam param = 2;
-    }
-  }
   // The lower bound of the range, included
-  Bound lower = 1;
+  int32 lower = 1;
   // The upper bound of the range, **excluded**
-  Bound upper = 2;
+  int32 upper = 2;
 }
 
 message Limit {
