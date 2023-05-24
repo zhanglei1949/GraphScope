@@ -20,7 +20,7 @@ target.revision:=0.0.1-SNAPSHOT
 
 build:
 	cd $(CUR_DIR)/.. && \
-		mvn clean install -DskipTests -Drevision=${target.revision} -Pexperimental --quiet && \
+		mvn install -DskipTests -Drevision=${target.revision} -Pexperimental --quiet && \
 		cd $(CUR_DIR)/../executor/ir/integrated && cargo build --release --bin $(rpc.target)
 
 clean:
@@ -57,12 +57,13 @@ run:
 
 cypher_run:
 	cd $(CUR_DIR) && $(java) \
-	  -cp ".:./target/libs/*:./target/compiler-0.0.1-SNAPSHOT.jar" \
+		-cp ".:./target/compiler-0.0.1-SNAPSHOT.jar:./target/libs/*" \
 	  -Djna.library.path=../executor/ir/target/release \
 	  -Dgraph.schema=${graph.schema} \
 	  -Dgraph.store=${graph.store} \
 	  -Dpegasus.hosts=${pegasus.hosts} \
-	 com.alibaba.graphscope.cypher.service.CypherServiceMain 
+	  -Dorg.slf4j.simpleLogger.defaultLogLevel=debug \
+	 com.alibaba.graphscope.cypher.service.CypherServiceMain
 
 # start rpc server
 # make run graph.schema:=../executor/ir/core/resource/ldbc_schema.json 

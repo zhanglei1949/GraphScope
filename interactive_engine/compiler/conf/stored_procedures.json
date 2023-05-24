@@ -41,5 +41,57 @@
         "type": "LONG"
       }
     ]
+  },
+  {
+    "name": "query_ic3",
+    "parameters": [
+      {
+        "name": "personId3",
+        "type": "LONG"
+      },
+      {
+        "name": "countryXName",
+        "type": "STRING"
+      },
+      {
+        "name": "countryYName",
+        "type": "STRING"
+      },
+      {
+        "name": "startDate",
+        "type": "LONG"
+      },
+      {
+	 "name" : "durationDays",
+	 "type" : "INTEGER"
+      }
+    ],
+    "returnType": [
+	        {
+      "name": "personId",
+      "type": "LONG"
+    },
+    {
+      "name": "firstName",
+      "type": "STRING"
+    },
+    {
+      "name": "lastName",
+      "type": "STRING"
+    },
+    {
+      "name": "xCount",
+      "type": "INTEGER"
+    },
+    {
+      "name": "yCount",
+      "type": "INTEGER"
+    },
+    {
+      "name": "count",
+      "type": "INTEGER"
+    }
+
+    ]
   }
 ]

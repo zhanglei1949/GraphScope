@@ -16,7 +16,7 @@
 # under the License.
 
 host: localhost
-port: 8182
+port: 8183
 evaluationTimeout: 3000000
 channelizer: com.alibaba.graphscope.gremlin.service.IrWsAndHttpChannelizer
 graphs: {}
