@@ -9,7 +9,7 @@ params:
     type: "long"  # The type of the parameter, string, int, float, double, bool
   - name: "countryName"
     type: "string"
-  -name: "workFromYear"
+  - name: "workFromYear"
     type: "integer"
 returns:
   - name: "personId"
@@ -22,4 +22,3 @@ returns:
     type: "string"
   - name: "workFromYear"
     type: "integer"
-

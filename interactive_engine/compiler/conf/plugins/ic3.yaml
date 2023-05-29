@@ -5,12 +5,12 @@ mode: READ  # WRITE, SCHEMA
 extension: ".so"
 library: /root/stored_procedures/ic3/libic3.so  # To specify the directory to the stored procedure
 params:
-  - name: "personId"  # The name of the parameter
-    type: "long"  # The type of the parameter, string, int, float, double, bool
   - name: "countryXName"
     type: "string"
   - name: "countryYName"
     type: "string"
+  - name: "personId"  # The name of the parameter
+    type: "long"  # The type of the parameter, string, int, float, double, bool
   - name: "startDate"
     type: "long"
   - name: "endDate"
