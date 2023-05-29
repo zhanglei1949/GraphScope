@@ -20,7 +20,7 @@ target.revision:=0.0.1-SNAPSHOT
 
 build:
 	cd $(CUR_DIR)/.. && \
-		mvn install -DskipTests -Drevision=${target.revision} -Pexperimental --quiet && \
+		mvn clean install -DskipTests -Drevision=${target.revision} -Pexperimental --quiet && \
 		cd $(CUR_DIR)/../executor/ir/integrated && cargo build --release --bin $(rpc.target)
 
 clean:
