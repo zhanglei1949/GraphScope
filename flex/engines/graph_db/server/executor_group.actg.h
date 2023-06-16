@@ -18,11 +18,12 @@
 
 #include <hiactor/core/actor-template.hh>
 
-
 namespace server {
 
-class ANNOTATION(actor:group) executor_group : public hiactor::schedulable_actor_group {
-public:
+class ANNOTATION(actor
+                 : group) executor_group
+    : public hiactor::schedulable_actor_group {
+ public:
   executor_group(hiactor::actor_base* exec_ctx, const hiactor::byte_t* addr)
       : hiactor::schedulable_actor_group(exec_ctx, addr) {}
 
