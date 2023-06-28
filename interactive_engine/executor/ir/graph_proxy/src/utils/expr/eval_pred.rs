@@ -405,6 +405,9 @@ fn process_predicates(
     while let Some(opr) = iter.next() {
         if let Some(item) = &opr.item {
             match item {
+                Item::Case(c) => {
+                    return Err(ExprError::Unsupported(format!("Case when {:?}", c)))
+                }
                 Item::Logical(l) => {
                     if left_brace_count == 0 {
                         let logical = unsafe { std::mem::transmute::<i32, common_pb::Logical>(*l) };
