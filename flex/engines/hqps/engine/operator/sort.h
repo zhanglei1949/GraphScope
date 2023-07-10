@@ -84,7 +84,6 @@ struct TupleComparator {
       return true;
     }
   }
-
 };  // namespace gs
 
 template <int base_tag, typename... ORDER_PAIRS>
@@ -267,11 +266,6 @@ class SortOp {
 
     // Generate tuples from ctx, with required key.
 
-    // Assumes input sets doesn't contains properties.
-    // we should compare with select properties, but also hold the index
-    // info. auto prop_store_cols =
-    //     get_prop_store_cols(tuples, ctx,  graph,
-    //                         std::make_index_sequence<sizeof...(ORDER_PAIRS)>());
     using ctx_t = Context<CTX_HEAD_T, cur_alias, base_tag, CTX_PREV_T...>;
     using sort_tuple_t = std::tuple<typename ORDER_PAIRS::prop_t..., size_t>;
 

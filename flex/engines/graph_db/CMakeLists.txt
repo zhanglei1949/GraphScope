@@ -15,7 +15,7 @@ if (Hiactor_FOUND)
   target_compile_options (flex_graph_db_server
         PUBLIC
         -Wno-attributes)
-# target_link_libraries(flex_graph_db_server Hiactor::hiactor ${LIBGRAPELITE_LIBRARIES} flex_utils flex_rt_mutable_graph ${GLOG_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+  # target_link_libraries(flex_graph_db_server Hiactor::hiactor ${LIBGRAPELITE_LIBRARIES} flex_utils flex_rt_mutable_graph ${GLOG_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
   target_link_libraries(flex_graph_db_server Hiactor::hiactor)
 endif ()
 

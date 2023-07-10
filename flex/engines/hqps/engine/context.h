@@ -74,13 +74,6 @@ class ContextIter<base_tag, std::tuple<SET_T>> {
     return std::make_tuple(iter_.GetIndexElement());
   }
 
-  // size_t GetKey() const {
-  //    if constexpr (SET_T::is_keyed){
-  //   return iter_.GetKey();
-  //    }
-  //    else return 0;
-  // }
-
   auto GetData() const { return iter_.GetData(); }
 
   auto GetAllData() const { return std::make_tuple(GetData()); }
@@ -126,22 +119,13 @@ class ContextIter<base_tag, std::tuple<SET_T, PREV_SETS...>> {
         offsets_arrays_(offsets),
         cur_offset_(0) {
     others_offset_.fill(0);
-    // others_iter_tuple_ = make_other_begin_iter_tuple(index_seq);
     init_iter_tuple();  // init iterator tuple to a valid position.
-    // VLOG(10) << "Finsih init tuple";
   }
 
   // GetVertex for Vertex set and GetEdge for Edge set, for head node.
   auto GetElement() const { return cur_iter_.GetElement(); }
 
   auto GetData() const { return cur_iter_.GetData(); }
-
-  // size_t GetKey() const {
-  //   if constexpr (SET_T::is_keyed){
-  //     return cur_iter_.GetKey();
-  //   }
-  //   else return 0;
-  // }
 
   auto GetAllElement() const { return get_element_tuple_impl(index_seq); }
 
@@ -447,8 +431,6 @@ std::vector<offset_t> obtain_offset_between_tags_impl(
     const std::vector<std::vector<offset_t>>& offsets, int dst_tag) {
   CHECK(offsets.size() > dst_tag)
       << "offset size" << offsets.size() << ", dst tag" << dst_tag;
-  // LOG(INFO) << "dst tag: " << dst_tag << ", offset size: " << offsets.size()
-  // << ", dst tag array: " << offsets[dst_tag].size();
   std::vector<offset_t> res = offsets[dst_tag];
   // VLOG(10) << "init offset: " << gs::to_string(res);
   for (auto i = dst_tag + 1; i < offsets.size(); ++i) {
@@ -456,7 +438,6 @@ std::vector<offset_t> obtain_offset_between_tags_impl(
       res[j] = offsets[i][res[j]];
     }
   }
-  // VLOG(10) << "obtain offsets between tags: " << gs::to_string(res);
   return res;
 }
 
@@ -500,46 +481,26 @@ class Context {
       : cur_(std::move(head)),
         offsets_arrays_(std::move(offset)),
         prev_(std::move(old_cols)),
-        sub_task_start_tag_(sub_task_start_tag) {
-    // VLOG(10) << "Construct new context with offset size"
-    //         << offsets_arrays_.size() << ", cur alias" << cur_alias
-    //         << ", alias num" << alias_num << ",base tag:" << base_tag
-    //         << ", in sub task: " << sub_task_start_tag_;
-  }
+        sub_task_start_tag_(sub_task_start_tag) {}
 
   Context(Context<HEAD_T, cur_alias, base_tag, ALIAS_COL...>&& other) noexcept
       : cur_(std::move(other.cur_)),
         offsets_arrays_(std::move(other.offsets_arrays_)),
         prev_(std::move(other.prev_)),
-        sub_task_start_tag_(other.sub_task_start_tag_) {
-    // VLOG(10) << "Move constructor of context"
-    //        << " cur head size" << cur_.Size()
-    //         << ", offset size: " << offsets_arrays_.size()
-    //         << ",prev size:" << prev_alias_num
-    //         << ", in sub task: " << sub_task_start_tag_;
-  }
+        sub_task_start_tag_(other.sub_task_start_tag_) {}
 
   // copy constructor
   Context(Context<HEAD_T, cur_alias, base_tag, ALIAS_COL...>& other)
       : cur_(other.cur_),
         offsets_arrays_(other.offsets_arrays_),
         prev_(other.prev_),
-        sub_task_start_tag_(other.sub_task_start_tag_) {
-    // VLOG(10) << "Copy constructor of context"
-    //         << " cur head size" << cur_.Size()
-    //         << ", offset size: " << offsets_arrays_.size()
-    //         << ",prev size:" << prev_alias_num
-    //         << ",in sub task: " << sub_task_start_tag_;
-  }
+        sub_task_start_tag_(other.sub_task_start_tag_) {}
 
   // Merge another node with a different head. We expect the other things, like
   // prev nodes, prev offset array, are the same. We will create a new Node,
   // UnionedNode, which contains two labels. <1,2,<>, 4> <1,2,3,<>>
 
-  ~Context() {
-    // VLOG(10) << "Destructing complex context, cur_alias" << cur_alias
-    //         << ", alias_num" << AliasNum();
-  }
+  ~Context() {}
 
   HEAD_T& GetHead() { return cur_; }
 
@@ -569,28 +530,14 @@ class Context {
         active_indices.emplace_back(i);
       }
     }
-    // VLOG(10) << "[Filter with offsets:], active indices: "
-    //         << gs::to_string(active_indices)
-    //         << " join kind: " << gs::to_string(join_kind);
     std::vector<offset_t> res_offset =
         cur_.FilterWithIndices(active_indices, join_kind);
     merge_offset(offsets_arrays_.back(), res_offset);
     // this->Alias<res_alias>();
   }
 
-  // Towards which tag we will align on.
-  // template <int dst_tag>
-  // std::vector<offset_t> ObtainOffsetFromTag() {
-  //   static_assert(dst_tag > 0 || dst_tag <= prev_alias_num + base_tag);
-  //   return ObtainOffsetFromTag(dst_tag);
-  // }
-
   std::vector<offset_t> ObtainOffsetFromTag(int dst_tag) const {
     CHECK(dst_tag > 0 || dst_tag <= prev_alias_num + base_tag);
-    // if constexpr (dst_tag == -1) {
-    //   return obtain_offset_between_tags_impl(offsets_arrays_,
-    //                                          offsets_arrays_.size() - 1);
-    // } else
     if (dst_tag == -1) {
       dst_tag = prev_alias_num + base_tag;
     }
@@ -621,7 +568,6 @@ class Context {
           res[j] = offsets_arrays_[i][res[j]];
         }
       }
-      // VLOG(10) << "obtain offsets between tags: " << gs::to_string(res);
       return res;
       // return the offset between sub_task_start_tag to head_tag;
     } else {
@@ -685,11 +631,6 @@ class Context {
 
   size_t AliasNum() const { return alias_num; }
 
-  // template <typename N>
-  // auto Get() {
-  //   // We should create a new Traversal.
-  // }
-
   template <int... Is>
   others_iter_tuple_t make_others_begin_iter_tuple(
       std::integer_sequence<int, Is...>) const {
@@ -721,17 +662,6 @@ class Context {
     return self_type_t(std::move(new_head), std::move(prev_),
                        std::move(offsets_arrays_), sub_task_start_tag_);
   }
-
-  // template <typename EXPR, typename GRAPH_INTERFACE, typename... PropDesc>
-  // void SelectInPlace(int64_t time_stamp, const GRAPH_INTERFACE& graph,
-  //                    EXPR& expr, const std::tuple<PropDesc...>& prop_desc) {
-  //   // The result context can be defined by the selected indices of the head
-  //   // node. We can got the result context by applying selected indices.
-  //   // auto new_head_and_offset = select_node.Filter(std::move(expr),
-  //   // col_tuples);
-
-  //   // merge_offset(offsets_arrays_.back(), new_offsets);
-  // }
 
   template <AppendOpt append_opt, typename NEW_HEAD_T,
             typename std::enable_if<NEW_HEAD_T::is_collection>::type* = nullptr>
@@ -770,8 +700,6 @@ class Context {
     if (offsets_arrays_.size() == 0) {
       offsets_arrays_.emplace_back(std::move(offset));
     } else {
-      // VLOG(10) << "array back" << offsets_arrays_.back().size();
-      // VLOG(10) << "new offset array size:" << offset.size();
       // Make input offset array align with the last set.
       auto new_offset = align_offset(new_node, std::move(offset),
                                      offsets_arrays_, alias_to_use);
@@ -863,9 +791,6 @@ class Context {
     }
 
     auto new_size = std::get<act_Is>(prev_).Size();
-    // VLOG(10) << "update node: " << act_Is << ", old size: " << new_size
-    //         << ", offset: " << gs::to_string(offset);
-    // get which indices are moved out for Is.
 
     std::vector<offset_t> removed_indices;
     // CHECK(removed_indices.size() != old_size);
@@ -886,12 +811,8 @@ class Context {
     for (auto i = 0; i < offset.size(); ++i) {
       all_indices.emplace_back(i);
     }
-    // VLOG(10) << "All indices: " << gs::to_string(all_indices)
-    //         << ",Removed indices : " << gs::to_string(removed_indices);
 
     updateChildNodeAndOffset<Is + 1>(all_indices, removed_indices);
-
-    // swap old node with new node. possiblely old node is now already invalid.
   }
 
   // For current tag, remove ele with respect to removed indices, and update the
@@ -901,25 +822,12 @@ class Context {
   updateChildNodeAndOffset(std::vector<size_t>& all_indices,
                            std::vector<size_t>& removed_indices) {
     static constexpr size_t act_Is = Is - base_tag;
-    // VLOG(10) << "Before update child and offset: " << Is
-    //         << ", act_is: " << act_Is
-    //         << ", all_indices: " << gs::to_string(all_indices)
-    //         << ", old offset_array: "
-    //         << gs::to_string(offsets_arrays_[act_Is - 1]);
-    // update all_indices in place.
     for (auto i = 0; i < all_indices.size(); ++i) {
       all_indices[i] = offsets_arrays_[act_Is - 1][all_indices[i]];
     }
-    // VLOG(10) << "all indices after tag: " << act_Is
-    //         << ", : " << gs::to_string(all_indices);
     auto res_offset = std::get<act_Is>(prev_).SubSetWithRemovedIndices(
         removed_indices, all_indices);
-    // TODO: update offset_array;
-    // VLOG(10) << "before update offset vec:"
-    //         << gs::to_string(offsets_arrays_[act_Is - 1]);
     offsets_arrays_[act_Is - 1].swap(res_offset);
-    // VLOG(10) << "after update offset vec:"
-    //         << gs::to_string(offsets_arrays_[act_Is - 1]);
 
     // all_indices are changed after each run, while removed_indices never
     // changes.
@@ -932,17 +840,9 @@ class Context {
   updateChildNodeAndOffset(std::vector<size_t>& all_indices,
                            std::vector<size_t>& removed_indices) {
     static constexpr size_t act_Is = Is - base_tag;
-    // VLOG(10) << "Before update child and offset: " << Is << ", act: " <<
-    // act_Is
-    //         << ", all_indices: " << gs::to_string(all_indices)
-    //         << ", old offset_array: "
-    //         << gs::to_string(offsets_arrays_[act_Is - 1]);
-    // update all_indices in place.
     for (auto i = 0; i < all_indices.size(); ++i) {
       all_indices[i] = offsets_arrays_[act_Is - 1][all_indices[i]];
     }
-    // VLOG(10) << "all indices after tag: " << act_Is
-    //         << ", : " << gs::to_string(all_indices);
     auto res_offset =
         cur_.SubSetWithRemovedIndices(removed_indices, all_indices);
     // TODO: update offset_array;
@@ -960,8 +860,6 @@ class Context {
     VLOG(10) << "Context: Flat";
     size_t old_head_size = cur_.Size();
     auto flat_head = cur_.template Flat<prev_alias_num>(index_eles);
-    /// VLOG(10) << "Fish flat head" << flat_head.Size()
-    //         << ", old head size: " << old_head_size;
     auto flat_prev = flat_prev_tuple(index_eles);
     // now all values are 1-to-1 mapping.
     std::vector<std::vector<offset_t>> new_offset_array;
@@ -973,7 +871,6 @@ class Context {
     for (auto i = 0; i <= num_eles; ++i) {
       offset_vec[i] = i;
     }
-    // VLOG(10) << "offset vec: " << gs::to_string(offset_vec);
 
     for (auto i = 0; i < prev_alias_num; ++i) {
       new_offset_array.push_back(offset_vec);
@@ -1031,8 +928,6 @@ class Context {
       std::vector<size_t> new_indices;
       auto& cur_offset_vec = offsets_arrays_[i];
       VLOG(10) << "tag: " << i << " indices: " << gs::to_string(indices);
-      // VLOG(10) << "tag: " << i
-      //          << " cur offset : " << gs::to_string(cur_offset_vec);
       for (auto ind : indices) {
         // select the first ele.
         // if not element, skip.
@@ -1140,19 +1035,12 @@ class Context {
   void merge_offset(std::vector<offset_t>& old_offset_array,
                     std::vector<offset_t>& new_offset_array) {
     VLOG(10) << "merging offset";
-    // VLOG(10) << "old : " << gs::to_string(old_offset_array);
-    // VLOG(10) << "new offset: " << gs::to_string(new_offset_array);
     CHECK(new_offset_array.size() == old_offset_array.back() + 1)
         << "new size " << new_offset_array.size() << ", old back"
         << old_offset_array.back();
     for (auto i = 0; i < old_offset_array.size(); ++i) {
-      // VLOG(10) << "i:" << i << ",old_offset:" << old_offset_array[i]
-      //         << ", new_array size" << new_offset_array.size()
-      //         << ",new array value:" <<
-      //         new_offset_array[old_offset_array[i]];
       old_offset_array[i] = new_offset_array[old_offset_array[i]];
     }
-    // VLOG(10) << "Finish merge offset" << gs::to_string(old_offset_array);
   }
 
   /// @brief Align input offset with previous offset. Finally, it is aligned
@@ -1265,8 +1153,6 @@ class Context<HEAD_T, cur_alias, base_tag, grape::EmptyType> {
       }
       cur_ind += 1;
     }
-    // VLOG(10) << "Select " << select_indices.size();
-    // VLOG(10) << "select indices: " << gs::to_string(select_indices);
     // The offset need to be changed.
     // replace head in place
     cur_.SubSetWithIndices(select_indices);
@@ -1378,10 +1264,6 @@ class Context<HEAD_T, cur_alias, base_tag, grape::EmptyType> {
   RES_T AddNode(NEW_HEAD_T&& new_node, std::vector<offset_t>&& offset,
                 int alias_to_use = -1) {
     CHECK(alias_to_use == cur_alias || alias_to_use == -1);
-    // return a nested Traversal
-    // VLOG(10) << "[AddNode:] create new prev sets, offset: "  //<<
-    // offset.size();
-    //         << gs::to_string(offset);
     std::vector<std::vector<offset_t>> offsets;
     offsets.emplace_back(std::move(offset));
     return RES_T(std::move(new_node), std::make_tuple(std::move(cur_)),
@@ -1440,9 +1322,6 @@ class Context<HEAD_T, cur_alias, base_tag, grape::EmptyType> {
              << " join kind: " << gs::to_string(join_kind);
     std::vector<offset_t> res_offset =
         cur_.FilterWithIndices(active_indices, join_kind);
-    // merge_offset(offsets_arrays_.back(), res_offset);
-    // offset is abandoned, not needed.
-    // this->Alias<res_alias>();
   }
 
  private:
@@ -1463,14 +1342,7 @@ template <int ind, typename HEAD_T, int cur_alias, int base_tag, typename... T,
 auto& Get(Context<HEAD_T, cur_alias, base_tag, T...>& ctx) {
   return ctx.GetHead();
 }
-/*
-template <
-    int ind, typename HEAD_T, int cur_alias, typename... T,
-    typename std::enable_if<(ind != -1 && ind == cur_alias)>::type* = nullptr>
-auto& Get(Context<HEAD_T, cur_alias, T...>& ctx) {
-  return ctx.GetHead();
-}
-*/
+
 template <int ind, typename HEAD_T, int cur_alias, int base_tag, typename... T,
           typename std::enable_if<
               (ind != -1 && ind < base_tag + sizeof...(T))>::type* = nullptr>

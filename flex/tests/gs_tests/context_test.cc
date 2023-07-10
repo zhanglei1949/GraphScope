@@ -152,14 +152,14 @@ int main() {
     std::vector<int32_t> indices;
     indices.reserve(limit);
     for (auto i = 0; i < limit; ++i) {
-      indices.emplace_back(rand() % limit);
+      indices.emplace_back(rand_r() % limit);
     }
     auto col1 =
         std::make_shared<gs::TypedColumn<int32_t>>(gs::StorageStrategy::kMem);
 
     col1->init(limit);
     for (int i = 0; i < limit; ++i) {
-      col1->set_value(i, (int32_t)(i));
+      col1->set_value(i, (int32_t) (i));
     }
     {
       int32_t res = 0;
@@ -200,7 +200,7 @@ int main() {
     std::vector<int32_t> indices;
     indices.reserve(limit);
     for (auto i = 0; i < limit; ++i) {
-      indices.emplace_back(rand() % limit);
+      indices.emplace_back(rand_r() % limit);
     }
     auto col1 =
         std::make_shared<gs::TypedColumn<int32_t>>(gs::StorageStrategy::kMem);
@@ -210,7 +210,7 @@ int main() {
     col1->init(limit);
     col2->init(limit);
     for (int i = 0; i < limit; ++i) {
-      col1->set_value(i, (int32_t)(i));
+      col1->set_value(i, (int32_t) (i));
       col2->set_value(i, (int64_t) i);
     }
     {
@@ -310,10 +310,10 @@ int main() {
       col1->init(limit);
       col2->init(limit);
       for (int i = 0; i < limit; i += 2) {
-        col1->set_value(i, (int32_t)(i));
+        col1->set_value(i, (int32_t) (i));
       }
       for (int i = 1; i < limit; i += 2) {
-        col2->set_value(i, (int32_t)(i));
+        col2->set_value(i, (int32_t) (i));
       }
       // test two label vertex set prop getter.
       auto ref_col1 = std::make_shared<gs::TypedRefColumn<int32_t>>(*col1);
@@ -387,13 +387,13 @@ int main() {
         vec1.reserve(limit);
         vec2.reserve(limit);
         for (auto i = 0; i < limit; ++i) {
-          vec0.emplace_back(rand() % limit);
+          vec0.emplace_back(rand_r() % limit);
         }
         for (auto i = 0; i < limit; ++i) {
-          vec1.emplace_back((int64_t) rand() % limit);
+          vec1.emplace_back((int64_t) rand_r() % limit);
         }
         for (auto i = 0; i < limit; ++i) {
-          vec2.emplace_back((double) (rand() % limit));
+          vec2.emplace_back((double) (rand_r() % limit));
         }
       }
 
