@@ -98,7 +98,7 @@ class IS3 {
       output.put_long(std::get<3>(eles));
     }
   }
-};  // namespace gs
+};
 }  // namespace gs
 
 #endif  // ENGINES_HPQS_APP_EXAMPLE_IS_IS3_H_
