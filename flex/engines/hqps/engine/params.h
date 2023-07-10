@@ -20,6 +20,7 @@
 #include <string>
 // #include "grape/grape.h"
 #include "flex/engines/hqps/engine/utils/operator_utils.h"
+#include "flex/engines/hqps/engine/utils/type_utils.h"
 #include "flex/storages/rt_mutable_graph/types.h"
 namespace gs {
 

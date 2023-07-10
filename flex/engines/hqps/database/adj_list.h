@@ -26,18 +26,18 @@ namespace gs {
 
 namespace grape_graph_impl {
 
-// for null vid, return null.
 template <typename T>
 class SinglePropGetter {
  public:
+  using value_type = T;
   SinglePropGetter() {}
   SinglePropGetter(std::shared_ptr<TypedRefColumn<T>> c) : column(c) {
     CHECK(column.get() != nullptr);
   }
 
-  inline T get_view(vid_t vid) const {
+  inline value_type get_view(vid_t vid) const {
     if (vid == NONE) {
-      return NullRecordCreator<T>::GetNull();
+      return NullRecordCreator<value_type>::GetNull();
     }
     return column->get_view(vid);
   }
@@ -51,25 +51,27 @@ class SinglePropGetter {
   std::shared_ptr<TypedRefColumn<T>> column;
 };
 
+// Property Getter hold the handle of the property column.
+
 template <typename... T>
 class MultiPropGetter {
  public:
-  using column_tuple_t = std::tuple<std::shared_ptr<TypedRefColumn<T>>...>;
+  using column_tuple_t = std::tuple<std::shared_ptr<TypedRefColumn<T>...>>;
+  using result_tuple_t = std::tuple<T...>;
   MultiPropGetter() {}
   MultiPropGetter(column_tuple_t c) : column(c) {}
 
-  inline std::tuple<T...> get_view(vid_t vid) const {
+  inline result_tuple_t get_view(vid_t vid) const {
     if (vid == NONE) {
-      return NullRecordCreator<std::tuple<T...>>::GetNull();
+      return NullRecordCreator<result_tuple_t>::GetNull();
     }
     return get_view(vid, std::make_index_sequence<sizeof...(T)>());
   }
 
   template <size_t... Is>
-  inline std::tuple<T...> get_view(vid_t vid,
-                                   std::index_sequence<Is...>) const {
+  inline result_tuple_t get_view(vid_t vid, std::index_sequence<Is...>) const {
     if (vid == NONE) {
-      return NullRecordCreator<std::tuple<T...>>::GetNull();
+      return NullRecordCreator<result_tuple_t>::GetNull();
     }
     return std::make_tuple(std::get<Is>(column)->get_view(vid)...);
   }

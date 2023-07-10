@@ -56,46 +56,6 @@ void get_tuple_from_column_tuple(size_t index, std::tuple<T...>& t,
   }
 }
 
-template <size_t I = 0, typename... T>
-void get_tuple_column_from_graph(
-    const GraphDBSession& sess, label_t label,
-    const std::array<std::string, std::tuple_size_v<std::tuple<T...>>>&
-        prop_names,
-    std::tuple<std::shared_ptr<TypedRefColumn<T>>...>& columns) {
-  // TODO: support label_property
-  using PT = std::tuple_element_t<I, std::tuple<T...>>;
-  std::get<I>(columns) = std::dynamic_pointer_cast<TypedRefColumn<PT>>(
-      sess.get_vertex_property_ref_column(label, prop_names[I]));
-  if (std::get<I>(columns) == nullptr) {}
-  if constexpr (I + 1 < sizeof...(T)) {
-    get_tuple_column_from_graph<I + 1>(sess, label, prop_names, columns);
-  }
-}
-
-template <typename PropT>
-auto get_single_column_from_graph_with_property(
-    const GraphDBSession& sess, label_t label,
-    const PropertySelector<PropT>& selector) {
-  return std::dynamic_pointer_cast<TypedRefColumn<PropT>>(
-      sess.get_vertex_property_ref_column(label, selector.prop_name_));
-}
-
-template <typename... SELECTOR, size_t... Is>
-auto get_tuple_column_from_graph_with_property_impl(
-    const GraphDBSession& sess, label_t label,
-    const std::tuple<SELECTOR...>& selectors, std::index_sequence<Is...>) {
-  return std::make_tuple(get_single_column_from_graph_with_property(
-      sess, label, std::get<Is>(selectors))...);
-}
-
-template <typename... SELECTOR>
-inline auto get_tuple_column_from_graph_with_property(
-    const GraphDBSession& sess, label_t label,
-    const std::tuple<SELECTOR...>& selectors) {
-  return get_tuple_column_from_graph_with_property_impl(
-      sess, label, selectors, std::make_index_sequence<sizeof...(SELECTOR)>());
-}
-
 /// @brief GrapeGraphInterface is a wrapper of GraphDBSession, which provides
 /// the interface for grape.
 class GrapeGraphInterface {
@@ -153,8 +113,8 @@ class GrapeGraphInterface {
   void ScanVertices(const label_id_t& label_id,
                     const std::tuple<SELECTOR...>& selectors,
                     const FUNC_T& func) const {
-    auto columns = get_tuple_column_from_graph_with_property(
-        db_session_, label_id, selectors);
+    auto columns =
+        get_tuple_column_from_graph_with_property(label_id, selectors);
     auto vnum = db_session_.graph().vertex_num(label_id);
     std::tuple<typename SELECTOR::prop_t...> t;
     for (auto v = 0; v != vnum; ++v) {
@@ -196,7 +156,7 @@ class GrapeGraphInterface {
           prop_names) const {
     auto label_id = db_session_.schema().get_vertex_label_id(label);
     std::tuple<const TypedColumn<T>*...> columns;
-    get_tuple_column_from_graph(db_session_, label_id, prop_names, columns);
+    get_tuple_column_from_graph(label_id, prop_names, columns);
     std::vector<vertex_id_t> vids(oids.size());
     std::vector<std::tuple<T...>> props(oids.size());
 
@@ -215,7 +175,7 @@ class GrapeGraphInterface {
           prop_names) const {
     auto label_id = db_session_.schema().get_vertex_label_id(label);
     std::tuple<std::shared_ptr<TypedRefColumn<T>>...> columns;
-    get_tuple_column_from_graph(db_session_, label_id, prop_names, columns);
+    get_tuple_column_from_graph(label_id, prop_names, columns);
     std::vector<std::tuple<T...>> props(vids.size());
     fetch_properties_in_column(vids, props, columns);
     return std::move(props);
@@ -229,7 +189,7 @@ class GrapeGraphInterface {
     // auto label_id = db_session_.schema().get_vertex_label_id(label);
     CHECK(label_id < db_session_.schema().vertex_label_num());
     std::tuple<std::shared_ptr<TypedRefColumn<T>>...> columns;
-    get_tuple_column_from_graph(db_session_, label_id, prop_names, columns);
+    get_tuple_column_from_graph(label_id, prop_names, columns);
     std::vector<std::tuple<T...>> props(vids.size());
     fetch_properties_in_column(vids, props, columns);
     return std::move(props);
@@ -253,8 +213,7 @@ class GrapeGraphInterface {
     std::vector<column_tuple_t> columns;
     columns.resize(label_ids.size());
     for (auto i = 0; i < label_ids.size(); ++i) {
-      get_tuple_column_from_graph(db_session_, label_ids[i], prop_names,
-                                  columns[i]);
+      get_tuple_column_from_graph(label_ids[i], prop_names, columns[i]);
     }
 
     VLOG(10) << "start getting vertices's property";
@@ -284,8 +243,7 @@ class GrapeGraphInterface {
     std::vector<column_tuple_t> columns;
     columns.resize(label_ids.size());
     for (auto i = 0; i < label_ids.size(); ++i) {
-      get_tuple_column_from_graph(db_session_, label_ids[i], prop_names,
-                                  columns[i]);
+      get_tuple_column_from_graph(label_ids[i], prop_names, columns[i]);
     }
 
     fetch_propertiesV2<0>(props, columns, vids, bitset);
@@ -312,8 +270,7 @@ class GrapeGraphInterface {
     std::vector<column_tuple_t> columns;
     columns.resize(label_ids.size());
     for (auto i = 0; i < label_ids.size(); ++i) {
-      get_tuple_column_from_graph(db_session_, label_ids[i], prop_names,
-                                  columns[i]);
+      get_tuple_column_from_graph(label_ids[i], prop_names, columns[i]);
     }
 
     fetch_propertiesV2<0>(props, columns, vids, bitset);
@@ -687,11 +644,7 @@ class GrapeGraphInterface {
       const std::string& label,
       const std::array<std::string, sizeof...(T)>& prop_names) const {
     auto label_id = db_session_.schema().get_vertex_label_id(label);
-    static constexpr auto ind_seq = std::make_index_sequence<sizeof...(T)>();
-    using column_tuple_t = std::tuple<std::shared_ptr<TypedRefColumn<T>>...>;
-    column_tuple_t columns;
-    get_tuple_column_from_graph(db_session_, label_id, prop_names, columns);
-    return grape_graph_impl::MultiPropGetter<T...>(columns);
+    return GetMultiPropGetter<T...>(label_id, prop_names);
   }
 
   template <typename... T>
@@ -701,7 +654,7 @@ class GrapeGraphInterface {
     static constexpr auto ind_seq = std::make_index_sequence<sizeof...(T)>();
     using column_tuple_t = std::tuple<std::shared_ptr<TypedRefColumn<T>>...>;
     column_tuple_t columns;
-    get_tuple_column_from_graph(db_session_, label_id, prop_names, columns);
+    get_tuple_column_from_graph(label_id, prop_names, columns);
     return grape_graph_impl::MultiPropGetter<T...>(columns);
   }
 
@@ -709,37 +662,100 @@ class GrapeGraphInterface {
   grape_graph_impl::SinglePropGetter<T> GetSinglePropGetter(
       const std::string& label, const std::string& prop_name) const {
     auto label_id = db_session_.schema().get_vertex_label_id(label);
-    using column_t = std::shared_ptr<TypedRefColumn<T>>;
-    column_t column;
-    column = std::dynamic_pointer_cast<TypedRefColumn<T>>(
-        db_session_.get_vertex_property_ref_column(label_id, prop_name));
-    return grape_graph_impl::SinglePropGetter<T>(std::move(column));
+    return GetSinglePropGetter<T>(label_id, prop_name);
   }
 
   template <typename T>
   grape_graph_impl::SinglePropGetter<T> GetSinglePropGetter(
       const label_id_t& label_id, const std::string& prop_name) const {
     using column_t = std::shared_ptr<TypedRefColumn<T>>;
-    column_t column;
-    column = std::dynamic_pointer_cast<TypedRefColumn<T>>(
-        db_session_.get_vertex_property_ref_column(label_id, prop_name));
+    column_t column = GetTypedRefColumn<T>(label_id, prop_name);
     return grape_graph_impl::SinglePropGetter<T>(std::move(column));
   }
 
+  // get the vertex property
   template <typename T>
   std::shared_ptr<TypedRefColumn<T>> GetTypedRefColumn(
-      label_t& label_id, const NamedProperty<T>& named_prop) const {
+      const label_t& label_id, const std::string& prop_name) const {
     using column_t = std::shared_ptr<TypedRefColumn<T>>;
     column_t column;
-    return std::dynamic_pointer_cast<TypedRefColumn<T>>(
-        db_session_.get_vertex_property_ref_column(label_id,
-                                                   named_prop.names[0]));
+    if (prop_name == "id" || prop_name == "ID" || prop_name == "Id") {
+      column = std::dynamic_pointer_cast<TypedRefColumn<T>>(
+          db_session_.get_vertex_id_column(label_id));
+    } else {
+      auto ptr = db_session_.get_vertex_property_column(label_id, prop_name);
+      if (ptr) {
+        column = std::dynamic_pointer_cast<TypedRefColumn<T>>(
+            create_ref_column(ptr));
+      } else {
+        return nullptr;
+      }
+    }
+    return column;
   }
 
  private:
+  std::shared_ptr<RefColumnBase> create_ref_column(
+      std::shared_ptr<ColumnBase> column) const {
+    auto type = column->type();
+    if (type == PropertyType::kInt32) {
+      return std::make_shared<TypedRefColumn<int>>(
+          *std::dynamic_pointer_cast<TypedColumn<int>>(column));
+    } else if (type == PropertyType::kInt64) {
+      return std::make_shared<TypedRefColumn<int64_t>>(
+          *std::dynamic_pointer_cast<TypedColumn<int64_t>>(column));
+    } else if (type == PropertyType::kDate) {
+      return std::make_shared<TypedRefColumn<Date>>(
+          *std::dynamic_pointer_cast<TypedColumn<Date>>(column));
+    } else if (type == PropertyType::kString) {
+      return std::make_shared<TypedRefColumn<std::string_view>>(
+          *std::dynamic_pointer_cast<TypedColumn<std::string_view>>(column));
+    } else {
+      LOG(FATAL) << "unexpected type to create column, "
+                 << static_cast<int>(type);
+      return nullptr;
+    }
+  }
+
+  template <typename PropT>
+  auto get_single_column_from_graph_with_property(
+      label_t label, const PropertySelector<PropT>& selector) const {
+    return GetTypedRefColumn<PropT>(label, selector.prop_name_);
+  }
+
+  template <typename... SELECTOR, size_t... Is>
+  auto get_tuple_column_from_graph_with_property_impl(
+      label_t label, const std::tuple<SELECTOR...>& selectors,
+      std::index_sequence<Is...>) const {
+    return std::make_tuple(get_single_column_from_graph_with_property(
+        label, std::get<Is>(selectors))...);
+  }
+
+  template <typename... SELECTOR>
+  inline auto get_tuple_column_from_graph_with_property(
+      label_t label, const std::tuple<SELECTOR...>& selectors) const {
+    return get_tuple_column_from_graph_with_property_impl(
+        label, selectors, std::make_index_sequence<sizeof...(SELECTOR)>());
+  }
+
+  template <size_t I = 0, typename... T>
+  void get_tuple_column_from_graph(
+      label_t label,
+      const std::array<std::string, std::tuple_size_v<std::tuple<T...>>>&
+          prop_names,
+      std::tuple<std::shared_ptr<TypedRefColumn<T>>...>& columns) const {
+    // TODO: support label_property
+    using PT = std::tuple_element_t<I, std::tuple<T...>>;
+    std::get<I>(columns) = std::dynamic_pointer_cast<TypedRefColumn<PT>>(
+        GetTypedRefColumn<PT>(label, prop_names[I]));
+    if constexpr (I + 1 < sizeof...(T)) {
+      get_tuple_column_from_graph<I + 1>(label, prop_names, columns);
+    }
+  }
+
   const GraphDBSession& db_session_;
   bool initialized_ = false;
-};
+};  // namespace gs
 
 }  // namespace gs
 
