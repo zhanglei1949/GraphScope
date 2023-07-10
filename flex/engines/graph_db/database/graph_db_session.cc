@@ -13,13 +13,10 @@
  * limitations under the License.
  */
 
-#include <memory>
-
+#include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db.h"
-#include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/utils/app_utils.h"
-#include "flex/utils/property/column.h"
 
 namespace gs {
 
