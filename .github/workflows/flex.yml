@@ -48,10 +48,6 @@ jobs:
         sed -i "s|workspaces/gstest|$GS_TEST_DIR|" ${flex_test_dir}/ldbc-sf01-long-date/audit_bulk_load.yaml
 
         cd flex/build
-        # load graph
-        ./bin/graph_db_loader -g ${flex_test_dir}/ldbc-sf01-long-date/audit_graph_schema.yaml \
-            -d ${GITHUB_WORKSPACE}/csr-data-dir -l  ${flex_test_dir}/ldbc-sf01-long-date/audit_bulk_load.yaml
-
         # run validation
         ./tests/gs_tests/validator ${flex_test_dir}/sf01_validation/ \
            ${flex_test_dir}/ldbc-sf01-long-date/audit_graph_schema.yaml \
