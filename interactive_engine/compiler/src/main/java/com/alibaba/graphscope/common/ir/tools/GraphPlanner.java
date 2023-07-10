@@ -49,8 +49,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * A unified structure to build {@link PlannerInstance} which can further build logical and physical
- * plan from an antlr tree
+* A unified structure to build {@link PlannerInstance} which can further build logical and physical plan from an antlr tree
  */
 public class GraphPlanner {
     private final Configs graphConfig;

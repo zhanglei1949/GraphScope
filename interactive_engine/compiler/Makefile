@@ -68,7 +68,6 @@ physical_plan:
 		-Dgraph.schema=${graph.schema} \
 		com.alibaba.graphscope.common.ir.tools.GraphPlanner "$(query)" "$(physical)"
 
-
 # start rpc server
 # make run graph.schema:=../executor/ir/core/resource/ldbc_schema.json 
 ldbc_test:
