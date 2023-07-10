@@ -334,8 +334,8 @@ class TypedMutableCsrConstEdgeIter : public MutableCsrConstEdgeIterBase {
   timestamp_t get_timestamp() const { return cur_->timestamp.load(); }
 
   void next() { ++cur_; }
-  size_t size() const { return end_ - cur_; }
   bool is_valid() const { return cur_ != end_; }
+  size_t size() const { return end_ - cur_; }
 
  private:
   const nbr_t* cur_;

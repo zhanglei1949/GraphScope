@@ -17,8 +17,6 @@ limitations under the License.
 #define STORAGES_RT_MUTABLE_GRAPH_TYPES_H_
 
 #include <stdint.h>
-#include <cstddef>
-#include <limits>
 
 namespace gs {
 
