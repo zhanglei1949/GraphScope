@@ -35,8 +35,5 @@ if(BUILD_HQPS)
                         RUNTIME DESTINATION bin
                         ARCHIVE DESTINATION lib
                         LIBRARY DESTINATION lib)
-
-                # install load_plan_and_run.sh
-                install(PROGRAMS load_plan_and_run.sh DESTINATION bin)
         endif()
 endif()
