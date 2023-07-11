@@ -110,9 +110,6 @@ class Bitset {
         for (size_t i = 0; i < new_size_in_words; ++i) {
           new_data[i] = data_[i];
         }
-        // VLOG(10) << "bit offset: " << BIT_OFFSET(size);
-        // __sync_fetch_and_and(new_data + new_size_in_words - 1,
-        //  63ul << BIT_OFFSET(size));
       } else if (size_in_words_ < new_size_in_words) {
         for (size_t i = 0; i < size_in_words_; ++i) {
           new_data[i] = data_[i];

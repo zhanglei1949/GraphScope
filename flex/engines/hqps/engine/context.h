@@ -875,6 +875,7 @@ class Context {
     for (auto i = 0; i < prev_alias_num; ++i) {
       new_offset_array.push_back(offset_vec);
     }
+    VLOG(10) << "FInish flat";
     return RES_T(std::move(flat_head), std::move(flat_prev),
                  std::move(new_offset_array), sub_task_start_tag_);
   }

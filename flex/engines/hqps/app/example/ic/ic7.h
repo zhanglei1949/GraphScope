@@ -220,7 +220,6 @@ class QueryIC7 {
                 PropertySelector<grape::EmptyType>())});
     for (auto iter : ctx10) {
       auto ele = iter.GetAllElement();
-      //   LOG(INFO) << gs::to_string(ele);
       output.put_long(std::get<0>(ele));
       output.put_string_view(std::get<1>(ele));
       output.put_string_view(std::get<2>(ele));

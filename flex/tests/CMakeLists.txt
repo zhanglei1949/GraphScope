@@ -1,2 +1,2 @@
 
-add_subdirectory(gs_tests)
+add_subdirectory(hqps)

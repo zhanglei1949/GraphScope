@@ -332,7 +332,8 @@ class SortOp {
     std::reverse(index_eles.begin(), index_eles.end());
     t1 += grape::GetCurrentTime();
     VLOG(10) << "Finish extract top k result, sort tuple time: " << t0
-             << ", prepare index ele: " << t1;
+             << ", prepare index ele: " << t1
+             << ", result num: " << index_eles.size();
 
     return ctx.Flat(std::move(index_eles));
   }

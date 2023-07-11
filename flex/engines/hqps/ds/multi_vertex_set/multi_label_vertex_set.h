@@ -18,8 +18,8 @@
 #include <array>
 #include <unordered_set>
 #include "flex/engines/hqps/engine/hqps_utils.h"
-#include "flex/engines/hqps/engine/utils/bitset.h"
 #include "grape/util.h"
+#include "grape/utils/bitset.h"
 
 namespace gs {
 

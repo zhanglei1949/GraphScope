@@ -43,7 +43,7 @@ class GeneralEdgeSetBuilder<2, GI, VID_T, LabelT, T...> {
   static constexpr bool is_two_label_set_builder = false;
 
   static constexpr size_t num_props = sizeof...(T);
-  GeneralEdgeSetBuilder(size_t edge_size, const Bitset& bitset,
+  GeneralEdgeSetBuilder(size_t edge_size, const grape::Bitset& bitset,
                         std::array<std::string, num_props> prop_names,
                         LabelT edge_label, std::array<LabelT, 2> src_labels,
                         LabelT dst_label, Direction dir)
@@ -83,7 +83,7 @@ class GeneralEdgeSetBuilder<2, GI, VID_T, LabelT, T...> {
   LabelT edge_label_;
   std::array<LabelT, 2> src_labels_;
   LabelT dst_label_;
-  const Bitset& bitset_;
+  const grape::Bitset& bitset_;
   Direction direction_;
 };
 
@@ -102,7 +102,7 @@ class GeneralEdgeSetBuilder<2, GI, VID_T, LabelT, grape::EmptyType> {
   static constexpr bool is_general_edge_set_builder = true;
   static constexpr bool is_two_label_set_builder = false;
 
-  GeneralEdgeSetBuilder(size_t edge_size, const Bitset& bitset,
+  GeneralEdgeSetBuilder(size_t edge_size, const grape::Bitset& bitset,
                         LabelT edge_label, std::array<LabelT, 2> src_labels,
                         LabelT dst_label, Direction dir)
       : bitset_(bitset),
@@ -139,7 +139,7 @@ class GeneralEdgeSetBuilder<2, GI, VID_T, LabelT, grape::EmptyType> {
   LabelT edge_label_;
   std::array<LabelT, 2> src_labels_;
   LabelT dst_label_;
-  const Bitset& bitset_;
+  const grape::Bitset& bitset_;
   Direction direction_;
 };
 template <typename GI, typename VID_T, typename... T>
@@ -333,18 +333,19 @@ class GeneralEdgeSet {
 
   using iterator = GeneralEdgeSetIter<GI, VID_T, T...>;
   GeneralEdgeSet(std::vector<VID_T>&& vids, adj_list_array_t&& adj_lists,
-                 std::array<Bitset, N>&& bitsets,
+                 std::array<grape::Bitset, N>&& bitsets,
                  const std::array<std::string, num_props>& prop_names,
                  LabelT edge_label,
                  std::array<LabelT, num_src_labels>&& src_labels,
                  LabelT dst_label)
       : vids_(std::move(vids)),
         adj_lists_(std::move(adj_lists)),
-        bitsets_(std::move(bitsets)),
         prop_names_(prop_names),
         edge_label_(edge_label),
         src_labels_(std::move(src_labels)),
-        dst_label_(dst_label) {}
+        dst_label_(dst_label) {
+    bitsets_.swap(bitsets);
+  }
 
   GeneralEdgeSet(GeneralEdgeSet<N, GI, VID_T, LabelT, T...>&& other)
       : vids_(std::move(other.vids_)),
@@ -367,7 +368,7 @@ class GeneralEdgeSet {
 
   std::vector<VID_T> vids_;
   adj_list_array_t adj_lists_;
-  std::array<Bitset, N> bitsets_;
+  std::array<grape::Bitset, N> bitsets_;
 };
 
 // general edge set stores multi src labels but only one dst label
@@ -392,30 +393,32 @@ class GeneralEdgeSet<2, GI, VID_T, LabelT, T...> {
   using iterator = GeneralEdgeSetIter<GI, VID_T, T...>;
   using builder_t = GeneralEdgeSetBuilder<2, GI, VID_T, LabelT, T...>;
   GeneralEdgeSet(std::vector<VID_T>&& vids, adj_list_array_t&& adj_lists,
-                 Bitset&& bitsets,
+                 grape::Bitset&& bitsets,
                  const std::array<std::string, num_props>& prop_names,
                  LabelT edge_label, std::array<LabelT, 2> src_labels,
                  LabelT dst_label, Direction dir)
       : vids_(std::move(vids)),
         adj_lists_(std::move(adj_lists)),
-        bitsets_(std::move(bitsets)),
         prop_names_(prop_names),
         edge_label_(edge_label),
         src_labels_(src_labels),
         dst_label_(dst_label),
         size_(0),
-        dir_(dir) {}
+        dir_(dir) {
+    bitsets_.swap(bitsets);
+  }
 
   GeneralEdgeSet(GeneralEdgeSet<2, GI, VID_T, LabelT, T...>&& other)
       : vids_(std::move(other.vids_)),
         adj_lists_(std::move(other.adj_lists_)),
-        bitsets_(std::move(other.bitsets_)),
         prop_names_(other.prop_names_),
         edge_label_(other.edge_label_),
         src_labels_(std::move(other.src_labels_)),
         dst_label_(other.dst_label_),
         size_(0),
-        dir_(other.dir_) {}
+        dir_(other.dir_) {
+    bitsets_.swap(other.bitsets_);
+  }
 
   iterator begin() const { return iterator(vids_, adj_lists_, 0); }
 
@@ -502,7 +505,7 @@ class GeneralEdgeSet<2, GI, VID_T, LabelT, T...> {
 
   std::vector<VID_T> vids_;
   adj_list_array_t adj_lists_;
-  Bitset bitsets_;  // bitset of src vertices.
+  grape::Bitset bitsets_;  // bitset of src vertices.
   Direction dir_;
 };
 
@@ -528,27 +531,29 @@ class GeneralEdgeSet<2, GI, VID_T, LabelT, grape::EmptyType> {
   using builder_t =
       GeneralEdgeSetBuilder<2, GI, VID_T, LabelT, grape::EmptyType>;
   GeneralEdgeSet(std::vector<VID_T>&& vids, adj_list_array_t&& adj_lists,
-                 Bitset&& bitsets, LabelT edge_label,
+                 grape::Bitset&& bitsets, LabelT edge_label,
                  std::array<LabelT, 2> src_labels, LabelT dst_label,
                  Direction dir)
       : vids_(std::move(vids)),
         adj_lists_(std::move(adj_lists)),
-        bitsets_(std::move(bitsets)),
         edge_label_(edge_label),
         src_labels_(src_labels),
         dst_label_(dst_label),
         size_(0),
-        dir_(dir) {}
+        dir_(dir) {
+    bitsets_.swap(bitsets);
+  }
 
   GeneralEdgeSet(GeneralEdgeSet<2, GI, VID_T, LabelT, grape::EmptyType>&& other)
       : vids_(std::move(other.vids_)),
         adj_lists_(std::move(other.adj_lists_)),
-        bitsets_(std::move(other.bitsets_)),
         edge_label_(other.edge_label_),
         src_labels_(std::move(other.src_labels_)),
         dst_label_(other.dst_label_),
         size_(0),
-        dir_(other.dir_) {}
+        dir_(other.dir_) {
+    bitsets_.swap(other.bitsets_);
+  }
 
   iterator begin() const { return iterator(vids_, adj_lists_, 0); }
 
@@ -634,7 +639,7 @@ class GeneralEdgeSet<2, GI, VID_T, LabelT, grape::EmptyType> {
 
   std::vector<VID_T> vids_;
   adj_list_array_t adj_lists_;
-  Bitset bitsets_;  // bitset of src vertices.
+  grape::Bitset bitsets_;  // bitset of src vertices.
   Direction dir_;
 };
 }  // namespace gs

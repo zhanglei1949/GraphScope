@@ -31,9 +31,9 @@
 #include "flex/engines/hqps/engine/params.h"
 
 #include "flex/engines/hqps/ds/multi_vertex_set/multi_label_vertex_set.h"
-#include "flex/engines/hqps/engine/utils/bitset.h"
 #include "flex/storages/rt_mutable_graph/types.h"
 #include "flex/utils/property/column.h"
+#include "grape/utils/bitset.h"
 
 #include "flex/engines/hqps/engine/operator/group_by.h"
 #include "flex/engines/hqps/engine/operator/project.h"
@@ -119,8 +119,8 @@ class BaseEngine {
     // get all ele_t of context
     using CTX_T = Context<CTX_HEAD_T, cur_alias, base_tag, CTX_PREV...>;
     using ctx_iter_t = typename CTX_T::iterator;
-    using ctx_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_iter_t>().GetAllElement())>;
+    using ctx_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_iter_t>().GetAllElement())>;
     using dedup_tuple_t =
         std::tuple<std::tuple_element_t<alias_to_use, ctx_all_ele_t>...>;
     std::unordered_set<dedup_tuple_t, boost::hash<dedup_tuple_t>> dedup_set;
@@ -185,14 +185,14 @@ class BaseEngine {
     // get all tuples from two context.
     using ctx_x_iter_t = typename CTX_X::iterator;
     using ctx_y_iter_t = typename CTX_Y::iterator;
-    using ctx_x_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_x_iter_t>().GetAllElement())>;
-    using ctx_y_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_y_iter_t>().GetAllElement())>;
-    using ctx_y_all_ind_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_y_iter_t>().GetAllIndexElement())>;
-    using ctx_y_all_data_t = std::remove_reference_t<
-        decltype(std::declval<ctx_y_iter_t>().GetAllData())>;
+    using ctx_x_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_x_iter_t>().GetAllElement())>;
+    using ctx_y_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_y_iter_t>().GetAllElement())>;
+    using ctx_y_all_ind_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_y_iter_t>().GetAllIndexElement())>;
+    using ctx_y_all_data_t = std::remove_reference_t<decltype(
+        std::declval<ctx_y_iter_t>().GetAllData())>;
     static constexpr size_t x_ele_num = std::tuple_size_v<ctx_x_all_ele_t>;
     static constexpr size_t y_ele_num = std::tuple_size_v<ctx_y_all_ele_t>;
     static constexpr int x_base_tag = CTX_X::base_tag_id;
@@ -301,14 +301,14 @@ class BaseEngine {
     // get all tuples from two context.
     using ctx_x_iter_t = typename CTX_X::iterator;
     using ctx_y_iter_t = typename CTX_Y::iterator;
-    using ctx_x_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_x_iter_t>().GetAllElement())>;
-    using ctx_y_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_y_iter_t>().GetAllElement())>;
-    using ctx_y_all_ind_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_y_iter_t>().GetAllIndexElement())>;
-    using ctx_y_all_data_t = std::remove_reference_t<
-        decltype(std::declval<ctx_y_iter_t>().GetAllData())>;
+    using ctx_x_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_x_iter_t>().GetAllElement())>;
+    using ctx_y_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_y_iter_t>().GetAllElement())>;
+    using ctx_y_all_ind_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_y_iter_t>().GetAllIndexElement())>;
+    using ctx_y_all_data_t = std::remove_reference_t<decltype(
+        std::declval<ctx_y_iter_t>().GetAllData())>;
     static constexpr size_t x_ele_num = std::tuple_size_v<ctx_x_all_ele_t>;
     static constexpr size_t y_ele_num = std::tuple_size_v<ctx_y_all_ele_t>;
     static constexpr int x_base_tag = CTX_X::base_tag_id;
@@ -554,14 +554,14 @@ class BaseEngine {
     // get all tuples from two context.
     using ctx_x_iter_t = typename CTX_X::iterator;
     using ctx_y_iter_t = typename CTX_Y::iterator;
-    using ctx_x_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_x_iter_t>().GetAllElement())>;
-    using ctx_x_all_data_t = std::remove_reference_t<
-        decltype(std::declval<ctx_x_iter_t>().GetAllData())>;
-    using ctx_y_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_y_iter_t>().GetAllElement())>;
-    using ctx_y_all_data_t = std::remove_reference_t<
-        decltype(std::declval<ctx_y_iter_t>().GetAllData())>;
+    using ctx_x_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_x_iter_t>().GetAllElement())>;
+    using ctx_x_all_data_t = std::remove_reference_t<decltype(
+        std::declval<ctx_x_iter_t>().GetAllData())>;
+    using ctx_y_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_y_iter_t>().GetAllElement())>;
+    using ctx_y_all_data_t = std::remove_reference_t<decltype(
+        std::declval<ctx_y_iter_t>().GetAllData())>;
     static constexpr size_t x_ele_num = std::tuple_size_v<ctx_x_all_ele_t>;
     static constexpr size_t y_ele_num = std::tuple_size_v<ctx_y_all_ele_t>;
     static constexpr int x_base_tag = CTX_X::base_tag_id;
@@ -656,10 +656,10 @@ class BaseEngine {
     // get all tuples from two context.
     using ctx_x_iter_t = typename CTX_X::iterator;
     using ctx_y_iter_t = typename CTX_Y::iterator;
-    using ctx_x_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_x_iter_t>().GetAllElement())>;
-    using ctx_y_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_y_iter_t>().GetAllElement())>;
+    using ctx_x_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_x_iter_t>().GetAllElement())>;
+    using ctx_y_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_y_iter_t>().GetAllElement())>;
     static constexpr size_t x_ele_num = std::tuple_size_v<ctx_x_all_ele_t>;
     static constexpr size_t y_ele_num = std::tuple_size_v<ctx_y_all_ele_t>;
     static constexpr int x_base_tag = CTX_X::base_tag_id;
@@ -754,10 +754,10 @@ class BaseEngine {
     // get all tuples from two context.
     using ctx_x_iter_t = typename CTX_X::iterator;
     using ctx_y_iter_t = typename CTX_Y::iterator;
-    using ctx_x_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_x_iter_t>().GetAllElement())>;
-    using ctx_y_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_y_iter_t>().GetAllElement())>;
+    using ctx_x_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_x_iter_t>().GetAllElement())>;
+    using ctx_y_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_y_iter_t>().GetAllElement())>;
     static constexpr size_t x_ele_num = std::tuple_size_v<ctx_x_all_ele_t>;
     static constexpr size_t y_ele_num = std::tuple_size_v<ctx_y_all_ele_t>;
     static constexpr int x_base_tag = CTX_X::base_tag_id;
@@ -862,10 +862,10 @@ class BaseEngine {
     // get all tuples from two context.
     using ctx_x_iter_t = typename CTX_X::iterator;
     using ctx_y_iter_t = typename CTX_Y::iterator;
-    using ctx_x_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_x_iter_t>().GetAllElement())>;
-    using ctx_y_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_y_iter_t>().GetAllElement())>;
+    using ctx_x_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_x_iter_t>().GetAllElement())>;
+    using ctx_y_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_y_iter_t>().GetAllElement())>;
     static constexpr size_t x_ele_num = std::tuple_size_v<ctx_x_all_ele_t>;
     static constexpr size_t real_x_ind =
         alias_x == -1 ? x_ele_num - 1 : alias_x - CTX_X::base_tag_id;
@@ -917,10 +917,10 @@ class BaseEngine {
     using ctx_x_iter_t = typename CTX_X::iterator;
     using ctx_y_iter_t = typename CTX_Y::iterator;
     // the prev column (the last column in prev_tuple shoud be the same.)
-    using ctx_x_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_x_iter_t>().GetAllElement())>;
-    using ctx_y_all_ele_t = std::remove_reference_t<
-        decltype(std::declval<ctx_y_iter_t>().GetAllElement())>;
+    using ctx_x_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_x_iter_t>().GetAllElement())>;
+    using ctx_y_all_ele_t = std::remove_reference_t<decltype(
+        std::declval<ctx_y_iter_t>().GetAllElement())>;
     static constexpr size_t x_ele_num = std::tuple_size_v<ctx_x_all_ele_t>;
     static constexpr size_t y_ele_num = std::tuple_size_v<ctx_y_all_ele_t>;
     static constexpr int x_base_tag = CTX_X::base_tag_id;
@@ -982,7 +982,7 @@ class BaseEngine {
     for (auto vid : y_vec) {
       max_vid = std::max(max_vid, vid);
     }
-    gs::Bitset bitset;
+    grape::Bitset bitset;
     bitset.init(max_vid + 1);
     CHECK(left_repeat_array.size() == right_repeat_array.size());
     for (auto i = 0; i + 1 < left_repeat_array.size(); ++i) {

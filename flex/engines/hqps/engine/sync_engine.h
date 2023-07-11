@@ -24,9 +24,9 @@
 #include "flex/engines/hqps/engine/context.h"
 #include "flex/engines/hqps/engine/hqps_utils.h"
 #include "flex/engines/hqps/engine/params.h"
-#include "flex/engines/hqps/engine/utils/bitset.h"
 #include "flex/storages/rt_mutable_graph/types.h"
 #include "flex/utils/property/column.h"
+#include "grape/utils/bitset.h"
 
 #include "flex/engines/hqps/engine/base_engine.h"
 #include "flex/engines/hqps/engine/operator/edge_expand.h"
@@ -511,7 +511,7 @@ class SyncEngine : public BaseEngine {
     static_assert(HEAD_T::num_props == 0);
     auto& last_offset = ctx.GetMutableOffset(-1);
     double t0 = -grape::GetCurrentTime();
-    Bitset new_bitset;
+    grape::Bitset new_bitset;
     new_bitset.init(vertices.size());
     size_t cur_begin = last_offset[0];
     for (auto i = 0; i < last_offset.size() - 1; ++i) {

@@ -20,8 +20,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include "flex/engines/hqps/engine/utils/bitset.h"
 #include "grape/util.h"
+#include "grape/utils/bitset.h"
 
 namespace gs {
 
@@ -63,12 +63,16 @@ class TwoLabelVertexSetImplBuilder {
     vec_.emplace_back(std::get<2>(tuple));
     data_.emplace_back(data);
     if (std::get<1>(tuple) == 0) {
+      auto new_size = vec_.size();
+      while (new_size > bitset_.cardinality()) {
+        bitset_.resize(bitset_.cardinality() * 2);
+      }
       bitset_.set_bit(vec_.size() - 1);
     }
   }
 
   res_t Build() {
-    LOG(INFO) << "Try to resize from " << bitset_.size() << ", to "
+    LOG(INFO) << "Try to resize from " << bitset_.size_ << ", to "
               << vec_.size();
     bitset_.resize(vec_.size());
     return res_t(std::move(vec_), std::move(data_), std::move(labels_),
@@ -82,7 +86,7 @@ class TwoLabelVertexSetImplBuilder {
   std::vector<data_tuple_t> data_;
   std::array<LabelT, 2> labels_;
   std::array<std::string, sizeof...(T)> props_;
-  Bitset bitset_;
+  grape::Bitset bitset_;
 };
 
 template <typename VID_T, typename LabelT>
@@ -118,14 +122,17 @@ class TwoLabelVertexSetImplBuilder<VID_T, LabelT, grape::EmptyType> {
   void Insert(const index_ele_tuple_t& tuple) {
     //(ind, label_ind, vid)
     vec_.emplace_back(std::get<2>(tuple));
-
     if (std::get<1>(tuple) == 0) {
+      auto new_size = vec_.size();
+      while (new_size > bitset_.cardinality()) {
+        bitset_.resize(bitset_.cardinality() * 2);
+      }
       bitset_.set_bit(vec_.size() - 1);
     }
   }
 
   res_t Build() {
-    LOG(INFO) << "Try to resize from " << bitset_.size() << ", to "
+    LOG(INFO) << "Try to resize from " << bitset_.cardinality() << ", to "
               << vec_.size();
     bitset_.resize(vec_.size());
     return res_t(std::move(vec_), std::move(labels_), std::move(bitset_));
@@ -136,19 +143,19 @@ class TwoLabelVertexSetImplBuilder<VID_T, LabelT, grape::EmptyType> {
  private:
   std::vector<VID_T> vec_;
   std::array<LabelT, 2> labels_;
-  Bitset bitset_;
+  grape::Bitset bitset_;
 };
 
 // return the old labels, that are active in filter.
 template <typename VID_T, typename LabelT, typename EXPR, typename PROP_GETTER,
           size_t filter_num_labels>
 auto two_label_project_vertices_impl(
-    const std::vector<VID_T>& old_vec, const Bitset& old_bit_set,
+    const std::vector<VID_T>& old_vec, const grape::Bitset& old_bit_set,
     const std::array<LabelT, 2>& old_labels,
     const std::array<LabelT, filter_num_labels>& filter_labels,
     const EXPR& expr, const std::array<PROP_GETTER, 2>& prop_getters) {
   std::vector<VID_T> res_vec;
-  Bitset res_bitset;
+  grape::Bitset res_bitset;
   // reserve enough size for bitset.
   res_bitset.init(old_vec.size());
 
@@ -201,13 +208,13 @@ template <typename VID_T, typename data_tuple_t, typename LabelT, typename EXPR,
           typename PRO_GETTER_T, size_t filter_num_labels>
 auto two_label_project_vertices_impl(
     const std::vector<VID_T>& old_vec,
-    const std::vector<data_tuple_t>& old_data, const Bitset& old_bit_set,
+    const std::vector<data_tuple_t>& old_data, const grape::Bitset& old_bit_set,
     const std::array<LabelT, 2>& old_labels,
     const std::array<LabelT, filter_num_labels>& filter_labels,
     const EXPR& expr, const std::array<PRO_GETTER_T, 2>& prop_getters) {
   std::vector<VID_T> res_vec;
   std::vector<data_tuple_t> res_data;
-  Bitset res_bitset;
+  grape::Bitset res_bitset;
   // reserve enough size for bitset.
   res_bitset.init(old_vec.size());
 
@@ -257,10 +264,10 @@ template <size_t Is, typename VID_T, typename QueryT, typename... T,
           typename std::enable_if<(Is < sizeof...(T))>::type* = nullptr>
 void filter_with_select_prop(
     const std::vector<bool>& label_flag, const std::vector<VID_T>& old_vec,
-    const std::vector<std::tuple<T...>>& old_data, const Bitset& old_bitset,
-    std::vector<VID_T>& res_vec, std::vector<std::tuple<T...>>& res_data,
-    Bitset& res_bitset, std::vector<size_t>& offset,
-    const NamedProperty<QueryT>& query_prop,
+    const std::vector<std::tuple<T...>>& old_data,
+    const grape::Bitset& old_bitset, std::vector<VID_T>& res_vec,
+    std::vector<std::tuple<T...>>& res_data, grape::Bitset& res_bitset,
+    std::vector<size_t>& offset, const NamedProperty<QueryT>& query_prop,
     const std::array<std::string, sizeof...(T)>& my_prop, EXPR& expr) {
   using indexed_prop_t = std::tuple_element_t<Is, std::tuple<T...>>;
   if constexpr (std::is_same_v<indexed_prop_t, QueryT>) {
@@ -299,10 +306,10 @@ template <size_t Is, typename VID_T, typename QueryT, typename... T,
           typename std::enable_if<(Is >= sizeof...(T))>::type* = nullptr>
 void filter_with_select_prop(
     const std::vector<bool>& label_flag, const std::vector<VID_T>& old_vec,
-    const std::vector<std::tuple<T...>>& old_data, const Bitset& old_bitset,
-    std::vector<VID_T>& res_vec, std::vector<std::tuple<T...>>& res_data,
-    Bitset& res_bitset, std::vector<size_t>& offset,
-    const NamedProperty<QueryT>& query_prop,
+    const std::vector<std::tuple<T...>>& old_data,
+    const grape::Bitset& old_bitset, std::vector<VID_T>& res_vec,
+    std::vector<std::tuple<T...>>& res_data, grape::Bitset& res_bitset,
+    std::vector<size_t>& offset, const NamedProperty<QueryT>& query_prop,
     const std::array<std::string, sizeof...(T)>& my_prop, EXPR& expr) {
   LOG(FATAL) << "Query property: " << gs::to_string(query_prop.names)
              << "not found in :" << gs::to_string(my_prop.names);
@@ -313,14 +320,14 @@ template <typename VID_T, typename... T, typename LabelT, typename EXPR,
           size_t filter_num_labels>
 auto two_label_project_vertices_internal_impl(
     const std::vector<VID_T>& old_vec,
-    const std::vector<std::tuple<T...>>& old_data, const Bitset& old_bitset,
-    const std::array<LabelT, 2>& old_labels,
+    const std::vector<std::tuple<T...>>& old_data,
+    const grape::Bitset& old_bitset, const std::array<LabelT, 2>& old_labels,
     const std::array<LabelT, filter_num_labels>& filter_labels,
     const std::array<std::string, sizeof...(T)>& old_prop_names,
     const EXPR& expr) {
   std::vector<VID_T> res_vec;
   std::vector<std::tuple<T...>> res_data;
-  Bitset res_bitset;
+  grape::Bitset res_bitset;
   // reserve enough size for bitset.
   res_bitset.init(old_vec.size());
 
@@ -354,7 +361,7 @@ auto two_label_project_vertices_internal_impl(
   LOG(INFO) << "filter " << res_vec.size()
             << " from old set of size: " << old_vec.size()
             << ", label0 cnt: " << res_bitset.count() << "/"
-            << res_bitset.size();
+            << res_bitset.cardinality();
 
   return std::make_tuple(std::move(res_vec), std::move(res_data),
                          std::move(res_bitset), std::move(offset));
@@ -363,10 +370,10 @@ auto two_label_project_vertices_internal_impl(
 template <size_t col_ind, typename... index_ele_tuple_t, typename lid_t>
 auto twoLabelSetFlatImpl(
     std::vector<std::tuple<index_ele_tuple_t...>>& index_ele_tuples,
-    const std::vector<lid_t>& origin_vids, const Bitset& origin_bitset) {
+    const std::vector<lid_t>& origin_vids, const grape::Bitset& origin_bitset) {
   size_t dst_size = index_ele_tuples.size();
   std::vector<lid_t> res_vids;
-  Bitset res_bitset;
+  grape::Bitset res_bitset;
   res_vids.reserve(dst_size);
   res_bitset.init(dst_size);
 
@@ -390,11 +397,12 @@ template <size_t col_ind, typename data_tuple_t, typename... index_ele_tuple_t,
 auto twoLabelSetFlatImpl(
     std::vector<std::tuple<index_ele_tuple_t...>>& index_ele_tuples,
     const std::vector<lid_t>& origin_vids,
-    const std::vector<data_tuple_t>& origin_data, const Bitset& origin_bitset) {
+    const std::vector<data_tuple_t>& origin_data,
+    const grape::Bitset& origin_bitset) {
   size_t dst_size = index_ele_tuples.size();
   std::vector<lid_t> res_vids;
   std::vector<data_tuple_t> res_data;
-  Bitset res_bitset;
+  grape::Bitset res_bitset;
   res_vids.reserve(dst_size);
   res_data.reserve(dst_size);
   res_bitset.init(dst_size);
@@ -428,7 +436,7 @@ class TwoLabelVertexSetIter {
 
   TwoLabelVertexSetIter(const std::vector<VID_T>& vec,
                         const std::vector<data_tuple_t>& data,
-                        const Bitset& bitset, size_t ind)
+                        const grape::Bitset& bitset, size_t ind)
       : vec_(vec), data_(data), bitset_(bitset), ind_(ind) {}
 
   ele_tuple_t GetElement() const {
@@ -482,7 +490,7 @@ class TwoLabelVertexSetIter {
  private:
   const std::vector<VID_T>& vec_;
   const std::vector<data_tuple_t>& data_;
-  const Bitset& bitset_;
+  const grape::Bitset& bitset_;
   size_t ind_;
 };
 
@@ -496,8 +504,8 @@ class TwoLabelVertexSetIter<VID_T, grape::EmptyType> {
 
   using data_tuple_t = std::tuple<grape::EmptyType>;
 
-  TwoLabelVertexSetIter(const std::vector<VID_T>& vec, const Bitset& bitset,
-                        size_t ind)
+  TwoLabelVertexSetIter(const std::vector<VID_T>& vec,
+                        const grape::Bitset& bitset, size_t ind)
       : vec_(vec), bitset_(bitset), ind_(ind) {}
 
   ele_tuple_t GetElement() const {
@@ -550,7 +558,7 @@ class TwoLabelVertexSetIter<VID_T, grape::EmptyType> {
 
  private:
   const std::vector<VID_T>& vec_;
-  const Bitset& bitset_;
+  const grape::Bitset& bitset_;
   size_t ind_;
 };
 
@@ -579,35 +587,29 @@ class TwoLabelVertexSetImpl {
                         std::vector<std::tuple<T...>>&& data_tuple,
                         std::array<LabelT, 2>&& label_names,
                         std::array<std::string, num_props>&& named_property,
-                        gs::Bitset&& bitset)
+                        grape::Bitset&& bitset)
       : vec_(std::move(vec)),
         data_tuple_(std::move(data_tuple)),
         label_names_(std::move(label_names)),
-        named_property_(std::move(named_property)),
-        bitset_(std::move(bitset)) {
+        named_property_(std::move(named_property)) {
     CHECK(vec.size() == data_tuple.size());
-    // VLOG(10) << "[TwoLabelVertexSetImpl], size: " << vec_.size()
-    //         << ", bitset size: " << bitset_.size();
+    bitset_.swap(bitset);
   }
 
   TwoLabelVertexSetImpl(TwoLabelVertexSetImpl&& other)
       : vec_(std::move(other.vec_)),
         data_tuple_(std::move(other.data_tuple_)),
         label_names_(std::move(other.label_names_)),
-        named_property_(std::move(other.named_property_)),
-        bitset_(std::move(other.bitset_)) {
-    // VLOG(10) << "[TwoLabelVertexSetImpl], size: " << vec_.size()
-    //         << ", bitset size: " << bitset_.size();
+        named_property_(std::move(other.named_property_)) {
+    bitset_.swap(other.bitset_);
   }
 
   TwoLabelVertexSetImpl(const TwoLabelVertexSetImpl& other)
       : vec_(other.vec_),
         data_tuple_(other.data_tuple_),
         label_names_(other.label_names_),
-        named_property_(other.named_property_),
-        bitset_(std::move(other.bitset_.Clone())) {
-    // VLOG(10) << "[TwoLabelVertexSetImpl], size: " << vec_.size()
-    //         << ", bitset size: " << bitset_.size();
+        named_property_(other.named_property_) {
+    bitset_.copy(other.bitset_);
   }
 
   builder_t CreateBuilder() const {
@@ -663,9 +665,9 @@ class TwoLabelVertexSetImpl {
 
   LabelT GetLabel(size_t i) const { return label_names_[i]; }
 
-  const Bitset& GetBitset() const { return bitset_; }
+  const grape::Bitset& GetBitset() const { return bitset_; }
 
-  Bitset& GetMutableBitset() { return bitset_; }
+  grape::Bitset& GetMutableBitset() { return bitset_; }
 
   const std::vector<VID_T>& GetVertices() const { return vec_; }
 
@@ -678,7 +680,7 @@ class TwoLabelVertexSetImpl {
   std::pair<std::vector<VID_T>, std::vector<int32_t>> GetVertices(
       size_t ind) const {
     CHECK(ind < 2);
-    CHECK(bitset_.size() == vec_.size());
+    CHECK(bitset_.cardinality() == vec_.size());
     std::vector<VID_T> res;
     std::vector<int32_t> active_ind;
     // 0 denotes label0, 1 denotes label1.
@@ -686,19 +688,19 @@ class TwoLabelVertexSetImpl {
     if (ind == 0) {
       cnt = bitset_.count();
     } else {
-      cnt = bitset_.size() - bitset_.count();
+      cnt = bitset_.cardinality() - bitset_.count();
     }
     res.reserve(cnt);
     active_ind.reserve(cnt);
     if (ind == 0) {
-      for (auto i = 0; i < bitset_.size(); ++i) {
+      for (auto i = 0; i < bitset_.cardinality(); ++i) {
         if (bitset_.get_bit(i)) {
           res.emplace_back(vec_[i]);
           active_ind.emplace_back(i);
         }
       }
     } else {
-      for (auto i = 0; i < bitset_.size(); ++i) {
+      for (auto i = 0; i < bitset_.cardinality(); ++i) {
         if (!bitset_.get_bit(i)) {
           res.emplace_back(vec_[i]);
           active_ind.emplace_back(i);
@@ -727,7 +729,7 @@ class TwoLabelVertexSetImpl {
 
     next_vids.reserve(next_size);
     next_datas.reserve(next_size);
-    Bitset next_set;
+    grape::Bitset next_set;
     next_set.init(next_size);
     for (auto i = 0; i < repeat_array.size(); ++i) {
       if (bitset_.get_bit(i)) {
@@ -825,7 +827,7 @@ class TwoLabelVertexSetImpl {
   std::vector<std::tuple<T...>> data_tuple_;
   std::array<LabelT, 2> label_names_;
   std::array<std::string, sizeof...(T)> named_property_;
-  gs::Bitset bitset_;
+  grape::Bitset bitset_;
 };
 
 /// @brief //////////////////////Specialization for empty data type.
@@ -854,32 +856,24 @@ class TwoLabelVertexSetImpl<VID_T, LabelT, grape::EmptyType> {
   static constexpr bool is_multi_label = false;
   TwoLabelVertexSetImpl(std::vector<VID_T>&& vec,
                         std::array<LabelT, 2>&& label_names,
-                        gs::Bitset&& bitset)
-      : vec_(std::move(vec)),
-        label_names_(std::move(label_names)),
-        bitset_(std::move(bitset)) {
-    // VLOG(10) << "[TwoLabelVertexSetImpl], size: " << vec_.size()
-    //        << ", bitset size: " << bitset_.size();
+                        grape::Bitset&& bitset)
+      : vec_(std::move(vec)), label_names_(std::move(label_names)) {
+    bitset_.swap(bitset);
   }
 
   TwoLabelVertexSetImpl(TwoLabelVertexSetImpl&& other)
       : vec_(std::move(other.vec_)),
-        label_names_(std::move(other.label_names_)),
-        bitset_(std::move(other.bitset_)) {
-    // VLOG(10) << "[TwoLabelVertexSetImpl], size: " << vec_.size()
-    //         << ", bitset size: " << bitset_.size();
+        label_names_(std::move(other.label_names_)) {
+    bitset_.swap(other.bitset_);
   }
 
   TwoLabelVertexSetImpl(const TwoLabelVertexSetImpl& other)
-      : vec_(other.vec_),
-        label_names_(other.label_names_),
-        bitset_(std::move(other.bitset_.Clone())) {
-    // VLOG(10) << "[TwoLabelVertexSetImpl], size: " << vec_.size()
-    //         << ", bitset size: " << bitset_.size();
+      : vec_(other.vec_), label_names_(other.label_names_) {
+    bitset_.copy(other.bitset_);
   }
 
   builder_t CreateBuilder() const {
-    return builder_t(bitset_.size(), label_names_);
+    return builder_t(bitset_.cardinality(), label_names_);
   }
 
   template <typename... T>
@@ -887,8 +881,8 @@ class TwoLabelVertexSetImpl<VID_T, LabelT, grape::EmptyType> {
       std::vector<std::tuple<T...>>&& data,
       std::array<std::string, sizeof...(T)>&& named_prop) const {
     auto copied_vec(vec_);
-    // auto copied_bitset(bitset_);
-    auto copied_bitset = bitset_.Clone();
+    grape::Bitset copied_bitset;
+    copied_bitset.copy(bitset_);
     auto copied_label_names(label_names_);
     return TwoLabelVertexSetImpl<VID_T, LabelT, T...>(
         std::move(copied_vec), std::move(data), std::move(copied_label_names),
@@ -921,9 +915,9 @@ class TwoLabelVertexSetImpl<VID_T, LabelT, grape::EmptyType> {
 
   LabelT GetLabel(size_t i) const { return label_names_[i]; }
 
-  const Bitset& GetBitset() const { return bitset_; }
+  const grape::Bitset& GetBitset() const { return bitset_; }
 
-  Bitset& GetMutableBitset() { return bitset_; }
+  grape::Bitset& GetMutableBitset() { return bitset_; }
 
   const std::vector<VID_T>& GetVertices() const { return vec_; }
 
@@ -932,7 +926,7 @@ class TwoLabelVertexSetImpl<VID_T, LabelT, grape::EmptyType> {
   std::pair<std::vector<VID_T>, std::vector<int32_t>> GetVertices(
       size_t ind) const {
     CHECK(ind < 2);
-    CHECK(bitset_.size() == vec_.size());
+    CHECK(bitset_.cardinality() == vec_.size());
     std::vector<VID_T> res;
     std::vector<int32_t> active_ind;
     // 0 denotes label0, 1 denotes label1.
@@ -940,19 +934,19 @@ class TwoLabelVertexSetImpl<VID_T, LabelT, grape::EmptyType> {
     if (ind == 0) {
       cnt = bitset_.count();
     } else {
-      cnt = bitset_.size() - bitset_.count();
+      cnt = bitset_.cardinality() - bitset_.count();
     }
     res.reserve(cnt);
     active_ind.reserve(cnt);
     if (ind == 0) {
-      for (auto i = 0; i < bitset_.size(); ++i) {
+      for (auto i = 0; i < bitset_.cardinality(); ++i) {
         if (bitset_.get_bit(i)) {
           res.push_back(vec_[i]);
           active_ind.push_back(i);
         }
       }
     } else {
-      for (auto i = 0; i < bitset_.size(); ++i) {
+      for (auto i = 0; i < bitset_.cardinality(); ++i) {
         if (!bitset_.get_bit(i)) {
           res.push_back(vec_[i]);
           active_ind.push_back(i);
@@ -979,19 +973,16 @@ class TwoLabelVertexSetImpl<VID_T, LabelT, grape::EmptyType> {
              << " Project self, next size: " << next_size;
 
     next_vids.reserve(next_size);
-    Bitset next_set;
+    grape::Bitset next_set;
     next_set.init(next_size);
     for (auto i = 0; i < repeat_array.size(); ++i) {
       if (bitset_.get_bit(i)) {
         for (auto j = 0; j < repeat_array[i]; ++j) {
-          // VLOG(10) << "Project: " << vids_[i];
           next_set.set_bit(next_vids.size());
           next_vids.push_back(vec_[i]);
         }
       } else {
         for (auto j = 0; j < repeat_array[i]; ++j) {
-          // VLOG(10) << "Project: " << vids_[i];
-          //   next_set.set_bit(next_vids.size());
           next_vids.push_back(vec_[i]);
         }
       }
@@ -1049,15 +1040,12 @@ class TwoLabelVertexSetImpl<VID_T, LabelT, grape::EmptyType> {
   template <typename... PropT>
   void fillBuiltinProps(std::vector<std::tuple<PropT...>>& tuples,
                         PropNameArray<PropT...>& prop_names) {
-    // LOG(WARNING) << "not supported";
+    LOG(WARNING) << "not supported";
   }
 
   void SubSetWithIndices(std::vector<size_t>& indices) {
-    //  VLOG(10) << "subset with size: " << indices.size() << ","  <<
-    //  gs::to_string(indices);
-    // VLOG(10) << "before subset " << vec_.size()  << ", "<< bitset_.count();
     std::vector<VID_T> new_vec;
-    gs::Bitset new_bitset;
+    grape::Bitset new_bitset;
     new_vec.reserve(indices.size());
     new_bitset.init(indices.size());
     {
@@ -1081,7 +1069,7 @@ class TwoLabelVertexSetImpl<VID_T, LabelT, grape::EmptyType> {
   void Repeat(std::vector<offset_t>& cur_offset,
               std::vector<offset_t>& repeat_vec) {
     std::vector<VID_T> new_vec;
-    gs::Bitset new_bitset;
+    grape::Bitset new_bitset;
     new_vec.reserve(repeat_vec.back());
     // estimate size
     {
@@ -1114,7 +1102,7 @@ class TwoLabelVertexSetImpl<VID_T, LabelT, grape::EmptyType> {
  private:
   std::vector<VID_T> vec_;
   std::array<LabelT, 2> label_names_;
-  gs::Bitset bitset_;
+  grape::Bitset bitset_;
 };
 
 template <typename VID_T, typename LabelT, typename... T>
@@ -1123,7 +1111,7 @@ using TwoLabelVertexSet = TwoLabelVertexSetImpl<VID_T, LabelT, T...>;
 template <typename VID_T, typename LabelT>
 auto make_two_label_set(std::vector<VID_T>&& vec,
                         std::array<LabelT, 2>&& label_names,
-                        gs::Bitset&& bitset) {
+                        grape::Bitset&& bitset) {
   return TwoLabelVertexSet<VID_T, LabelT, grape::EmptyType>(
       std::move(vec), std::move(label_names), std::move(bitset));
 }
@@ -1131,7 +1119,7 @@ auto make_two_label_set(std::vector<VID_T>&& vec,
 template <typename VID_T, typename LabelT>
 auto make_two_label_set(std::vector<VID_T>&& vec,
                         const std::array<LabelT, 2>& label_names,
-                        gs::Bitset&& bitset) {
+                        grape::Bitset&& bitset) {
   auto copied(label_names);
   return TwoLabelVertexSet<VID_T, LabelT, grape::EmptyType>(
       std::move(vec), std::move(copied), std::move(bitset));
@@ -1142,16 +1130,16 @@ auto make_two_label_set(std::vector<VID_T>&& vec,
                         std::vector<std::tuple<T...>>&& data,
                         std::array<LabelT, 2>&& label_names,
                         std::array<std::string, sizeof...(T)>&& prop_names,
-                        gs::Bitset&& bitset) {
+                        grape::Bitset&& bitset) {
   return TwoLabelVertexSet<VID_T, LabelT, T...>(
       std::move(vec), std::move(data), std::move(label_names),
       std::move(prop_names), std::move(bitset));
 }
 
 static std::array<std::vector<int32_t>, 2> two_label_bitset_to_vids_inds(
-    const Bitset& bitset) {
+    const grape::Bitset& bitset) {
   std::array<std::vector<int32_t>, 2> res;
-  auto limit_size = bitset.size();
+  auto limit_size = bitset.cardinality();
   VLOG(10) << "old bitset limit size: " << limit_size;
   auto label0_cnt = bitset.count();
   res[0].reserve(label0_cnt);
@@ -1169,11 +1157,11 @@ static std::array<std::vector<int32_t>, 2> two_label_bitset_to_vids_inds(
 template <typename vertex_id_t>
 static std::pair<std::array<std::vector<vertex_id_t>, 2>,
                  std::array<std::vector<int32_t>, 2>>
-two_label_bitset_to_vids_indsV2(const Bitset& bitset,
+two_label_bitset_to_vids_indsV2(const grape::Bitset& bitset,
                                 const std::vector<vertex_id_t>& old_vids) {
   std::array<std::vector<int32_t>, 2> res;
   std::array<std::vector<vertex_id_t>, 2> res_vids;
-  auto limit_size = bitset.size();
+  auto limit_size = bitset.cardinality();
   VLOG(10) << "old bitset limit size: " << limit_size;
   auto label0_cnt = bitset.count();
   res[0].reserve(label0_cnt);
@@ -1201,8 +1189,6 @@ static auto get_property_tuple_two_label(
     const std::array<std::string, sizeof...(T)>& prop_names) {
   double t0 = -grape::GetCurrentTime();
   auto& label_array = general_set.GetLabels();
-  // auto vid_inds = two_label_bitset_to_vids_inds(
-  //     general_set.GetBitset());
   t0 += grape::GetCurrentTime();
 
   // Get data for multilabel vertices, mixed
@@ -1210,8 +1196,6 @@ static auto get_property_tuple_two_label(
   auto data_tuples = graph.template GetVertexPropsFromVidV2<T...>(
       general_set.GetVertices(), label_array, general_set.GetBitset(),
       prop_names);
-  // t1 += grape::GetCurrentTime();
-  // LOG(INFO) << "get vids cost: " << t0 << ", get props: " << t1;
 
   return data_tuples;
 }

@@ -49,7 +49,7 @@ jobs:
 
         cd flex/build
         # run validation
-        ./tests/gs_tests/validator ${flex_test_dir}/sf01_validation/ \
+        ./tests/hqps/validator ${flex_test_dir}/sf01_validation/ \
            ${flex_test_dir}/ldbc-sf01-long-date/audit_graph_schema.yaml \
            ${flex_test_dir}/ldbc-sf01-long-date/audit_bulk_load.yaml \
            ${GITHUB_WORKSPACE}/csr-data-dir

@@ -24,8 +24,8 @@ limitations under the License.
 #include "flex/engines/hqps/ds/multi_vertex_set/two_label_vertex_set.h"
 #include "flex/engines/hqps/engine/hqps_utils.h"
 
-#include "flex/engines/hqps/engine/utils/bitset.h"
 #include "flex/storages/rt_mutable_graph/types.h"
+#include "grape/utils/bitset.h"
 
 namespace gs {
 

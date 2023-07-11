@@ -441,7 +441,7 @@ class MultiLabelDstEdgeSet<num_labels, GRAPH_T, grape::EmptyType> {
     }
     auto iter = iterator(src_vertices_, adj_lists_, 0, is_valid);
     auto end = iterator(src_vertices_, adj_lists_, src_vertices_.size());
-    Bitset bitset;
+    grape::Bitset bitset;
     // make sure correct
     bitset.init(size_);
     while (iter != end) {

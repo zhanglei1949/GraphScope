@@ -21,8 +21,8 @@
 #include "flex/engines/hqps/engine/hqps_utils.h"
 #include "flex/engines/hqps/engine/null_record.h"
 #include "flex/engines/hqps/engine/operator/prop_utils.h"
-#include "flex/engines/hqps/engine/utils/bitset.h"
 #include "flex/storages/rt_mutable_graph/types.h"
+#include "grape/utils/bitset.h"
 
 #include <boost/functional/hash.hpp>
 #include "grape/util.h"
@@ -433,8 +433,7 @@ class DistinctCountBuilder<1, tag_id, T> {
             T>,
         "Type not match");
     while (vec_.size() <= ind) {
-      auto bitset = Bitset(range_size);
-      vec_.emplace_back(std::move(bitset));
+      vec_.emplace_back(grape::Bitset(range_size));
     }
     auto& cur_bitset = vec_[ind];
     auto cur_v = std::get<1>(cur_ind_ele);
@@ -453,7 +452,7 @@ class DistinctCountBuilder<1, tag_id, T> {
   }
 
  private:
-  std::vector<gs::Bitset> vec_;
+  std::vector<grape::Bitset> vec_;
   T min_v, max_v, range_size;
 };
 
@@ -461,7 +460,8 @@ class DistinctCountBuilder<1, tag_id, T> {
 template <int tag_id, typename T>
 class DistinctCountBuilder<2, tag_id, T> {
  public:
-  DistinctCountBuilder(const Bitset& bitset, const std::vector<T>& vids) {
+  DistinctCountBuilder(const grape::Bitset& bitset,
+                       const std::vector<T>& vids) {
     // find out the range of vertices inside vector, and use a bitset to count
     for (auto i = 0; i < vids.size(); ++i) {
       auto v = vids[i];
@@ -490,9 +490,9 @@ class DistinctCountBuilder<2, tag_id, T> {
         "Type not match");
     auto label_ind = std::get<1>(cur_ind_ele);
     while (vec_[label_ind].size() <= ind) {
-      auto bitset = Bitset(range_size[label_ind]);
-      vec_[label_ind].emplace_back(std::move(bitset));
+      vec_[label_ind].emplace_back(grape::Bitset(range_size[label_ind]));
     }
+
     auto& cur_bitset = vec_[label_ind][ind];
     auto cur_v = std::get<2>(cur_ind_ele);
     cur_bitset.set_bit(cur_v - min_v[label_ind]);
@@ -513,7 +513,7 @@ class DistinctCountBuilder<2, tag_id, T> {
   }
 
  private:
-  std::array<std::vector<gs::Bitset>, 2> vec_;
+  std::array<std::vector<grape::Bitset>, 2> vec_;
   std::array<T, 2> min_v, max_v, range_size;
 };
 

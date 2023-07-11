@@ -40,8 +40,8 @@ struct ResultOfContextKeyAlias<
     Context<CTX_HEAD_T, cur_alias, base_tag, CTX_PREV...>,
     IdentityMapper<in_col_id, PropertySelector<T>>> {
   using context_t = Context<CTX_HEAD_T, cur_alias, base_tag, CTX_PREV...>;
-  using ctx_node_t = std::remove_reference_t<
-      decltype(std::declval<context_t>().template GetNode<in_col_id>())>;
+  using ctx_node_t = std::remove_reference_t<decltype(
+      std::declval<context_t>().template GetNode<in_col_id>())>;
   using result_t = Collection<T>;
 };
 
@@ -52,8 +52,8 @@ struct ResultOfContextKeyAlias<
     Context<CTX_HEAD_T, cur_alias, base_tag, CTX_PREV...>,
     IdentityMapper<in_col_id, PropertySelector<grape::EmptyType>>> {
   using context_t = Context<CTX_HEAD_T, cur_alias, base_tag, CTX_PREV...>;
-  using ctx_node_t = std::remove_reference_t<
-      decltype(std::declval<context_t>().template GetNode<in_col_id>())>;
+  using ctx_node_t = std::remove_reference_t<decltype(
+      std::declval<context_t>().template GetNode<in_col_id>())>;
   using result_t = ctx_node_t;
 };
 
@@ -358,8 +358,6 @@ class ProjectOp {
     }
     std::vector<T> res_prop_vec;
     if (flag) {
-      //
-
       {
         // convert tuple to vector.
         res_prop_vec.reserve(tmp_prop_vec.size());

@@ -70,7 +70,7 @@ class Scan {
     gids.insert(gids.end(), gids0.begin(), gids0.end());
     gids.insert(gids.end(), gids1.begin(), gids1.end());
 
-    gs::Bitset bitset;
+    grape::Bitset bitset;
     bitset.init(gids.size());
     for (auto i = 0; i < gids0.size(); ++i) {
       bitset.set_bit(i);

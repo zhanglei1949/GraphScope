@@ -37,10 +37,7 @@ class IC2Expression2 {
   using result_t = bool;
   IC2Expression2(int64_t maxDate) : maxDate_(maxDate) {}
 
-  inline bool operator()(int64_t data) const {
-    // auto& cur_date = std::get<0>(data_tuple);
-    return data < maxDate_;
-  }
+  inline bool operator()(int64_t data) const { return data < maxDate_; }
 
  private:
   int64_t maxDate_;

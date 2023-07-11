@@ -170,6 +170,7 @@ void validate_all(const GRAPH_INTERFACE& graph,
 
   validate<GRAPH_INTERFACE, gs::QueryIC14<GRAPH_INTERFACE>>(
       graph, validate_dir + "/" + "validation_params_ic14.csv", max_times);
+
   LOG(INFO) << "Finish IC14 test";
 }
 
@@ -196,7 +197,6 @@ int main(int argc, char** argv) {
   t0 += grape::GetCurrentTime();
 
   gs::GrapeGraphInterface graph(gs::GraphDB::get().GetSession(0));
-  // validate_all(graph, validate_dir);
   validate_all(graph, validate_dir);
 
   return 0;

@@ -26,8 +26,8 @@ limitations under the License.
 #include "flex/engines/hqps/ds/multi_vertex_set/keyed_row_vertex_set.h"
 #include "flex/engines/hqps/ds/multi_vertex_set/two_label_vertex_set.h"
 #include "flex/engines/hqps/engine/hqps_utils.h"
-#include "flex/engines/hqps/engine/utils/bitset.h"
 #include "flex/engines/hqps/engine/utils/operator_utils.h"
+#include "grape/utils/bitset.h"
 
 namespace gs {
 
@@ -470,7 +470,7 @@ class EdgeExpand {
     auto& vertex_sets = std::get<0>(set_offset_array);
 
     std::vector<vertex_id_t> res_vids;
-    std::array<Bitset, num_labels> res_bitset;
+    std::array<grape::Bitset, num_labels> res_bitset;
     std::vector<offset_t> res_offset;
 
     size_t total_size = 0;
@@ -559,7 +559,7 @@ class EdgeExpand {
     CHECK(off2.size() == prev_set_size + 1);
 
     std::vector<vertex_id_t> res_vids;
-    Bitset res_bitset;
+    grape::Bitset res_bitset;
 
     size_t total_size = vids1.size() + vids2.size();
     VLOG(10) << "total size: " << total_size;
@@ -1101,9 +1101,9 @@ class EdgeExpand {
     VLOG(10) << "offset: array: " << gs::to_string(offset);
     auto copied_labels(general_set.GetLabels());
     auto& old_bitset = general_set.GetBitset();
-    Bitset new_bitset;
-    new_bitset.init(old_bitset.size());
-    for (auto i = 0; i < old_bitset.size(); ++i) {
+    grape::Bitset new_bitset;
+    new_bitset.init(old_bitset.cardinality());
+    for (auto i = 0; i < old_bitset.cardinality(); ++i) {
       new_bitset.set_bit(i);
     }
 

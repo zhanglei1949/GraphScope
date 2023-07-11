@@ -22,8 +22,8 @@
 #include "flex/engines/hqps/database/adj_list.h"
 #include "flex/engines/hqps/engine/null_record.h"
 #include "flex/engines/hqps/engine/params.h"
-#include "flex/engines/hqps/engine/utils/bitset.h"
 #include "flex/engines/hqps/engine/utils/operator_utils.h"
+#include "grape/utils/bitset.h"
 
 #include "grape/util.h"
 
@@ -230,7 +230,8 @@ class GrapeGraphInterface {
             typename std::enable_if<(num_labels == 2)>::type* = nullptr>
   std::vector<std::tuple<T...>> GetVertexPropsFromVidV2(
       const std::vector<vertex_id_t>& vids,
-      const std::array<std::string, num_labels>& labels, const Bitset& bitset,
+      const std::array<std::string, num_labels>& labels,
+      const grape::Bitset& bitset,
       const std::array<std::string, std::tuple_size_v<std::tuple<T...>>>&
           prop_names) const {
     size_t total_size = vids.size();
@@ -255,7 +256,8 @@ class GrapeGraphInterface {
             typename std::enable_if<(num_labels == 2)>::type* = nullptr>
   std::vector<std::tuple<T...>> GetVertexPropsFromVidV2(
       const std::vector<vertex_id_t>& vids,
-      const std::array<label_id_t, num_labels>& labels, const Bitset& bitset,
+      const std::array<label_id_t, num_labels>& labels,
+      const grape::Bitset& bitset,
       const std::array<std::string, std::tuple_size_v<std::tuple<T...>>>&
           prop_names) const {
     size_t total_size = vids.size();
@@ -283,7 +285,7 @@ class GrapeGraphInterface {
   void fetch_propertiesV2(std::vector<std::tuple<T...>>& props,
                           std::vector<column_tuple_t>& columns,
                           const std::vector<vertex_id_t>& vids,
-                          const Bitset& bitset) const {
+                          const grape::Bitset& bitset) const {
     // auto index_seq = std::make_index_sequence<sizeof...(T)>{};
 
     {
@@ -341,7 +343,7 @@ class GrapeGraphInterface {
   void fetch_propertiesV2(std::vector<std::tuple<T...>>& props,
                           std::vector<column_tuple_t>& columns,
                           const std::vector<vertex_id_t>& vids,
-                          const Bitset& bitset) const {}
+                          const grape::Bitset& bitset) const {}
 
   template <size_t Is, typename... T, typename column_tuple_t,
             size_t num_labels,

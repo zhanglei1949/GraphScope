@@ -126,7 +126,7 @@ int main() {
     // test two label set
     std::vector<int64_t> vec{1, 2, 3, 4, 5, 6};
     std::array<std::string, 2> labels{"a", "b"};
-    gs::Bitset set;
+    grape::Bitset set;
     set.init(6);
     {
       set.set_bit(0);
@@ -151,15 +151,17 @@ int main() {
     size_t limit = 300000;
     std::vector<int32_t> indices;
     indices.reserve(limit);
+    unsigned int tmp;
     for (auto i = 0; i < limit; ++i) {
-      indices.emplace_back(rand_r() % limit);
+      rand_r(&tmp);
+      indices.emplace_back((int32_t) tmp % limit);
     }
     auto col1 =
         std::make_shared<gs::TypedColumn<int32_t>>(gs::StorageStrategy::kMem);
 
     col1->init(limit);
     for (int i = 0; i < limit; ++i) {
-      col1->set_value(i, (int32_t) (i));
+      col1->set_value(i, (int32_t)(i));
     }
     {
       int32_t res = 0;
@@ -199,8 +201,10 @@ int main() {
     size_t limit = 300000;
     std::vector<int32_t> indices;
     indices.reserve(limit);
+    unsigned int tmp;
     for (auto i = 0; i < limit; ++i) {
-      indices.emplace_back(rand_r() % limit);
+      rand_r(&tmp);
+      indices.emplace_back(tmp % limit);
     }
     auto col1 =
         std::make_shared<gs::TypedColumn<int32_t>>(gs::StorageStrategy::kMem);
@@ -210,7 +214,7 @@ int main() {
     col1->init(limit);
     col2->init(limit);
     for (int i = 0; i < limit; ++i) {
-      col1->set_value(i, (int32_t) (i));
+      col1->set_value(i, (int32_t)(i));
       col2->set_value(i, (int64_t) i);
     }
     {
@@ -310,10 +314,10 @@ int main() {
       col1->init(limit);
       col2->init(limit);
       for (int i = 0; i < limit; i += 2) {
-        col1->set_value(i, (int32_t) (i));
+        col1->set_value(i, (int32_t)(i));
       }
       for (int i = 1; i < limit; i += 2) {
-        col2->set_value(i, (int32_t) (i));
+        col2->set_value(i, (int32_t)(i));
       }
       // test two label vertex set prop getter.
       auto ref_col1 = std::make_shared<gs::TypedRefColumn<int32_t>>(*col1);
@@ -346,7 +350,7 @@ int main() {
 
       {
         // more locality
-        gs::Bitset bitset;
+        grape::Bitset bitset;
         bitset.init(limit);
         for (auto i = 0; i < limit; ++i) {
           if (i % 2 == 0) {
@@ -381,19 +385,30 @@ int main() {
       std::vector<int32_t> vec0;
       std::vector<int64_t> vec1;
       std::vector<double> vec2;
-      std::srand((unsigned) time(NULL));
       {
         vec0.reserve(limit);
         vec1.reserve(limit);
         vec2.reserve(limit);
-        for (auto i = 0; i < limit; ++i) {
-          vec0.emplace_back(rand_r() % limit);
+        {
+          unsigned int tmp;
+          for (auto i = 0; i < limit; ++i) {
+            rand_r(&tmp);
+            vec0.emplace_back(tmp % limit);
+          }
         }
-        for (auto i = 0; i < limit; ++i) {
-          vec1.emplace_back((int64_t) rand_r() % limit);
+        {
+          unsigned int tmp;
+          for (auto i = 0; i < limit; ++i) {
+            rand_r(&tmp);
+            vec1.emplace_back((int64_t) tmp % limit);
+          }
         }
-        for (auto i = 0; i < limit; ++i) {
-          vec2.emplace_back((double) (rand_r() % limit));
+        {
+          unsigned int tmp;
+          for (auto i = 0; i < limit; ++i) {
+            rand_r(&tmp);
+            vec2.emplace_back((double) (tmp % limit));
+          }
         }
       }
 

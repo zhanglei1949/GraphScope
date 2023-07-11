@@ -19,9 +19,9 @@
 #include <tuple>
 #include <unordered_set>
 #include <vector>
-#include "flex/engines/hqps/engine/utils/bitset.h"
 #include "grape/types.h"
 #include "grape/util.h"
+#include "grape/utils/bitset.h"
 
 namespace gs {
 
@@ -30,13 +30,13 @@ template <typename VID_T, typename LabelT, typename EXPR, typename ELE_TUPLE,
           size_t old_num_labels, size_t filter_num_labels>
 auto general_project_vertices_impl(
     const std::vector<VID_T>& old_vec,
-    const std::array<Bitset, old_num_labels>& old_bit_sets,
+    const std::array<grape::Bitset, old_num_labels>& old_bit_sets,
     const std::array<LabelT, old_num_labels>& old_labels,
     const std::array<LabelT, filter_num_labels>& filter_labels,
     const EXPR& expr, const std::vector<ELE_TUPLE>& eles) {
   CHECK(eles.size() == old_vec.size());
   std::vector<VID_T> res_vec;
-  std::array<Bitset, old_num_labels> res_bitsets;
+  std::array<grape::Bitset, old_num_labels> res_bitsets;
   // reserve enough size for bitset.
   for (auto i = 0; i < old_num_labels; ++i) {
     res_bitsets[i].init(old_vec.size());
@@ -119,10 +119,10 @@ template <size_t col_ind, typename... index_ele_tuple_t, typename lid_t,
 auto generalSetFlatImpl(
     std::vector<std::tuple<index_ele_tuple_t...>>& index_ele_tuples,
     const std::vector<lid_t>& origin_vids,
-    const std::array<gs::Bitset, N>& origin_bitsets) {
+    const std::array<grape::Bitset, N>& origin_bitsets) {
   size_t dst_size = index_ele_tuples.size();
   std::vector<lid_t> res_vids;
-  std::array<gs::Bitset, N> res_bitsets;
+  std::array<grape::Bitset, N> res_bitsets;
   res_vids.reserve(dst_size);
   for (auto i = 0; i < N; ++i) {
     res_bitsets[i].init(dst_size);
@@ -153,7 +153,7 @@ class GeneralVertexSetIter {
   using data_tuple_t = std::tuple<VID_T>;
 
   GeneralVertexSetIter(const std::vector<VID_T>& vec,
-                       const std::array<Bitset, N>& bitsets, size_t ind)
+                       const std::array<grape::Bitset, N>& bitsets, size_t ind)
       : vec_(vec), bitsets_(bitsets), ind_(ind) {}
 
   lid_t GetElement() const { return vec_[ind_]; }
@@ -196,7 +196,7 @@ class GeneralVertexSetIter {
 
  private:
   const std::vector<VID_T>& vec_;
-  const std::array<Bitset, N>& bitsets_;
+  const std::array<grape::Bitset, N>& bitsets_;
   size_t ind_;
 };
 
@@ -224,18 +224,21 @@ class GeneralVertexSet {
   static constexpr bool is_multi_label = false;
   GeneralVertexSet(std::vector<VID_T>&& vec,
                    std::array<LabelT, N>&& label_names,
-                   std::array<gs::Bitset, N>&& bitsets)
-      : vec_(std::move(vec)),
-        label_names_(std::move(label_names)),
-        bitsets_(std::move(bitsets)) {
+                   std::array<grape::Bitset, N>&& bitsets)
+      : vec_(std::move(vec)), label_names_(std::move(label_names)) {
+    for (auto i = 0; i < N; ++i) {
+      bitsets_[i].swap(bitsets[i]);
+    }
     VLOG(10) << "[GeneralVertexSet], size: " << vec_.size()
              << ", bitset size: " << bitsets_[0].size();
   }
 
   GeneralVertexSet(GeneralVertexSet&& other)
       : vec_(std::move(other.vec_)),
-        label_names_(std::move(other.label_names_)),
-        bitsets_(std::move(other.bitsets_)) {
+        label_names_(std::move(other.label_names_)) {
+    for (auto i = 0; i < N; ++i) {
+      bitsets_[i].swap(other.bitsets_[i]);
+    }
     VLOG(10) << "[GeneralVertexSet], size: " << vec_.size()
              << ", bitset size: " << bitsets_[0].size();
   }
@@ -274,7 +277,7 @@ class GeneralVertexSet {
 
   LabelT GetLabel(size_t i) const { return label_names_[i]; }
 
-  const std::array<Bitset, N>& GetBitsets() const { return bitsets_; }
+  const std::array<grape::Bitset, N>& GetBitsets() const { return bitsets_; }
 
   const std::vector<VID_T>& GetVertices() const { return vec_; }
 
@@ -311,7 +314,7 @@ class GeneralVertexSet {
              << " Project self, next size: " << next_size;
 
     next_vids.reserve(next_size);
-    std::array<Bitset, N> next_sets;
+    std::array<grape::Bitset, N> next_sets;
     for (auto& i : next_sets) {
       i.init(next_size);
     }
@@ -392,20 +395,20 @@ class GeneralVertexSet {
  private:
   std::vector<VID_T> vec_;
   std::array<LabelT, N> label_names_;
-  std::array<gs::Bitset, N> bitsets_;
+  std::array<grape::Bitset, N> bitsets_;
 };
 
 template <typename VID_T, typename LabelT, size_t N>
 auto make_general_set(std::vector<VID_T>&& vec,
                       std::array<LabelT, N>&& label_names,
-                      std::array<gs::Bitset, N>&& bitsets) {
+                      std::array<grape::Bitset, N>&& bitsets) {
   return GeneralVertexSet<VID_T, LabelT, N>(
       std::move(vec), std::move(label_names), std::move(bitsets));
 }
 
 template <size_t num_labels>
 static std::array<std::vector<int32_t>, num_labels> bitsets_to_vids_inds(
-    const std::array<Bitset, num_labels>& bitset) {
+    const std::array<grape::Bitset, num_labels>& bitset) {
   std::array<std::vector<int32_t>, num_labels> res;
   auto limit_size = bitset[0].size();
   VLOG(10) << "old bitset limit size: " << limit_size;
