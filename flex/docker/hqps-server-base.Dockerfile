@@ -26,7 +26,7 @@ RUN apt install -y xfslibs-dev libgnutls28-dev liblz4-dev maven openssl pkg-conf
 # install libgrape-lite
 RUN cd /root && \
     git clone https://github.com/alibaba/libgrape-lite.git && \
-    cd libgrape-lite && git checkout 976544ef7a9777ed93088459638ff87154e2109d && \
+    cd libgrape-lite && git checkout 8add4b330c31f8a47d83c5804072a8d42d10d32d && \
     mkdir build && cd build && cmake .. && make -j && make install
 
 RUN cp /usr/local/lib/libgrape-lite.so /usr/lib/libgrape-lite.so
@@ -38,6 +38,19 @@ RUN git clone https://github.com/zhanglei1949/hiactor.git && cd hiactor && \
 
 #install protobuf
 RUN apt-get install -y protobuf-compiler libprotobuf-dev
+
+RUN apt install -y sudo
+
+# Add graphscope user with user id 1001
+RUN useradd -m graphscope -u 1001 && \
+    echo 'graphscope ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+
+
+# Change to graphscope user
+USER graphscope
+WORKDIR /home/graphscope
+
 
 RUN curl -sf -L https://static.rust-lang.org/rustup.sh | \
   sh -s -- -y --profile minimal && \
