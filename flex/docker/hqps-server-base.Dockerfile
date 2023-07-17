@@ -31,7 +31,7 @@ RUN cd /root && \
 
 RUN cp /usr/local/lib/libgrape-lite.so /usr/lib/libgrape-lite.so
 
-RUN git clone https://github.com/zhanglei1949/hiactor.git -b v0.1.1 --single-branch && cd hiactor && \
+RUN git clone https://github.com/alibaba/hiactor.git -b v0.1.1 --single-branch && cd hiactor && \
     git submodule update --init --recursive && ./seastar/seastar/install-dependencies.sh && mkdir build && cd build && \
     cmake -DHiactor_DEMOS=OFF -DHiactor_TESTING=OFF -DHiactor_DPDK=OFF -DHiactor_CXX_DIALECT=gnu++17 -DSeastar_CXX_FLAGS="-DSEASTAR_DEFAULT_ALLOCATOR -mno-avx512" .. && \
     make -j && make install
