@@ -25,13 +25,13 @@ RUN apt install -y xfslibs-dev libgnutls28-dev liblz4-dev maven openssl pkg-conf
 
 # install libgrape-lite
 RUN cd /root && \
-    git clone https://github.com/alibaba/libgrape-lite.git && \
-    cd libgrape-lite && git checkout 8add4b330c31f8a47d83c5804072a8d42d10d32d && \
+    git clone https://github.com/alibaba/libgrape-lite.git -b v0.3.2 --single-branch && \
+    cd libgrape-lite  && \
     mkdir build && cd build && cmake .. && make -j && make install
 
 RUN cp /usr/local/lib/libgrape-lite.so /usr/lib/libgrape-lite.so
 
-RUN git clone https://github.com/zhanglei1949/hiactor.git && cd hiactor && \
+RUN git clone https://github.com/zhanglei1949/hiactor.git -b v0.1.1 --single-branch && cd hiactor && \
     git submodule update --init --recursive && ./seastar/seastar/install-dependencies.sh && mkdir build && cd build && \
     cmake -DHiactor_DEMOS=OFF -DHiactor_TESTING=OFF -DHiactor_DPDK=OFF -DHiactor_CXX_DIALECT=gnu++17 -DSeastar_CXX_FLAGS="-DSEASTAR_DEFAULT_ALLOCATOR -mno-avx512" .. && \
     make -j && make install
@@ -45,12 +45,9 @@ RUN apt install -y sudo
 RUN useradd -m graphscope -u 1001 && \
     echo 'graphscope ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-
-
 # Change to graphscope user
 USER graphscope
 WORKDIR /home/graphscope
-
 
 RUN curl -sf -L https://static.rust-lang.org/rustup.sh | \
   sh -s -- -y --profile minimal && \
