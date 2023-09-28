@@ -1079,6 +1079,8 @@ void CSVFragmentLoader::fillVertexReaderMeta(
     arrow::csv::ConvertOptions& convert_options, const std::string& v_file,
     label_t v_label) const {
   convert_options.timestamp_parsers.emplace_back(
+      std::make_shared<LongDateParser>());
+  convert_options.timestamp_parsers.emplace_back(
       std::make_shared<LDBCTimeStampParser>());
   convert_options.timestamp_parsers.emplace_back(
       arrow::TimestampParser::MakeISO8601());
@@ -1206,6 +1208,8 @@ void CSVFragmentLoader::fillEdgeReaderMeta(
     arrow::csv::ParseOptions& parse_options,
     arrow::csv::ConvertOptions& convert_options, const std::string& e_file,
     label_t src_label_id, label_t dst_label_id, label_t label_id) const {
+  convert_options.timestamp_parsers.emplace_back(
+      std::make_shared<LongDateParser>());
   convert_options.timestamp_parsers.emplace_back(
       std::make_shared<LDBCTimeStampParser>());
   convert_options.timestamp_parsers.emplace_back(

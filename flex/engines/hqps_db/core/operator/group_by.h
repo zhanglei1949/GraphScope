@@ -145,13 +145,22 @@ struct GroupValueResTImpl<RowVertexSet<LabelT, VID_T, SET_T...>, AggFunc::MAX,
   using result_t = Collection<T>;
 };
 
-// support get first from vertexset
+// support get first from vertex set vertex ids
+template <typename LabelT, typename VID_T, typename... SET_T>
+struct GroupValueResTImpl<RowVertexSet<LabelT, VID_T, SET_T...>, AggFunc::FIRST,
+                          std::tuple<PropertySelector<grape::EmptyType>>> {
+  // the old_set_t is vertex_set or collection
+  using result_t = typename AggFirst<RowVertexSet<LabelT, VID_T, SET_T...>,
+                                     grape::EmptyType>::result_t;
+};
+
+// support get first from vertex set props
 template <typename LabelT, typename VID_T, typename... SET_T, typename T>
 struct GroupValueResTImpl<RowVertexSet<LabelT, VID_T, SET_T...>, AggFunc::FIRST,
                           std::tuple<PropertySelector<T>>> {
   // the old_set_t is vertex_set or collection
   using result_t =
-      typename AggFirst<RowVertexSet<LabelT, VID_T, SET_T...>>::result_t;
+      typename AggFirst<RowVertexSet<LabelT, VID_T, SET_T...>, T>::result_t;
 };
 
 // support get first from two label vertex set
@@ -160,8 +169,8 @@ struct GroupValueResTImpl<TwoLabelVertexSet<VID_T, LabelT, SET_T...>,
                           AggFunc::FIRST,
                           std::tuple<PropertySelector<grape::EmptyType>>> {
   // the old_set_t is vertex_set or collection
-  using result_t =
-      typename AggFirst<TwoLabelVertexSet<VID_T, LabelT, SET_T...>>::result_t;
+  using result_t = typename AggFirst<TwoLabelVertexSet<VID_T, LabelT, SET_T...>,
+                                     grape::EmptyType>::result_t;
 };
 
 // get first from collection
@@ -169,7 +178,7 @@ template <typename T>
 struct GroupValueResTImpl<Collection<T>, AggFunc::FIRST,
                           std::tuple<PropertySelector<grape::EmptyType>>> {
   // the old_set_t is vertex_set or collection
-  using result_t = typename AggFirst<Collection<T>>::result_t;
+  using result_t = typename AggFirst<Collection<T>, grape::EmptyType>::result_t;
 };
 
 template <typename Head, int new_head_tag, int base_tag, typename PREV>
@@ -470,10 +479,18 @@ class GroupByOp {
     auto prop_getters =
         create_prop_getters_from_prop_desc(graph, ctx, named_properties);
     size_t cur_ind = 0;
+    size_t total_size = ctx.GetHead().Size();
+    size_t cur_cnt = 0;
+    auto batch_size = std::max(total_size / 1000, 1ul);
     for (auto iter : ctx) {
       auto ele_tuple = iter.GetAllElement();
       auto ind_ele_tuple = iter.GetAllIndexElement();
       auto data_tuple = iter.GetAllData();
+      if (cur_cnt % batch_size == 0) {
+        VLOG(10) << "group by progress: " << cur_cnt << "/" << total_size;
+        VLOG(10) << "ele: " << gs::to_string(ele_tuple)
+                 << ", data:" << gs::to_string(data_tuple);
+      }
       auto key_data_tuple =
           std::make_tuple(gs::get_from_tuple<KEY_ALIAS::col_id>(data_tuple)...);
       auto key_tuple = create_key_tuple_ele(ele_tuple, prop_getters);
@@ -491,6 +508,7 @@ class GroupByOp {
       // CHECK insert key.
       insert_to_value_set_builder(value_set_builder_tuple, ind_ele_tuple,
                                   data_tuple, ind);
+      cur_cnt += 1;
     }
 
     // get the result tuple of applying build on keyed_set_builder_tuple.

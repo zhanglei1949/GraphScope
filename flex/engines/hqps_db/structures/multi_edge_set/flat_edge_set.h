@@ -416,6 +416,8 @@ class SingleLabelEdgeSetBuilder {
     vec_.push_back(std::get<1>(tuple));
   }
 
+  void Insert(const ele_tuple_t& tuple) { vec_.push_back(tuple); }
+
   result_t Build() {
     return result_t(std::move(vec_), std::move(label_triplet_), prop_names_,
                     direction_);
@@ -579,15 +581,24 @@ class SingleLabelEdgeSet {
     offsets.emplace_back(0);
     std::vector<label_t> tmp_labels = array_to_vec(labels);
     std::vector<label_t> req_labels;
-
     label_t cur_label = 0;
+    if (direction_ == Direction::In) {
+      CHECK(v_opt == VOpt::Start || v_opt == VOpt::Other);
+      cur_label = label_triplet_[0];
+    } else if (direction_ == Direction::Out) {
+      CHECK(v_opt == VOpt::End || v_opt == VOpt::Other);
+      cur_label = label_triplet_[1];
+    }
+
+    bool other_v = false;
     {
-      if (v_opt == VOpt::Start) {
-        cur_label = label_triplet_[0];
-      } else if (v_opt == VOpt::End || v_opt == VOpt::Other) {
-        cur_label = label_triplet_[1];
+      if (direction_ == Direction::In && v_opt == VOpt::Start) {
+        other_v = true;
+      } else if (direction_ == Direction::Out && v_opt == VOpt::End) {
+        other_v = true;
       } else {
-        LOG(FATAL) << "Unknown v_opt: " << v_opt;
+        other_v = false;
+        VLOG(1) << "Getting src vertices of csr ";
       }
     }
     if (tmp_labels.size() > 0 && std::find(tmp_labels.begin(), tmp_labels.end(),
@@ -602,12 +613,10 @@ class SingleLabelEdgeSet {
       size_t cur_ind = 0;
       for (auto iter : *this) {
         VID_T cur_vid;
-        if (v_opt == VOpt::Start) {
+        if (!other_v) {
           cur_vid = iter.GetSrc();
-        } else if (v_opt == VOpt::End || VOpt::Other) {
-          cur_vid = iter.GetDst();
         } else {
-          LOG(FATAL) << "Unknown v_opt: " << v_opt;
+          cur_vid = iter.GetDst();
         }
         vids.emplace_back(cur_vid);
         offsets.emplace_back(vids.size());

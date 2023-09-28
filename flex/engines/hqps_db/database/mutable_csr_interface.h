@@ -784,6 +784,10 @@ class MutableCSRInterface {
       const label_id_t& label_id, const std::string& prop_name) const {
     using column_t = std::shared_ptr<TypedRefColumn<T>>;
     column_t column = GetTypedRefColumn<T>(label_id, prop_name);
+    if (!column) {
+      LOG(FATAL) << "Property " << prop_name << " not found, for label id"
+                 << std::to_string(label_id);
+    }
     return mutable_csr_graph_impl::SinglePropGetter<T>(std::move(column));
   }
 

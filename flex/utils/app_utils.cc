@@ -25,6 +25,12 @@ void Encoder::put_long(int64_t v) {
   memcpy(&buf_[size], &v, sizeof(int64_t));
 }
 
+void Encoder::put_date(const Date& data) {
+  size_t size = buf_.size();
+  buf_.resize(size + sizeof(int64_t));
+  memcpy(&buf_[size], &data.milli_second, sizeof(Date));
+}
+
 size_t Encoder::skip_long() {
   size_t size = buf_.size();
   buf_.resize(size + sizeof(int64_t));
@@ -79,8 +85,7 @@ void Encoder::put_string_view(const std::string_view& v) {
   memcpy(&buf_[size + 4], v.data(), len);
 }
 
-
-void Encoder::put_double(double v){
+void Encoder::put_double(double v) {
   size_t size = buf_.size();
   buf_.resize(size + sizeof(double));
   memcpy(&buf_[size], &v, sizeof(double));
@@ -98,7 +103,7 @@ static int char_ptr_to_int(const char* data) {
   return *ptr;
 }
 
-static double char_ptr_to_double(const char* data){
+static double char_ptr_to_double(const char* data) {
   const double* ptr = reinterpret_cast<const double*>(data);
   return *ptr;
 }
@@ -115,7 +120,13 @@ int64_t Decoder::get_long() {
   return ret;
 }
 
-double Decoder::get_double(){
+Date Decoder::get_date() {
+  Date ret;
+  ret.milli_second = get_long();
+  return ret;
+}
+
+double Decoder::get_double() {
   double ret = char_ptr_to_double(data_);
   data_ += 8;
   return ret;

@@ -27,21 +27,26 @@
 
 namespace gs {
 
-template <typename SET_T>
+template <typename SET_T, typename PropT>
 struct AggFirst;
 
 template <typename T>
-struct AggFirst<Collection<T>> {
+struct AggFirst<Collection<T>, grape::EmptyType> {
   using result_t = Collection<T>;
 };
 
 template <typename LabelT, typename VID_T, typename... T>
-struct AggFirst<RowVertexSetImpl<LabelT, VID_T, T...>> {
+struct AggFirst<RowVertexSetImpl<LabelT, VID_T, T...>, grape::EmptyType> {
   using result_t = RowVertexSetImpl<LabelT, VID_T, T...>;
 };
 
+template <typename LabelT, typename VID_T, typename... T, typename PropT>
+struct AggFirst<RowVertexSetImpl<LabelT, VID_T, T...>, PropT> {
+  using result_t = Collection<PropT>;
+};
+
 template <typename VID_T, typename LabelT, typename... T>
-struct AggFirst<TwoLabelVertexSetImpl<VID_T, LabelT, T...>> {
+struct AggFirst<TwoLabelVertexSetImpl<VID_T, LabelT, T...>, grape::EmptyType> {
   using result_t = TwoLabelVertexSetImpl<VID_T, LabelT, T...>;
 };
 
@@ -100,7 +105,8 @@ struct KeyedT<KeyedRowVertexSetImpl<LabelT, KEY_T, VID_T, SET_T...>,
               PropertySelector<grape::EmptyType>> {
   using keyed_set_t = KeyedRowVertexSetImpl<LabelT, VID_T, SET_T...>;
   // // The builder type.
-  using keyed_builder_t = KeyedRowVertexSetBuilder<LabelT, VID_T, SET_T...>;
+  using keyed_builder_t =
+      KeyedRowVertexSetBuilder<LabelT, KEY_T, VID_T, SET_T...>;
   using unkeyed_builder_t =
       typename KeyedRowVertexSetImpl<LabelT, KEY_T, VID_T, SET_T...>::builder_t;
   static keyed_builder_t create_keyed_builder(
@@ -341,6 +347,24 @@ struct KeyedAggT<GI, Collection<T>, AggFunc::FIRST, std::tuple<PropT>,
 
   static aggregate_res_builder_t create_agg_builder(
       const Collection<T>& set, const GI& graph,
+      std::tuple<PropertySelector<PropT>>& selectors) {
+    return aggregate_res_builder_t(
+        set, graph, std::array{std::get<0>(selectors).prop_name_});
+  }
+};
+
+// Agg first for row vertex set, get value.
+template <typename GI, typename LabelT, typename VID_T, typename... T,
+          typename PropT, int tag_id>
+struct KeyedAggT<GI, RowVertexSet<LabelT, VID_T, T...>, AggFunc::FIRST,
+                 std::tuple<PropT>, std::integer_sequence<int32_t, tag_id>> {
+  using agg_res_t = Collection<PropT>;
+  using old_set_t = RowVertexSet<LabelT, VID_T, T...>;
+  using aggregate_res_builder_t =
+      FirstBuilder<GI, RowVertexSet<LabelT, VID_T, T...>, PropT, tag_id>;
+
+  static aggregate_res_builder_t create_agg_builder(
+      const old_set_t& set, const GI& graph,
       std::tuple<PropertySelector<PropT>>& selectors) {
     return aggregate_res_builder_t(
         set, graph, std::array{std::get<0>(selectors).prop_name_});

@@ -24,6 +24,37 @@
 namespace gs {
 
 // arrow related;
+class LongDateParser : public arrow::TimestampParser {
+ public:
+  LongDateParser() = default;
+
+  ~LongDateParser() override {}
+
+  bool operator()(const char* s, size_t length, arrow::TimeUnit::type out_unit,
+                  int64_t* out) const override {
+    using seconds_type = std::chrono::duration<arrow::TimestampType::c_type>;
+
+    uint64_t seconds;
+    // convert (s, s + length - 4) to seconds_since_epoch
+    if (ARROW_PREDICT_FALSE(
+            !arrow::internal::ParseUnsigned(s, length - 3, &seconds))) {
+      return false;
+    }
+
+    uint32_t subseconds = 0;
+    if (ARROW_PREDICT_FALSE(!arrow::internal::detail::ParseSubSeconds(
+            s + length - 3, 3, out_unit, &subseconds))) {
+      return false;
+    }
+
+    *out = arrow::util::CastSecondsToUnit(out_unit, seconds) + subseconds;
+    return true;
+  }
+
+  virtual const char* kind() const override { return "LDBC timestamp parser"; }
+
+  virtual const char* format() const override { return "LongDateFormat"; }
+};
 
 class LDBCTimeStampParser : public arrow::TimestampParser {
  public:
@@ -143,7 +174,7 @@ class LDBCTimeStampParser : public arrow::TimestampParser {
 
   virtual const char* kind() const override { return "LDBC timestamp parser"; }
 
-  virtual const char* format() const override { return "EmptyFormat"; }
+  virtual const char* format() const override { return "LDBCDateFormat"; }
 };
 
 // convert c++ type to arrow type. support other types likes emptyType, Date

@@ -104,6 +104,7 @@ class SinglePropGetter {
   SinglePropGetter(std::shared_ptr<TypedRefColumn<T>> c) : column(c) {
     CHECK(column.get() != nullptr);
   }
+  SinglePropGetter(const SinglePropGetter<T>& d) : column(d.column) {}
 
   inline value_type get_view(vid_t vid) const {
     if (vid == NONE) {
@@ -465,9 +466,15 @@ class AdjListArray<T> {
       const typed_csr_base_t* casted_csr =
           dynamic_cast<const typed_csr_base_t*>(csr);
       for (auto v : vids) {
-        slices_.emplace_back(
-            std::make_pair(casted_csr->get_edges(v), slice_t()));
+        if (casted_csr) {
+          slices_.emplace_back(
+              std::make_pair(casted_csr->get_edges(v), slice_t()));
+        } else {
+          slices_.emplace_back(std::make_pair(slice_t(), slice_t()));
+        }
       }
+    } else {
+      LOG(WARNING) << "csr is null";
     }
   }
   AdjListArray(const csr_base_t* csr0, const csr_base_t* csr1,

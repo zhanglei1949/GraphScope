@@ -48,6 +48,24 @@ struct Date {
 
   std::string to_string() const;
 
+  inline bool operator>(const Date& other) const {
+    return milli_second > other.milli_second;
+  }
+  inline bool operator>=(const Date& other) const {
+    return milli_second >= other.milli_second;
+  }
+  inline bool operator<(const Date& other) const {
+    return milli_second < other.milli_second;
+  }
+  inline bool operator<=(const Date& other) const {
+    return milli_second <= other.milli_second;
+  }
+  inline bool operator==(const Date& other) const {
+    return milli_second == other.milli_second;
+  }
+  inline bool operator!=(const Date& other) const {
+    return milli_second != other.milli_second;
+  }
   int64_t milli_second;
 };
 

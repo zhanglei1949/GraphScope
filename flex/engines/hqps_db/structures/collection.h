@@ -716,6 +716,44 @@ class FirstBuilder<GI, RowVertexSetImpl<LabelT, VID_T, grape::EmptyType>,
   builder_t builder_;
 };
 
+// Aggregate the first property of the vertex set.
+template <typename GI, typename LabelT, typename VID_T, typename... T,
+          typename PropT, int tag_id>
+class FirstBuilder<GI, RowVertexSetImpl<LabelT, VID_T, T...>, PropT, tag_id> {
+ public:
+  using result_t = Collection<PropT>;
+  using set_t = RowVertexSetImpl<LabelT, VID_T, T...>;
+  using graph_prop_getter_t = typename GI::template single_prop_getter_t<PropT>;
+  using PROP_GETTER_T =
+      RowVertexSetPropGetter<tag_id, graph_prop_getter_t,
+                             typename set_t::index_ele_tuple_t>;
+  FirstBuilder(const set_t& set, const GI& graph,
+               PropNameArray<PropT> prop_names)
+      : prop_getter_(create_prop_getter_impl<tag_id, PropT>(set, graph,
+                                                            prop_names[0])) {}
+
+  // insert value to position ind
+  template <typename IND_ELE_T, typename DATA_TUPLE_T>
+  void insert(size_t ind, const IND_ELE_T& tuple,
+              const DATA_TUPLE_T& data_tuple) {
+    if (ind < vec_.size()) {
+      return;
+    } else if (ind == vec_.size()) {
+      auto ele = gs::get_from_tuple<tag_id>(tuple);
+      vec_.emplace_back(prop_getter_.get_view(ele));
+    } else {
+      LOG(FATAL) << "Can not insert with ind: " << ind
+                 << ", which cur size is : " << vec_.size();
+    }
+  }
+
+  result_t Build() { return result_t(std::move(vec_)); }
+
+ private:
+  std::vector<PropT> vec_;
+  PROP_GETTER_T prop_getter_;
+};
+
 // first builder for two label set
 template <typename GI, typename VID_T, typename LabelT, int tag_id>
 class FirstBuilder<GI, TwoLabelVertexSetImpl<VID_T, LabelT, grape::EmptyType>,

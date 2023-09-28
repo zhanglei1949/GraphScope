@@ -214,8 +214,11 @@ class QueryGenerator {
       for (auto i = 0; i < param_vars.size(); ++i) {
         if (i > 0 && param_vars[i].id == param_vars[i - 1].id) {
           // found duplicate
-          CHECK(param_vars[i] == param_vars[i - 1]);
-          continue;
+          if (param_vars[i] != param_vars[i - 1]) {
+            LOG(WARNING) << "param var : " << param_vars[i].to_string()
+                         << " and " << param_vars[i - 1].to_string()
+                         << " is not the same";
+          }
         } else {
           ss << ", " << data_type_2_string(param_vars[i].type) << " "
              << param_vars[i].var_name;
@@ -238,7 +241,10 @@ class QueryGenerator {
 
     for (auto i = 0; i < param_vars.size(); ++i) {
       if (i > 0 && param_vars[i].id == param_vars[i - 1].id) {
-        CHECK(param_vars[i] == param_vars[i - 1]);
+        if (param_vars[i] != param_vars[i - 1]) {
+          LOG(WARNING) << "param var : " << param_vars[i].to_string() << " and "
+                       << param_vars[i - 1].to_string() << " is not the same";
+        }
         continue;
       } else {
         auto& cur_param_var = param_vars[i];

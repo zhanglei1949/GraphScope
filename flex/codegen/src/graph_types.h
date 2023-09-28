@@ -51,6 +51,13 @@ struct ParamConst {
   DataType type;
   std::string var_name;
   int32_t id;  // unique id for each param const
+
+  std::string to_string() const {
+    std::stringstream ss;
+    ss << "ParamConst{type: " << static_cast<int>(type)
+       << ", var_name: " << var_name << ", id: " << id << "}";
+    return ss.str();
+  }
 };
 
 // implement operator == for ParamConst
@@ -59,6 +66,9 @@ inline bool operator==(const ParamConst& lhs, const ParamConst& rhs) {
          lhs.id == rhs.id;
 }
 
+inline bool operator!=(const ParamConst& lhs, const ParamConst& rhs) {
+  return !(lhs == rhs);
+}
 }  // namespace codegen
 
 static codegen::DataType common_data_type_pb_2_data_type(
@@ -144,6 +154,8 @@ static std::string arith_to_str(const common::Arithmetic& arith_type) {
     return "*";
   case common::Arithmetic::DIV:
     return "/";
+  case common::Arithmetic::MOD:
+    return "%";
   default:
     throw std::runtime_error("unknown arith type");
   }
@@ -217,6 +229,8 @@ static std::string decode_type_as_str(const codegen::DataType& data_type) {
     return "get_string()";
   case codegen::DataType::kBoolean:
     return "get_bool()";
+  case codegen::DataType::kDate:
+    return "get_date()";
   default:
     // LOG(FATAL) << "unknown data type" << static_cast<int>(data_type);
     throw std::runtime_error("unknown data type when decode type as str: " +

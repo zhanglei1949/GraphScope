@@ -1327,7 +1327,8 @@ class EdgeExpand {
     offset.reserve(cur_set.Size() + 1);
     size_t size = 0;
     offset.emplace_back(size);
-    CHECK(cur_set.Size() == adj_list_array.size());
+    CHECK(cur_set.Size() == adj_list_array.size())
+        << "size: " << cur_set.Size() << ", " << adj_list_array.size();
     std::vector<std::tuple<vertex_id_t, vertex_id_t, std::tuple<T>>>
         prop_tuples;
     prop_tuples.reserve(cur_set.Size() + 1);

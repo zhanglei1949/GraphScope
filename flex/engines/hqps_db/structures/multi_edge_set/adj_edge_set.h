@@ -312,6 +312,7 @@ class AdjEdgeSet {
   std::pair<RowVertexSet<LabelT, VID_T, grape::EmptyType>, std::vector<size_t>>
   GetVertices(VOpt v_opt, std::array<LabelT, num_labels>& labels,
               EXPR& expr) const {
+    VLOG(10) << "GetVertices in AdjEdgeSet";
     if (dir_ == Direction::In) {
       CHECK(v_opt == VOpt::Start || v_opt == VOpt::Other);
     } else if (dir_ == Direction::Out) {

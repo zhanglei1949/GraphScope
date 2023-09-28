@@ -355,8 +355,24 @@ class ExprBuilder {
       auto param_const =
           param_const_pb_to_param_const(param_const_pb, param_node_type);
       VLOG(10) << "receive param const: " << param_const_pb.DebugString();
-      make_var_name_unique(param_const);
-      construct_params_.push_back(param_const);
+      // the param can appear multiple times in one query, so use param.id to
+      // make it unique
+      std::string var_name;
+      {
+        bool flag = false;
+        for (auto i = 0; i < construct_params_.size(); ++i) {
+          if (construct_params_[i].id == param_const.id) {
+            flag = true;
+            var_name = construct_params_[i].var_name;
+            break;
+          }
+        }
+        if (!flag) {
+          make_var_name_unique(param_const);
+          construct_params_.push_back(param_const);
+          var_name = param_const.var_name;
+        }
+      }
       expr_nodes_.emplace_back(param_const.var_name + "_");
       break;
     }

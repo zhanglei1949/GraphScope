@@ -49,6 +49,9 @@ bool sanity_check(const common::Case& expr_case) {
   return true;
 }
 
+// 1. col_ids concatenated
+// 2. expr_constructor_param_str concatenated
+// 3. expr_selector_str concatenated
 std::tuple<std::string, std::string, std::string> concatenate_expr_built_result(
     BuildingContext& ctx,
     const std::vector<codegen::ParamConst>& func_construct_param_const,
@@ -57,7 +60,7 @@ std::tuple<std::string, std::string, std::string> concatenate_expr_built_result(
   {
     std::stringstream ss;
     for (auto i = 0; i < expr_selectors.size(); ++i) {
-      ss << expr_selectors[i].first;
+      ss << "INPUT_COL_ID(" << expr_selectors[i].first << ")";
       if (i != expr_selectors.size() - 1) {
         ss << ", ";
       }
@@ -66,9 +69,6 @@ std::tuple<std::string, std::string, std::string> concatenate_expr_built_result(
   }
   {
     std::stringstream ss;
-    if (func_construct_param_const.size() > 0) {
-      ss << ", ";
-    }
     for (auto i = 0; i < func_construct_param_const.size(); ++i) {
       ss << func_construct_param_const[i].var_name;
       if (i != func_construct_param_const.size() - 1) {
@@ -80,7 +80,7 @@ std::tuple<std::string, std::string, std::string> concatenate_expr_built_result(
   {
     std::stringstream ss;
     if (expr_selectors.size() > 0) {
-      ss << ", ";
+      ss << ",";
     }
     for (auto i = 0; i < expr_selectors.size(); ++i) {
       ss << expr_selectors[i].second;

@@ -50,6 +50,8 @@ class GraphDB {
   void Init(const Schema& schema, const LoadingConfig& config,
             const std::string& data_dir, int thread_num = 1);
 
+  void Init(const std::string& data_dir, int thread_num = 1);
+
   /** @brief Create a transaction to read vertices and edges.
    *
    * @return graph_dir The directory of graph data.

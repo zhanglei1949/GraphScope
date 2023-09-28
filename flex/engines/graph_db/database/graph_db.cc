@@ -113,6 +113,42 @@ void GraphDB::Init(const Schema& schema, const LoadingConfig& load_config,
   initApps(schema.GetPluginsList());
 }
 
+void GraphDB::Init(const std::string& data_dir, int32_t thread_num) {
+  std::filesystem::path data_dir_path(data_dir);
+  if (!std::filesystem::exists(data_dir)) {
+    LOG(FATAL) << "data_dir not exists: " << data_dir;
+  }
+
+  std::filesystem::path serial_path = data_dir_path / "init_snapshot.bin";
+  if (std::filesystem::exists(serial_path)) {
+    LOG(INFO) << "Initializing graph db from data files of work directory";
+    graph_.Deserialize(data_dir);
+  }
+
+  std::filesystem::path wal_dir = data_dir_path / "wal";
+  if (!std::filesystem::exists(wal_dir)) {
+    std::filesystem::create_directory(wal_dir);
+  }
+  std::vector<std::string> wal_files;
+  for (const auto& entry : std::filesystem::directory_iterator(wal_dir)) {
+    wal_files.push_back(entry.path().string());
+  }
+
+  thread_num_ = thread_num;
+  contexts_ = static_cast<SessionLocalContext*>(
+      aligned_alloc(4096, sizeof(SessionLocalContext) * thread_num));
+  for (int i = 0; i < thread_num_; ++i) {
+    new (&contexts_[i]) SessionLocalContext(*this, i);
+  }
+  ingestWals(wal_files, thread_num_);
+
+  for (int i = 0; i < thread_num_; ++i) {
+    contexts_[i].logger.open(wal_dir.string(), i);
+  }
+
+  initApps(graph_.schema().GetPluginsList());
+}
+
 ReadTransaction GraphDB::GetReadTransaction() {
   uint32_t ts = version_manager_.acquire_read_timestamp();
   return {graph_, version_manager_, ts};

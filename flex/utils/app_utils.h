@@ -20,6 +20,8 @@
 #include <string_view>
 #include <vector>
 
+#include "flex/utils/property/types.h"
+
 namespace gs {
 
 class Encoder {
@@ -27,6 +29,8 @@ class Encoder {
   Encoder(std::vector<char>& buf) : buf_(buf) {}
 
   void put_long(int64_t v);
+
+  void put_date(const Date& date);
 
   size_t skip_long();
 
@@ -64,6 +68,8 @@ class Decoder {
   int get_int();
 
   int64_t get_long();
+
+  Date get_date();
 
   std::string_view get_string();
 

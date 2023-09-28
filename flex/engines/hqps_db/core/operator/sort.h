@@ -249,8 +249,8 @@ class SortOp {
       const GRAPH_INTERFACE& graph,
       Context<CTX_HEAD_T, cur_alias, base_tag, CTX_PREV_T...>&& ctx,
       std::tuple<ORDER_PAIRS...>&& tuples, size_t limit) {
-    VLOG(10) << "[SortTopK]: limit: " << limit
-             << ", input size: " << ctx.GetHead().Size();
+    LOG(INFO) << "[SortTopK]: limit: " << limit
+              << ", input size: " << ctx.GetHead().Size();
     std::apply(
         [](auto&... args) {
           ((LOG(INFO) << "SortTopK: " << args.name << " "), ...);

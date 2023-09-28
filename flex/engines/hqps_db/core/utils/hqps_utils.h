@@ -794,7 +794,7 @@ struct to_string_impl<grape::EmptyType> {
 template <>
 struct to_string_impl<uint8_t> {
   static inline std::string to_string(const uint8_t& empty) {
-    return std::to_string((int32_t) empty);
+    return std::to_string(empty);
   }
 };
 
