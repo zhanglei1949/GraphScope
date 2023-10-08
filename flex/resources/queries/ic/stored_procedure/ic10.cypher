@@ -2,7 +2,7 @@ MATCH (person:PERSON {id: $personId})-[:KNOWS*2..3]-(friend: PERSON)
 WHERE NOT friend=person AND NOT (friend:PERSON)-[:KNOWS]-(person :PERSON {id: $personId})
 WITH  friend, friend.birthday as birthday
 WHERE  (birthday.month=$month AND birthday.day>=21) OR
-        ((birthday.month =($month+1) % 12) AND birthday.day<22)
+        ((birthday.month =($month % 12) + 1) AND birthday.day<22)
 WITH DISTINCT friend
 
 OPTIONAL MATCH (friend : PERSON)<-[:HASCREATOR]-(post:POST)

@@ -113,9 +113,9 @@ void validate_all(const gs::MutableCSRInterface& graph,
   // validate<gs::IC7>(graph, validate_dir + "/validation_params_ic7.csv");
   // validate<gs::IC8>(graph, validate_dir + "/validation_params_ic8.csv");
   // validate<gs::IC9>(graph, validate_dir + "/validation_params_ic9.csv");
-  // validate<gs::IC10>(graph, validate_dir + "/validation_params_ic10.csv");
+  validate<gs::IC10>(graph, validate_dir + "/validation_params_ic10.csv");
   //  validate<gs::IC11>(graph, validate_dir + "/validation_params_ic11.csv");
-  validate<gs::IC12>(graph, validate_dir + "/validation_params_ic12.csv");
+  // validate<gs::IC12>(graph, validate_dir + "/validation_params_ic12.csv");
 }
 
 int main(int argc, char** argv) {
