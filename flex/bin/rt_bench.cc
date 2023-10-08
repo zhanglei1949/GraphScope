@@ -90,13 +90,28 @@ class Req {
         .then([&] { return do_query(ref); });
   }
 
+  seastar::future<> do_hqps_query(server::executor_ref& ref) {
+    auto id = cur_.fetch_add(1);
+    if (id >= num_of_reqs_) {
+      return seastar::make_ready_future<>();
+    }
+    start_[id] = std::chrono::system_clock::now();
+    return ref.run_hqps_benchmark(server::query_param{reqs_[id]})
+        .then_wrapped(
+            [&, id](seastar::future<server::query_result>&& fut) mutable {
+              auto result = fut.get0();
+              end_[id] = std::chrono::system_clock::now();
+            })
+        .then([&] { return do_query(ref); });
+  }
+
   seastar::future<> simulate() {
     hiactor::scope_builder builder;
     builder.set_shard(hiactor::local_shard_id())
         .enter_sub_scope(hiactor::scope<server::executor_group>(0));
     return seastar::do_with(
         builder.build_ref<server::executor_ref>(0),
-        [&](server::executor_ref& ref) { return do_query(ref); });
+        [&](server::executor_ref& ref) { return do_hqps_query(ref); });
   }
 
   void output() {
@@ -113,11 +128,14 @@ class Req {
       vec[id] += tmp;
       count[id] += 1;
     }
-    std::vector<std::string> queries = {
-        "IC1", "IC2",  "IC3",  "IC4",  "IC5",  "IC6",  "IC7", "IC8",
-        "IC9", "IC10", "IC11", "IC12", "IC13", "IC14", "IS1", "IS2",
-        "IS3", "IS4",  "IS5",  "IS6",  "IS7",  "IU1",  "IU2", "IU3",
-        "IU4", "IU5",  "IU6",  "IU7",  "IU8"};
+    // std::vector<std::string> queries = {
+    //     "IC1", "IC2",  "IC3",  "IC4",  "IC5",  "IC6",  "IC7", "IC8",
+    //     "IC9", "IC10", "IC11", "IC12", "IC13", "IC14", "IS1", "IS2",
+    //     "IS3", "IS4",  "IS5",  "IS6",  "IS7",  "IU1",  "IU2", "IU3",
+    //     "IU4", "IU5",  "IU6",  "IU7",  "IU8"};
+    std::vector<std::string> queries = {"IC1", "IC2",  "IC3",  "IC4",
+                                        "IC5", "IC6",  "IC7",  "IC8",
+                                        "IC9", "IC10", "IC11", "IC12"};
     for (auto i = 0; i < vec.size(); ++i) {
       size_t sz = ts[i].size();
       if (sz > 0) {
@@ -155,9 +173,7 @@ int main(int argc, char** argv) {
       "version,v", "Display version")("shard-num,s",
                                       bpo::value<uint32_t>()->default_value(1),
                                       "shard number of actor system")(
-      "graph-config,g", bpo::value<std::string>(), "graph schema config file")(
       "data-path,d", bpo::value<std::string>(), "data directory path")(
-      "bulk-load,l", bpo::value<std::string>(), "bulk-load config file")(
       "warmup-num,w", bpo::value<uint32_t>()->default_value(0),
       "num of warmup reqs")("benchmark-num,b",
                             bpo::value<uint32_t>()->default_value(0),
@@ -183,34 +199,20 @@ int main(int argc, char** argv) {
   bool enable_dpdk = false;
   uint32_t shard_num = vm["shard-num"].as<uint32_t>();
 
-  std::string graph_schema_path = "";
   std::string data_path = "";
-  std::string bulk_load_config_path = "";
 
   if (!vm.count("graph-config")) {
     LOG(ERROR) << "graph-config is required";
     return -1;
   }
-  graph_schema_path = vm["graph-config"].as<std::string>();
-  if (!vm.count("data-path")) {
-    LOG(ERROR) << "data-path is required";
-    return -1;
-  }
   data_path = vm["data-path"].as<std::string>();
-  if (vm.count("bulk-load")) {
-    bulk_load_config_path = vm["bulk-load"].as<std::string>();
-  }
 
   setenv("TZ", "Asia/Shanghai", 1);
   tzset();
 
   double t0 = -grape::GetCurrentTime();
   auto& db = gs::GraphDB::get();
-
-  auto schema = gs::Schema::LoadFromYaml(graph_schema_path);
-  auto loading_config =
-      gs::LoadingConfig::ParseFromYaml(schema, bulk_load_config_path);
-  db.Init(schema, loading_config, data_path, shard_num);
+  db.Init(data_path, shard_num);
 
   t0 += grape::GetCurrentTime();
   uint32_t warmup_num = vm["warmup-num"].as<uint32_t>();

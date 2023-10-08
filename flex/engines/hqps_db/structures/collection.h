@@ -432,11 +432,19 @@ class DistinctCountBuilder<1, tag_id, T> {
  public:
   DistinctCountBuilder(const std::vector<T>& vertices) {
     // find out the range of vertices inside vector, and use a bitset to count
+    // Except for the NULL vertices(expressed by MAX), we need to count the
+    // number
+    null_value = NullRecordCreator<T>::GetNull();
     for (auto v : vertices) {
+      if (v == null_value) {
+        continue;
+      }
       min_v = std::min(min_v, v);
       max_v = std::max(max_v, v);
     }
     range_size = max_v - min_v + 1;
+    VLOG(10) << "Min: " << min_v << ", range size: " << range_size
+             << ", max: " << max_v << ", null: " << null_value;
   }
 
   template <typename ELE_TUPLE_T, typename DATA_TUPLE>
@@ -453,9 +461,13 @@ class DistinctCountBuilder<1, tag_id, T> {
     }
     auto& cur_bitset = vec_[ind];
     auto cur_v = std::get<1>(cur_ind_ele);
+    if (cur_v == null_value) {
+      return;
+    }
     cur_bitset.set_bit(cur_v - min_v);
-    // VLOG(10) << "tag id: " << tag_id << "insert at ind: " << ind
-    //          << ",value : " << cur_v << ", res: " << cur_bitset.count();
+    VLOG(10) << "[DistinctCount]: tag id: " << tag_id
+             << "insert at ind: " << ind << ",value : " << cur_v
+             << ", res: " << cur_bitset.count();
   }
 
   Collection<size_t> Build() {
@@ -469,7 +481,7 @@ class DistinctCountBuilder<1, tag_id, T> {
 
  private:
   std::vector<grape::Bitset> vec_;
-  T min_v, max_v, range_size;
+  T min_v, max_v, range_size, null_value;
 };
 
 // specialization for DistinctCountBuilder for num_labels=2

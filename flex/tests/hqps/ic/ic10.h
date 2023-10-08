@@ -59,11 +59,11 @@ struct IC10left_left_left_left_expr2 {
   IC10left_left_left_left_expr2(int64_t month) : month_(month) {}
 
   inline auto operator()(Date var5, Date var6, Date var7, Date var8) const {
-    return gs::DateTimeExtractor<Interval::MONTH>::extract(var5) == month_ &&
-               gs::DateTimeExtractor<Interval::DAY>::extract(var6) >= 21 ||
-           (gs::DateTimeExtractor<Interval::MONTH>::extract(var7) + 11) % 12 ==
-                   month_ &&
-               gs::DateTimeExtractor<Interval::DAY>::extract(var8) < 22;
+    return (gs::DateTimeExtractor<Interval::MONTH>::extract(var5) == month_ &&
+            gs::DateTimeExtractor<Interval::DAY>::extract(var6) >= 21) ||
+           (((gs::DateTimeExtractor<Interval::MONTH>::extract(var7)) % 12 ==
+             (month_ + 1) % 12) &&
+            gs::DateTimeExtractor<Interval::DAY>::extract(var8) < 22);
   }
 
  private:
@@ -184,6 +184,7 @@ class IC10 {
         Engine::template Join<0, 1, 0, 1, gs::JoinKind::AntiJoin>(
             std::move(left_left_left_left_ctx1),
             std::move(left_left_left_right_ctx2));
+
     auto left_left_left_left_expr2 =
         gs::make_filter(IC10left_left_left_left_expr1(),
                         gs::PropertySelector<grape::EmptyType>("None"),
@@ -199,6 +200,7 @@ class IC10 {
                        gs::PropertySelector<grape::EmptyType>("")),
                    gs::make_mapper_with_variable<INPUT_COL_ID(1)>(
                        gs::PropertySelector<Date>("birthday"))});
+
     auto left_left_left_left_expr3 = gs::make_filter(
         IC10left_left_left_left_expr2(month),
         gs::PropertySelector<Date>("None"), gs::PropertySelector<Date>("None"),
@@ -298,7 +300,7 @@ class IC10 {
         gs::PropertySelector<grape::EmptyType>("None"));
 
     auto left_left_left_left_agg_func13 =
-        gs::make_aggregate_prop<gs::AggFunc::COUNT>(
+        gs::make_aggregate_prop<gs::AggFunc::COUNT_DISTINCT>(
             std::tuple{gs::PropertySelector<grape::EmptyType>("None")},
             std::integer_sequence<int32_t, 4>{});
 

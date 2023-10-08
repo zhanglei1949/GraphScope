@@ -20,6 +20,20 @@
 #include "flex/engines/http_server/codegen_proxy.h"
 #include "flex/engines/http_server/stored_procedure.h"
 
+// Temporally included for benchmark
+#include "flex/tests/hqps/ic/ic1.h"
+#include "flex/tests/hqps/ic/ic2.h"
+#include "flex/tests/hqps/ic/ic3.h"
+#include "flex/tests/hqps/ic/ic4.h"
+#include "flex/tests/hqps/ic/ic5.h"
+#include "flex/tests/hqps/ic/ic6.h"
+//#include "flex/tests/hqps/ic/ic7.h"
+// #include "flex/tests/hqps/ic/ic10.h"
+#include "flex/tests/hqps/ic/ic11.h"
+#include "flex/tests/hqps/ic/ic12.h"
+#include "flex/tests/hqps/ic/ic8.h"
+#include "flex/tests/hqps/ic/ic9.h"
+
 #include <seastar/core/print.hh>
 
 namespace server {
@@ -43,6 +57,34 @@ seastar::future<query_result> executor::run_graph_db_query(
                  .Eval(param.content);
   seastar::sstring content(ret.data(), ret.size());
   return seastar::make_ready_future<query_result>(std::move(content));
+}
+
+// run_query_for stored_procedure
+seastar::future<query_result> executor::run_hqps_benchmark(
+    query_param&& param) {
+  gs::MutableCSRInterface graph_store(
+      gs::GraphDB::get().GetSession(hiactor::local_shard_id()));
+  auto& str = param.content;
+  const char* str_data = str.data();
+  size_t str_length = str.size();
+  LOG(INFO) << "Receive pay load: " << str_length << " bytes";
+  uint8_t type = str.back();
+  size_t payload_length = str_length - 1;
+
+  std::vector<char> result_buffer;
+
+  gs::Decoder decoder(str_data, payload_length);
+  gs::Encoder encoder(result_buffer);
+
+  switch (type) {
+  case 1:
+    thread_local gs::IC1 ic1;
+    VLOG(10) << "Run IC1";
+    ic1.Query(graph_store, decoder, encoder);
+    break;
+  }
+  return seastar::make_ready_future<query_result>(
+      seastar::sstring(result_buffer.data(), result_buffer.size()));
 }
 
 // run_query_for stored_procedure
