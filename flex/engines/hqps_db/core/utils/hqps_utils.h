@@ -213,9 +213,9 @@ template <
 constexpr auto remove_nth_element_impl(std::index_sequence<Head...>,
                                        std::index_sequence<Tail...>,
                                        const std::tuple<Types...>& tup) {
-  return std::tuple{std::get<Head>(tup)...,
-                    // We +1 to refer one element after the one removed
-                    std::get<Tail + nth + 1>(tup)...};
+  return std::make_tuple(std::get<Head>(tup)...,
+                         // We +1 to refer one element after the one removed
+                         std::get<Tail + nth + 1>(tup)...);
 }
 
 template <
@@ -225,7 +225,7 @@ template <
 constexpr auto remove_nth_element_impl(std::index_sequence<Head...>,
                                        std::index_sequence<Tail...>,
                                        const std::tuple<Types...>& tup) {
-  return std::tuple{std::get<Head>(tup)...};
+  return std::make_tuple(std::get<Head>(tup)...);
 }
 
 template <std::size_t nth, typename... Types>

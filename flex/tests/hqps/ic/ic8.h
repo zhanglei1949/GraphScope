@@ -33,10 +33,12 @@ class IC8 {
   void Query(const gs::MutableCSRInterface& graph, Decoder& input,
              Encoder& output) const {
     int64_t personId = input.get_long();
-    auto expr0 = gs::make_filter(IC8expr0(personId),
-                                 gs::PropertySelector<int64_t>("id"));
-    auto ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
-        graph, 1, std::move(expr0));
+    // auto expr0 = gs::make_filter(IC8expr0(personId),
+    //                              gs::PropertySelector<int64_t>("id"));
+    // auto ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
+    //     graph, 1, std::move(expr0));
+    auto ctx0 = Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(
+        graph, 1, personId);
 
     auto edge_expand_opt0 = gs::make_edge_expandv_opt(
         gs::Direction::In, (label_id_t) 0,

@@ -137,12 +137,15 @@ class IC10 {
     int64_t personId = input.get_long();
     int64_t month = input.get_int();
 
-    auto left_left_left_left_expr0 =
-        gs::make_filter(IC10left_left_left_left_expr0(personId),
-                        gs::PropertySelector<int64_t>("id"));
+    // auto left_left_left_left_expr0 =
+    //     gs::make_filter(IC10left_left_left_left_expr0(personId),
+    //                     gs::PropertySelector<int64_t>("id"));
+    // auto left_left_left_left_ctx0 =
+    //     Engine::template ScanVertex<gs::AppendOpt::Persist>(
+    //         graph, 1, std::move(left_left_left_left_expr0));
     auto left_left_left_left_ctx0 =
-        Engine::template ScanVertex<gs::AppendOpt::Persist>(
-            graph, 1, std::move(left_left_left_left_expr0));
+        Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(graph, 1,
+                                                                   personId);
 
     auto left_left_left_left_edge_expand_opt1 = gs::make_edge_expandv_opt(
         gs::Direction::Both, (label_id_t) 8, (label_id_t) 1);
@@ -158,12 +161,15 @@ class IC10 {
             graph, std::move(left_left_left_left_ctx0),
             std::move(left_left_left_left_path_opt2));
 
-    auto left_left_left_right_expr0 =
-        gs::make_filter(IC10left_left_left_right_expr0(personId),
-                        gs::PropertySelector<int64_t>("id"));
+    // auto left_left_left_right_expr0 =
+    //     gs::make_filter(IC10left_left_left_right_expr0(personId),
+    //                     gs::PropertySelector<int64_t>("id"));
+    // auto left_left_left_right_ctx0 =
+    //     Engine::template ScanVertex<gs::AppendOpt::Persist>(
+    //         graph, 1, std::move(left_left_left_right_expr0));
     auto left_left_left_right_ctx0 =
-        Engine::template ScanVertex<gs::AppendOpt::Persist>(
-            graph, 1, std::move(left_left_left_right_expr0));
+        Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(graph, 1,
+                                                                   personId);
 
     auto left_left_left_right_edge_expand_opt0 = gs::make_edge_expandv_opt(
         gs::Direction::Both, (label_id_t) 8, (label_id_t) 1);
@@ -276,10 +282,14 @@ class IC10 {
                         std::tuple{left_left_left_left_group_key9},
                         std::tuple{left_left_left_left_agg_func10});
 
-    auto left_right_expr0 = gs::make_filter(
-        IC10left_right_expr0(personId), gs::PropertySelector<int64_t>("id"));
-    auto left_right_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
-        graph, 1, std::move(left_right_expr0));
+    // auto left_right_expr0 = gs::make_filter(
+    //     IC10left_right_expr0(personId), gs::PropertySelector<int64_t>("id"));
+    // auto left_right_ctx0 = Engine::template
+    // ScanVertex<gs::AppendOpt::Persist>(
+    //     graph, 1, std::move(left_right_expr0));
+    auto left_right_ctx0 =
+        Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(graph, 1,
+                                                                   personId);
 
     auto left_right_edge_expand_opt0 = gs::make_edge_expandv_opt(
         gs::Direction::Out, (label_id_t) 6, (label_id_t) 7);

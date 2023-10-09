@@ -497,6 +497,8 @@ class TwoLabelVertexSetIter {
   using self_type_t = TwoLabelVertexSetIter<VID_T, T...>;
   using ele_tuple_t = std::pair<int32_t, VID_T>;
   using index_ele_tuple_t = std::tuple<size_t, int32_t, VID_T>;
+  using index_ele_data_tuple_t =
+      std::tuple<size_t, int32_t, VID_T, std::tuple<T...>>;
 
   using data_tuple_t = std::tuple<T...>;
 
@@ -520,6 +522,14 @@ class TwoLabelVertexSetIter {
       return std::make_tuple(ind_, 0, vec_[ind_]);
     } else {
       return std::make_tuple(ind_, 1, vec_[ind_]);
+    }
+  }
+
+  index_ele_data_tuple_t GetIndexElementWithData() const {
+    if (bitset_.get_bit(ind_)) {
+      return std::make_tuple(ind_, 0, vec_[ind_], data_[ind_]);
+    } else {
+      return std::make_tuple(ind_, 1, vec_[ind_], data_[ind_]);
     }
   }
 
@@ -567,6 +577,7 @@ class TwoLabelVertexSetIter<VID_T, grape::EmptyType> {
   using self_type_t = TwoLabelVertexSetIter<VID_T, grape::EmptyType>;
   using ele_tuple_t = std::pair<int32_t, lid_t>;
   using index_ele_tuple_t = std::tuple<size_t, int32_t, VID_T>;
+  using index_ele_data_tuple_t = std::tuple<size_t, int32_t, VID_T>;
 
   using data_tuple_t = std::tuple<grape::EmptyType>;
 
@@ -590,6 +601,10 @@ class TwoLabelVertexSetIter<VID_T, grape::EmptyType> {
     } else {
       return std::make_tuple(ind_, 1, vec_[ind_]);
     }
+  }
+
+  index_ele_data_tuple_t GetIndexElementWithData() const {
+    return GetIndexElement();
   }
 
   lid_t GetVertex() const { return vec_[ind_]; }
@@ -637,6 +652,8 @@ class TwoLabelVertexSetImpl {
   using self_type_t = TwoLabelVertexSetImpl<VID_T, LabelT, T...>;
   using iterator = TwoLabelVertexSetIter<VID_T, T...>;
   using index_ele_tuple_t = std::tuple<size_t, int32_t, VID_T>;
+  using index_ele_data_tuple_t =
+      std::tuple<size_t, int32_t, VID_T, std::tuple<T...>>;
   using data_tuple_t = std::tuple<T...>;
   using flat_t = self_type_t;
   using EntityValueType = VID_T;
@@ -934,6 +951,7 @@ class TwoLabelVertexSetImpl<VID_T, LabelT, grape::EmptyType> {
   using self_type_t = TwoLabelVertexSetImpl<VID_T, LabelT, grape::EmptyType>;
   using iterator = TwoLabelVertexSetIter<VID_T, grape::EmptyType>;
   using index_ele_tuple_t = std::tuple<size_t, int32_t, VID_T>;
+  using index_ele_data_tuple_t = index_ele_tuple_t;
   using data_tuple_t = std::tuple<grape::EmptyType>;
   using flat_t = self_type_t;
   using EntityValueType = VID_T;

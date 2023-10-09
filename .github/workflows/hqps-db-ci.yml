@@ -122,14 +122,14 @@ jobs:
           eval ${cmd}
         done
 
-        for i in 1;
-        do
-          cmd="GLOG_v=10 ./load_plan_and_gen.sh -e=hqps -i=../resources/queries/ic/stored_procedure/ic${i}.cypher -w=/tmp/codgen/"
-          cmd=${cmd}" -o=/tmp/plugin --ir_conf=${GS_TEST_DIR}/flex/ldbc-sf01-long-date/engine_config.yaml "
-          cmd=${cmd}" --graph_schema_path=${INTERACTIVE_WORKSPACE}/data/ldbc/graph.yaml"
-          echo $cmd
-          eval ${cmd}
-        done
+for i in 5;
+do
+  cmd="GLOG_v=10 ./load_plan_and_gen.sh -e=hqps -i=../resources/queries/ic/stored_procedure/ic${i}_v2.cypher -w=/tmp/codgen/"
+  cmd=${cmd}" -o=/tmp/plugin --ir_conf=${GS_TEST_DIR}/flex/ldbc-sf01-long-date/engine_config.yaml "
+  cmd=${cmd}" --graph_schema_path=${INTERACTIVE_WORKSPACE}/data/ldbc/graph.yaml"
+  echo $cmd
+  eval ${cmd}
+done
 
         for i in 1 2 3 4 5 6 7 8 9;
         do
@@ -139,6 +139,14 @@ jobs:
           echo $cmd
           eval ${cmd}
         done
+for i in 10;
+do
+  cmd="./load_plan_and_gen.sh -e=hqps -i=../resources/queries/ic/adhoc/simple_match_${i}.cypher -w=/tmp/codgen/"
+  cmd=${cmd}" -o=/tmp/plugin --ir_conf=${GS_TEST_DIR}/flex/ldbc-sf01-long-date/engine_config.yaml "
+  cmd=${cmd}" --graph_schema_path=${INTERACTIVE_WORKSPACE}/data/ldbc/graph.yaml"
+  echo $cmd
+  eval ${cmd}
+done
 
         # test movie graph, 8,9,10 are not supported now
         # change the default_graph config in ${GS_TEST_DIR}/flex/ldbc-sf01-long-date/engine_config.yaml to movies

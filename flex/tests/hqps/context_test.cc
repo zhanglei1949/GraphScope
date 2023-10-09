@@ -462,5 +462,18 @@ int main() {
                   0, grape::EmptyType>>::result_t;
   }
 
+  {
+    std::tuple<std::tuple<int32_t, double>, std::tuple<int32_t, double>,
+               std::tuple<int32_t, double>>
+        tuple = {{1, 2.0}, {2, 3.0}, {3, 4.0}};
+    LOG(INFO) << gs::to_string(gs::remove_ith_jth_element<0, 1>(tuple));
+    auto a = gs::remove_nth_element<1>(tuple);
+    LOG(INFO) << gs::to_string(a);
+    auto b = gs::remove_nth_element<0>(a);
+    LOG(INFO) << gs::to_string(b);
+    auto c = std::make_tuple(std::make_tuple(1, 2));
+    LOG(INFO) << gs::to_string(c);
+  }
+
   LOG(INFO) << "Finish context test.";
 }

@@ -44,6 +44,7 @@ class KeyedRowVertexSetIter {
   using data_tuple_t = typename std::tuple<T...>;
   using self_type_t = KeyedRowVertexSetIter<LabelT, KEY_T, VID_T, T...>;
   using index_ele_tuple_t = std::tuple<size_t, VID_T>;
+  using index_ele_data_tuple_t = std::tuple<size_t, VID_T, data_tuple_t>;
   // from this tuple, we can reconstruct the partial set.
   using flat_ele_tuple_t = std::tuple<size_t, VID_T, std::tuple<T...>>;
 
@@ -65,8 +66,12 @@ class KeyedRowVertexSetIter {
 
   lid_t GetElement() const { return vids_[ind_]; }
 
-  index_ele_tuple_t GetIndexElement() const {
+  inline index_ele_tuple_t GetIndexElement() const {
     return std::make_tuple(ind_, vids_[ind_]);
+  }
+
+  inline index_ele_data_tuple_t GetIndexElementWithData() const {
+    return std::make_tuple(ind_, vids_[ind_], datas_[ind_]);
   }
 
   flat_ele_tuple_t GetFlatElement() const {
@@ -136,6 +141,7 @@ class KeyedRowVertexSetIter<LabelT, KEY_T, VID_T, grape::EmptyType> {
   using self_type_t =
       KeyedRowVertexSetIter<LabelT, KEY_T, VID_T, grape::EmptyType>;
   using index_ele_tuple_t = std::tuple<size_t, VID_T>;
+  using index_ele_data_tuple_t = std::tuple<size_t, VID_T, data_tuple_t>;
 
   // from this tuple, we can reconstruct the partial set.
   using flat_ele_tuple_t = std::tuple<size_t, VID_T>;
@@ -158,6 +164,10 @@ class KeyedRowVertexSetIter<LabelT, KEY_T, VID_T, grape::EmptyType> {
 
   index_ele_tuple_t GetIndexElement() const {
     return std::make_tuple(ind_, vids_[ind_]);
+  }
+
+  index_ele_data_tuple_t GetIndexElementWithData() const {
+    return std::make_tuple(ind_, vids_[ind_], GetData());
   }
 
   flat_ele_tuple_t GetFlatElement() const {
@@ -508,6 +518,7 @@ class KeyedRowVertexSetImpl {
   using filtered_vertex_set = self_type_t;
   using ground_vertex_set_t = RowVertexSet<LabelT, VID_T, T...>;
   using index_ele_tuple_t = std::tuple<size_t, VID_T>;
+  using index_ele_data_tuple_t = std::tuple<size_t, VID_T, data_tuple_t>;
   // from this tuple, we can reconstruct the partial set.
   using flat_ele_tuple_t = std::tuple<size_t, VID_T, std::tuple<T...>>;
   using EntityValueType = VID_T;
@@ -735,6 +746,7 @@ class KeyedRowVertexSetImpl<LabelT, KEY_T, VID_T, grape::EmptyType> {
   using filtered_vertex_set = self_type_t;
   using ground_vertex_set_t = RowVertexSet<LabelT, VID_T, grape::EmptyType>;
   using index_ele_tuple_t = std::tuple<size_t, VID_T>;
+  using index_ele_data_tuple_t = std::tuple<size_t, VID_T, data_tuple_t>;
   // from this tuple, we can reconstruct the partial set.
   using flat_ele_tuple_t = std::tuple<size_t, VID_T>;
   using EntityValueType = VID_T;

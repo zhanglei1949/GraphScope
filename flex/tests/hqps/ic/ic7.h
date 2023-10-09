@@ -78,10 +78,12 @@ class IC7 {
   void Query(const gs::MutableCSRInterface& graph, Decoder& input,
              Encoder& output) const {
     auto personId = input.get_long();
-    auto left_expr0 = gs::make_filter(IC7left_expr0(personId),
-                                      gs::PropertySelector<int64_t>("id"));
-    auto left_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
-        graph, 1, std::move(left_expr0));
+    // auto left_expr0 = gs::make_filter(IC7left_expr0(personId),
+    //                                   gs::PropertySelector<int64_t>("id"));
+    // auto left_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
+    //     graph, 1, std::move(left_expr0));
+    auto left_ctx0 = Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(
+        graph, 1, personId);
 
     auto left_edge_expand_opt0 = gs::make_edge_expandv_opt(
         gs::Direction::In, (label_id_t) 0,
@@ -103,10 +105,13 @@ class IC7 {
         Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
             graph, std::move(left_ctx2), std::move(left_get_v_opt2));
 
-    auto right_expr0 = gs::make_filter(IC7right_expr0(personId),
-                                       gs::PropertySelector<int64_t>("id"));
-    auto right_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
-        graph, 1, std::move(right_expr0));
+    // auto right_expr0 = gs::make_filter(IC7right_expr0(personId),
+    //    gs::PropertySelector<int64_t>("id"));
+    // auto right_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
+    //     graph, 1, std::move(right_expr0));
+    auto right_ctx0 =
+        Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(graph, 1,
+                                                                   personId);
 
     auto right_edge_expand_opt0 = gs::make_edge_expande_opt<int64_t>(
         gs::PropNameArray<int64_t>{"creationDate"}, gs::Direction::Both,

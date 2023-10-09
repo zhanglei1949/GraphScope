@@ -59,10 +59,12 @@ class IC9 {
              Encoder& output) {
     int64_t personId = input.get_long();
     int64_t maxDate = input.get_long();
-    auto expr0 = gs::make_filter(IC9expr0(personId),
-                                 gs::PropertySelector<int64_t>("id"));
-    auto ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
-        graph, 1, std::move(expr0));
+    // auto expr0 = gs::make_filter(IC9expr0(personId),
+    //                              gs::PropertySelector<int64_t>("id"));
+    // auto ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
+    //     graph, 1, std::move(expr0));
+    auto ctx0 = Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(
+        graph, 1, personId);
 
     auto edge_expand_opt1 = gs::make_edge_expandv_opt(
         gs::Direction::Both, (label_id_t) 8, (label_id_t) 1);

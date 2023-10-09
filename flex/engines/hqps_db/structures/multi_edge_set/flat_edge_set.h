@@ -436,6 +436,7 @@ class SingleLabelEdgeSetIter {
   using ele_tuple_t = std::tuple<VID_T, VID_T, EDATA_T>;
   using self_type_t = SingleLabelEdgeSetIter<VID_T, LabelT, EDATA_T>;
   using index_ele_tuple_t = std::tuple<size_t, ele_tuple_t>;
+  using index_ele_data_tuple_t = index_ele_tuple_t;
   using data_tuple_t = ele_tuple_t;
   SingleLabelEdgeSetIter(const std::vector<ele_tuple_t>& vec, size_t ind)
       : vec_(vec), ind_(ind) {}
@@ -443,6 +444,10 @@ class SingleLabelEdgeSetIter {
   ele_tuple_t GetElement() const { return vec_[ind_]; }
 
   index_ele_tuple_t GetIndexElement() const {
+    return std::make_tuple(ind_, GetElement());
+  }
+
+  index_ele_data_tuple_t GetIndexElementWithData() const {
     return std::make_tuple(ind_, GetElement());
   }
 
@@ -486,6 +491,7 @@ class SingleLabelEdgeSet {
  public:
   using ele_tuple_t = std::tuple<VID_T, VID_T, EDATA_T>;
   using index_ele_tuple_t = std::tuple<size_t, ele_tuple_t>;
+  using index_ele_data_tuple_t = index_ele_tuple_t;
   using iterator = SingleLabelEdgeSetIter<VID_T, LabelT, EDATA_T>;
   using self_type_t = SingleLabelEdgeSet<VID_T, LabelT, EDATA_T>;
   using flat_t = self_type_t;

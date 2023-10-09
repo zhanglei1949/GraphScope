@@ -463,11 +463,25 @@ static inline auto insert_into_builder_v2_impl(BuilderT& builder,
   return builder.Insert(ele, data);
 }
 
+template <typename BuilderT, typename ELE,
+          typename std::enable_if<
+              (BuilderT::is_row_vertex_set_builder)>::type* = nullptr>
+static inline auto insert_into_builder_v3_impl(BuilderT& builder,
+                                               const ELE& ele_data) {
+  return builder.Insert(ele_data);
+}
+
 template <typename VID_T, typename LabelT, typename EDATA_T, typename ELE,
           typename DATA>
 static inline auto insert_into_builder_v2_impl(
     FlatEdgeSetBuilder<VID_T, LabelT, EDATA_T>& builder, const ELE& ele,
     const DATA& data) {
+  return builder.Insert(ele);
+}
+
+template <typename VID_T, typename LabelT, typename EDATA_T, typename ELE>
+static inline auto insert_into_builder_v3_impl(
+    FlatEdgeSetBuilder<VID_T, LabelT, EDATA_T>& builder, const ELE& ele) {
   return builder.Insert(ele);
 }
 
@@ -480,6 +494,14 @@ static inline auto insert_into_builder_v2_impl(BuilderT& builder,
   return builder.Insert(ele);
 }
 
+template <typename BuilderT, typename ELE,
+          typename std::enable_if<
+              (BuilderT::is_general_edge_set_builder)>::type* = nullptr>
+static inline auto insert_into_builder_v3_impl(BuilderT& builder,
+                                               const ELE& ele) {
+  return builder.Insert(ele);
+}
+
 template <
     typename BuilderT, typename ELE, typename DATA,
     typename std::enable_if<
@@ -488,6 +510,14 @@ template <
 static inline auto insert_into_builder_v2_impl(BuilderT& builder,
                                                const ELE& ele,
                                                const DATA& data) {
+  return builder.Insert(ele);
+}
+
+template <typename BuilderT, typename ELE,
+          typename std::enable_if<(BuilderT::is_two_label_set_builder)>::type* =
+              nullptr>
+static inline auto insert_into_builder_v3_impl(BuilderT& builder,
+                                               const ELE& ele) {
   return builder.Insert(ele);
 }
 
@@ -512,12 +542,27 @@ static inline auto insert_into_builder_v2_impl(BuilderT& builder,
   return builder.Insert(ele);
 }
 
+template <
+    typename BuilderT, typename ELE,
+    typename std::enable_if<(BuilderT::is_collection_builder)>::type* = nullptr>
+static inline auto insert_into_builder_v3_impl(BuilderT& builder,
+                                               const ELE& ele) {
+  return builder.Insert(ele);
+}
+
 // insert for adjEdgeSetBuilder
 template <typename ELE, typename DATA, typename GI, typename LabelT,
           typename VID_T, typename... EDATA_T>
 static inline auto insert_into_builder_v2_impl(
     AdjEdgeSetBuilder<GI, LabelT, VID_T, EDATA_T...>& builder, const ELE& ele,
     const DATA& data) {
+  return builder.Insert(ele);
+}
+
+template <typename ELE, typename GI, typename LabelT, typename VID_T,
+          typename... EDATA_T>
+static inline auto insert_into_builder_v3_impl(
+    AdjEdgeSetBuilder<GI, LabelT, VID_T, EDATA_T...>& builder, const ELE& ele) {
   return builder.Insert(ele);
 }
 
@@ -529,12 +574,26 @@ static inline auto insert_into_builder_v2_impl(
   return builder.Insert(ele);
 }
 
+template <typename ELE, typename GI, typename LabelT, typename VID_T>
+static inline auto insert_into_builder_v2_impl(
+    AdjEdgeSetBuilder<GI, LabelT, VID_T, grape::EmptyType>& builder,
+    const ELE& ele) {
+  return builder.Insert(ele);
+}
+
 // insert to single label edge label.
 template <typename ELE, typename DATA, typename LabelT, typename VID_T,
           typename EDATA_T>
 static inline auto insert_into_builder_v2_impl(
     SingleLabelEdgeSetBuilder<VID_T, LabelT, EDATA_T>& builder, const ELE& ele,
     const DATA& data) {
+  return builder.Insert(ele);
+}
+
+template <typename ELE, typename LabelT, typename VID_T, typename EDATA_T>
+static inline auto insert_into_builder_v3_impl(
+    SingleLabelEdgeSetBuilder<VID_T, LabelT, EDATA_T>& builder,
+    const ELE& ele) {
   return builder.Insert(ele);
 }
 

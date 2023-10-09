@@ -148,13 +148,18 @@ class CollectionIter {
   using inner_iter_t = typename std::vector<T>::const_iterator;
   using self_type_t = CollectionIter<T>;
   using index_ele_tuple_t = std::tuple<size_t, T>;
+  using index_ele_data_tuple_t = std::tuple<size_t, T>;
   CollectionIter(const std::vector<T>& vec, size_t ind)
       : vec_(vec), ind_(ind) {}
 
   T GetElement() const { return vec_[ind_]; }
 
-  index_ele_tuple_t GetIndexElement() const {
+  inline index_ele_tuple_t GetIndexElement() const {
     return std::make_tuple(ind_, vec_[ind_]);
+  }
+
+  inline index_ele_data_tuple_t GetIndexElementWithData() const {
+    return GetIndexElement();
   }
 
   T GetData() const { return vec_[ind_]; }
@@ -189,6 +194,7 @@ class CollectionIter<std::tuple<T>> {
   using inner_iter_t = typename std::vector<element_type>::const_iterator;
   using self_type_t = CollectionIter<element_type>;
   using index_ele_tuple_t = std::tuple<size_t, T>;
+  using index_ele_data_tuple_t = std::tuple<size_t, T>;
   CollectionIter(const std::vector<element_type>& vec, size_t ind)
       : vec_(vec), ind_(ind) {}
 
@@ -196,6 +202,10 @@ class CollectionIter<std::tuple<T>> {
 
   index_ele_tuple_t GetIndexElement() const {
     return std::make_tuple(ind_, std::get<0>(vec_[ind_]));
+  }
+
+  index_ele_data_tuple_t GetIndexElementWithData() const {
+    return GetIndexElement();
   }
 
   T GetData() const { return std::get<0>(vec_[ind_]); }
@@ -229,6 +239,7 @@ class Collection {
   using iterator = CollectionIter<T>;
   using data_tuple_t = typename iterator::data_tuple_t;
   using index_ele_tuple_t = typename iterator::index_ele_tuple_t;
+  using index_ele_data_tuple_t = typename iterator::index_ele_data_tuple_t;
   using flat_t = Collection<T>;
   using self_type_t = Collection<T>;
   using EntityValueType = T;
@@ -406,10 +417,10 @@ class CountBuilder {
       if (ele != NullRecordCreator<vid_t>::GetNull()) {
         ++vec_[ind];
       } else {
-        VLOG(10) << "ele is null";
+        VLOG(20) << "ele is null";
       }
     } else {
-      VLOG(10) << "inc:" << ind << ", " << gs::to_string(tuple);
+      VLOG(20) << "inc:" << ind << ", " << gs::to_string(tuple);
       ++vec_[ind];
     }
   }
@@ -465,7 +476,7 @@ class DistinctCountBuilder<1, tag_id, T> {
       return;
     }
     cur_bitset.set_bit(cur_v - min_v);
-    VLOG(10) << "[DistinctCount]: tag id: " << tag_id
+    VLOG(20) << "[DistinctCount]: tag id: " << tag_id
              << "insert at ind: " << ind << ",value : " << cur_v
              << ", res: " << cur_bitset.count();
   }

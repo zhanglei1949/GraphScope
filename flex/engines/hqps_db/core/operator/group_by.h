@@ -487,8 +487,8 @@ class GroupByOp {
       auto ind_ele_tuple = iter.GetAllIndexElement();
       auto data_tuple = iter.GetAllData();
       if (cur_cnt % batch_size == 0) {
-        VLOG(10) << "group by progress: " << cur_cnt << "/" << total_size;
-        VLOG(10) << "ele: " << gs::to_string(ele_tuple)
+        VLOG(20) << "group by progress: " << cur_cnt << "/" << total_size;
+        VLOG(20) << "ele: " << gs::to_string(ele_tuple)
                  << ", data:" << gs::to_string(data_tuple);
       }
       auto key_data_tuple =

@@ -164,6 +164,7 @@ class GeneralEdgeSetIter {
   using ele_tuple_t = std::tuple<VID_T, adj_list_iterator>;
   using data_tuple_t = ele_tuple_t;
   using index_ele_tuple_t = std::tuple<size_t, VID_T, adj_list_iterator>;
+  using index_ele_data_tuple_t = index_ele_tuple_t;
   using self_type_t = GeneralEdgeSetIter<GI, VID_T, T...>;
 
   GeneralEdgeSetIter(const std::vector<VID_T>& vids,
@@ -190,6 +191,10 @@ class GeneralEdgeSetIter {
   ele_tuple_t GetElement() const { return ele_tuple_t(GetSrc(), begin_); }
 
   index_ele_tuple_t GetIndexElement() const {
+    return std::make_tuple(ind_, GetSrc(), begin_);
+  }
+
+  index_ele_data_tuple_t GetIndexElementWithData() const {
     return std::make_tuple(ind_, GetSrc(), begin_);
   }
 
@@ -252,6 +257,7 @@ class GeneralEdgeSetIter<GI, VID_T, grape::EmptyType> {
   using ele_tuple_t = std::tuple<VID_T, adj_list_iterator>;
   using data_tuple_t = ele_tuple_t;
   using index_ele_tuple_t = std::tuple<size_t, VID_T, adj_list_iterator>;
+  using index_ele_data_tuple_t = index_ele_tuple_t;
   using self_type_t = GeneralEdgeSetIter<GI, VID_T, grape::EmptyType>;
 
   GeneralEdgeSetIter(const std::vector<VID_T>& vids,
@@ -280,6 +286,10 @@ class GeneralEdgeSetIter<GI, VID_T, grape::EmptyType> {
   ele_tuple_t GetElement() const { return ele_tuple_t(GetSrc(), begin_); }
 
   index_ele_tuple_t GetIndexElement() const {
+    return std::make_tuple(ind_, GetSrc(), begin_);
+  }
+
+  index_ele_data_tuple_t GetIndexElementWithData() const {
     return std::make_tuple(ind_, GetSrc(), begin_);
   }
 
@@ -390,6 +400,7 @@ class GeneralEdgeSet<2, GI, VID_T, LabelT, std::tuple<T...>, std::tuple<T...>> {
   using ele_tuple_t = std::tuple<VID_T, adj_list_iter_t>;
   using data_tuple_t = ele_tuple_t;
   using index_ele_tuple_t = std::tuple<size_t, VID_T, adj_list_iter_t>;
+  using index_ele_data_tuple_t = index_ele_tuple_t;
   using self_type_t =
       GeneralEdgeSet<2, GI, VID_T, LabelT, std::tuple<T...>, std::tuple<T...>>;
 
@@ -591,6 +602,7 @@ class GeneralEdgeSet<2, GI, VID_T, LabelT, std::tuple<grape::EmptyType>,
   using ele_tuple_t = std::tuple<VID_T, adj_list_iter_t>;
   using data_tuple_t = ele_tuple_t;
   using index_ele_tuple_t = std::tuple<size_t, VID_T, adj_list_iter_t>;
+  using index_ele_data_tuple_t = index_ele_tuple_t;
 
   using iterator = GeneralEdgeSetIter<GI, VID_T, grape::EmptyType>;
   using builder_t =

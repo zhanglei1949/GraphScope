@@ -229,6 +229,7 @@ class GeneralVertexSetIter {
   using lid_t = VID_T;
   using self_type_t = GeneralVertexSetIter<VID_T>;
   using index_ele_tuple_t = std::tuple<size_t, VID_T>;
+  using index_ele_data_tuple_t = std::tuple<size_t, VID_T>;
   using data_tuple_t = std::tuple<VID_T>;
 
   GeneralVertexSetIter(const std::vector<VID_T>& vec,
@@ -240,6 +241,10 @@ class GeneralVertexSetIter {
   data_tuple_t GetData() const { return vec_[ind_]; }
 
   index_ele_tuple_t GetIndexElement() const {
+    return std::make_tuple(ind_, vec_[ind_]);
+  }
+
+  index_ele_data_tuple_t GetIndexElementWithData() const {
     return std::make_tuple(ind_, vec_[ind_]);
   }
 
@@ -290,6 +295,7 @@ class GeneralVertexSet {
   using self_type_t = GeneralVertexSet<VID_T, LabelT>;
   using iterator = GeneralVertexSetIter<VID_T>;
   using index_ele_tuple_t = std::tuple<size_t, VID_T>;
+  using index_ele_data_tuple_t = std::tuple<size_t, VID_T>;
   using data_tuple_t = std::tuple<VID_T>;
   using flat_t = self_type_t;
   using EntityValueType = VID_T;

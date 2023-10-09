@@ -68,19 +68,35 @@ struct IC5right_expr0 {
 
 // Auto generated query class definition
 class IC5 {
+ private:
+  mutable double left_outer_join_time = 0.0;
+  mutable double group_by_time = 0.0;
+  mutable double inner_join_time = 0.0;
+  mutable double useless_get_v_time = 0.0;
+
  public:
   using Engine = SyncEngine<gs::MutableCSRInterface>;
   using label_id_t = typename gs::MutableCSRInterface::label_id_t;
   using vertex_id_t = typename gs::MutableCSRInterface::vertex_id_t;
+  ~IC5() {
+    LOG(INFO) << "IC5 left_outer_join_time: " << left_outer_join_time;
+    LOG(INFO) << "group_by_time: " << group_by_time << "s";
+    LOG(INFO) << "inner_join_time: " << inner_join_time << "s";
+    LOG(INFO) << "useless_get_v_time: " << useless_get_v_time << "s";
+  }
   // Query function for query class
   void Query(const gs::MutableCSRInterface& graph, Decoder& input,
              Encoder& output) const {
     int64_t personId = input.get_long();
     int64_t minDate = input.get_long();
-    auto left_left_expr0 = gs::make_filter(IC5left_left_expr0(personId),
-                                           gs::PropertySelector<int64_t>("id"));
-    auto left_left_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
-        graph, 1, std::move(left_left_expr0));
+    // auto left_left_expr0 = gs::make_filter(IC5left_left_expr0(personId),
+    //    gs::PropertySelector<int64_t>("id"));
+    // auto left_left_ctx0 = Engine::template
+    // ScanVertex<gs::AppendOpt::Persist>( graph, 1,
+    // std::move(left_left_expr0));
+    auto left_left_ctx0 =
+        Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(graph, 1,
+                                                                   personId);
 
     auto left_left_edge_expand_opt1 = gs::make_edge_expandv_opt(
         gs::Direction::Both, (label_id_t) 8, (label_id_t) 1);
@@ -131,13 +147,20 @@ class IC5 {
     auto left_right_get_v_opt2 =
         make_getv_opt(gs::VOpt::Itself, std::array<label_id_t, 0>{},
                       std::move(left_right_expr1));
+
+    double t3 = -grape::GetCurrentTime();
     auto left_right_ctx3 =
         Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
             graph, std::move(left_right_ctx2),
             std::move(left_right_get_v_opt2));
+    t3 += grape::GetCurrentTime();
+    useless_get_v_time += t3;
 
+    double t0 = -grape::GetCurrentTime();
     auto left_left_ctx5 = Engine::template Join<0, 2, gs::JoinKind::InnerJoin>(
         std::move(left_left_ctx4), std::move(left_right_ctx3));
+    t0 += grape::GetCurrentTime();
+    inner_join_time += t0;
     auto left_left_ctx6 = Engine::Project<PROJ_TO_NEW>(
         graph, std::move(left_left_ctx5),
         std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(1)>(
@@ -163,13 +186,21 @@ class IC5 {
     auto right_expr2 = gs::make_filter(IC5right_expr0());
     auto right_get_v_opt2 = make_getv_opt(
         gs::VOpt::Itself, std::array<label_id_t, 0>{}, std::move(right_expr2));
+
+    double t4 = -grape::GetCurrentTime();
     auto right_ctx3 =
         Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
             graph, std::move(right_ctx2), std::move(right_get_v_opt2));
+    t4 += grape::GetCurrentTime();
+    useless_get_v_time += t4;
 
+    double t1 = -grape::GetCurrentTime();
     auto left_left_ctx7 =
         Engine::template Join<0, 1, 0, 2, gs::JoinKind::LeftOuterJoin>(
             std::move(left_left_ctx6), std::move(right_ctx3));
+    t1 += grape::GetCurrentTime();
+    left_outer_join_time += t1;
+
     GroupKey<0, int64_t> left_left_group_key5(
         gs::PropertySelector<int64_t>("id"));
 
@@ -181,9 +212,13 @@ class IC5 {
         std::tuple{gs::PropertySelector<grape::EmptyType>("None")},
         std::integer_sequence<int32_t, 2>{});
 
+    double t2 = -grape::GetCurrentTime();
     auto left_left_ctx8 = Engine::GroupBy(
         graph, std::move(left_left_ctx7), std::tuple{left_left_group_key5},
         std::tuple{left_left_agg_func6, left_left_agg_func7});
+    t2 += grape::GetCurrentTime();
+    group_by_time += t2;
+
     auto left_left_ctx9 = Engine::Sort(
         graph, std::move(left_left_ctx8), gs::Range(0, 20),
         std::tuple{gs::OrderingPropPair<gs::SortOrder::DESC, 2, int64_t>(""),

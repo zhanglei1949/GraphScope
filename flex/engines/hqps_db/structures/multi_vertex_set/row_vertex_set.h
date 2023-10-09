@@ -126,23 +126,24 @@ class RowVertexSetImplBuilder {
     prop_names_ = other.prop_names_;
   }
 
-  void Insert(VID_T&& vid, data_tuple_t&& data) {
+  inline void Insert(VID_T&& vid, data_tuple_t&& data) {
     vids_.emplace_back(std::move(vid));
     datas_.emplace_back(std::move(data));
   }
 
-  void Insert(const VID_T& vid, const data_tuple_t& data) {
+  inline void Insert(const VID_T& vid, const data_tuple_t& data) {
     vids_.push_back(vid);
     datas_.push_back(data);
   }
 
-  void Insert(const std::tuple<size_t, VID_T>& ind_ele,
-              const data_tuple_t& data) {
+  inline void Insert(const std::tuple<size_t, VID_T>& ind_ele,
+                     const data_tuple_t& data) {
     vids_.push_back(std::get<1>(ind_ele));
     datas_.push_back(data);
   }
 
-  void Insert(const std::tuple<size_t, VID_T, std::tuple<T...>>& flat_eles) {
+  inline void Insert(
+      const std::tuple<size_t, VID_T, std::tuple<T...>>& flat_eles) {
     vids_.push_back(std::get<1>(flat_eles));
     datas_.push_back(std::get<2>(flat_eles));
   }
@@ -177,11 +178,17 @@ class RowVertexSetImplBuilder<LabelT, VID_T, grape::EmptyType> {
   RowVertexSetImplBuilder(const RowVertexSetImplBuilder& rhs)
       : vids_(rhs.vids_), v_label_(rhs.v_label_) {}
 
-  void Insert(VID_T&& vid) { vids_.emplace_back(vid); }
+  inline void Insert(VID_T&& vid) { vids_.emplace_back(vid); }
 
-  void Insert(const VID_T& vid) { vids_.push_back(vid); }
+  inline void Insert(const VID_T& vid) { vids_.push_back(vid); }
 
-  void Insert(const std::tuple<size_t, VID_T>& flat_eles) {
+  inline void Insert(const std::tuple<size_t, VID_T>& flat_eles) {
+    vids_.push_back(std::get<1>(flat_eles));
+  }
+
+  inline void Insert(
+      const std::tuple<size_t, VID_T, std::tuple<grape::EmptyType>>&
+          flat_eles) {
     vids_.push_back(std::get<1>(flat_eles));
   }
 
@@ -202,6 +209,7 @@ class RowVertexSetIter {
  public:
   using lid_t = VID_T;
   using index_ele_tuple_t = std::tuple<size_t, VID_T>;
+  using index_ele_data_tuple_t = std::tuple<size_t, VID_T, std::tuple<T...>>;
 
   using data_tuple_t = std::tuple<T...>;
   using self_type_t = RowVertexSetIter<VID_T, T...>;
@@ -218,6 +226,10 @@ class RowVertexSetIter {
 
   index_ele_tuple_t GetIndexElement() const {
     return std::make_tuple(cur_ind_, vids_[cur_ind_]);
+  }
+
+  index_ele_data_tuple_t GetIndexElementWithData() const {
+    return std::make_tuple(cur_ind_, vids_[cur_ind_], datas_[cur_ind_]);
   }
 
   flat_ele_tuple_t GetFlatElement() const {
@@ -273,6 +285,8 @@ class RowVertexSetIter<VID_T, grape::EmptyType> {
  public:
   using lid_t = VID_T;
   using index_ele_tuple_t = std::tuple<size_t, VID_T>;
+  using index_ele_data_tuple_t =
+      std::tuple<size_t, VID_T, std::tuple<grape::EmptyType>>;
   using data_tuple_t = std::tuple<grape::EmptyType>;
   using self_type_t = RowVertexSetIter<VID_T, grape::EmptyType>;
   // from this tuple, we can reconstruct the partial set.
@@ -282,10 +296,14 @@ class RowVertexSetIter<VID_T, grape::EmptyType> {
   RowVertexSetIter(const std::vector<lid_t>& vids, size_t ind)
       : vids_(vids), cur_ind_(ind) {}
 
-  lid_t GetElement() const { return vids_[cur_ind_]; }
+  inline lid_t GetElement() const { return vids_[cur_ind_]; }
 
-  index_ele_tuple_t GetIndexElement() const {
+  inline index_ele_tuple_t GetIndexElement() const {
     return std::make_tuple(cur_ind_, vids_[cur_ind_]);
+  }
+
+  index_ele_data_tuple_t GetIndexElementWithData() const {
+    return std::make_tuple(cur_ind_, vids_[cur_ind_], GetData());
   }
 
   flat_ele_tuple_t GetFlatElement() const {
@@ -294,7 +312,7 @@ class RowVertexSetIter<VID_T, grape::EmptyType> {
 
   lid_t GetVertex() const { return vids_[cur_ind_]; }
 
-  data_tuple_t GetData() const { return grape::EmptyType(); }
+  inline data_tuple_t GetData() const { return data_tuple_t(); }
 
   inline const self_type_t& operator++() {
     ++cur_ind_;
@@ -857,6 +875,7 @@ class RowVertexSetImpl {
   using lid_t = VID_T;
   using data_tuple_t = std::tuple<T...>;
   using index_ele_tuple_t = std::tuple<size_t, VID_T>;
+  using index_ele_data_tuple_t = std::tuple<size_t, VID_T, std::tuple<T...>>;
   // from this tuple, we can reconstruct the partial set.
   using flat_ele_tuple_t = std::tuple<size_t, VID_T, std::tuple<T...>>;
   using flat_t = RowVertexSetImpl<LabelT, VID_T, T...>;
@@ -1190,6 +1209,8 @@ class RowVertexSetImpl<LabelT, VID_T, grape::EmptyType> {
   using flat_ele_tuple_t = std::tuple<size_t, VID_T>;
 
   using index_ele_tuple_t = std::tuple<size_t, VID_T>;
+  using index_ele_data_tuple_t =
+      std::tuple<size_t, VID_T, std::tuple<grape::EmptyType>>;
   using flat_t = RowVertexSetImpl<LabelT, VID_T, grape::EmptyType>;
   using iterator = RowVertexSetIter<VID_T, grape::EmptyType>;
   using self_type_t = RowVertexSetImpl<LabelT, VID_T, grape::EmptyType>;

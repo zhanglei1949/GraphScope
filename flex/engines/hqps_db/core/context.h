@@ -72,6 +72,10 @@ class ContextIter<base_tag, std::tuple<SET_T>> {
     return std::make_tuple(iter_.GetIndexElement());
   }
 
+  auto GetAllIndexElementWithData() const {
+    return std::make_tuple(iter_.GetIndexElementWithData());
+  }
+
   auto GetData() const { return iter_.GetData(); }
 
   auto GetAllData() const { return std::make_tuple(GetData()); }
@@ -144,11 +148,22 @@ class ContextIter<base_tag, std::tuple<SET_T, PREV_SETS...>> {
     return get_index_ele_tuple_impl(index_seq);
   }
 
+  auto GetAllIndexElementWithData() const {
+    return get_index_ele_data_tuple_impl(index_seq);
+  }
+
   template <int... Is>
   auto get_index_ele_tuple_impl(std::integer_sequence<int, Is...>) const {
     return std::make_tuple(
         std::get<Is>(others_iter_tuple_).GetIndexElement()...,
         cur_iter_.GetIndexElement());
+  }
+
+  template <int... Is>
+  auto get_index_ele_data_tuple_impl(std::integer_sequence<int, Is...>) const {
+    return std::make_tuple(
+        std::get<Is>(others_iter_tuple_).GetIndexElementWithData()...,
+        cur_iter_.GetIndexElementWithData());
   }
 
   auto GetAllIndexDataEle() const {
@@ -1051,7 +1066,7 @@ class Context {
     CHECK(from_ind <= offset_array.size())
         << "out of range: " << from_ind << ", " << offset_array.size();
     std::vector<offset_t> copied = offset_array[from_ind];
-    VLOG(10) << "copied: " << gs::to_string(copied);
+    // VLOG(10) << "copied: " << gs::to_string(copied);
     for (auto i = from_ind + 1; i < offset_array.size(); ++i) {
       for (auto j = 0; j < copied.size(); ++j) {
         copied[j] = offset_array[i][copied[j]];
@@ -1059,8 +1074,8 @@ class Context {
     }
     CHECK(copied.size() == offset.size());
     // indicate the value at ind repeat how many times due to our chain.
-    VLOG(10) << "repeat array is :" << gs::to_string(copied);
-    VLOG(10) << "current offset:" << gs::to_string(offset);
+    VLOG(20) << "repeat array is :" << gs::to_string(copied);
+    VLOG(20) << "current offset:" << gs::to_string(offset);
     new_node.Repeat(offset, copied);
     std::vector<offset_t> res_offset;
     {
