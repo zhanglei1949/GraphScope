@@ -32,6 +32,8 @@ class Encoder {
 
   void put_date(const Date& date);
 
+  void put_time_stamp(const TimeStamp& ts);
+
   size_t skip_long();
 
   void put_long_at(size_t pos, int64_t v);
@@ -70,6 +72,8 @@ class Decoder {
   int64_t get_long();
 
   Date get_date();
+
+  TimeStamp get_time_stamp();
 
   std::string_view get_string();
 

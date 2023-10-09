@@ -5,6 +5,9 @@
 #include "flex/engines/hqps_db/core/sync_engine.h"
 #include "flex/engines/hqps_db/database/mutable_csr_interface.h"
 
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 namespace gs {
 // Auto generated expression class definition
 struct IC2expr0 {
@@ -23,14 +26,14 @@ struct IC2expr0 {
 struct IC2expr1 {
  public:
   using result_t = bool;
-  IC2expr1(Date maxDate) : maxDate_(maxDate) {}
+  IC2expr1(int64_t maxDate) : maxDate_(maxDate) {}
 
-  inline auto operator()(Date creationDate) const {
+  inline auto operator()(int64_t creationDate) const {
     return creationDate < maxDate_;
   }
 
  private:
-  Date maxDate_;
+  int64_t maxDate_;
 };
 
 // Auto generated query class definition
@@ -43,7 +46,7 @@ class IC2 {
   void Query(const gs::MutableCSRInterface& graph, Decoder& input,
              Encoder& output) const {
     auto personId = input.get_long();
-    auto maxDate = input.get_date();
+    auto maxDate = input.get_long();
     auto expr0 = gs::make_filter(IC2expr0(personId),
                                  gs::PropertySelector<int64_t>("id"));
     auto ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
@@ -63,7 +66,7 @@ class IC2 {
             graph, std::move(ctx1), std::move(edge_expand_opt1));
 
     auto expr3 = gs::make_filter(IC2expr1(maxDate),
-                                 gs::PropertySelector<Date>("creationDate"));
+                                 gs::PropertySelector<int64_t>("creationDate"));
     auto get_v_opt2 =
         make_getv_opt(gs::VOpt::Itself,
                       std::array<label_id_t, 2>{(label_id_t) 2, (label_id_t) 3},
@@ -78,9 +81,9 @@ class IC2 {
                        gs::PropertySelector<grape::EmptyType>(""))});
     auto ctx5 = Engine::Sort(
         graph, std::move(ctx4), gs::Range(0, 20),
-        std::tuple{
-            gs::OrderingPropPair<gs::SortOrder::DESC, 1, Date>("creationDate"),
-            gs::OrderingPropPair<gs::SortOrder::ASC, 1, int64_t>("id")});
+        std::tuple{gs::OrderingPropPair<gs::SortOrder::DESC, 1, int64_t>(
+                       "creationDate"),
+                   gs::OrderingPropPair<gs::SortOrder::ASC, 1, int64_t>("id")});
     auto ctx6 = Engine::Project<PROJ_TO_NEW>(
         graph, std::move(ctx5),
         std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(0)>(
@@ -96,7 +99,7 @@ class IC2 {
                    gs::make_mapper_with_variable<INPUT_COL_ID(1)>(
                        gs::PropertySelector<std::string_view>("imageFile")),
                    gs::make_mapper_with_variable<INPUT_COL_ID(1)>(
-                       gs::PropertySelector<Date>("creationDate"))});
+                       gs::PropertySelector<int64_t>("creationDate"))});
     for (auto iter : ctx6) {
       auto tuple = iter.GetAllElement();
       output.put_long(std::get<0>(tuple));
@@ -132,14 +135,12 @@ class IC2 {
     Decoder output_decoder(output_buffer.data(), output_buffer.size());
     while (!output_decoder.empty()) {
       boost::property_tree::ptree node;
-      node.put("personId", output_decoder.get_long());           // id
-      node.put("personFirstName", output_decoder.get_string());  // dist
-      node.put("personLastName", output_decoder.get_string());   // lastName"
-      node.put("messageId", output_decoder.get_long());          // birthday
-      node.put("messageContent",
-               output_decoder.get_string());  // imageFile or content
-      node.put("messageCreationDate",
-               output_decoder.get_long());  // creationDate
+      node.put("personId", output_decoder.get_long());
+      node.put("personFirstName", output_decoder.get_string());
+      node.put("personLastName", output_decoder.get_string());
+      node.put("messageId", output_decoder.get_long());
+      node.put("messageContent", output_decoder.get_string());
+      node.put("messageCreationDate", output_decoder.get_long());
 
       output.push_back(std::make_pair("", node));
     }

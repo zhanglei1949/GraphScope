@@ -5,6 +5,9 @@
 #include "flex/engines/hqps_db/core/sync_engine.h"
 #include "flex/engines/hqps_db/database/mutable_csr_interface.h"
 
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 namespace gs {
 // Auto generated expression class definition
 struct IC6expr0 {

@@ -5,6 +5,9 @@
 #include "flex/engines/hqps_db/core/sync_engine.h"
 #include "flex/engines/hqps_db/database/mutable_csr_interface.h"
 
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 namespace gs {
 // Auto generated expression class definition
 struct IC8expr0 {
@@ -66,9 +69,9 @@ class IC8 {
                        gs::PropertySelector<grape::EmptyType>(""))});
     auto ctx5 = Engine::Sort(
         graph, std::move(ctx4), gs::Range(0, 20),
-        std::tuple{
-            gs::OrderingPropPair<gs::SortOrder::DESC, 2, Date>("creationDate"),
-            gs::OrderingPropPair<gs::SortOrder::ASC, 2, int64_t>("id")});
+        std::tuple{gs::OrderingPropPair<gs::SortOrder::DESC, 2, int64_t>(
+                       "creationDate"),
+                   gs::OrderingPropPair<gs::SortOrder::ASC, 2, int64_t>("id")});
     auto ctx6 = Engine::Project<PROJ_TO_NEW>(
         graph, std::move(ctx5),
         std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(3)>(
@@ -78,7 +81,7 @@ class IC8 {
                    gs::make_mapper_with_variable<INPUT_COL_ID(3)>(
                        gs::PropertySelector<std::string_view>("lastName")),
                    gs::make_mapper_with_variable<INPUT_COL_ID(2)>(
-                       gs::PropertySelector<Date>("creationDate")),
+                       gs::PropertySelector<int64_t>("creationDate")),
                    gs::make_mapper_with_variable<INPUT_COL_ID(2)>(
                        gs::PropertySelector<int64_t>("id")),
                    gs::make_mapper_with_variable<INPUT_COL_ID(2)>(

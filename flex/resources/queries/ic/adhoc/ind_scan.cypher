@@ -1,0 +1,1 @@
+MATCH (p: PERSON{id: 30786325579101}) return p.firstName;

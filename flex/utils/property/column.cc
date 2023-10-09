@@ -55,6 +55,7 @@ class TypedEmptyColumn : public ColumnBase {
 using IntEmptyColumn = TypedEmptyColumn<int>;
 using LongEmptyColumn = TypedEmptyColumn<int64_t>;
 using DateEmptyColumn = TypedEmptyColumn<Date>;
+using TimeStampEmptyColumn = TypedEmptyColumn<TimeStamp>;
 
 std::shared_ptr<ColumnBase> CreateColumn(PropertyType type,
                                          StorageStrategy strategy) {
@@ -65,6 +66,8 @@ std::shared_ptr<ColumnBase> CreateColumn(PropertyType type,
       return std::make_shared<LongEmptyColumn>();
     } else if (type == PropertyType::kDate) {
       return std::make_shared<DateEmptyColumn>();
+    } else if (type == PropertyType::kTimeStamp) {
+      return std::make_shared<TimeStampEmptyColumn>();
     } else if (type == PropertyType::kString) {
       return std::make_shared<TypedEmptyColumn<std::string_view>>();
     } else {
@@ -79,6 +82,8 @@ std::shared_ptr<ColumnBase> CreateColumn(PropertyType type,
       return std::make_shared<LongColumn>(strategy);
     } else if (type == PropertyType::kDate) {
       return std::make_shared<DateColumn>(strategy);
+    } else if (type == PropertyType::kTimeStamp) {
+      return std::make_shared<TimeStampColumn>(strategy);
     } else if (type == PropertyType::kString) {
       return std::make_shared<StringColumn>(strategy);
     } else {

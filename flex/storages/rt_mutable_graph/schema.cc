@@ -371,6 +371,10 @@ static PropertyType StringToPropertyType(const std::string& str) {
     return PropertyType::kInt32;
   } else if (str == "Date" || str == DT_DATE) {
     return PropertyType::kDate;
+  } else if (str == "Time" || str == DT_TIME) {
+    return PropertyType::kTime;
+  } else if (str == "Timestamp" || str == DT_TIMESTAMP) {
+    return PropertyType::kTimeStamp;
   } else if (str == "String" || str == DT_STRING) {
     return PropertyType::kString;
   } else if (str == "Empty") {

@@ -267,6 +267,21 @@ static void set_vertex_properties(gs::ColumnBase* col,
       LOG(FATAL) << "Not implemented: converting " << type->ToString() << " to "
                  << col_type;
     }
+  } else if (col_type == PropertyType::kTimeStamp) {
+    if (type->Equals(arrow::timestamp(arrow::TimeUnit::type::MILLI))) {
+      for (auto j = 0; j < array->num_chunks(); ++j) {
+        auto casted =
+            std::static_pointer_cast<arrow::TimestampArray>(array->chunk(j));
+        for (auto k = 0; k < casted->length(); ++k) {
+          col->set_any(
+              vids[cur_ind++],
+              std::move(AnyConverter<TimeStamp>::to_any(casted->Value(k))));
+        }
+      }
+    } else {
+      LOG(FATAL) << "Not implemented: converting " << type->ToString() << " to "
+                 << col_type;
+    }
   } else {
     LOG(FATAL) << "Not support type: " << type->ToString();
   }
@@ -1020,6 +1035,14 @@ void CSVFragmentLoader::addEdges(label_t src_label_i, label_t dst_label_i,
           src_label_i, dst_label_i, edge_label_i);
     } else {
       addEdgesImpl<double>(src_label_i, dst_label_i, edge_label_i, filenames);
+    }
+  } else if (property_types[0] == PropertyType::kTimeStamp) {
+    if (filenames.empty()) {
+      basic_fragment_loader_.AddNoPropEdgeBatch<TimeStamp>(
+          src_label_i, dst_label_i, edge_label_i);
+    } else {
+      addEdgesImpl<TimeStamp>(src_label_i, dst_label_i, edge_label_i,
+                              filenames);
     }
   } else {
     LOG(FATAL) << "Unsupported edge property type." << property_types[0];

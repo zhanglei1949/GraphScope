@@ -507,14 +507,20 @@ class ProjectOp {
     VLOG(10) << "Finish fetching properties";
 
     std::vector<typename LengthKey::length_data_type> lengths_vec;
-    auto path_vec = node.get_all_valid_paths();
-    CHECK(path_vec.size() == repeat_array.size());
-    lengths_vec.reserve(path_vec.size());
-    for (auto i = 0; i < path_vec.size(); ++i) {
+    auto path_len_vec = node.get_path_length_vec();
+    CHECK(path_len_vec.size() == repeat_array.size())
+        << "path size: " << path_len_vec.size()
+        << " repeat size: " << repeat_array.size();
+    size_t res_length = 0;
+    for (auto i = 0; i < repeat_array.size(); ++i) {
+      res_length += repeat_array[i];
+    }
+
+    lengths_vec.reserve(res_length);
+    for (auto i = 0; i < path_len_vec.size(); ++i) {
       if (repeat_array[i] > 0) {
-        auto length = path_vec[i].length();
         for (auto j = 0; j < repeat_array[i]; ++j) {
-          lengths_vec.push_back(length);
+          lengths_vec.push_back(path_len_vec[i]);
         }
       }
     }

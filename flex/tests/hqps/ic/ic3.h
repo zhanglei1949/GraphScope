@@ -5,6 +5,9 @@
 #include "flex/engines/hqps_db/core/sync_engine.h"
 #include "flex/engines/hqps_db/database/mutable_csr_interface.h"
 
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 namespace gs {
 // Auto generated expression class definition
 struct IC3expr0 {
@@ -23,16 +26,16 @@ struct IC3expr0 {
 struct IC3expr1 {
  public:
   using result_t = bool;
-  IC3expr1(Date startDate, Date endDate)
+  IC3expr1(int64_t startDate, int64_t endDate)
       : startDate_(startDate), endDate_(endDate) {}
 
-  inline auto operator()(Date creationDate, Date creationDate_0) const {
+  inline auto operator()(int64_t creationDate, int64_t creationDate_0) const {
     return creationDate >= startDate_ && creationDate_0 < endDate_;
   }
 
  private:
-  Date startDate_;
-  Date endDate_;
+  int64_t startDate_;
+  int64_t endDate_;
 };
 
 struct IC3expr2 {
@@ -48,16 +51,16 @@ struct IC3expr2 {
 struct IC3expr3 {
  public:
   using result_t = bool;
-  IC3expr3(Date startDate, Date endDate)
+  IC3expr3(int64_t startDate, int64_t endDate)
       : startDate_(startDate), endDate_(endDate) {}
 
-  inline auto operator()(Date creationDate, Date creationDate_0) const {
+  inline auto operator()(int64_t creationDate, int64_t creationDate_0) const {
     return creationDate >= startDate_ && creationDate_0 < endDate_;
   }
 
  private:
-  Date startDate_;
-  Date endDate_;
+  int64_t startDate_;
+  int64_t endDate_;
 };
 
 struct IC3expr4 {
@@ -125,8 +128,8 @@ class IC3 {
     int64_t personId = input.get_long();
     std::string_view countryXName = input.get_string();
     std::string_view countryYName = input.get_string();
-    Date startDate = input.get_date();
-    Date endDate = input.get_date();
+    int64_t startDate = input.get_long();
+    int64_t endDate = input.get_long();
     auto expr0 = gs::make_filter(
         IC3expr0(countryYName), gs::PropertySelector<std::string_view>("name"));
     auto ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
@@ -140,8 +143,8 @@ class IC3 {
             graph, std::move(ctx0), std::move(edge_expand_opt0));
 
     auto expr2 = gs::make_filter(IC3expr1(startDate, endDate),
-                                 gs::PropertySelector<Date>("creationDate"),
-                                 gs::PropertySelector<Date>("creationDate"));
+                                 gs::PropertySelector<int64_t>("creationDate"),
+                                 gs::PropertySelector<int64_t>("creationDate"));
     auto get_v_opt1 =
         make_getv_opt(gs::VOpt::Itself,
                       std::array<label_id_t, 2>{(label_id_t) 2, (label_id_t) 3},
@@ -168,8 +171,8 @@ class IC3 {
             graph, std::move(ctx4), std::move(edge_expand_opt4));
 
     auto expr6 = gs::make_filter(IC3expr3(startDate, endDate),
-                                 gs::PropertySelector<Date>("creationDate"),
-                                 gs::PropertySelector<Date>("creationDate"));
+                                 gs::PropertySelector<int64_t>("creationDate"),
+                                 gs::PropertySelector<int64_t>("creationDate"));
     auto get_v_opt5 =
         make_getv_opt(gs::VOpt::Itself,
                       std::array<label_id_t, 2>{(label_id_t) 2, (label_id_t) 3},

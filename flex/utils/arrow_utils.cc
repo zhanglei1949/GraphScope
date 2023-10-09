@@ -25,6 +25,8 @@ std::shared_ptr<arrow::DataType> PropertyTypeToArrowType(PropertyType type) {
     return arrow::float64();
   case PropertyType::kDate:
     return arrow::timestamp(arrow::TimeUnit::MILLI);
+  case PropertyType::kTimeStamp:
+    return arrow::timestamp(arrow::TimeUnit::MILLI);
   case PropertyType::kString:
     return arrow::large_utf8();
   case PropertyType::kEmpty:

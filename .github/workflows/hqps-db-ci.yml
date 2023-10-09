@@ -122,9 +122,9 @@ jobs:
           eval ${cmd}
         done
 
-        for i in 10;
+        for i in 1;
         do
-          cmd="./load_plan_and_gen.sh -e=hqps -i=../resources/queries/ic/stored_procedure/ic${i}.cypher -w=/tmp/codgen/"
+          cmd="GLOG_v=10 ./load_plan_and_gen.sh -e=hqps -i=../resources/queries/ic/stored_procedure/ic${i}.cypher -w=/tmp/codgen/"
           cmd=${cmd}" -o=/tmp/plugin --ir_conf=${GS_TEST_DIR}/flex/ldbc-sf01-long-date/engine_config.yaml "
           cmd=${cmd}" --graph_schema_path=${INTERACTIVE_WORKSPACE}/data/ldbc/graph.yaml"
           echo $cmd

@@ -6,6 +6,9 @@
 #include "flex/engines/hqps_db/core/sync_engine.h"
 #include "flex/engines/hqps_db/database/mutable_csr_interface.h"
 
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 namespace gs {
 // Auto generated expression class definition
 struct IC4expr0 {
@@ -24,10 +27,10 @@ struct IC4expr0 {
 struct IC4expr1 {
  public:
   using result_t = int32_t;
-  IC4expr1(Date startDate, Date endDate)
+  IC4expr1(int64_t startDate, int64_t endDate)
       : startDate_(startDate), endDate_(endDate) {}
 
-  inline auto operator()(Date creationDate, Date creationDate_0) const {
+  inline auto operator()(int64_t creationDate, int64_t creationDate_0) const {
     if (creationDate >= startDate_ && creationDate_0 < endDate_) {
       return 1;
     }
@@ -36,16 +39,16 @@ struct IC4expr1 {
   }
 
  private:
-  Date startDate_;
-  Date endDate_;
+  int64_t startDate_;
+  int64_t endDate_;
 };
 
 struct IC4expr5 {
  public:
   using result_t = int32_t;
-  IC4expr5(Date startDate) : startDate_(startDate) {}
+  IC4expr5(int64_t startDate) : startDate_(startDate) {}
 
-  inline auto operator()(Date creationDate) const {
+  inline auto operator()(int64_t creationDate) const {
     if (creationDate < startDate_) {
       return 1;
     }
@@ -54,7 +57,7 @@ struct IC4expr5 {
   }
 
  private:
-  Date startDate_;
+  int64_t startDate_;
 };
 
 struct IC4expr9 {
@@ -79,8 +82,8 @@ class IC4 {
   void Query(const gs::MutableCSRInterface& graph, Decoder& input,
              Encoder& output) const {
     auto personId = input.get_long();
-    auto startDate = input.get_date();
-    auto endDate = input.get_date();
+    auto startDate = input.get_long();
+    auto endDate = input.get_long();
     LOG(INFO) << "personId: " << personId << " startDate: " << startDate
               << " endDate: " << endDate;
 
@@ -120,11 +123,11 @@ class IC4 {
                        gs::PropertySelector<grape::EmptyType>("")),
                    gs::make_mapper_with_expr<INPUT_COL_ID(1), INPUT_COL_ID(1)>(
                        IC4expr1(startDate, endDate),
-                       gs::PropertySelector<Date>("creationDate"),
-                       gs::PropertySelector<Date>("creationDate")),
+                       gs::PropertySelector<int64_t>("creationDate"),
+                       gs::PropertySelector<int64_t>("creationDate")),
                    gs::make_mapper_with_expr<INPUT_COL_ID(1)>(
                        IC4expr5(startDate),
-                       gs::PropertySelector<Date>("creationDate"))});
+                       gs::PropertySelector<int64_t>("creationDate"))});
     GroupKey<0, grape::EmptyType> group_key3(
         gs::PropertySelector<grape::EmptyType>("None"));
 

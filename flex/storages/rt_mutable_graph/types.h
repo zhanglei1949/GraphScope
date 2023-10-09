@@ -36,6 +36,8 @@ static constexpr const char* DT_SIGNED_INT64 = "DT_SIGNED_INT64";
 static constexpr const char* DT_DOUBLE = "DT_DOUBLE";
 static constexpr const char* DT_STRING = "DT_STRING";
 static constexpr const char* DT_DATE = "DT_DATE32";
+static constexpr const char* DT_TIME = "DT_TIME32";
+static constexpr const char* DT_TIMESTAMP = "TIMESTAMP";
 
 }  // namespace gs
 

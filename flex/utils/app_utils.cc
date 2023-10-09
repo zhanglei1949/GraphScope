@@ -31,6 +31,12 @@ void Encoder::put_date(const Date& data) {
   memcpy(&buf_[size], &data.milli_second, sizeof(Date));
 }
 
+void Encoder::put_time_stamp(const TimeStamp& data) {
+  size_t size = buf_.size();
+  buf_.resize(size + sizeof(int64_t));
+  memcpy(&buf_[size], &data.milli_second, sizeof(TimeStamp));
+}
+
 size_t Encoder::skip_long() {
   size_t size = buf_.size();
   buf_.resize(size + sizeof(int64_t));
@@ -122,6 +128,12 @@ int64_t Decoder::get_long() {
 
 Date Decoder::get_date() {
   Date ret;
+  ret.milli_second = get_long();
+  return ret;
+}
+
+TimeStamp Decoder::get_time_stamp() {
+  TimeStamp ret;
   ret.milli_second = get_long();
   return ret;
 }

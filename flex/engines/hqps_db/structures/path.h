@@ -211,6 +211,77 @@ class CompressedPathSetIter {
   size_t ind_;
 };
 
+// template <typename VID_T, typename LabelT>
+// class CompressedPathSetIter {
+//  public:
+//   using self_type_t = CompressedPathSetIter<VID_T, LabelT>;
+//   using index_ele_tuple_t = std::pair<size_t, Path<VID_T, LabelT>>;
+
+//   CompressedPathSetIter(const std::vector<LabelT>& labels,
+//                         const std::vector<std::vector<VID_T>>& vids,
+//                         const std::vector<std::vector<offset_t>>& offsets,
+//                         size_t min_len, size_t ind)
+//       : labels_(labels),
+//         vids_(vids),
+//         offsets_(offsets),
+//         min_len_(min_len),
+//         max_len_(vids.size()),
+//   {
+//     CHECK(min_len_ < vids_.size() && min_len_ > 0);
+//     // vids.size() is the max length of path.
+//     cur_offset_.resize(vids_.size(), 0);
+//     cur_offset_[0] = ind;
+//     init_iter_tuple();
+//   }
+
+//   Path<VID_T, LabelT> GetElement() const { return paths_[ind_]; }
+
+//   Path<VID_T, LabelT> GetData() const { return paths_[ind_]; }
+
+//   index_ele_tuple_t GetIndexElement() const {
+//     return std::make_pair(ind_, paths_[ind_]);
+//   }
+
+//   inline const self_type_t& operator++() {
+//     ++ind_;
+//     return *this;
+//   }
+
+//   // We may never compare to other kind of iterators
+//   inline bool operator==(const self_type_t& rhs) const {
+//     return ind_ == rhs.ind_;
+//   }
+
+//   inline bool operator!=(const self_type_t& rhs) const {
+//     return ind_ != rhs.ind_;
+//   }
+
+//   inline bool operator<(const self_type_t& rhs) const {
+//     return ind_ < rhs.ind_;
+//   }
+
+//   inline const self_type_t& operator*() const { return *this; }
+
+//   inline const self_type_t* operator->() const { return this; }
+
+//   inline void probe_next_path() {}
+
+//  private:
+
+//   void init_iter_tuple() {
+//     // init the first path.
+
+//   }
+
+//   const std::vector<LabelT>& labels_;
+//   const std::vector<std::vector<VID_T>>& vids_;
+//   const std::vector<std::vector<offset_t>>& offsets_;
+//   size_t min_len_, max_len_, cur_len_;
+//   Path<VID_T, LabelT> cur_path_;
+//   std::vector<size_t> cur_offset_;    // current vid index for each level.
+//   std::vector<size_t> offset_limit_;  // limit of vid index for each level.
+// };
+
 template <typename VID_T, typename LabelT>
 class CompressedPathSet {
  public:
@@ -260,19 +331,21 @@ class CompressedPathSet {
     VLOG(10) << "got paths of size: " << paths.size();
     CHECK(paths.size() == Size());
     return iterator(std::move(paths), 0);
+    // return iterator(labels_, vids_, offsets_, min_len_, 0);
   }
 
   iterator end() const {
     // use a dummy PathSet.
     std::vector<Path<VID_T, LabelT>> paths;
     return iterator(std::move(paths), Size());
+    // return iterator(labels_, vids_, offsets_, min_len_, vids_.size());
   }
 
   const std::vector<LabelT>& GetLabels() const { return labels_; }
 
-  template <typename FILTER_T, typename PROP_GETTER_T>
+  template <typename PROP_GETTER_T>
   std::pair<DefaultRowVertexSet<LabelT, vid_t>, std::vector<offset_t>>
-  GetVertices(VOpt vopt, const FILTER_T& expr,
+  GetVertices(VOpt vopt, const TruePredicate& expr,
               const std::vector<PROP_GETTER_T>& prop_getters) const {
     // get vertices from path set, current we only have one label is path, so we
     // don't have label params.
@@ -282,16 +355,29 @@ class CompressedPathSet {
     offsets.emplace_back(0);
     CHECK(prop_getters.size() == 1) << "only support one label now";
 
-    auto paths = get_all_valid_paths();
+    // auto paths = get_all_valid_paths();
+    auto offset_amplify = get_amplify_vec();
     if (vopt == VOpt::End) {
-      for (auto& path : paths) {
-        vids.emplace_back(path.GetEnd());
-        offsets.emplace_back(vids.size());
+      for (auto i = 0; i < vids_[0].size(); ++i) {
+        for (auto j = min_len_; j < offset_amplify.size(); ++j) {
+          auto start_ind = offset_amplify[j][i];
+          auto end_ind = offset_amplify[j][i + 1];
+          for (auto k = start_ind; k < end_ind; ++k) {
+            vids.emplace_back(vids_[j][k]);
+            offsets.emplace_back(vids.size());
+          }
+        }
       }
     } else if (vopt == VOpt::Start) {
-      for (auto& path : paths) {
-        vids.emplace_back(path.GetStart());
-        offsets.emplace_back(vids.size());
+      for (auto i = 0; i < vids_[0].size(); ++i) {
+        for (auto j = min_len_; j < offset_amplify.size(); ++j) {
+          auto start_ind = offset_amplify[j][i];
+          auto end_ind = offset_amplify[j][i + 1];
+          for (auto k = start_ind; k < end_ind; ++k) {
+            vids.emplace_back(vids_[0][i]);
+            offsets.emplace_back(vids.size());
+          }
+        }
       }
     } else {
       LOG(FATAL) << "Not supported vopt: " << gs::to_string(vopt);
@@ -299,6 +385,22 @@ class CompressedPathSet {
 
     auto row_set = make_default_row_vertex_set(std::move(vids), labels_[0]);
     return std::make_pair(row_set, std::move(offsets));
+  }
+
+  std::vector<int32_t> get_path_length_vec() const {
+    std::vector<int32_t> res;
+    res.reserve(Size());
+    auto offset_amplify = get_amplify_vec();
+    for (auto i = 0; i < vids_[0].size(); ++i) {
+      for (auto j = min_len_; j < offset_amplify.size(); ++j) {
+        auto start_ind = offset_amplify[j][i];
+        auto end_ind = offset_amplify[j][i + 1];
+        for (auto k = start_ind; k < end_ind; ++k) {
+          res.emplace_back(j);
+        }
+      }
+    }
+    return res;
   }
 
   std::vector<Path<VID_T, LabelT>> get_all_valid_paths() const {
@@ -334,14 +436,7 @@ class CompressedPathSet {
 
     std::vector<Path<VID_T, LabelT>> res;
     // rearrange the paths in right order.
-    std::vector<std::vector<offset_t>> offset_amplify(
-        vids_.size(), std::vector<offset_t>(offsets_[0].size(), 0));
-    offset_amplify[0] = offsets_[0];
-    for (auto i = 1; i < offset_amplify.size(); ++i) {
-      for (auto j = 0; j < offset_amplify[i].size(); ++j) {
-        offset_amplify[i][j] = offsets_[i][offset_amplify[i - 1][j]];
-      }
-    }
+    auto offset_amplify = get_amplify_vec();
     VLOG(10) << "amplify: " << gs::to_string(offset_amplify);
 
     CHECK(vids_.size() > 0);
@@ -362,6 +457,17 @@ class CompressedPathSet {
   }
 
  private:
+  std::vector<std::vector<offset_t>> get_amplify_vec() const {
+    std::vector<std::vector<offset_t>> offset_amplify(
+        vids_.size(), std::vector<offset_t>(offsets_[0].size(), 0));
+    offset_amplify[0] = offsets_[0];
+    for (auto i = 1; i < offset_amplify.size(); ++i) {
+      for (auto j = 0; j < offset_amplify[i].size(); ++j) {
+        offset_amplify[i][j] = offsets_[i][offset_amplify[i - 1][j]];
+      }
+    }
+    return offset_amplify;
+  }
   std::vector<LabelT> labels_;
   std::vector<std::vector<VID_T>> vids_;
   std::vector<std::vector<offset_t>> offsets_;

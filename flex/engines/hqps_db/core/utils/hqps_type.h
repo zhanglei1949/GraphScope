@@ -2,6 +2,7 @@
 #define ENGINES_HQPS_ENGINE_UTILS_TYPE_UTILS_H_
 
 #include "flex/storages/rt_mutable_graph/types.h"
+#include "flex/utils/property/types.h"
 
 namespace gs {
 struct Dist {

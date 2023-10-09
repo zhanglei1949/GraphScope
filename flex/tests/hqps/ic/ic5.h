@@ -5,6 +5,9 @@
 #include "flex/engines/hqps_db/core/sync_engine.h"
 #include "flex/engines/hqps_db/database/mutable_csr_interface.h"
 
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 namespace gs {
 // Auto generated expression class definition
 struct IC5left_left_expr0 {
@@ -35,12 +38,12 @@ struct IC5left_left_expr1 {
 struct IC5left_right_expr0 {
  public:
   using result_t = bool;
-  IC5left_right_expr0(Date minDate) : minDate_(minDate) {}
+  IC5left_right_expr0(int64_t minDate) : minDate_(minDate) {}
 
-  inline auto operator()(Date joinDate) const { return joinDate > minDate_; }
+  inline auto operator()(int64_t joinDate) const { return joinDate > minDate_; }
 
  private:
-  Date minDate_;
+  int64_t minDate_;
 };
 
 struct IC5left_right_expr1 {
@@ -73,7 +76,7 @@ class IC5 {
   void Query(const gs::MutableCSRInterface& graph, Decoder& input,
              Encoder& output) const {
     int64_t personId = input.get_long();
-    Date minDate = input.get_date();
+    int64_t minDate = input.get_long();
     auto left_left_expr0 = gs::make_filter(IC5left_left_expr0(personId),
                                            gs::PropertySelector<int64_t>("id"));
     auto left_left_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
@@ -107,11 +110,12 @@ class IC5 {
     auto left_right_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
         graph, 4, Filter<TruePredicate>());
 
-    auto left_right_expr0 = gs::make_filter(
-        IC5left_right_expr0(minDate), gs::PropertySelector<Date>("joinDate"));
-    auto left_right_edge_expand_opt0 = gs::make_edge_expande_opt<Date>(
-        gs::PropNameArray<Date>{"joinDate"}, gs::Direction::Out, (label_id_t) 4,
-        (label_id_t) 1, std::move(left_right_expr0));
+    auto left_right_expr0 =
+        gs::make_filter(IC5left_right_expr0(minDate),
+                        gs::PropertySelector<int64_t>("joinDate"));
+    auto left_right_edge_expand_opt0 = gs::make_edge_expande_opt<int64_t>(
+        gs::PropNameArray<int64_t>{"joinDate"}, gs::Direction::Out,
+        (label_id_t) 4, (label_id_t) 1, std::move(left_right_expr0));
     auto left_right_ctx1 =
         Engine::template EdgeExpandE<gs::AppendOpt::Persist, INPUT_COL_ID(0)>(
             graph, std::move(left_right_ctx0),

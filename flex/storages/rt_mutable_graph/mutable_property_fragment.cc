@@ -120,6 +120,14 @@ inline MutableCsrBase* create_csr(EdgeStrategy es,
     } else if (es == EdgeStrategy::kNone) {
       return new EmptyCsr<Date>();
     }
+  } else if (properties[0] == PropertyType::kTimeStamp) {
+    if (es == EdgeStrategy::kSingle) {
+      return new SingleMutableCsr<TimeStamp>();
+    } else if (es == EdgeStrategy::kMultiple) {
+      return new MutableCsr<TimeStamp>();
+    } else if (es == EdgeStrategy::kNone) {
+      return new EmptyCsr<TimeStamp>();
+    }
   } else if (properties[0] == PropertyType::kInt64) {
     if (es == EdgeStrategy::kSingle) {
       return new SingleMutableCsr<int64_t>();

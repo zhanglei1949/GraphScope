@@ -5,6 +5,9 @@
 #include "flex/engines/hqps_db/core/sync_engine.h"
 #include "flex/engines/hqps_db/database/mutable_csr_interface.h"
 
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/ptree.hpp>
+
 namespace gs {
 // Auto generated expression class definition
 struct IC9expr0 {
@@ -23,14 +26,14 @@ struct IC9expr0 {
 struct IC9expr1 {
  public:
   using result_t = bool;
-  IC9expr1(Date maxDate) : maxDate_(maxDate) {}
+  IC9expr1(int64_t maxDate) : maxDate_(maxDate) {}
 
-  inline auto operator()(Date creationDate) const {
+  inline auto operator()(int64_t creationDate) const {
     return creationDate < maxDate_;
   }
 
  private:
-  Date maxDate_;
+  int64_t maxDate_;
 };
 
 struct IC9expr2 {
@@ -55,7 +58,7 @@ class IC9 {
   void Query(const gs::MutableCSRInterface& graph, Decoder& input,
              Encoder& output) {
     int64_t personId = input.get_long();
-    Date maxDate = input.get_date();
+    int64_t maxDate = input.get_long();
     auto expr0 = gs::make_filter(IC9expr0(personId),
                                  gs::PropertySelector<int64_t>("id"));
     auto ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
@@ -79,7 +82,7 @@ class IC9 {
             graph, std::move(ctx1), std::move(edge_expand_opt3));
 
     auto expr3 = gs::make_filter(IC9expr1(maxDate),
-                                 gs::PropertySelector<Date>("creationDate"));
+                                 gs::PropertySelector<int64_t>("creationDate"));
     auto get_v_opt4 =
         make_getv_opt(gs::VOpt::Itself,
                       std::array<label_id_t, 2>{(label_id_t) 2, (label_id_t) 3},
@@ -100,9 +103,9 @@ class IC9 {
                        gs::PropertySelector<grape::EmptyType>(""))});
     auto ctx6 = Engine::Sort(
         graph, std::move(ctx5), gs::Range(0, 20),
-        std::tuple{
-            gs::OrderingPropPair<gs::SortOrder::DESC, 1, Date>("creationDate"),
-            gs::OrderingPropPair<gs::SortOrder::ASC, 1, int64_t>("id")});
+        std::tuple{gs::OrderingPropPair<gs::SortOrder::DESC, 1, int64_t>(
+                       "creationDate"),
+                   gs::OrderingPropPair<gs::SortOrder::ASC, 1, int64_t>("id")});
     auto ctx7 = Engine::Project<PROJ_TO_NEW>(
         graph, std::move(ctx6),
         std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(0)>(
@@ -118,7 +121,7 @@ class IC9 {
                    gs::make_mapper_with_variable<INPUT_COL_ID(1)>(
                        gs::PropertySelector<std::string_view>("imageFile")),
                    gs::make_mapper_with_variable<INPUT_COL_ID(1)>(
-                       gs::PropertySelector<Date>("creationDate"))});
+                       gs::PropertySelector<int64_t>("creationDate"))});
     for (auto iter : ctx7) {
       auto eles = iter.GetAllElement();
       output.put_long(std::get<0>(eles));

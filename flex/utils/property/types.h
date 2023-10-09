@@ -35,6 +35,8 @@ enum class StorageStrategy {
 enum class PropertyType {
   kInt32,
   kDate,
+  kTime,
+  kTimeStamp,
   kString,
   kEmpty,
   kInt64,
@@ -68,6 +70,9 @@ struct Date {
   }
   int64_t milli_second;
 };
+
+using TimeStamp = Date;
+using Time = Date;
 
 union AnyValue {
   AnyValue() {}
@@ -472,6 +477,12 @@ inline ostream& operator<<(ostream& os, gs::PropertyType pt) {
     break;
   case gs::PropertyType::kDouble:
     os << "double";
+    break;
+  case gs::PropertyType::kTimeStamp:
+    os << "TimeStamp";
+    break;
+  case gs::PropertyType::kTime:
+    os << "Time";
     break;
   default:
     os << "Unknown";

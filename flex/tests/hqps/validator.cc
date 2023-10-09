@@ -1,17 +1,17 @@
 #include "flex/engines/hqps_db/database/mutable_csr_interface.h"
 
 #include "flex/tests/hqps/ic/ic1.h"
-#include "flex/tests/hqps/ic/ic10.h"
-#include "flex/tests/hqps/ic/ic11.h"
-#include "flex/tests/hqps/ic/ic12.h"
+// #include "flex/tests/hqps/ic/ic10.h"
+// #include "flex/tests/hqps/ic/ic11.h"
+// #include "flex/tests/hqps/ic/ic12.h"
 #include "flex/tests/hqps/ic/ic2.h"
-#include "flex/tests/hqps/ic/ic3.h"
-#include "flex/tests/hqps/ic/ic4.h"
-#include "flex/tests/hqps/ic/ic5.h"
-#include "flex/tests/hqps/ic/ic6.h"
+// #include "flex/tests/hqps/ic/ic3.h"
+// #include "flex/tests/hqps/ic/ic4.h"
+// #include "flex/tests/hqps/ic/ic5.h"
+// #include "flex/tests/hqps/ic/ic6.h"
 // #include "flex/tests/hqps/ic/ic7.h"
-#include "flex/tests/hqps/ic/ic8.h"
-#include "flex/tests/hqps/ic/ic9.h"
+// #include "flex/tests/hqps/ic/ic8.h"
+// #include "flex/tests/hqps/ic/ic9.h"
 
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -86,7 +86,7 @@ void validate(const gs::MutableCSRInterface& graph,
       boost::property_tree::json_parser::write_json(expected_output_ss,
                                                     ssexpected_output_pt);
       LOG(INFO) << expected_output_ss.str();
-      // LOG(FATAL) << "Exited";
+      LOG(FATAL) << "Exited";
     } else {
       LOG(INFO) << "Correct answer when validating <" << input_str << ">";
       success += 1;
@@ -103,9 +103,8 @@ void validate(const gs::MutableCSRInterface& graph,
 
 void validate_all(const gs::MutableCSRInterface& graph,
                   const std::string& validate_dir) {
-  LOG(INFO) << "Finish validating all tests";
-  //  validate<gs::IC1>(graph, validate_dir + "/validation_params_ic1.csv");
-  //  validate<gs::IC2>(graph, validate_dir + "/validation_params_ic2.csv");
+  validate<gs::IC1>(graph, validate_dir + "/validation_params_ic1.csv");
+  // validate<gs::IC2>(graph, validate_dir + "/validation_params_ic2.csv");
   // validate<gs::IC3>(graph, validate_dir + "/validation_params_ic3.csv");
   // validate<gs::IC4>(graph, validate_dir + "/validation_params_ic4.csv");
   // validate<gs::IC5>(graph, validate_dir + "/validation_params_ic5.csv");
@@ -113,9 +112,10 @@ void validate_all(const gs::MutableCSRInterface& graph,
   // validate<gs::IC7>(graph, validate_dir + "/validation_params_ic7.csv");
   // validate<gs::IC8>(graph, validate_dir + "/validation_params_ic8.csv");
   // validate<gs::IC9>(graph, validate_dir + "/validation_params_ic9.csv");
-  validate<gs::IC10>(graph, validate_dir + "/validation_params_ic10.csv");
-  //  validate<gs::IC11>(graph, validate_dir + "/validation_params_ic11.csv");
+  // validate<gs::IC10>(graph, validate_dir + "/validation_params_ic10.csv");
+  // validate<gs::IC11>(graph, validate_dir + "/validation_params_ic11.csv");
   // validate<gs::IC12>(graph, validate_dir + "/validation_params_ic12.csv");
+  LOG(INFO) << "Finish validating all tests";
 }
 
 int main(int argc, char** argv) {

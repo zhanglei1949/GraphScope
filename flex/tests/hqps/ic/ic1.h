@@ -29,28 +29,26 @@ std::vector<std::string> split(const std::string_view& s, char delim) {
 struct IC1left_left_left_expr0 {
  public:
   using result_t = bool;
-  IC1left_left_left_expr0(std::string_view firstName_0, int64_t personId)
-      : firstName_0_(firstName_0), personId_(personId) {}
+  IC1left_left_left_expr0(int64_t personId) : personId_(personId) {}
 
-  inline auto operator()(std::string_view firstName, int64_t id) const {
-    return firstName == firstName_0_ && id != personId_;
-  }
+  inline auto operator()(int64_t id) const { return id == personId_; }
 
  private:
-  std::string_view firstName_0_;
   int64_t personId_;
 };
 
 struct IC1left_left_left_expr1 {
  public:
   using result_t = bool;
-  IC1left_left_left_expr1(int64_t personid) : personid_(personid) {}
+  IC1left_left_left_expr1(std::string_view firstName, int64_t personid)
+      : firstName_0_(firstName), personid_(personid) {}
 
-  inline auto operator()(int64_t id) const {
-    return (true) && (id == personid_);
+  inline auto operator()(std::string_view firstName, int64_t id) const {
+    return firstName == firstName_0_ && id != personid_;
   }
 
  private:
+  std::string_view firstName_0_;
   int64_t personid_;
 };
 
@@ -130,18 +128,45 @@ class IC1 {
   using vertex_id_t = typename gs::MutableCSRInterface::vertex_id_t;
   // Query function for query class
 
+ private:
+  double path_expand_time = 0.0;
+  double scan_time_1 = 0.0;
+  double scan_time_2 = 0.0;
+  double scan_time_3 = 0.0;
+  double scan_time_4 = 0.0;
+  double get_v_time = 0.0;
+  double get_v_from_path_time = 0.0;
+  double proj_time = 0.0;
+  double group_time = 0.0;
+  double sort_time = 0.0;
+
+ public:
+  ~IC1() {
+    LOG(INFO) << "path_expand_time: " << path_expand_time;
+    LOG(INFO) << "scan_time_1: " << scan_time_1;
+    LOG(INFO) << "scan_time_2: " << scan_time_2;
+    LOG(INFO) << "scan_time_3: " << scan_time_3;
+    LOG(INFO) << "scan_time_4: " << scan_time_4;
+    LOG(INFO) << "get_v_time: " << get_v_time;
+    LOG(INFO) << "get_v_from_path_time: " << get_v_from_path_time;
+    LOG(INFO) << "proj_time: " << proj_time;
+    LOG(INFO) << "group_time: " << group_time;
+    LOG(INFO) << "sort_time: " << sort_time;
+  }
+
   void Query(const gs::MutableCSRInterface& graph, Decoder& input,
-             Encoder& output) const {
+             Encoder& output) {
     int64_t personId = input.get_long();
     std::string_view firstName_0 = input.get_string();
 
-    auto left_left_left_expr0 =
-        gs::make_filter(IC1left_left_left_expr0(firstName_0, personId),
-                        gs::PropertySelector<std::string_view>("firstName"),
-                        gs::PropertySelector<int64_t>("id"));
+    auto left_left_left_expr0 = gs::make_filter(
+        IC1left_left_left_expr0(personId), gs::PropertySelector<int64_t>("id"));
+    double t0 = -grape::GetCurrentTime();
     auto left_left_left_ctx0 =
         Engine::template ScanVertex<gs::AppendOpt::Persist>(
             graph, 1, std::move(left_left_left_expr0));
+    t0 += grape::GetCurrentTime();
+    scan_time_1 += t0;
 
     auto left_left_left_edge_expand_opt1 = gs::make_edge_expandv_opt(
         gs::Direction::Both, (label_id_t) 8, (label_id_t) 1);
@@ -152,18 +177,29 @@ class IC1 {
     auto left_left_left_path_opt2 = gs::make_path_expandv_opt(
         std::move(left_left_left_edge_expand_opt1),
         std::move(left_left_left_get_v_opt0), gs::Range(1, 4));
+    double t1 = -grape::GetCurrentTime();
     auto left_left_left_ctx1 =
         Engine::PathExpandP<gs::AppendOpt::Persist, INPUT_COL_ID(0)>(
             graph, std::move(left_left_left_ctx0),
             std::move(left_left_left_path_opt2));
+    t1 += grape::GetCurrentTime();
+    path_expand_time += t1;
+
+    double t2 = -grape::GetCurrentTime();
     auto left_left_left_get_v_opt3 =
         make_getv_opt(gs::VOpt::End, std::array<label_id_t, 0>{});
     auto left_left_left_ctx2 =
         Engine::template GetV<gs::AppendOpt::Temp, INPUT_COL_ID(-1)>(
             graph, std::move(left_left_left_ctx1),
             std::move(left_left_left_get_v_opt3));
-    auto left_left_left_expr2 = gs::make_filter(
-        IC1left_left_left_expr1(personId), gs::PropertySelector<int64_t>("id"));
+    t2 += grape::GetCurrentTime();
+    get_v_from_path_time += t2;
+
+    double t22 = -grape::GetCurrentTime();
+    auto left_left_left_expr2 =
+        gs::make_filter(IC1left_left_left_expr1(firstName_0, personId),
+                        gs::PropertySelector<std::string_view>("firstName"),
+                        gs::PropertySelector<int64_t>("id"));
     auto left_left_left_get_v_opt4 =
         make_getv_opt(gs::VOpt::Itself, std::array<label_id_t, 0>{},
                       std::move(left_left_left_expr2));
@@ -171,12 +207,19 @@ class IC1 {
         Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
             graph, std::move(left_left_left_ctx2),
             std::move(left_left_left_get_v_opt4));
+    t22 += grape::GetCurrentTime();
+    get_v_time += t22;
+
+    double t3 = -grape::GetCurrentTime();
     auto left_left_left_ctx4 = Engine::Project<PROJ_TO_NEW>(
         graph, std::move(left_left_left_ctx3),
-        std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(0)>(
+        std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(2)>(
                        gs::PropertySelector<grape::EmptyType>("")),
                    gs::make_mapper_with_variable<INPUT_COL_ID(1)>(
                        gs::PropertySelector<LengthKey>("length"))});
+    t3 += grape::GetCurrentTime();
+    proj_time += t3;
+
     GroupKey<0, grape::EmptyType> left_left_left_group_key5(
         gs::PropertySelector<grape::EmptyType>("None"));
 
@@ -184,10 +227,15 @@ class IC1 {
         std::tuple{gs::PropertySelector<grape::EmptyType>("None")},
         std::integer_sequence<int32_t, 1>{});
 
+    double t4 = -grape::GetCurrentTime();
     auto left_left_left_ctx5 =
         Engine::GroupBy(graph, std::move(left_left_left_ctx4),
                         std::tuple{left_left_left_group_key5},
                         std::tuple{left_left_left_agg_func6});
+    t4 += grape::GetCurrentTime();
+    group_time += t4;
+
+    double t5 = -grape::GetCurrentTime();
     auto left_left_left_ctx6 = Engine::Sort(
         graph, std::move(left_left_left_ctx5), gs::Range(0, 20),
         std::tuple{
@@ -195,11 +243,16 @@ class IC1 {
             gs::OrderingPropPair<gs::SortOrder::ASC, 0, std::string_view>(
                 "lastName"),
             gs::OrderingPropPair<gs::SortOrder::ASC, 0, int64_t>("id")});
+    t5 += grape::GetCurrentTime();
+    sort_time += t5;
 
+    double t6 = -grape::GetCurrentTime();
     auto left_left_right_expr0 = gs::make_filter(IC1left_left_right_expr0());
     auto left_left_right_ctx0 =
         Engine::template ScanVertex<gs::AppendOpt::Persist>(
             graph, 1, std::move(left_left_right_expr0));
+    t6 += grape::GetCurrentTime();
+    scan_time_2 += t6;
 
     auto left_left_right_edge_expand_opt0 = gs::make_edge_expande_opt<int32_t>(
         gs::PropNameArray<int32_t>{"workFrom"}, gs::Direction::Out,
@@ -254,8 +307,11 @@ class IC1 {
         std::tuple{left_left_left_agg_func10});
 
     auto left_right_expr0 = gs::make_filter(IC1left_right_expr0());
+    double t7 = -grape::GetCurrentTime();
     auto left_right_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
         graph, 1, std::move(left_right_expr0));
+    t7 += grape::GetCurrentTime();
+    scan_time_3 += t7;
 
     auto left_right_edge_expand_opt0 = gs::make_edge_expande_opt<int32_t>(
         gs::PropNameArray<int32_t>{"classYear"}, gs::Direction::Out,
@@ -319,8 +375,11 @@ class IC1 {
         std::tuple{left_left_left_agg_func15});
 
     auto right_expr0 = gs::make_filter(IC1right_expr0());
+    double t8 = -grape::GetCurrentTime();
     auto right_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
         graph, 1, std::move(right_expr0));
+    t8 += grape::GetCurrentTime();
+    scan_time_4 += t8;
 
     auto right_edge_expand_opt0 = gs::make_edge_expandv_opt(
         gs::Direction::Out, (label_id_t) 7, (label_id_t) 0);
@@ -342,7 +401,7 @@ class IC1 {
                    gs::make_mapper_with_variable<INPUT_COL_ID(0)>(
                        gs::PropertySelector<Date>("birthday")),
                    gs::make_mapper_with_variable<INPUT_COL_ID(0)>(
-                       gs::PropertySelector<Date>("creationDate")),
+                       gs::PropertySelector<int64_t>("creationDate")),
                    gs::make_mapper_with_variable<INPUT_COL_ID(0)>(
                        gs::PropertySelector<std::string_view>("gender")),
                    gs::make_mapper_with_variable<INPUT_COL_ID(0)>(
@@ -366,7 +425,7 @@ class IC1 {
       output.put_string_view(std::get<1>(tuple));   // lastName
       output.put_int(std::get<2>(tuple));           // dist
       output.put_date(std::get<3>(tuple));          // birthday
-      output.put_date(std::get<4>(tuple));          // creationDate
+      output.put_long(std::get<4>(tuple));          // creationDate
       output.put_string_view(std::get<5>(tuple));   // gender
       output.put_string_view(std::get<6>(tuple));   // browserUsed
       output.put_string_view(std::get<7>(tuple));   // locationIP
@@ -394,7 +453,7 @@ class IC1 {
 
   void Query(const gs::MutableCSRInterface& graph,
              const boost::property_tree::ptree& input,
-             boost::property_tree::ptree& output) const {
+             boost::property_tree::ptree& output) {
     oid_t id = input.get<oid_t>("personIdQ1");
     std::string firstName = input.get<std::string>("firstName");
 

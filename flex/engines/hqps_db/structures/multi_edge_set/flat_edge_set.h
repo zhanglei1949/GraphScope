@@ -596,6 +596,8 @@ class SingleLabelEdgeSet {
         other_v = true;
       } else if (direction_ == Direction::Out && v_opt == VOpt::End) {
         other_v = true;
+      } else if (direction_ == Direction::Both) {
+        other_v = true;
       } else {
         other_v = false;
         VLOG(1) << "Getting src vertices of csr ";

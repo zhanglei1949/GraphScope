@@ -95,6 +95,7 @@ class TypedColumn : public ColumnBase {
 using IntColumn = TypedColumn<int>;
 using LongColumn = TypedColumn<int64_t>;
 using DateColumn = TypedColumn<Date>;
+using TimeStampColumn = TypedColumn<TimeStamp>;
 using StringColumn = TypedColumn<std::string_view>;
 using DoubleColumn = TypedColumn<double>;
 
