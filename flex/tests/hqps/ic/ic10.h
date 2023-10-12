@@ -193,12 +193,6 @@ class IC10 {
             std::move(left_left_left_left_ctx1),
             std::move(left_left_left_right_ctx2));
 
-    {
-      for (auto iter : left_left_left_left_ctx2) {
-        auto eles = iter.GetAllElement();
-        VLOG(10) << "After antijoin: " << gs::to_string(eles);
-      }
-    }
     auto left_left_left_left_expr2 =
         gs::make_filter(IC10left_left_left_left_expr1(),
                         gs::PropertySelector<grape::EmptyType>("None"),
@@ -215,12 +209,6 @@ class IC10 {
                    gs::make_mapper_with_variable<INPUT_COL_ID(1)>(
                        gs::PropertySelector<Date>("birthday"))});
 
-    {
-      for (auto iter : left_left_left_left_ctx4) {
-        auto eles = iter.GetAllElement();
-        VLOG(10) << "before select with brithday: " << gs::to_string(eles);
-      }
-    }
     auto left_left_left_left_expr3 = gs::make_filter(
         IC10left_left_left_left_expr2(month),
         gs::PropertySelector<Date>("None"), gs::PropertySelector<Date>("None"),
@@ -230,13 +218,6 @@ class IC10 {
                                 INPUT_COL_ID(1), INPUT_COL_ID(1)>(
             graph, std::move(left_left_left_left_ctx4),
             std::move(left_left_left_left_expr3));
-
-    {
-      for (auto iter : left_left_left_left_ctx5) {
-        auto eles = iter.GetAllElement();
-        VLOG(10) << "After select with brithday: " << gs::to_string(eles);
-      }
-    }
 
     auto left_left_left_left_ctx6 = Engine::Project<PROJ_TO_NEW>(
         graph, std::move(left_left_left_left_ctx5),

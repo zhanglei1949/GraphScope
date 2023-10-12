@@ -50,6 +50,22 @@ struct IC9expr2 {
 
 // Auto generated query class definition
 class IC9 {
+ private:
+  mutable double expand_to_msg_time = 0.0;
+  mutable double filter_creation_date_time = 0.0;
+  mutable double filter_person_id_time = 0.0;
+  mutable double proj_time = 0.0;
+  mutable double sort_time = 0.0;
+
+ public:
+  ~IC9() {
+    LOG(INFO) << "IC9 expand_to_msg_time: " << expand_to_msg_time;
+    LOG(INFO) << "IC9 filter_creation_date_time: " << filter_creation_date_time;
+    LOG(INFO) << "IC9 filter_person_id_time: " << filter_person_id_time;
+    LOG(INFO) << "IC9 proj_time: " << proj_time;
+    LOG(INFO) << "IC9 sort_time: " << sort_time;
+  }
+
  public:
   using Engine = SyncEngine<gs::MutableCSRInterface>;
   using label_id_t = typename gs::MutableCSRInterface::label_id_t;
@@ -66,6 +82,7 @@ class IC9 {
     auto ctx0 = Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(
         graph, 1, personId);
 
+    double t0 = -grape::GetCurrentTime();
     auto edge_expand_opt1 = gs::make_edge_expandv_opt(
         gs::Direction::Both, (label_id_t) 8, (label_id_t) 1);
 
@@ -82,7 +99,9 @@ class IC9 {
     auto ctx2 =
         Engine::template EdgeExpandV<gs::AppendOpt::Temp, INPUT_COL_ID(1)>(
             graph, std::move(ctx1), std::move(edge_expand_opt3));
+    expand_to_msg_time += t0 + grape::GetCurrentTime();
 
+    double t1 = -grape::GetCurrentTime();
     auto expr3 = gs::make_filter(IC9expr1(maxDate),
                                  gs::PropertySelector<int64_t>("creationDate"));
     auto get_v_opt4 =
@@ -91,23 +110,33 @@ class IC9 {
                       std::move(expr3));
     auto ctx3 = Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
         graph, std::move(ctx2), std::move(get_v_opt4));
+    filter_creation_date_time += t1 + grape::GetCurrentTime();
+
+    double t2 = -grape::GetCurrentTime();
     auto expr4 = gs::make_filter(
         IC9expr2(), gs::PropertySelector<grape::EmptyType>("None"),
         gs::PropertySelector<grape::EmptyType>("None"));
     auto ctx4 = Engine::template Select<INPUT_COL_ID(1), INPUT_COL_ID(0)>(
         graph, std::move(ctx3), std::move(expr4));
+    filter_person_id_time += t2 + grape::GetCurrentTime();
 
+    double t3 = -grape::GetCurrentTime();
     auto ctx5 = Engine::Project<PROJ_TO_NEW>(
         graph, std::move(ctx4),
         std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(1)>(
                        gs::PropertySelector<grape::EmptyType>("")),
                    gs::make_mapper_with_variable<INPUT_COL_ID(2)>(
                        gs::PropertySelector<grape::EmptyType>(""))});
+    proj_time += t3 + grape::GetCurrentTime();
+
+    double t4 = -grape::GetCurrentTime();
     auto ctx6 = Engine::Sort(
         graph, std::move(ctx5), gs::Range(0, 20),
         std::tuple{gs::OrderingPropPair<gs::SortOrder::DESC, 1, int64_t>(
                        "creationDate"),
                    gs::OrderingPropPair<gs::SortOrder::ASC, 1, int64_t>("id")});
+    sort_time += t4 + grape::GetCurrentTime();
+
     auto ctx7 = Engine::Project<PROJ_TO_NEW>(
         graph, std::move(ctx6),
         std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(0)>(

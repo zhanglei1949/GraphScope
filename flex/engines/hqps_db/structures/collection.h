@@ -468,30 +468,33 @@ class DistinctCountBuilder<1, tag_id, T> {
             T>,
         "Type not match");
     while (vec_.size() <= ind) {
-      vec_.emplace_back(grape::Bitset(range_size));
+      // vec_.emplace_back(grape::Bitset(range_size));
+      vec_.emplace_back(std::unordered_set<T>());
     }
-    auto& cur_bitset = vec_[ind];
+    auto& cur_set = vec_[ind];
     auto cur_v = std::get<1>(cur_ind_ele);
     if (cur_v == null_value) {
       return;
     }
-    cur_bitset.set_bit(cur_v - min_v);
-    VLOG(20) << "[DistinctCount]: tag id: " << tag_id
-             << "insert at ind: " << ind << ",value : " << cur_v
-             << ", res: " << cur_bitset.count();
+    cur_set.insert(cur_v);
+    // cur_set.set_bit(cur_v - min_v);
+    // VLOG(20) << "[DistinctCount]: tag id: " << tag_id
+    //        << "insert at ind: " << ind << ",value : " << cur_v
+    //        << ", res: " << cur_set.count();
   }
 
   Collection<size_t> Build() {
     std::vector<size_t> res;
     res.reserve(vec_.size());
-    for (auto& bitset : vec_) {
-      res.emplace_back(bitset.count());
+    for (auto& set : vec_) {
+      res.emplace_back(set.size());
     }
     return Collection<size_t>(std::move(res));
   }
 
  private:
-  std::vector<grape::Bitset> vec_;
+  // std::vector<grape::Bitset> vec_;
+  std::vector<std::unordered_set<T>> vec_;
   T min_v, max_v, range_size, null_value;
 };
 

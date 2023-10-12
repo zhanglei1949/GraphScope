@@ -707,23 +707,41 @@ class SyncEngine : public BaseEngine {
     auto prop_descs = create_prop_descs_from_selectors<in_col_id...>(selectors);
     auto prop_getters_tuple =
         create_prop_getters_from_prop_desc(graph, ctx, prop_descs);
+    double t0 = -grape::GetCurrentTime();
+    // for (auto iter : ctx) {
+    //   auto eles = iter.GetAllElement();
+    //   // if (expr(eles)) {
+    //   // if (std::apply(expr, props)) {
+    //   if (run_expr_filter(expr, prop_getters_tuple, eles)) {
+    //     select_indices.emplace_back(cur_ind);
+    //     cur_offset += 1;
+    //   }
+    //   cur_ind += 1;
+    //   new_offsets.emplace_back(cur_offset);
+    // }
+
+    auto ind_seq = std::make_index_sequence<sizeof...(in_col_id)>();
     for (auto iter : ctx) {
-      auto eles = iter.GetAllElement();
-      // if (expr(eles)) {
-      // if (std::apply(expr, props)) {
-      if (run_expr_filter(expr, prop_getters_tuple, eles)) {
+      auto eles = iter.template GetIndexElements<in_col_id...>();
+      if (run_expr_filter_v2(expr, prop_getters_tuple, eles, ind_seq)) {
         select_indices.emplace_back(cur_ind);
         cur_offset += 1;
       }
       cur_ind += 1;
       new_offsets.emplace_back(cur_offset);
     }
+    t0 += grape::GetCurrentTime();
+
     VLOG(10) << "Select " << select_indices.size() << ", out of " << cur_ind
              << " records"
              << ", head size: " << cur_.Size();
-
+    double t1 = -grape::GetCurrentTime();
     cur_.SubSetWithIndices(select_indices);
     ctx.merge_offset_with_back(new_offsets);
+    t1 += grape::GetCurrentTime();
+    LOG(INFO) << "[Select perf]: select from size: " << cur_.Size()
+              << " to size: " << select_indices.size()
+              << ", select time: " << t0 << ", reduce time: " << t1;
     return std::move(ctx);
   }
 
@@ -742,6 +760,18 @@ class SyncEngine : public BaseEngine {
       const EXPR& expr, std::tuple<PROP_GETTER...>& prop_getter_tuple,
       std::tuple<ELE...>& eles, std::index_sequence<Is...>) {
     return expr(std::get<Is>(prop_getter_tuple).get_from_all_element(eles)...);
+  }
+
+  template <typename EXPR, typename... PROP_GETTER, typename... ELE,
+            size_t... Is>
+  static inline bool run_expr_filter_v2(
+      const EXPR& expr, std::tuple<PROP_GETTER...>& prop_getter_tuple,
+      std::tuple<ELE...>& eles, std::index_sequence<Is...>) {
+    // for each prop getter, get the view, and apply expr on it.
+    static_assert(sizeof...(PROP_GETTER) == sizeof...(Is));
+    static_assert(sizeof...(PROP_GETTER) == sizeof...(ELE));
+    return expr(std::get<Is>(prop_getter_tuple)
+                    .get_from_index_element(std::get<Is>(eles))...);
   }
 
   //////////////////////////////////////Group/////////////////////////

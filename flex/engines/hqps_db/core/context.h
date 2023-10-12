@@ -72,6 +72,14 @@ class ContextIter<base_tag, std::tuple<SET_T>> {
     return std::make_tuple(iter_.GetIndexElement());
   }
 
+  template <int... in_col_id>
+  auto GetIndexElements() const {
+    // check in_col_id is length 1, and the only item is base_tag or -1
+    static_assert(sizeof...(in_col_id) == 1,
+                  "GetIndexElements only accept one col_id");
+    return std::make_tuple(iter_.GetIndexElement());
+  }
+
   auto GetAllIndexElementWithData() const {
     return std::make_tuple(iter_.GetIndexElementWithData());
   }
@@ -146,6 +154,29 @@ class ContextIter<base_tag, std::tuple<SET_T, PREV_SETS...>> {
 
   auto GetAllIndexElement() const {
     return get_index_ele_tuple_impl(index_seq);
+  }
+
+  template <int in_col_id,
+            typename std::enable_if<(
+                in_col_id == -1 || in_col_id == base_tag + num_others)>::type* =
+                nullptr>
+  inline auto get_index_element_impl() const {
+    return cur_iter_.GetIndexElement();
+  }
+
+  template <int in_col_id,
+            typename std::enable_if<(
+                in_col_id != -1 && in_col_id != base_tag + num_others)>::type* =
+                nullptr>
+  inline auto get_index_element_impl() const {
+    return gs::get_from_tuple<in_col_id - base_tag>(others_iter_tuple_)
+        .GetIndexElement();
+  }
+
+  template <int... in_col_id>
+  inline auto GetIndexElements() const {
+    // tie other_iter_tuple and cur_iter_ into a tuple
+    return std::make_tuple(this->get_index_element_impl<in_col_id>()...);
   }
 
   auto GetAllIndexElementWithData() const {

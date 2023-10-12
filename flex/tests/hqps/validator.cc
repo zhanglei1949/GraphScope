@@ -1,7 +1,7 @@
 #include "flex/engines/hqps_db/database/mutable_csr_interface.h"
 
 // #include "flex/tests/hqps/ic/ic1.h"
-// #include "flex/tests/hqps/ic/ic10.h"
+#include "flex/tests/hqps/ic/ic10.h"
 // #include "flex/tests/hqps/ic/ic11.h"
 // #include "flex/tests/hqps/ic/ic12.h"
 // #include "flex/tests/hqps/ic/ic2.h"
@@ -10,7 +10,7 @@
 // #include "flex/tests/hqps/ic/ic5.h"
 // #include "flex/tests/hqps/ic/ic5_v2.h"
 // #include "flex/tests/hqps/ic/ic6.h"
-#include "flex/tests/hqps/ic/ic7.h"
+// #include "flex/tests/hqps/ic/ic7.h"
 // #include "flex/tests/hqps/ic/ic8.h"
 // #include "flex/tests/hqps/ic/ic9.h"
 
@@ -110,10 +110,10 @@ void validate_all(const gs::MutableCSRInterface& graph,
   // validate<gs::IC4>(graph, validate_dir + "/validation_params_ic4.csv");
   // validate<gs::IC5>(graph, validate_dir + "/validation_params_ic5.csv");
   // validate<gs::IC6>(graph, validate_dir + "/validation_params_ic6.csv");
-  validate<gs::IC7>(graph, validate_dir + "/validation_params_ic7.csv");
+  // validate<gs::IC7>(graph, validate_dir + "/validation_params_ic7.csv");
   // validate<gs::IC8>(graph, validate_dir + "/validation_params_ic8.csv");
   // validate<gs::IC9>(graph, validate_dir + "/validation_params_ic9.csv");
-  // validate<gs::IC10>(graph, validate_dir + "/validation_params_ic10.csv");
+  validate<gs::IC10>(graph, validate_dir + "/validation_params_ic10.csv");
   // validate<gs::IC11>(graph, validate_dir + "/validation_params_ic11.csv");
   // validate<gs::IC12>(graph, validate_dir + "/validation_params_ic12.csv");
   LOG(INFO) << "Finish validating all tests";

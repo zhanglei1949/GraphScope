@@ -185,6 +185,11 @@ class InnerIdGetter {
     return gs::get_from_tuple<tag_id>(all_ele);
   }
 
+  inline auto get_from_index_element(
+      const std::tuple<size_t, VID_T>& ele) const {
+    return std::get<1>(ele);
+  }
+
  private:
   const std::vector<VID_T>& vids_;
 };
@@ -208,6 +213,10 @@ class InnerIdDataGetter {
   VID_T get_from_all_element(const TUPLE_T& tuple) const {
     auto ind_ele = gs::get_from_tuple<tag_id>(tuple);
     return ind_ele;
+  }
+
+  VID_T get_from_index_element(const std::tuple<size_t, VID_T>& tuple) const {
+    return std::get<1>(tuple);
   }
 
  private:
@@ -254,6 +263,13 @@ class EdgeSetInnerIdGetter {
     auto dst_vid = std::get<1>(tuple);
     return Edge<VID_T, grape::EmptyType>(src_vid, dst_vid);
   }
+
+  template <typename IND_ELE_T>
+  inline auto get_from_index_element(const IND_ELE_T& tuple) const {
+    auto src_vid = std::get<0>(tuple);
+    auto dst_vid = std::get<1>(tuple);
+    return Edge<VID_T, grape::EmptyType>(src_vid, dst_vid);
+  }
 };
 
 template <int tag_id, typename T>
@@ -270,6 +286,10 @@ class CollectionPropGetter {
   template <typename ALL_ELE_T>
   inline auto get_from_all_element(const ALL_ELE_T& all_ele) const {
     return gs::get_from_tuple<tag_id>(all_ele);
+  }
+
+  inline auto get_from_index_element(const std::tuple<size_t, T>& tuple) const {
+    return std::get<1>(tuple);
   }
 
   template <typename ALL_IND_ELE_T>
@@ -296,6 +316,10 @@ class CollectionPropGetter<tag_id, std::tuple<T>> {
   template <typename ALL_ELE_T>
   inline auto get_from_all_element(const ALL_ELE_T& all_ele) const {
     return gs::get_from_tuple<tag_id>(all_ele);
+  }
+
+  inline auto get_from_index_element(const std::tuple<size_t, T>& tuple) const {
+    return std::get<1>(tuple);
   }
 
   template <typename ALL_IND_ELE_T>
@@ -327,6 +351,10 @@ class FlatEdgeSetPropGetter {
     return std::get<0>(std::get<2>(my_ele));
   }
 
+  inline auto get_from_index_element(const index_ele_tuple_t& tuple) const {
+    return std::get<0>(std::get<2>(std::get<1>(tuple)));
+  }
+
   template <typename ALL_IND_ELE_T>
   inline void set_ind_ele(const ALL_IND_ELE_T& ind_ele) {
     ind_ele_ = gs::get_from_tuple<tag_id>(ind_ele);
@@ -354,6 +382,10 @@ class GeneralEdgeSetPropGetter {
   inline auto get_from_all_element(const ALL_ELE_T& all_ele) const {
     auto& my_ele = gs::get_from_tuple<tag_id>(all_ele);
     return std::get<0>(std::get<1>(my_ele).properties());
+  }
+
+  inline auto get_from_index_element(const index_ele_tuple_t& ind_ele) const {
+    return std::get<0>(std::get<2>(ind_ele).properties());
   }
 
   template <typename ALL_IND_ELE_T>
@@ -392,6 +424,10 @@ class TwoLabelVertexSetImplPropGetter {
     return getters_[std::get<0>(ele)].get_view(std::get<1>(ele));
   }
 
+  inline auto get_from_index_element(const IND_ELE_T& ind_ele) const {
+    return getters_[std::get<1>(ind_ele)].get_view(std::get<2>(ind_ele));
+  }
+
   template <typename ALL_IND_ELE_T>
   inline void set_ind_ele(const ALL_IND_ELE_T& ind_ele) {
     ind_ele_ = gs::get_from_tuple<tag_id>(ind_ele);
@@ -428,6 +464,10 @@ class RowVertexSetPropGetter {
     return getter_.get_view(ele);
   }
 
+  inline auto get_from_index_element(const IND_ELE_T& ele) const {
+    return getter_.get_view(std::get<1>(ele));
+  }
+
   template <typename ALL_IND_ELE_T>
   inline void set_ind_ele(const ALL_IND_ELE_T& ind_ele) {
     ind_ele_ = gs::get_from_tuple<tag_id>(ind_ele);
@@ -457,6 +497,10 @@ class KeyedRowVertexSetPropGetter {
   inline auto get_from_all_element(const ALL_ELE_T& all_ele) const {
     auto& my_ele = gs::get_from_tuple<tag_id>(all_ele);
     return getter_.get_view(my_ele);
+  }
+
+  inline auto get_from_index_element(const IND_ELE_T& ele) const {
+    return getter_.get_view(std::get<1>(ele));
   }
 
   template <typename ALL_IND_ELE_T>
