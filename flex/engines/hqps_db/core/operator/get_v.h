@@ -280,8 +280,14 @@ class GetVertex {
     auto property_getters_array = get_prop_getters_from_selectors(
         graph, set.GetLabels(), filter.selectors_);
     t0 += grape::GetCurrentTime();
-    LOG(INFO) << "Get property tuple for general set of size: " << set.Size()
-              << " cost: " << t0;
+    if constexpr (SET_T::is_general_set) {
+      LOG(INFO) << "Get property tuple for general set of size: " << set.Size()
+                << " cost: " << t0;
+    } else {
+      LOG(INFO) << "Get property tuple for two label set of size: "
+                << set.Size() << " cost: " << t0;
+    }
+
     return set.project_vertices(labels, filter.expr_, property_getters_array);
   }
 

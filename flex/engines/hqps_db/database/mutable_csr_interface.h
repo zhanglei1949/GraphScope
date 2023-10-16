@@ -102,10 +102,7 @@ class MutableCSRInterface {
   }
 
   explicit MutableCSRInterface(const GraphDBSession& session)
-      : db_session_(session) {
-    LOG(INFO) << "Creating MutableCSRInterface";
-    LOG(INFO) << "person label num: " << db_session_.graph().vertex_num(1);
-  }
+      : db_session_(session) {}
 
   /**
    * @brief Get the Vertex Label id
@@ -602,11 +599,12 @@ class MutableCSRInterface {
         direction_str == "OUT") {
       auto csr = db_session_.graph().get_oe_csr(src_label_id, dst_label_id,
                                                 edge_label_id);
-      auto size = 0;
+      size_t size = 0;
       for (auto i = 0; i < vids.size(); ++i) {
         auto v = vids[i];
         size += csr->edge_iter(v)->size();
       }
+      VLOG(10) << "GetOther vertices, found: " << size;
       ret_v.reserve(size);
       ret_offset.reserve(vids.size());
       ret_offset.emplace_back(0);
@@ -624,11 +622,12 @@ class MutableCSRInterface {
                direction_str == "IN") {
       auto csr = db_session_.graph().get_ie_csr(dst_label_id, src_label_id,
                                                 edge_label_id);
-      auto size = 0;
+      size_t size = 0;
       for (auto i = 0; i < vids.size(); ++i) {
         auto v = vids[i];
         size += csr->edge_iter(v)->size();
       }
+      VLOG(10) << "GetOther vertices, found: " << size;
       ret_v.reserve(size);
       ret_offset.reserve(vids.size());
       ret_offset.emplace_back(0);
@@ -648,12 +647,13 @@ class MutableCSRInterface {
                                                    edge_label_id);
       auto oe_csr = db_session_.graph().get_oe_csr(src_label_id, dst_label_id,
                                                    edge_label_id);
-      auto size = 0;
+      size_t size = 0;
       for (auto i = 0; i < vids.size(); ++i) {
         auto v = vids[i];
         size += ie_csr->edge_iter(v)->size();
         size += oe_csr->edge_iter(v)->size();
       }
+      VLOG(10) << "GetOther vertices, found: " << size;
       ret_v.reserve(size);
       ret_offset.reserve(vids.size() + 1);
       ret_offset.emplace_back(0);

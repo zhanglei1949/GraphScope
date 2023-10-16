@@ -88,6 +88,8 @@ class PathExpand {
       PathExpandVOpt<LabelT, EDGE_FILTER_T, VERTEX_FILTER_T, T...>&&
           path_expand_opt) {
     //
+
+    VLOG(10) << "[PathExpandV] from row vertex set, expanding with columns";
     auto cur_label = vertex_set.GetLabel();
     auto& range = path_expand_opt.range_;
     auto& edge_expand_opt = path_expand_opt.edge_expand_opt_;
@@ -118,23 +120,37 @@ class PathExpand {
       const TwoLabelVertexSet<vertex_id_t, LabelT, V_SET_T...>& vertex_set,
       PathExpandVOpt<LabelT, EDGE_FILTER_T, VERTEX_FILTER_T>&&
           path_expand_opt) {
-    //
     auto& range = path_expand_opt.range_;
     auto& edge_expand_opt = path_expand_opt.edge_expand_opt_;
     auto& get_v_opt = path_expand_opt.get_v_opt_;
+    VLOG(1) << "[PathExpandV]: from two label set: " << vertex_set.Size()
+            << ", (" << range.start_ << "), " << range.limit_
+            << edge_expand_opt.dir_;
 
     std::vector<vertex_id_t> input_v_0, input_v_1;
     std::vector<int32_t> active_ind0, active_ind1;
     std::tie(input_v_0, active_ind0) = vertex_set.GetVertices(0);
     std::tie(input_v_1, active_ind1) = vertex_set.GetVertices(1);
+    VLOG(1) << "label :" << std::to_string(vertex_set.GetLabel(0))
+            << ",vertex size: " << input_v_0.size();
+    VLOG(1) << "label :" << std::to_string(vertex_set.GetLabel(1))
+            << ",vertex size: " << input_v_1.size();
 
     std::vector<vertex_id_t> vids_vec0, vids_vec1;
     std::vector<int32_t> dist_vec0, dist_vec1;
     std::vector<offset_t> offsets0, offsets1;
     std::tie(vids_vec0, dist_vec0, offsets0) = PathExpandRawVMultiV(
         graph, vertex_set.GetLabel(0), input_v_0, range, edge_expand_opt);
+    VLOG(1) << "Expand from label: " << std::to_string(vertex_set.GetLabel(0))
+            << ", got vertices: " << vids_vec0.size()
+            << ", dist vec size: " << dist_vec0.size()
+            << ", offset size: " << offsets0.size();
     std::tie(vids_vec1, dist_vec1, offsets1) = PathExpandRawVMultiV(
         graph, vertex_set.GetLabel(1), input_v_1, range, edge_expand_opt);
+    VLOG(1) << "Expand from label: " << std::to_string(vertex_set.GetLabel(1))
+            << ", got vertices: " << vids_vec1.size()
+            << ", dist vec size: " << dist_vec1.size()
+            << ", offset size: " << offsets1.size();
     // merge to label output together.
 
     // Default vertex set to vertex set.
@@ -189,11 +205,13 @@ class PathExpand {
       const RowVertexSet<LabelT, vertex_id_t, V_SET_T...>& vertex_set,
       PathExpandVOpt<LabelT, EDGE_FILTER_T, VERTEX_FILTER_T>&&
           path_expand_opt) {
-    //
     auto cur_label = vertex_set.GetLabel();
     auto& range = path_expand_opt.range_;
     auto& edge_expand_opt = path_expand_opt.edge_expand_opt_;
     auto& get_v_opt = path_expand_opt.get_v_opt_;
+    VLOG(1) << "[PathExpandV]: from row vertex set: " << vertex_set.Size()
+            << ", (" << range.start_ << "), " << range.limit_
+            << edge_expand_opt.dir_;
     auto tuple = PathExpandRawVMultiV(
         graph, cur_label, vertex_set.GetVertices(), range, edge_expand_opt);
 
@@ -298,6 +316,9 @@ class PathExpand {
              "dedup is enabled.";
       return PathExpandRawV2ForSingleV(graph, src_label, src_vertices_vec,
                                        range, edge_expand_opt);
+    } else {
+      LOG(INFO) << "PathExpandRawVMultiV from " << src_vertices_size
+                << " vertices";
     }
     std::vector<std::vector<vertex_id_t>> gids;
     std::vector<std::vector<offset_t>> offsets;
@@ -308,6 +329,8 @@ class PathExpand {
     for (auto i = 0; i < range.limit_; ++i) {
       offsets.reserve(src_vertices_size + 1);
     }
+    VLOG(1) << "reserving " << src_vertices_size
+            << ", for range: " << range.limit_;
 
     // init for index 0
     gids[0].insert(gids[0].begin(), src_vertices_vec.begin(),
@@ -328,6 +351,7 @@ class PathExpand {
 
       gids[cur_hop].swap(pair.first);
       CHECK(gids[cur_hop - 1].size() + 1 == pair.second.size());
+      VLOG(1) << "Got " << gids[cur_hop].size() << " at hop: " << cur_hop;
       // offsets[cur_hop].swap(pair.second);
       for (auto j = 0; j < offsets[cur_hop - 1].size(); ++j) {
         auto& new_off_vec = pair.second;

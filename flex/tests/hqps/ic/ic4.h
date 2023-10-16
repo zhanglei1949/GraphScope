@@ -83,9 +83,10 @@ class IC4 {
              Encoder& output) const {
     auto personId = input.get_long();
     auto startDate = input.get_long();
-    auto endDate = input.get_long();
-    LOG(INFO) << "personId: " << personId << " startDate: " << startDate
-              << " endDate: " << endDate;
+    int32_t durationDays = input.get_int();
+    // auto endDate = input.get_long();
+    int64_t milli_sec_per_day = 24 * 60 * 60 * 1000l;
+    auto endDate = startDate + milli_sec_per_day * durationDays;
 
     auto expr0 = gs::make_filter(IC4expr0(personId),
                                  gs::PropertySelector<int64_t>("id"));
@@ -172,13 +173,13 @@ class IC4 {
     oid_t id = input.get<oid_t>("personIdQ4");
     int64_t start_date = input.get<int64_t>("startDate");
     int64_t durationDays = input.get<int32_t>("durationDays");
-    auto end_date = start_date + durationDays * 24 * 3600 * 1000;
+    // auto end_date = start_date + durationDays * 24 * 3600 * 1000;
 
     std::vector<char> input_buffer, output_buffer;
     Encoder input_encoder(input_buffer);
     input_encoder.put_long(id);
     input_encoder.put_long(start_date);
-    input_encoder.put_long(end_date);
+    input_encoder.put_int(durationDays);
     Decoder input_decoder(input_buffer.data(), input_buffer.size());
 
     Encoder output_encoder(output_buffer);

@@ -130,6 +130,18 @@ class TwoLabelVertexSetImplBuilder<VID_T, LabelT, grape::EmptyType> {
     }
   }
 
+  void Insert(const ele_tuple_t& tuple) {
+    //(ind, label_ind, vid)
+    vec_.emplace_back(std::get<1>(tuple));
+    if (std::get<0>(tuple) == 0) {
+      auto new_size = vec_.size();
+      while (new_size > bitset_.cardinality()) {
+        bitset_.resize(bitset_.cardinality() * 2);
+      }
+      bitset_.set_bit(vec_.size() - 1);
+    }
+  }
+
   res_t Build() {
     VLOG(10) << "Try to resize from " << bitset_.cardinality() << ", to "
              << vec_.size();

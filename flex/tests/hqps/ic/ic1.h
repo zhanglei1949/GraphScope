@@ -142,16 +142,16 @@ class IC1 {
 
  public:
   ~IC1() {
-    LOG(INFO) << "path_expand_time: " << path_expand_time;
-    LOG(INFO) << "scan_time_1: " << scan_time_1;
-    LOG(INFO) << "scan_time_2: " << scan_time_2;
-    LOG(INFO) << "scan_time_3: " << scan_time_3;
-    LOG(INFO) << "scan_time_4: " << scan_time_4;
-    LOG(INFO) << "get_v_time: " << get_v_time;
-    LOG(INFO) << "get_v_from_path_time: " << get_v_from_path_time;
-    LOG(INFO) << "proj_time: " << proj_time;
-    LOG(INFO) << "group_time: " << group_time;
-    LOG(INFO) << "sort_time: " << sort_time;
+    VLOG(10) << "path_expand_time: " << path_expand_time;
+    VLOG(10) << "scan_time_1: " << scan_time_1;
+    VLOG(10) << "scan_time_2: " << scan_time_2;
+    VLOG(10) << "scan_time_3: " << scan_time_3;
+    VLOG(10) << "scan_time_4: " << scan_time_4;
+    VLOG(10) << "get_v_time: " << get_v_time;
+    VLOG(10) << "get_v_from_path_time: " << get_v_from_path_time;
+    VLOG(10) << "proj_time: " << proj_time;
+    VLOG(10) << "group_time: " << group_time;
+    VLOG(10) << "sort_time: " << sort_time;
   }
 
   void Query(const gs::MutableCSRInterface& graph, Decoder& input,

@@ -124,10 +124,51 @@ struct IC10left_left_left_left_expr3 {
 
  private:
 };
+/*
+I1016 14:45:30.844205 234419 rt_bench.cc:150]  min: 26608247;
+I1016 14:45:30.844209 234419 rt_bench.cc:151]  max: 51321487;
+I1016 14:45:30.844213 234419 rt_bench.cc:152]  P50: 46339172;
+I1016 14:45:30.844218 234419 rt_bench.cc:153]  P90: 48999466;
+I1016 14:45:30.844221 234419 rt_bench.cc:154]  P95: 49530263;
+I1016 14:45:30.844226 234419 rt_bench.cc:155]  P99: 51321487*/
 
 // Auto generated query class definition
 class IC10 {
+ private:
+  mutable double get_other_person_time = 0.0;
+  mutable double get_friend_time = 0.0;
+  mutable double person_anti_join_time = 0.0;
+  mutable double filter_start_peron_time = 0.0;
+  mutable double filter_with_month_time = 0.0;
+  mutable double dedup_time = 0.0;
+  mutable double get_all_post_time = 0.0;
+  mutable double count_all_post_time = 0.0;
+  mutable double get_active_post_time = 0.0;
+  mutable double count_active_post_time = 0.0;
+
+  mutable double all_post_left_join_time = 0.0;
+  mutable double active_post_left_join_time = 0.0;
+  mutable double person_place_join_time = 0.0;
+
+  mutable double order_by_and_proj_time = 0.0;
+
  public:
+  ~IC10() {
+    LOG(INFO) << "get_other_person_time: " << get_other_person_time;
+    LOG(INFO) << "get_friend_time: " << get_friend_time;
+    LOG(INFO) << "person_anti_join_time: " << person_anti_join_time;
+    LOG(INFO) << "filter_start_peron_time: " << filter_start_peron_time;
+    LOG(INFO) << "filter_with_month_time: " << filter_with_month_time;
+    LOG(INFO) << "dedup_time: " << dedup_time;
+    LOG(INFO) << "get_all_post_time: " << get_all_post_time;
+    LOG(INFO) << "count_all_post_time: " << count_all_post_time;
+    LOG(INFO) << "get_active_post_time: " << get_active_post_time;
+    LOG(INFO) << "count_active_post_time: " << count_active_post_time;
+    LOG(INFO) << "all_post_left_join_time: " << all_post_left_join_time;
+    LOG(INFO) << "active_post_left_join_time: " << active_post_left_join_time;
+    LOG(INFO) << "person_place_join_time: " << person_place_join_time;
+    LOG(INFO) << "order_by_and_proj_time: " << order_by_and_proj_time;
+  }
   using Engine = SyncEngine<gs::MutableCSRInterface>;
   using label_id_t = typename gs::MutableCSRInterface::label_id_t;
   using vertex_id_t = typename gs::MutableCSRInterface::vertex_id_t;
@@ -143,6 +184,7 @@ class IC10 {
     // auto left_left_left_left_ctx0 =
     //     Engine::template ScanVertex<gs::AppendOpt::Persist>(
     //         graph, 1, std::move(left_left_left_left_expr0));
+    double t0 = -grape::GetCurrentTime();
     auto left_left_left_left_ctx0 =
         Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(graph, 1,
                                                                    personId);
@@ -160,6 +202,8 @@ class IC10 {
         Engine::PathExpandV<gs::AppendOpt::Persist, INPUT_COL_ID(0)>(
             graph, std::move(left_left_left_left_ctx0),
             std::move(left_left_left_left_path_opt2));
+    t0 += grape::GetCurrentTime();
+    get_other_person_time += t0;
 
     // auto left_left_left_right_expr0 =
     //     gs::make_filter(IC10left_left_left_right_expr0(personId),
@@ -167,6 +211,7 @@ class IC10 {
     // auto left_left_left_right_ctx0 =
     //     Engine::template ScanVertex<gs::AppendOpt::Persist>(
     //         graph, 1, std::move(left_left_left_right_expr0));
+    double t1 = -grape::GetCurrentTime();
     auto left_left_left_right_ctx0 =
         Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(graph, 1,
                                                                    personId);
@@ -187,12 +232,18 @@ class IC10 {
         Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
             graph, std::move(left_left_left_right_ctx1),
             std::move(left_left_left_right_get_v_opt1));
+    t1 += grape::GetCurrentTime();
+    get_friend_time += t1;
 
+    double t2 = -grape::GetCurrentTime();
     auto left_left_left_left_ctx2 =
         Engine::template Join<0, 1, 0, 1, gs::JoinKind::AntiJoin>(
             std::move(left_left_left_left_ctx1),
             std::move(left_left_left_right_ctx2));
+    t2 -= grape::GetCurrentTime();
+    person_anti_join_time += t2;
 
+    double t3 = -grape::GetCurrentTime();
     auto left_left_left_left_expr2 =
         gs::make_filter(IC10left_left_left_left_expr1(),
                         gs::PropertySelector<grape::EmptyType>("None"),
@@ -201,7 +252,10 @@ class IC10 {
         Engine::template Select<INPUT_COL_ID(1), INPUT_COL_ID(0)>(
             graph, std::move(left_left_left_left_ctx2),
             std::move(left_left_left_left_expr2));
+    t3 += grape::GetCurrentTime();
+    filter_start_peron_time += t3;
 
+    double t4 = -grape::GetCurrentTime();
     auto left_left_left_left_ctx4 = Engine::Project<PROJ_TO_NEW>(
         graph, std::move(left_left_left_left_ctx3),
         std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(1)>(
@@ -218,14 +272,20 @@ class IC10 {
                                 INPUT_COL_ID(1), INPUT_COL_ID(1)>(
             graph, std::move(left_left_left_left_ctx4),
             std::move(left_left_left_left_expr3));
+    t4 += grape::GetCurrentTime();
+    filter_with_month_time += t4;
 
+    double t5 = -grape::GetCurrentTime();
     auto left_left_left_left_ctx6 = Engine::Project<PROJ_TO_NEW>(
         graph, std::move(left_left_left_left_ctx5),
         std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(0)>(
             gs::PropertySelector<grape::EmptyType>(""))});
     auto left_left_left_left_ctx7 =
         Engine::template Dedup<0>(std::move(left_left_left_left_ctx6));
+    t5 += grape::GetCurrentTime();
+    dedup_time += t5;
 
+    double t6 = -grape::GetCurrentTime();
     auto left_left_right_ctx0 =
         Engine::template ScanVertex<gs::AppendOpt::Persist>(
             graph, 3, Filter<TruePredicate>());
@@ -245,11 +305,18 @@ class IC10 {
         Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
             graph, std::move(left_left_right_ctx1),
             std::move(left_left_right_get_v_opt1));
+    t6 += grape::GetCurrentTime();
+    get_all_post_time += t6;
 
+    double t61 = -grape::GetCurrentTime();
     auto left_left_left_left_ctx8 =
         Engine::template Join<0, 1, gs::JoinKind::LeftOuterJoin>(
             std::move(left_left_left_left_ctx7),
             std::move(left_left_right_ctx2));
+    t61 += grape::GetCurrentTime();
+    all_post_left_join_time += t61;
+
+    double t7 = -grape::GetCurrentTime();
     GroupKey<0, grape::EmptyType> left_left_left_left_group_key9(
         gs::PropertySelector<grape::EmptyType>("None"));
 
@@ -262,12 +329,15 @@ class IC10 {
         Engine::GroupBy(graph, std::move(left_left_left_left_ctx8),
                         std::tuple{left_left_left_left_group_key9},
                         std::tuple{left_left_left_left_agg_func10});
+    t7 += grape::GetCurrentTime();
+    count_all_post_time += t7;
 
     // auto left_right_expr0 = gs::make_filter(
     //     IC10left_right_expr0(personId), gs::PropertySelector<int64_t>("id"));
     // auto left_right_ctx0 = Engine::template
     // ScanVertex<gs::AppendOpt::Persist>(
     //     graph, 1, std::move(left_right_expr0));
+    double t8 = -grape::GetCurrentTime();
     auto left_right_ctx0 =
         Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(graph, 1,
                                                                    personId);
@@ -301,10 +371,16 @@ class IC10 {
         Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
             graph, std::move(left_right_ctx3),
             std::move(left_right_get_v_opt3));
+    t8 += grape::GetCurrentTime();
+    get_active_post_time += t8;
 
+    double t9 = -grape::GetCurrentTime();
     auto left_left_left_left_ctx10 =
         Engine::template Join<0, 3, gs::JoinKind::LeftOuterJoin>(
             std::move(left_left_left_left_ctx9), std::move(left_right_ctx4));
+    t9 += grape::GetCurrentTime();
+    active_post_left_join_time += t9;
+
     GroupKey<0, grape::EmptyType> left_left_left_left_group_key11(
         gs::PropertySelector<grape::EmptyType>("None"));
 
@@ -316,12 +392,16 @@ class IC10 {
             std::tuple{gs::PropertySelector<grape::EmptyType>("None")},
             std::integer_sequence<int32_t, 4>{});
 
+    double t10 = -grape::GetCurrentTime();
     auto left_left_left_left_ctx11 =
         Engine::GroupBy(graph, std::move(left_left_left_left_ctx10),
                         std::tuple{left_left_left_left_group_key11,
                                    left_left_left_left_group_key12},
                         std::tuple{left_left_left_left_agg_func13});
+    t10 += grape::GetCurrentTime();
+    count_active_post_time += t10;
 
+    double t11 = -grape::GetCurrentTime();
     auto right_expr0 = gs::make_filter(IC10right_expr0());
     auto right_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
         graph, 1, std::move(right_expr0));
@@ -335,6 +415,10 @@ class IC10 {
     auto left_left_left_left_ctx12 =
         Engine::template Join<0, 0, gs::JoinKind::InnerJoin>(
             std::move(left_left_left_left_ctx11), std::move(right_ctx1));
+    t11 += grape::GetCurrentTime();
+    person_place_join_time += t11;
+
+    double t12 = -grape::GetCurrentTime();
     auto left_left_left_left_ctx13 = Engine::Project<PROJ_TO_NEW>(
         graph, std::move(left_left_left_left_ctx12),
         std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(0)>(
@@ -357,6 +441,9 @@ class IC10 {
         graph, std::move(left_left_left_left_ctx13), gs::Range(0, 10),
         std::tuple{gs::OrderingPropPair<gs::SortOrder::DESC, 3, int64_t>(""),
                    gs::OrderingPropPair<gs::SortOrder::ASC, 0, int64_t>("")});
+    t12 += grape::GetCurrentTime();
+    order_by_and_proj_time += t12;
+
     for (auto iter : left_left_left_left_ctx14) {
       auto eles = iter.GetAllElement();
       output.put_long(std::get<0>(eles));
@@ -379,7 +466,6 @@ class IC10 {
     Encoder input_encoder(input_buffer);
     input_encoder.put_long(id);
     input_encoder.put_int(month);
-    input_encoder.put_int(limit);
     Decoder input_decoder(input_buffer.data(), input_buffer.size());
 
     Encoder output_encoder(output_buffer);

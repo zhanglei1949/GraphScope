@@ -200,8 +200,8 @@ class BaseEngine {
             typename std::enable_if<join_kind ==
                                     JoinKind::LeftOuterJoin>::type* = nullptr>
   static auto Join(CTX_X&& ctx_x, CTX_Y&& ctx_y) {
-    LOG(INFO) << "[LeftOuterJoin] with left ele: " << ctx_x.GetHead().Size()
-              << ", right: " << ctx_y.GetHead().Size();
+    VLOG(1) << "[LeftOuterJoin] with left ele: " << ctx_x.GetHead().Size()
+            << ", right: " << ctx_y.GetHead().Size();
     // get all tuples from two context.
     using ctx_x_iter_t = typename CTX_X::iterator;
     using ctx_y_iter_t = typename CTX_Y::iterator;
@@ -217,7 +217,7 @@ class BaseEngine {
     static constexpr size_t y_ele_num = std::tuple_size_v<ctx_y_all_ele_t>;
     static constexpr int x_base_tag = CTX_X::base_tag_id;
     static constexpr int y_base_tag = CTX_Y::base_tag_id;
-    LOG(INFO) << "x ele: " << x_ele_num << ", y ele num: " << y_ele_num;
+    // LOG(INFO) << "x ele: " << x_ele_num << ", y ele num: " << y_ele_num;
 
     static constexpr size_t real_x_ind =
         alias_x == -1 ? x_ele_num - 1 : alias_x - x_base_tag;
@@ -278,26 +278,23 @@ class BaseEngine {
             insert_into_builder_v2(builder_tuple, new_ele, new_data);
           }
         } else {
-          LOG(INFO) << "no y ele found";
+          // LOG(INFO) << "no y ele found";
           auto new_ele =
               std::tuple_cat(std::move(ind_ele),
                              NullRecordCreator<ctx_y_res_ele_t>::GetNull());
-          LOG(INFO) << "new ele: " << gs::to_string(new_ele);
           auto new_data =
               std::tuple_cat(std::move(data_tuple),
                              NullRecordCreator<ctx_y_res_data_t>::GetNull());
-          LOG(INFO) << "new data: " << gs::to_string(new_data);
           insert_into_builder_v2(builder_tuple, new_ele, new_data);
         }
       }
-      LOG(INFO) << "here";
       t0 += grape::GetCurrentTime();
-      LOG(INFO) << "Join cost: " << t0;
+      VLOG(1) << "Join cost: " << t0;
     }
     static constexpr size_t final_col_num = x_ele_num + y_ele_num - 1;
     auto built_tuple = builder_finish(
         builder_tuple, std::make_index_sequence<final_col_num>{});
-    LOG(INFO) << "after build, size: " << std::get<0>(built_tuple).Size();
+    VLOG(1) << "after build, size: " << std::get<0>(built_tuple).Size();
     auto offset_vec =
         make_offset_vector(final_col_num - 1, std::get<0>(built_tuple).Size());
     VLOG(10) << "offset vec size:  " << offset_vec.size();
@@ -755,7 +752,7 @@ class BaseEngine {
     static constexpr size_t y_ele_num = std::tuple_size_v<ctx_y_all_ele_t>;
     static constexpr int x_base_tag = CTX_X::base_tag_id;
     static constexpr int y_base_tag = CTX_Y::base_tag_id;
-    LOG(INFO) << "x ele: " << x_ele_num << ", y ele num: " << y_ele_num;
+    // LOG(INFO) << "x ele: " << x_ele_num << ", y ele num: " << y_ele_num;
 
     static constexpr size_t real_x_ind =
         alias_x == -1 ? x_ele_num - 1 : alias_x - x_base_tag;
@@ -814,7 +811,7 @@ class BaseEngine {
 
     auto built_tuple = builder_finish(
         all_builder, std::make_index_sequence<x_ele_num + y_ele_num - 1>{});
-    LOG(INFO) << "after build, size: " << std::get<0>(built_tuple).Size();
+    VLOG(1) << "after build, size: " << std::get<0>(built_tuple).Size();
     auto offset_vec = make_offset_vector(x_ele_num + y_ele_num - 2,
                                          std::get<0>(built_tuple).Size());
     VLOG(10) << "offset vec size:  " << offset_vec.size();

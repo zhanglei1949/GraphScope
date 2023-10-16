@@ -166,7 +166,6 @@ class IC12 {
     Encoder input_encoder(input_buffer);
     input_encoder.put_long(id);
     input_encoder.put_string(tag_class_name);
-    input_encoder.put_int(limit);
     Decoder input_decoder(input_buffer.data(), input_buffer.size());
 
     Encoder output_encoder(output_buffer);

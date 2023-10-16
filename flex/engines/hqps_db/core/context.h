@@ -787,13 +787,13 @@ class Context {
       for (auto& off : offsets_arrays_) {
         offset_array_size.emplace_back(off.size());
       }
-      LOG(INFO) << "Cur ctx offset array size: "
-                << gs::to_string(offset_array_size);
-      LOG(INFO) << "input offset size: " << offset.size();
+      VLOG(1) << "Cur ctx offset array size: "
+              << gs::to_string(offset_array_size);
+      VLOG(1) << "input offset size: " << offset.size();
     }
     auto new_offset = align_offset(new_node, std::move(offset), offsets_arrays_,
                                    alias_to_use);
-    LOG(INFO) << "After alias " << new_offset.size();
+    VLOG(1) << "After alias " << new_offset.size();
     offsets_arrays_.emplace_back(std::move(new_offset));
     auto cated_tuple =
         std::tuple_cat(std::move(prev_), std::make_tuple(std::move(cur_)));
@@ -1129,7 +1129,7 @@ class Context {
       res_offset.push_back(cur);
     }
     LOG(INFO) << "res_offset size: " << res_offset.size();
-    VLOG(10) << "res offset: " << gs::to_string(res_offset);
+    // VLOG(10) << "res offset: " << gs::to_string(res_offset);
     return res_offset;
   }
   HEAD_T cur_;

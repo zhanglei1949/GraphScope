@@ -251,11 +251,11 @@ class SortOp {
       std::tuple<ORDER_PAIRS...>&& tuples, size_t limit) {
     LOG(INFO) << "[SortTopK]: limit: " << limit
               << ", input size: " << ctx.GetHead().Size();
-    std::apply(
-        [](auto&... args) {
-          ((LOG(INFO) << "SortTopK: " << args.name << " "), ...);
-        },
-        tuples);
+    // std::apply(
+    //     [](auto&... args) {
+    //       ((LOG(INFO) << "SortTopK: " << args.name << " "), ...);
+    //     },
+    //     tuples);
 
     // Generate tuples from ctx, with required key.
 

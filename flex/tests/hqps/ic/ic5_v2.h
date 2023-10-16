@@ -10,6 +10,60 @@
 
 namespace gs {
 // Auto generated expression class definition
+// struct IC5left_expr0 {
+//  public:
+//   using result_t = bool;
+//   IC5left_expr0(int64_t personId) : personId_(personId) {}
+
+//   inline auto operator()(int64_t id) const {
+//     return (true) && (id == personId_);
+//   }
+
+//  private:
+//   int64_t personId_;
+// };
+
+// struct IC5left_expr1 {
+//  public:
+//   using result_t = bool;
+//   IC5left_expr1(int64_t minDate) : minDate_(minDate) {}
+
+//   inline auto operator()(int64_t joinDate) const { return joinDate >
+//   minDate_; }
+
+//  private:
+//   int64_t minDate_;
+// };
+
+// struct IC5left_expr2 {
+//  public:
+//   using result_t = bool;
+//   IC5left_expr2() {}
+//   template <typename vertex_id_t>
+//   inline auto operator()(vertex_id_t var5, vertex_id_t var6) const {
+//     return var5 != var6;
+//   }
+
+//  private:
+// };
+
+// struct IC5right_expr0 {
+//  public:
+//   using result_t = bool;
+//   IC5right_expr0() {}
+
+//   inline auto operator()() const { return true; }
+
+//  private:
+// };
+// I1016 11:46:25.829963 227116 rt_bench.cc:146] IC5; mean: 5.41767e+07; counts:
+// 28; I1016 11:46:25.829969 227116 rt_bench.cc:150]  min: 33434730; I1016
+// 11:46:25.829973 227116 rt_bench.cc:151]  max: 61276576; I1016 11:46:25.829977
+// 227116 rt_bench.cc:152]  P50: 57260304; I1016 11:46:25.829982 227116
+// rt_bench.cc:153]  P90: 59284012; I1016 11:46:25.829985 227116
+// rt_bench.cc:154]  P95: 59947946; I1016 11:46:25.829989 227116
+// rt_bench.cc:155]  P99: 61276576
+
 struct IC5left_expr0 {
  public:
   using result_t = bool;
@@ -49,11 +103,14 @@ struct IC5left_expr2 {
 struct IC5right_expr0 {
  public:
   using result_t = bool;
-  IC5right_expr0() {}
+  IC5right_expr0(int64_t personId) : personId_(personId) {}
 
-  inline auto operator()() const { return true; }
+  inline auto operator()(int64_t id) const {
+    return (true) && (id == personId_);
+  }
 
  private:
+  int64_t personId_;
 };
 
 // Auto generated query class definition
@@ -84,15 +141,114 @@ class IC5 {
     int64_t personId = input.get_long();
     int64_t minDate = input.get_long();
 
-    double t1 = -grape::GetCurrentTime();
-    // auto left_expr0 = gs::make_filter(IC5left_expr0(personId),
-    //   gs::PropertySelector<int64_t>("id"));
-    // auto left_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
-    // graph, 1, std::move(left_expr0));
-    auto left_ctx0 = Engine::template ScanVertexWithOid<gs::AppendOpt::Persist>(
-        graph, 1, personId);
-    t1 += grape::GetCurrentTime();
-    scan_time += t1;
+    // double t1 = -grape::GetCurrentTime();
+    // // auto left_expr0 = gs::make_filter(IC5left_expr0(personId),
+    // //   gs::PropertySelector<int64_t>("id"));
+    // // auto left_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
+    // // graph, 1, std::move(left_expr0));
+    // auto left_ctx0 = Engine::template
+    // ScanVertexWithOid<gs::AppendOpt::Persist>(
+    //     graph, 1, personId);
+    // t1 += grape::GetCurrentTime();
+    // scan_time += t1;
+
+    // auto left_edge_expand_opt1 = gs::make_edge_expandv_opt(
+    //     gs::Direction::Both, (label_id_t) 8, (label_id_t) 1);
+
+    // auto left_get_v_opt0 = make_getv_opt(
+    //     gs::VOpt::Itself, std::array<label_id_t, 1>{(label_id_t) 1});
+
+    // auto left_path_opt2 =
+    //     gs::make_path_expandv_opt(std::move(left_edge_expand_opt1),
+    //                               std::move(left_get_v_opt0), gs::Range(1,
+    //                               3));
+    // auto left_ctx1 =
+    //     Engine::PathExpandV<gs::AppendOpt::Persist, INPUT_COL_ID(0)>(
+    //         graph, std::move(left_ctx0), std::move(left_path_opt2));
+    // auto left_expr2 = gs::make_filter(
+    //     IC5left_expr1(minDate), gs::PropertySelector<int64_t>("joinDate"));
+    // auto left_edge_expand_opt3 = gs::make_edge_expande_opt<int64_t>(
+    //     gs::PropNameArray<int64_t>{"joinDate"}, gs::Direction::In,
+    //     (label_id_t) 4, (label_id_t) 4, std::move(left_expr2));
+    // auto left_ctx2 =
+    //     Engine::template EdgeExpandE<gs::AppendOpt::Persist,
+    //     INPUT_COL_ID(1)>(
+    //         graph, std::move(left_ctx1), std::move(left_edge_expand_opt3));
+
+    // auto left_get_v_opt4 = make_getv_opt(
+    //     gs::VOpt::Start, std::array<label_id_t, 1>{(label_id_t) 4});
+    // auto left_ctx3 =
+    //     Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
+    //         graph, std::move(left_ctx2), std::move(left_get_v_opt4));
+    // auto left_expr3 = gs::make_filter(
+    //     IC5left_expr2(), gs::PropertySelector<grape::EmptyType>("None"),
+    //     gs::PropertySelector<grape::EmptyType>("None"));
+    // auto left_ctx4 = Engine::template Select<INPUT_COL_ID(0),
+    // INPUT_COL_ID(1)>(
+    //     graph, std::move(left_ctx3), std::move(left_expr3));
+
+    // auto left_ctx5 = Engine::Project<PROJ_TO_NEW>(
+    //     graph, std::move(left_ctx4),
+    //     std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(1)>(
+    //                    gs::PropertySelector<grape::EmptyType>("")),
+    //                gs::make_mapper_with_variable<INPUT_COL_ID(3)>(
+    //                    gs::PropertySelector<grape::EmptyType>(""))});
+    // auto left_ctx6 = Engine::template Dedup<0, 1>(std::move(left_ctx5));
+
+    // double t0 = -grape::GetCurrentTime();
+    // auto right_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
+    //     graph, 4, Filter<TruePredicate>());
+
+    // auto right_edge_expand_opt0 = gs::make_edge_expandv_opt(
+    //     gs::Direction::Out, (label_id_t) 3, (label_id_t) 3);
+    // auto right_ctx1 =
+    //     Engine::template EdgeExpandV<gs::AppendOpt::Persist,
+    //     INPUT_COL_ID(0)>(
+    //         graph, std::move(right_ctx0), std::move(right_edge_expand_opt0));
+
+    // auto right_edge_expand_opt1 = gs::make_edge_expandv_opt(
+    //     gs::Direction::Out, (label_id_t) 0, (label_id_t) 1);
+    // auto right_ctx2 =
+    //     Engine::template EdgeExpandV<gs::AppendOpt::Temp, INPUT_COL_ID(1)>(
+    //         graph, std::move(right_ctx1), std::move(right_edge_expand_opt1));
+
+    // auto right_expr2 = gs::make_filter(IC5right_expr0());
+    // auto right_get_v_opt2 = make_getv_opt(
+    //     gs::VOpt::Itself, std::array<label_id_t, 0>{},
+    //     std::move(right_expr2));
+    // auto right_ctx3 =
+    //     Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
+    //         graph, std::move(right_ctx2), std::move(right_get_v_opt2));
+    // t0 += grape::GetCurrentTime();
+    // get_all_forum_post_time += t0;
+
+    // auto left_ctx7 =
+    //     Engine::template Join<0, 1, 2, 0, gs::JoinKind::LeftOuterJoin>(
+    //         std::move(left_ctx6), std::move(right_ctx3));
+    // GroupKey<1, int64_t>
+    // left_group_key7(gs::PropertySelector<int64_t>("id"));
+
+    // auto left_agg_func8 = gs::make_aggregate_prop<gs::AggFunc::FIRST>(
+    //     std::tuple{gs::PropertySelector<std::string_view>("title")},
+    //     std::integer_sequence<int32_t, 1>{});
+
+    // auto left_agg_func9 = gs::make_aggregate_prop<gs::AggFunc::COUNT>(
+    //     std::tuple{gs::PropertySelector<grape::EmptyType>("None")},
+    //     std::integer_sequence<int32_t, 2>{});
+
+    // auto left_ctx8 = Engine::GroupBy(
+    //     graph, std::move(left_ctx7), std::tuple{left_group_key7},
+    //     std::tuple{left_agg_func8, left_agg_func9});
+    // auto left_ctx9 = Engine::Sort(
+    //     graph, std::move(left_ctx8), gs::Range(0, 20),
+    //     std::tuple{gs::OrderingPropPair<gs::SortOrder::DESC, 2, int64_t>(""),
+    //                gs::OrderingPropPair<gs::SortOrder::ASC, 0,
+    //                int64_t>("")});
+
+    auto left_expr0 = gs::make_filter(IC5left_expr0(personId),
+                                      gs::PropertySelector<int64_t>("id"));
+    auto left_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
+        graph, 1, std::move(left_expr0));
 
     auto left_edge_expand_opt1 = gs::make_edge_expandv_opt(
         gs::Direction::Both, (label_id_t) 8, (label_id_t) 1);
@@ -134,33 +290,37 @@ class IC5 {
                        gs::PropertySelector<grape::EmptyType>(""))});
     auto left_ctx6 = Engine::template Dedup<0, 1>(std::move(left_ctx5));
 
-    double t0 = -grape::GetCurrentTime();
+    auto right_expr0 = gs::make_filter(IC5right_expr0(personId),
+                                       gs::PropertySelector<int64_t>("id"));
     auto right_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
-        graph, 4, Filter<TruePredicate>());
-
-    auto right_edge_expand_opt0 = gs::make_edge_expandv_opt(
-        gs::Direction::Out, (label_id_t) 3, (label_id_t) 3);
-    auto right_ctx1 =
-        Engine::template EdgeExpandV<gs::AppendOpt::Persist, INPUT_COL_ID(0)>(
-            graph, std::move(right_ctx0), std::move(right_edge_expand_opt0));
+        graph, 1, std::move(right_expr0));
 
     auto right_edge_expand_opt1 = gs::make_edge_expandv_opt(
-        gs::Direction::Out, (label_id_t) 0, (label_id_t) 1);
-    auto right_ctx2 =
-        Engine::template EdgeExpandV<gs::AppendOpt::Temp, INPUT_COL_ID(1)>(
-            graph, std::move(right_ctx1), std::move(right_edge_expand_opt1));
+        gs::Direction::Both, (label_id_t) 8, (label_id_t) 1);
 
-    auto right_expr2 = gs::make_filter(IC5right_expr0());
-    auto right_get_v_opt2 = make_getv_opt(
-        gs::VOpt::Itself, std::array<label_id_t, 0>{}, std::move(right_expr2));
+    auto right_get_v_opt0 = make_getv_opt(
+        gs::VOpt::Itself, std::array<label_id_t, 1>{(label_id_t) 1});
+
+    auto right_path_opt2 =
+        gs::make_path_expandv_opt(std::move(right_edge_expand_opt1),
+                                  std::move(right_get_v_opt0), gs::Range(1, 3));
+    auto right_ctx1 =
+        Engine::PathExpandV<gs::AppendOpt::Persist, INPUT_COL_ID(0)>(
+            graph, std::move(right_ctx0), std::move(right_path_opt2));
+    auto right_edge_expand_opt3 = gs::make_edge_expandv_opt(
+        gs::Direction::In, (label_id_t) 0, (label_id_t) 3);
+    auto right_ctx2 =
+        Engine::template EdgeExpandV<gs::AppendOpt::Persist, INPUT_COL_ID(1)>(
+            graph, std::move(right_ctx1), std::move(right_edge_expand_opt3));
+
+    auto right_edge_expand_opt4 = gs::make_edge_expandv_opt(
+        gs::Direction::In, (label_id_t) 3, (label_id_t) 4);
     auto right_ctx3 =
-        Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
-            graph, std::move(right_ctx2), std::move(right_get_v_opt2));
-    t0 += grape::GetCurrentTime();
-    get_all_forum_post_time += t0;
+        Engine::template EdgeExpandV<gs::AppendOpt::Persist, INPUT_COL_ID(2)>(
+            graph, std::move(right_ctx2), std::move(right_edge_expand_opt4));
 
     auto left_ctx7 =
-        Engine::template Join<0, 1, 2, 0, gs::JoinKind::LeftOuterJoin>(
+        Engine::template Join<0, 1, 1, 3, gs::JoinKind::LeftOuterJoin>(
             std::move(left_ctx6), std::move(right_ctx3));
     GroupKey<1, int64_t> left_group_key7(gs::PropertySelector<int64_t>("id"));
 
@@ -170,7 +330,7 @@ class IC5 {
 
     auto left_agg_func9 = gs::make_aggregate_prop<gs::AggFunc::COUNT>(
         std::tuple{gs::PropertySelector<grape::EmptyType>("None")},
-        std::integer_sequence<int32_t, 2>{});
+        std::integer_sequence<int32_t, 3>{});
 
     auto left_ctx8 = Engine::GroupBy(
         graph, std::move(left_ctx7), std::tuple{left_group_key7},

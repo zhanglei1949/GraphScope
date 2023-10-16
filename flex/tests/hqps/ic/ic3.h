@@ -129,7 +129,10 @@ class IC3 {
     std::string_view countryXName = input.get_string();
     std::string_view countryYName = input.get_string();
     int64_t startDate = input.get_long();
-    int64_t endDate = input.get_long();
+    int32_t durationDays = input.get_int();
+    int64_t milli_sec_per_day = 24 * 60 * 60 * 1000l;
+    auto endDate = startDate + durationDays * milli_sec_per_day;
+    // int64_t endDate = input.get_long();
     auto expr0 = gs::make_filter(
         IC3expr0(countryYName), gs::PropertySelector<std::string_view>("name"));
     auto ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
@@ -280,11 +283,10 @@ class IC3 {
     oid_t id = input.get<oid_t>("personIdQ3");
 
     int64_t start_date = input.get<int64_t>("startDate");
-    int64_t duration_days = input.get<int32_t>("durationDays");
+    int32_t duration_days = input.get<int32_t>("durationDays");
     std::string country_x = input.get<std::string>("countryXName");
     std::string country_y = input.get<std::string>("countryYName");
     int32_t limit = 20;
-    int64_t end_date = start_date + duration_days * 24 * 3600 * 1000;
 
     std::vector<char> input_buffer, output_buffer;
     Encoder input_encoder(input_buffer);
@@ -292,7 +294,7 @@ class IC3 {
     input_encoder.put_string(country_x);
     input_encoder.put_string(country_y);
     input_encoder.put_long(start_date);
-    input_encoder.put_long(end_date);
+    input_encoder.put_int(duration_days);
 
     Decoder input_decoder(input_buffer.data(), input_buffer.size());
 

@@ -10,33 +10,10 @@
 
 namespace gs {
 // Auto generated expression class definition
-struct IC6expr0 {
+struct IC6left_expr0 {
  public:
   using result_t = bool;
-  IC6expr0(std::string_view tagName) : tagName_(tagName) {}
-
-  inline auto operator()(std::string_view name) const {
-    return name == tagName_;
-  }
-
- private:
-  std::string_view tagName_;
-};
-
-struct IC6expr1 {
- public:
-  using result_t = bool;
-  IC6expr1() {}
-
-  inline auto operator()() const { return true; }
-
- private:
-};
-
-struct IC6expr2 {
- public:
-  using result_t = bool;
-  IC6expr2(int64_t personId) : personId_(personId) {}
+  IC6left_expr0(int64_t personId) : personId_(personId) {}
 
   inline auto operator()(int64_t id) const {
     return (true) && (id == personId_);
@@ -46,16 +23,30 @@ struct IC6expr2 {
   int64_t personId_;
 };
 
-struct IC6expr3 {
+struct IC6right_expr0 {
  public:
   using result_t = bool;
-  IC6expr3() {}
-  template <typename vertex_id_t>
-  inline auto operator()(vertex_id_t var8, vertex_id_t var9) const {
-    return var8 != var9;
+  IC6right_expr0(std::string_view tagName) : tagName_(tagName) {}
+
+  inline auto operator()(std::string_view name) const {
+    return (true) && (name == tagName_);
   }
 
  private:
+  std::string_view tagName_;
+};
+
+struct IC6right_expr1 {
+ public:
+  using result_t = bool;
+  IC6right_expr1(std::string_view tagName) : tagName_(tagName) {}
+
+  inline auto operator()(std::string_view name) const {
+    return name != tagName_;
+  }
+
+ private:
+  std::string_view tagName_;
 };
 
 // Auto generated query class definition
@@ -69,72 +60,81 @@ class IC6 {
              Encoder& output) const {
     int64_t personId = input.get_long();
     std::string_view tagName = input.get_string();
-    auto expr0 = gs::make_filter(
-        IC6expr0(tagName), gs::PropertySelector<std::string_view>("name"));
-    auto ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
-        graph, 7, std::move(expr0));
 
-    auto edge_expand_opt0 = gs::make_edge_expandv_opt(
-        gs::Direction::In, (label_id_t) 1, (label_id_t) 3);
-    auto ctx1 =
-        Engine::template EdgeExpandV<gs::AppendOpt::Temp, INPUT_COL_ID(0)>(
-            graph, std::move(ctx0), std::move(edge_expand_opt0));
+    auto left_expr0 = gs::make_filter(IC6left_expr0(personId),
+                                      gs::PropertySelector<int64_t>("id"));
+    auto left_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
+        graph, 1, std::move(left_expr0));
 
-    auto expr2 = gs::make_filter(IC6expr1());
-    auto get_v_opt1 = make_getv_opt(gs::VOpt::Itself,
-                                    std::array<label_id_t, 1>{(label_id_t) 3},
-                                    std::move(expr2));
-    auto ctx2 = Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
-        graph, std::move(ctx1), std::move(get_v_opt1));
-    auto edge_expand_opt2 = gs::make_edge_expandv_opt(
-        gs::Direction::Out, (label_id_t) 0, (label_id_t) 1);
-    auto ctx3 =
-        Engine::template EdgeExpandV<gs::AppendOpt::Persist, INPUT_COL_ID(1)>(
-            graph, std::move(ctx2), std::move(edge_expand_opt2));
-
-    auto edge_expand_opt4 = gs::make_edge_expandv_opt(
+    auto left_edge_expand_opt1 = gs::make_edge_expandv_opt(
         gs::Direction::Both, (label_id_t) 8, (label_id_t) 1);
 
-    auto get_v_opt3 = make_getv_opt(gs::VOpt::Itself,
-                                    std::array<label_id_t, 1>{(label_id_t) 1});
+    auto left_get_v_opt0 = make_getv_opt(
+        gs::VOpt::Itself, std::array<label_id_t, 1>{(label_id_t) 1});
 
-    auto path_opt5 = gs::make_path_expandv_opt(
-        std::move(edge_expand_opt4), std::move(get_v_opt3), gs::Range(1, 3));
-    auto ctx4 = Engine::PathExpandV<gs::AppendOpt::Temp, INPUT_COL_ID(2)>(
-        graph, std::move(ctx3), std::move(path_opt5));
-    auto expr5 = gs::make_filter(IC6expr2(personId),
-                                 gs::PropertySelector<int64_t>("id"));
-    auto get_v_opt6 = make_getv_opt(
-        gs::VOpt::Itself, std::array<label_id_t, 0>{}, std::move(expr5));
-    auto ctx5 = Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
-        graph, std::move(ctx4), std::move(get_v_opt6));
-    auto edge_expand_opt7 = gs::make_edge_expandv_opt(
-        gs::Direction::Out, (label_id_t) 1, (label_id_t) 7);
-    auto ctx6 =
+    auto left_path_opt2 =
+        gs::make_path_expandv_opt(std::move(left_edge_expand_opt1),
+                                  std::move(left_get_v_opt0), gs::Range(1, 3));
+    auto left_ctx1 =
+        Engine::PathExpandV<gs::AppendOpt::Persist, INPUT_COL_ID(0)>(
+            graph, std::move(left_ctx0), std::move(left_path_opt2));
+    auto left_edge_expand_opt3 = gs::make_edge_expandv_opt(
+        gs::Direction::In, (label_id_t) 0, (label_id_t) 3);
+    auto left_ctx2 =
         Engine::template EdgeExpandV<gs::AppendOpt::Persist, INPUT_COL_ID(1)>(
-            graph, std::move(ctx5), std::move(edge_expand_opt7));
+            graph, std::move(left_ctx1), std::move(left_edge_expand_opt3));
 
-    auto expr7 = gs::make_filter(
-        IC6expr3(), gs::PropertySelector<grape::EmptyType>("None"),
-        gs::PropertySelector<grape::EmptyType>("None"));
-    auto ctx7 = Engine::template Select<INPUT_COL_ID(4), INPUT_COL_ID(0)>(
-        graph, std::move(ctx6), std::move(expr7));
+    auto left_ctx3 = Engine::Project<PROJ_TO_NEW>(
+        graph, std::move(left_ctx2),
+        std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(2)>(
+            gs::PropertySelector<grape::EmptyType>(""))});
 
-    GroupKey<4, std::string_view> group_key10(
+    auto right_expr0 =
+        gs::make_filter(IC6right_expr0(tagName),
+                        gs::PropertySelector<std::string_view>("name"));
+    auto right_ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
+        graph, 7, std::move(right_expr0));
+
+    auto right_edge_expand_opt0 = gs::make_edge_expandv_opt(
+        gs::Direction::In, (label_id_t) 1, (label_id_t) 3);
+    auto right_ctx1 =
+        Engine::template EdgeExpandV<gs::AppendOpt::Persist, INPUT_COL_ID(0)>(
+            graph, std::move(right_ctx0), std::move(right_edge_expand_opt0));
+
+    auto right_edge_expand_opt1 = gs::make_edge_expandv_opt(
+        gs::Direction::Out, (label_id_t) 1, (label_id_t) 7);
+    auto right_ctx2 =
+        Engine::template EdgeExpandV<gs::AppendOpt::Temp, INPUT_COL_ID(1)>(
+            graph, std::move(right_ctx1), std::move(right_edge_expand_opt1));
+
+    auto right_expr3 =
+        gs::make_filter(IC6right_expr1(tagName),
+                        gs::PropertySelector<std::string_view>("name"));
+    auto right_get_v_opt2 = make_getv_opt(
+        gs::VOpt::Itself, std::array<label_id_t, 1>{(label_id_t) 7},
+        std::move(right_expr3));
+    auto right_ctx3 =
+        Engine::template GetV<gs::AppendOpt::Persist, INPUT_COL_ID(-1)>(
+            graph, std::move(right_ctx2), std::move(right_get_v_opt2));
+
+    auto left_ctx4 = Engine::template Join<0, 1, gs::JoinKind::InnerJoin>(
+        std::move(left_ctx3), std::move(right_ctx3));
+    GroupKey<2, std::string_view> left_group_key4(
         gs::PropertySelector<std::string_view>("name"));
 
-    auto agg_func11 = gs::make_aggregate_prop<gs::AggFunc::COUNT_DISTINCT>(
+    auto left_agg_func5 = gs::make_aggregate_prop<gs::AggFunc::COUNT_DISTINCT>(
         std::tuple{gs::PropertySelector<grape::EmptyType>("None")},
-        std::integer_sequence<int32_t, 1>{});
+        std::integer_sequence<int32_t, 0>{});
 
-    auto ctx8 = Engine::GroupBy(graph, std::move(ctx7), std::tuple{group_key10},
-                                std::tuple{agg_func11});
-    auto ctx9 = Engine::Sort(
-        graph, std::move(ctx8), gs::Range(0, 10),
+    auto left_ctx5 = Engine::GroupBy(graph, std::move(left_ctx4),
+                                     std::tuple{left_group_key4},
+                                     std::tuple{left_agg_func5});
+    auto left_ctx6 = Engine::Sort(
+        graph, std::move(left_ctx5), gs::Range(0, 10),
         std::tuple{
             gs::OrderingPropPair<gs::SortOrder::DESC, 1, int64_t>(""),
             gs::OrderingPropPair<gs::SortOrder::ASC, 0, std::string_view>("")});
-    for (auto iter : ctx9) {
+    for (auto iter : left_ctx6) {
       auto eles = iter.GetAllElement();
       output.put_string_view(std::get<0>(eles));
       output.put_long(std::get<1>(eles));

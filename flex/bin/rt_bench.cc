@@ -34,32 +34,41 @@ class Req {
     static Req r;
     return r;
   }
-  void init(int warmup_num, int benchmark_num) {
+  void init(int warmup_num, int benchmark_num, const std::string& file,
+            bool only_complex_queries) {
     warmup_num_ = warmup_num;
-    num_of_reqs_ = warmup_num + benchmark_num;
 
-    if (num_of_reqs_ == warmup_num_ || num_of_reqs_ >= reqs_.size()) {
-      num_of_reqs_ = reqs_.size();
+    if (only_complex_queries) {
+      for (auto i = 0; i < 12; ++i) {
+        active_queries_.set(i);
+      }
+    } else {
+      for (auto i = 0; i < active_queries_.size(); ++i) {
+        active_queries_.set(i);
+      }
     }
-    std::cout << "warmup count: " << warmup_num_
-              << "; benchmark count: " << num_of_reqs_ << "\n";
-  }
-  void load(const std::string& file) {
-    std::cout << "load queries from " << file << "\n";
+    LOG(INFO) << "load queries from " << file
+              << ", complex queries: " << std::to_string(only_complex_queries);
     std::ifstream fi(file, std::ios::binary);
     const size_t size = 4096;
     std::vector<char> buffer(size);
     std::vector<char> tmp(size);
     size_t index = 0;
+    size_t total_num_queries = 0;
     while (fi.read(buffer.data(), size)) {
       auto len = fi.gcount();
       for (size_t i = 0; i < len; ++i) {
         if (index >= 4 && tmp[index - 1] == '#') {
           if (tmp[index - 4] == 'e' && tmp[index - 3] == 'o' &&
               tmp[index - 2] == 'r') {
-            reqs_.emplace_back(
-                std::string(tmp.begin(), tmp.begin() + index - 4));
-
+            // only emplace back active queries;
+            auto query = std::string(tmp.begin(), tmp.begin() + index - 4);
+            uint8_t type = query.back();
+            CHECK(type >= 0 && type < 29);
+            if (active_queries_.test(type)) {
+              reqs_.emplace_back(query);
+            }
+            total_num_queries += 1;
             index = 0;
           }
         }
@@ -68,26 +77,23 @@ class Req {
       buffer.clear();
     }
     fi.close();
-    std::cout << "load " << reqs_.size() << " queries\n";
-    num_of_reqs_ = reqs_.size();
-    // reqs_.resize(100000);
-    start_.resize(reqs_.size());
-    end_.resize(reqs_.size());
-  }
+    LOG(INFO) << "load " << reqs_.size()
+              << " queries from : " << total_num_queries;
 
-  seastar::future<> do_query(server::executor_ref& ref) {
-    auto id = cur_.fetch_add(1);
-    if (id >= num_of_reqs_) {
-      return seastar::make_ready_future<>();
+    if (warmup_num_ >= reqs_.size()) {
+      LOG(FATAL) << "Warm num larger than request size: " << warmup_num_ << ", "
+                 << reqs_.size();
+    } else if (warmup_num_ + benchmark_num < reqs_.size()) {
+      num_of_reqs_ = warmup_num_ + benchmark_num;
+    } else {
+      // reqs.size < warm + bench && reqs.size() > warm
+      num_of_reqs_ = reqs_.size();
     }
-    start_[id] = std::chrono::system_clock::now();
-    return ref.run_graph_db_query(server::query_param{reqs_[id]})
-        .then_wrapped(
-            [&, id](seastar::future<server::query_result>&& fut) mutable {
-              auto result = fut.get0();
-              end_[id] = std::chrono::system_clock::now();
-            })
-        .then([&] { return do_query(ref); });
+
+    LOG(INFO) << "warmup count: " << warmup_num_
+              << "; benchmark count: " << num_of_reqs_ - warmup_num << "\n";
+    start_.resize(num_of_reqs_);
+    end_.resize(num_of_reqs_);
   }
 
   seastar::future<> do_hqps_query(server::executor_ref& ref) {
@@ -102,7 +108,7 @@ class Req {
               auto result = fut.get0();
               end_[id] = std::chrono::system_clock::now();
             })
-        .then([&] { return do_query(ref); });
+        .then([&] { return do_hqps_query(ref); });
   }
 
   seastar::future<> simulate() {
@@ -115,9 +121,13 @@ class Req {
   }
 
   void output() {
-    std::vector<long long> vec(29, 0);
-    std::vector<int> count(29, 0);
-    std::vector<std::vector<long long>> ts(29);
+    // std::vector<std::string> queries = {"IC1", "IC2",  "IC3",  "IC4",
+    //                                     "IC5", "IC6",  "IC7",  "IC8",
+    //                                     "IC9", "IC10", "IC11", "IC12"};
+
+    std::vector<long long> vec(queries.size(), 0);
+    std::vector<int> count(queries.size(), 0);
+    std::vector<std::vector<long long>> ts(queries.size());
     for (size_t idx = warmup_num_; idx < num_of_reqs_; idx++) {
       auto& s = reqs_[idx];
       size_t id = static_cast<size_t>(s.back()) - 1;
@@ -128,34 +138,29 @@ class Req {
       vec[id] += tmp;
       count[id] += 1;
     }
-    // std::vector<std::string> queries = {
-    //     "IC1", "IC2",  "IC3",  "IC4",  "IC5",  "IC6",  "IC7", "IC8",
-    //     "IC9", "IC10", "IC11", "IC12", "IC13", "IC14", "IS1", "IS2",
-    //     "IS3", "IS4",  "IS5",  "IS6",  "IS7",  "IU1",  "IU2", "IU3",
-    //     "IU4", "IU5",  "IU6",  "IU7",  "IU8"};
-    std::vector<std::string> queries = {"IC1", "IC2",  "IC3",  "IC4",
-                                        "IC5", "IC6",  "IC7",  "IC8",
-                                        "IC9", "IC10", "IC11", "IC12"};
-    for (auto i = 0; i < vec.size(); ++i) {
-      size_t sz = ts[i].size();
-      if (sz > 0) {
-        std::cout << queries[i] << "; mean: " << vec[i] * 1. / count[i]
-                  << "; counts: " << count[i] << "; ";
 
-        std::sort(ts[i].begin(), ts[i].end());
-        std::cout << " min: " << ts[i][0] << "; ";
-        std::cout << " max: " << ts[i].back() << "; ";
-        std::cout << " P50: " << ts[i][sz / 2] << "; ";
-        std::cout << " P90: " << ts[i][sz * 9 / 10] << "; ";
-        std::cout << " P95: " << ts[i][sz * 95 / 100] << "; ";
-        std::cout << " P99: " << ts[i][sz * 99 / 100] << "\n";
+    for (auto i = 0; i < vec.size(); ++i) {
+      if (active_queries_.test(i)) {
+        size_t sz = ts[i].size();
+        if (sz > 0) {
+          LOG(INFO) << queries[i] << "; mean: " << vec[i] * 1. / count[i]
+                    << "; counts: " << count[i] << "; ";
+
+          std::sort(ts[i].begin(), ts[i].end());
+          LOG(INFO) << " min: " << ts[i][0] << "; ";
+          LOG(INFO) << " max: " << ts[i].back() << "; ";
+          LOG(INFO) << " P50: " << ts[i][sz / 2] << "; ";
+          LOG(INFO) << " P90: " << ts[i][sz * 9 / 10] << "; ";
+          LOG(INFO) << " P95: " << ts[i][sz * 95 / 100] << "; ";
+          LOG(INFO) << " P99: " << ts[i][sz * 99 / 100] << "\n";
+        }
       }
     }
-    std::cout << "unit: MICROSECONDS\n";
+    LOG(INFO) << "unit: MICROSECONDS\n";
   }
 
  private:
-  Req() : cur_(0), warmup_num_(0) {}
+  Req() : cur_(0), warmup_num_(0), num_of_reqs_(0) {}
 
   std::atomic<uint32_t> cur_;
   uint32_t warmup_num_;
@@ -164,7 +169,12 @@ class Req {
   std::vector<std::chrono::system_clock::time_point> start_;
   std::vector<std::chrono::system_clock::time_point> end_;
 
-  // std::vector<executor_ref> executor_refs_;
+  std::vector<std::string> queries = {
+      "IC1",  "IC2",  "IC3",  "IC4",  "IC5", "IC6", "IC7", "IC8", "IC9", "IC10",
+      "IC11", "IC12", "IC13", "IC14", "IS1", "IS2", "IS3", "IS4", "IS5", "IS6",
+      "IS7",  "IU1",  "IU2",  "IU3",  "IU4", "IU5", "IU6", "IU7", "IU8"};
+
+  std::bitset<29> active_queries_;
 };
 
 int main(int argc, char** argv) {
@@ -178,7 +188,9 @@ int main(int argc, char** argv) {
       "num of warmup reqs")("benchmark-num,b",
                             bpo::value<uint32_t>()->default_value(0),
                             "num of benchmark reqs")(
-      "req-file,r", bpo::value<std::string>(), "requests file");
+      "req-file,r", bpo::value<std::string>(), "requests file")(
+      "only-complex", bpo::value<bool>(),
+      "whether or not to enable only complex queries");
 
   google::InitGoogleLogging(argv[0]);
   FLAGS_logtostderr = true;
@@ -188,11 +200,11 @@ int main(int argc, char** argv) {
   bpo::notify(vm);
 
   if (vm.count("help")) {
-    std::cout << desc << std::endl;
+    LOG(INFO) << desc << std::endl;
     return 0;
   }
   if (vm.count("version")) {
-    std::cout << "GraphScope/Flex version " << FLEX_VERSION << std::endl;
+    LOG(INFO) << "GraphScope/Flex version " << FLEX_VERSION << std::endl;
     return 0;
   }
 
@@ -201,10 +213,15 @@ int main(int argc, char** argv) {
 
   std::string data_path = "";
 
-  if (!vm.count("graph-config")) {
-    LOG(ERROR) << "graph-config is required";
-    return -1;
+  bool only_complex_queries = true;
+  if (vm.count("only-complex")) {
+    only_complex_queries = vm["only-complex"].as<bool>();
   }
+
+  // if (!vm.count("graph-config")) {
+  //   LOG(ERROR) << "graph-config is required";
+  //   return -1;
+  // }
   data_path = vm["data-path"].as<std::string>();
 
   setenv("TZ", "Asia/Shanghai", 1);
@@ -219,8 +236,7 @@ int main(int argc, char** argv) {
   uint32_t benchmark_num = vm["benchmark-num"].as<uint32_t>();
   LOG(INFO) << "Finished loading graph, elapsed " << t0 << " s";
   std::string req_file = vm["req-file"].as<std::string>();
-  Req::get().load(req_file);
-  Req::get().init(warmup_num, benchmark_num);
+  Req::get().init(warmup_num, benchmark_num, req_file, only_complex_queries);
   hiactor::actor_app app;
 
   auto begin = std::chrono::system_clock::now();
@@ -239,11 +255,11 @@ int main(int argc, char** argv) {
         });
   });
   auto end = std::chrono::system_clock::now();
-  std::cout << "cost time:"
-            << std::chrono::duration_cast<std::chrono::milliseconds>(end -
-                                                                     begin)
-                   .count()
-            << "\n";
+  auto duration =
+      std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
+  LOG(INFO) << "cost time:" << duration << "\n";
   Req::get().output();
-  // std::cout << timer.get_time() / 1us << " microseconds\n";
+  // calculate qps
+  LOG(INFO) << "QPS: " << (benchmark_num - warmup_num) / (duration);
+  // LOG(INFO) << timer.get_time() / 1us << " microseconds\n";
 }
