@@ -54,8 +54,18 @@ static constexpr const char* SCAN_OP_TEMPLATE_NO_EXPR_STR =
 /// 3. graph name
 /// 4. vertex label
 /// 5. oid
-static constexpr const char* SCAN_OP_WITH_OID_TEMPLATE_STR =
-    "auto %1% = Engine::template ScanVertexWithOid<%2%>(%3%, %4%, %5%);\n";
+static constexpr const char* SCAN_OP_WITH_OID_ONE_LABEL_TEMPLATE_STR =
+    "auto %1% = Engine::template ScanVertexWithOid<%2%,%3%>(%4%, %5%, %6%);\n";
+
+/// Args
+/// 1. res_ctx_name
+/// 2. AppendOpt,
+/// 3. graph name
+/// 4. vertex label
+/// 5. oid
+static constexpr const char* SCAN_OP_WITH_OID_MUL_LABEL_TEMPLATE_STR =
+    "auto %1% = Engine::template ScanVertexWithOid<%2%>(%3%, "
+    "std::array<label_id_t, %4%>{%5%}, %6%);\n";
 
 /**
  * @brief When building scanOp, we ignore the data type provided in the pb.
@@ -155,7 +165,7 @@ class ScanOpBuilder {
       throw std::runtime_error(
           std::string("Currently only support one predicate"));
     }
-    CHECK(expr_func_name_.empty());
+    CHECK(expr_func_name_.empty()) << "Predicate is already given by expr";
     auto or_predicate = predicate.or_predicates(0);
     if (or_predicate.predicates_size() != 1) {
       throw std::runtime_error(
@@ -163,36 +173,52 @@ class ScanOpBuilder {
     }
     auto triplet = or_predicate.predicates(0);
     auto& property = triplet.key();
-    auto& value = triplet.value();
-    // FUTURE: check property is really the primary key.
-    switch (value.item_case()) {
-    case common::Value::kI32:
-      oid_ = std::to_string(value.i32());
-      break;
-    case common::Value::kI64:
-      oid_ = std::to_string(value.i64());
-      break;
-    default:
-      LOG(FATAL) << "Currently only support int, long as primary key";
+    if (triplet.value_case() == algebra::IndexPredicate::Triplet::kConst) {
+      // FUTURE: check property is really the primary key.
+      auto const_value = triplet.const_();
+      switch (const_value.item_case()) {
+      case common::Value::kI32:
+        oid_ = std::to_string(const_value.i32());
+        oid_type_name_ = "int32_t";
+        break;
+      case common::Value::kI64:
+        oid_ = std::to_string(const_value.i64());
+        oid_type_name_ = "int64_t";
+        break;
+      case common::Value::kStr:
+        oid_ = const_value.str();
+        oid_type_name_ = "std::string_view";
+      default:
+        LOG(FATAL) << "Currently only support int, long as primary key";
+      }
+      VLOG(1) << "Found oid: " << oid_
+              << " in index scan, type: " << oid_type_name_;
+    } else {
+      // dynamic param
+      auto dyn_param_pb = triplet.param();
+      auto param_const = param_const_pb_to_param_const(dyn_param_pb);
+      VLOG(10) << "receive param const in index predicate: "
+               << dyn_param_pb.DebugString();
+      ctx_.AddParameterVar(param_const);
     }
-    LOG(INFO) << "Found oid: " << oid_ << " in index scan";
+
     return *this;
   }
 
   std::string Build() const {
     // 1. If common expression predicate presents, scan with expression
     if (!expr_func_name_.empty()) {
-      LOG(INFO) << "Scan with expression";
+      VLOG(1) << "Scan with expression";
       return scan_with_expr(labels_ids_, expr_var_name_, expr_func_name_,
                             expr_construct_params_, selectors_str_);
     } else {
       // If oid_ not empty, scan with oid
       if (!oid_.empty()) {
-        LOG(INFO) << "Scan with oid: " << oid_;
-        return scan_with_oid(labels_ids_, oid_);
+        VLOG(1) << "Scan with oid: " << oid_;
+        return scan_with_oid(labels_ids_, oid_, oid_type_name_);
       } else {
         // If no oid, scan without expression
-        LOG(INFO) << "Scan without expression";
+        VLOG(1) << "Scan without expression";
         return scan_without_expr(labels_ids_);
       }
     }
@@ -200,17 +226,28 @@ class ScanOpBuilder {
 
  private:
   std::string scan_with_oid(const std::vector<int32_t>& label_ids,
-                            const std::string& oid) const {
+                            const std::string& oid,
+                            const std::string& oid_type_name) const {
     VLOG(10) << "Scan with oid: " << oid;
-    CHECK(label_ids.size() == 1)
-        << "Currently only support one label for index scan";
     std::string next_ctx_name = ctx_.GetCurCtxName();
     auto append_opt = res_alias_to_append_opt(res_alias_);
 
-    boost::format formater(SCAN_OP_WITH_OID_TEMPLATE_STR);
-    formater % next_ctx_name % append_opt % ctx_.GraphVar() % label_ids[0] %
-        oid;
-    return formater.str();
+    if (label_ids.size() == 1) {
+      boost::format formater(SCAN_OP_WITH_OID_ONE_LABEL_TEMPLATE_STR);
+      formater % next_ctx_name % append_opt % oid_type_name % ctx_.GraphVar() %
+          label_ids[0] % oid;
+      return formater.str();
+    } else {
+      boost::format formater(SCAN_OP_WITH_OID_MUL_LABEL_TEMPLATE_STR);
+      std::stringstream ss;
+      for (auto i = 0; i + 1 < label_ids.size(); ++i) {
+        ss << std::to_string(label_ids[i]) << ", ";
+      }
+      ss << std::to_string(label_ids[label_ids.size() - 1]);
+      formater % next_ctx_name % append_opt % ctx_.GraphVar() %
+          label_ids.size() % ss.str() % oid;
+      return formater.str();
+    }
   }
 
   std::string scan_without_expr(const std::vector<int32_t>& label_ids) const {
@@ -272,6 +309,7 @@ class ScanOpBuilder {
   std::string expr_var_name_, expr_func_name_, expr_construct_params_,
       selectors_str_;  // The expression decode from params.
   std::string oid_;    // the oid decode from idx predicate, or param name.
+  std::string oid_type_name_;
   int res_alias_;
 };
 

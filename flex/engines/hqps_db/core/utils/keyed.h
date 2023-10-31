@@ -106,7 +106,7 @@ struct KeyedT<KeyedRowVertexSetImpl<LabelT, KEY_T, VID_T, SET_T...>,
   using keyed_set_t = KeyedRowVertexSetImpl<LabelT, VID_T, SET_T...>;
   // // The builder type.
   using keyed_builder_t =
-      KeyedRowVertexSetBuilder<LabelT, KEY_T, VID_T, SET_T...>;
+    KeyedRowVertexSetBuilder<LabelT, KEY_T, VID_T, SET_T...>;
   using unkeyed_builder_t =
       typename KeyedRowVertexSetImpl<LabelT, KEY_T, VID_T, SET_T...>::builder_t;
   static keyed_builder_t create_keyed_builder(

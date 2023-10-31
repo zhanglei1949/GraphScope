@@ -32,7 +32,7 @@ class ANNOTATION(actor:impl) executor : public hiactor::actor {
 
   seastar::future<query_result> ANNOTATION(actor:method) run_hqps_procedure_query(query_param&& param);
 
-  seastar::future<query_result> ANNOTATION(actor:method) run_hqps_adhoc_query(query_param&& param);
+  seastar::future<query_result> ANNOTATION(actor:method) run_hqps_adhoc_query(adhoc_result&& param);
 
   seastar::future<query_result> ANNOTATION(actor:method) run_hqps_benchmark(query_param&& param);
 

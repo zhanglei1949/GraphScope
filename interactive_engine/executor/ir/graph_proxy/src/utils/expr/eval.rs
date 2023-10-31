@@ -247,6 +247,10 @@ pub(crate) fn apply_logical<'a>(
                     .as_str()?
                     .ends_with(b.as_str()?.as_ref())
                     .into()),
+                Regex => {
+                    let regex = regex::Regex::new(b.as_str()?.as_ref())?;
+                    Ok(regex.is_match(a.as_str()?.as_ref()).into())
+                }
                 Not => unreachable!(),
                 Isnull => unreachable!(),
             }
@@ -709,6 +713,7 @@ impl InnerOpr {
 #[cfg(test)]
 mod tests {
     use ahash::HashMap;
+    use dyn_type::DateTimeFormats;
     use ir_common::expr_parse::str_to_expr_pb;
 
     use super::*;
@@ -1086,22 +1091,34 @@ mod tests {
 
     fn prepare_context_with_date() -> Vertices {
         let map1: HashMap<NameOrId, Object> = vec![
-            (NameOrId::from("date1".to_string()), "2020-08-08".into()),
+            (
+                NameOrId::from("date1".to_string()),
+                (DateTimeFormats::from_str("2020-08-08").unwrap()).into(),
+            ),
             (
                 NameOrId::from("date2".to_string()),
                 chrono::NaiveDate::from_ymd_opt(2020, 8, 8)
                     .unwrap()
                     .into(),
             ),
-            (NameOrId::from("time1".to_string()), "10:11:12.100".into()),
+            (
+                NameOrId::from("time1".to_string()),
+                (DateTimeFormats::from_str("10:11:12.100").unwrap()).into(),
+            ),
             (
                 NameOrId::from("time2".to_string()),
                 chrono::NaiveTime::from_hms_milli_opt(10, 11, 12, 100)
                     .unwrap()
                     .into(),
             ),
-            (NameOrId::from("datetime1".to_string()), "2020-08-08T23:11:12.100-11:00".into()),
-            (NameOrId::from("datetime2".to_string()), "2020-08-09 10:11:12.100".into()),
+            (
+                NameOrId::from("datetime1".to_string()),
+                (DateTimeFormats::from_str("2020-08-08T23:11:12.100-11:00").unwrap()).into(),
+            ),
+            (
+                NameOrId::from("datetime2".to_string()),
+                (DateTimeFormats::from_str("2020-08-09 10:11:12.100").unwrap()).into(),
+            ),
             (
                 NameOrId::from("datetime3".to_string()),
                 chrono::NaiveDateTime::from_timestamp_millis(1602324610100)
@@ -1218,6 +1235,67 @@ mod tests {
             let eval = Evaluator::try_from(case).unwrap();
             println!("{:?}", eval.eval::<_, Vertices>(Some(&ctxt)).unwrap());
             assert_eq!(eval.eval::<_, Vertices>(Some(&ctxt)).unwrap(), expected);
+        }
+    }
+
+    fn gen_regex_expression(to_match: &str, pattern: &str) -> common_pb::Expression {
+        let mut regex_expr = common_pb::Expression { operators: vec![] };
+        let left = common_pb::ExprOpr {
+            node_type: None,
+            item: Some(common_pb::expr_opr::Item::Const(common_pb::Value {
+                item: Some(common_pb::value::Item::Str(to_match.to_string())),
+            })),
+        };
+        regex_expr.operators.push(left);
+        let regex_opr = common_pb::ExprOpr {
+            node_type: None,
+            item: Some(common_pb::expr_opr::Item::Logical(common_pb::Logical::Regex as i32)),
+        };
+        regex_expr.operators.push(regex_opr);
+        let right = common_pb::ExprOpr {
+            node_type: None,
+            item: Some(common_pb::expr_opr::Item::Const(common_pb::Value {
+                item: Some(common_pb::value::Item::Str(pattern.to_string())),
+            })),
+        };
+        regex_expr.operators.push(right);
+        regex_expr
+    }
+
+    #[test]
+    fn test_eval_regex() {
+        // TODO: the parser does not support escape characters in regex well yet.
+        // So use gen_regex_expression() to help generate expression
+        let cases: Vec<(&str, &str)> = vec![
+            ("Josh", r"^J"),                                                    // startWith, true
+            ("Josh", r"J.*"),                                                   // true
+            ("Josh", r"h$"),                                                    // endWith, true
+            ("Josh", r".*h"),                                                   // true
+            ("Josh", r"os"),                                                    // true
+            ("Josh", r"A.*"),                                                   // false
+            ("Josh", r".*A"),                                                   // false
+            ("Josh", r"ab"),                                                    // false
+            ("Josh", r"Josh.+"),                                                // false
+            ("2010-03-14", r"^\d{4}-\d{2}-\d{2}$"),                             // true
+            (r"I categorically deny having triskaidekaphobia.", r"\b\w{13}\b"), //true
+        ];
+        let expected: Vec<Object> = vec![
+            object!(true),
+            object!(true),
+            object!(true),
+            object!(true),
+            object!(true),
+            object!(false),
+            object!(false),
+            object!(false),
+            object!(false),
+            object!(true),
+            object!(true),
+        ];
+
+        for ((to_match, pattern), expected) in cases.into_iter().zip(expected.into_iter()) {
+            let eval = Evaluator::try_from(gen_regex_expression(to_match, pattern)).unwrap();
+            assert_eq!(eval.eval::<(), NoneContext>(None).unwrap(), expected);
         }
     }
 }
