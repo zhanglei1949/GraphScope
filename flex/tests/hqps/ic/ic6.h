@@ -137,7 +137,7 @@ class IC6 {
     for (auto iter : left_ctx6) {
       auto eles = iter.GetAllElement();
       output.put_string_view(std::get<0>(eles));
-      output.put_long(std::get<1>(eles));
+      output.put_int(std::get<1>(eles));
     }
   }
   void Query(const MutableCSRInterface& graph,

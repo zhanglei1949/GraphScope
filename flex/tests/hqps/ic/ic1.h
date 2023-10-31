@@ -422,16 +422,16 @@ class IC1 {
     for (auto iter : left_left_left_ctx14) {
       auto tuple = iter.GetAllElement();
       output.put_long(std::get<0>(tuple));          // id
-      output.put_string_view(std::get<1>(tuple));   // lastName
       output.put_int(std::get<2>(tuple));           // dist
+      output.put_string_view(std::get<1>(tuple));   // lastName
       output.put_date(std::get<3>(tuple));          // birthday
       output.put_long(std::get<4>(tuple));          // creationDate
       output.put_string_view(std::get<5>(tuple));   // gender
       output.put_string_view(std::get<6>(tuple));   // browserUsed
       output.put_string_view(std::get<7>(tuple));   // locationIP
+      output.put_string_view(std::get<10>(tuple));  // cityname
       output.put_string_view(std::get<8>(tuple));   // email
       output.put_string_view(std::get<9>(tuple));   // language
-      output.put_string_view(std::get<10>(tuple));  // cityname
 
       auto& univs = std::get<11>(tuple);
       output.put_int(univs.size());

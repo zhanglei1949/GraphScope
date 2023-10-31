@@ -151,7 +151,7 @@ class IC12 {
       for (auto tag_name : tag_names) {
         output.put_string_view(tag_name);
       }
-      output.put_long(std::get<4>(eles));
+      output.put_int(std::get<4>(eles));
     }
   }
 

@@ -449,7 +449,7 @@ class IC10 {
       output.put_long(std::get<0>(eles));
       output.put_string_view(std::get<1>(eles));
       output.put_string_view(std::get<2>(eles));
-      output.put_long(std::get<3>(eles));
+      output.put_int(std::get<3>(eles));
       output.put_string_view(std::get<4>(eles));
       output.put_string_view(std::get<5>(eles));
     }

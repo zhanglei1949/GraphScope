@@ -1,5 +1,5 @@
 MATCH (p:PERSON {id: $personId})-[:KNOWS*1..3]-(friend:PERSON)<-[:HASCREATOR]-(message : POST | COMMENT)
-WHERE friend <> p and message.creationDate < $maxDate
+WHERE friend.id <> $personId and message.creationDate < $maxDate
 with friend, message 
 ORDER BY message.creationDate DESC, message.id ASC 
 LIMIT 20

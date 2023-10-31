@@ -24,16 +24,17 @@
 #include "flex/tests/hqps/ic/ic1.h"
 #include "flex/tests/hqps/ic/ic10.h"
 // #include "flex/tests/hqps/ic/ic11.h"
-// #include "flex/tests/hqps/ic/ic11_v2.h"
-// #include "flex/tests/hqps/ic/ic12.h"
-// #include "flex/tests/hqps/ic/ic2.h"
-// #include "flex/tests/hqps/ic/ic3_v2.h"
-// #include "flex/tests/hqps/ic/ic4.h"
+#include "flex/tests/hqps/ic/ic11_v2.h"
+#include "flex/tests/hqps/ic/ic12.h"
+#include "flex/tests/hqps/ic/ic2.h"
+#include "flex/tests/hqps/ic/ic3_v2.h"
+#include "flex/tests/hqps/ic/ic4.h"
 // #include "flex/tests/hqps/ic/ic5_v2.h"
-// #include "flex/tests/hqps/ic/ic6.h"
-// #include "flex/tests/hqps/ic/ic7.h"
-// #include "flex/tests/hqps/ic/ic8.h"
-// #include "flex/tests/hqps/ic/ic9.h"
+#include "flex/tests/hqps/ic/ic5_v3.h"
+#include "flex/tests/hqps/ic/ic6.h"
+#include "flex/tests/hqps/ic/ic7.h"
+#include "flex/tests/hqps/ic/ic8.h"
+#include "flex/tests/hqps/ic/ic9.h"
 
 #include <seastar/core/print.hh>
 
@@ -79,68 +80,68 @@ seastar::future<query_result> executor::run_hqps_benchmark(
   gs::Encoder encoder(result_buffer);
 
   switch (type) {
-    // case 1:
-    //   thread_local gs::IC1 ic1;
-    //   LOG(INFO) << "Run IC1";
-    //   ic1.Query(graph_store, decoder, encoder);
-    //   break;
-    // case 2:
-    //   thread_local gs::IC2 ic2;
-    //   LOG(INFO) << "Run IC2";
-    //   ic2.Query(graph_store, decoder, encoder);
-    //   break;
-    // case 3:
-    //   thread_local gs::IC3 ic3;
-    //   LOG(INFO) << "Run IC3";
-    //   ic3.Query(graph_store, decoder, encoder);
-    //   break;
-    // case 4:
-    //   thread_local gs::IC4 ic4;
-    //   LOG(INFO) << "Run IC4";
-    //   ic4.Query(graph_store, decoder, encoder);
-    //   break;
-    // case 5:
-    //   thread_local gs::IC5 ic5;
-    //   LOG(INFO) << "Run IC5";
-    //   ic5.Query(graph_store, decoder, encoder);
-    //   break;
+  case 1:
+    thread_local gs::IC1 ic1;
+    LOG(INFO) << "Run IC1";
+    ic1.Query(graph_store, decoder, encoder);
+    break;
+  case 2:
+    thread_local gs::IC2 ic2;
+    LOG(INFO) << "Run IC2";
+    ic2.Query(graph_store, decoder, encoder);
+    break;
+  case 3:
+    thread_local gs::IC3 ic3;
+    LOG(INFO) << "Run IC3";
+    ic3.Query(graph_store, decoder, encoder);
+    break;
+  case 4:
+    thread_local gs::IC4 ic4;
+    LOG(INFO) << "Run IC4";
+    ic4.Query(graph_store, decoder, encoder);
+    break;
+  case 5:
+    thread_local gs::IC5 ic5;
+    LOG(INFO) << "Run IC5";
+    ic5.Query(graph_store, decoder, encoder);
+    break;
 
-  // case 6:
-  //   thread_local gs::IC6 ic6;
-  //   LOG(INFO) << "Run IC6";
-  //   ic6.Query(graph_store, decoder, encoder);
-  //   break;
+  case 6:
+    thread_local gs::IC6 ic6;
+    LOG(INFO) << "Run IC6";
+    ic6.Query(graph_store, decoder, encoder);
+    break;
 
-  // case 7:
-  //   thread_local gs::IC7 ic7;
-  //   LOG(INFO) << "Run IC7";
-  //   ic7.Query(graph_store, decoder, encoder);
-  //   break;
-  // case 8:
-  //   thread_local gs::IC8 ic8;
-  //   LOG(INFO) << "Run IC8";
-  //   ic8.Query(graph_store, decoder, encoder);
-  //   break;
-  // case 9:
-  //   thread_local gs::IC9 ic9;
-  //   LOG(INFO) << "Run IC9";
-  //   ic9.Query(graph_store, decoder, encoder);
-  //   break;
+  case 7:
+    thread_local gs::IC7 ic7;
+    LOG(INFO) << "Run IC7";
+    ic7.Query(graph_store, decoder, encoder);
+    break;
+  case 8:
+    thread_local gs::IC8 ic8;
+    LOG(INFO) << "Run IC8";
+    ic8.Query(graph_store, decoder, encoder);
+    break;
+  case 9:
+    thread_local gs::IC9 ic9;
+    LOG(INFO) << "Run IC9";
+    ic9.Query(graph_store, decoder, encoder);
+    break;
   case 10:
     thread_local gs::IC10 ic10;
     LOG(INFO) << "Run IC10";
     ic10.Query(graph_store, decoder, encoder);
     break;
-    // case 11:
-    //   thread_local gs::IC11 ic11;
-    //   LOG(INFO) << "Run IC11";
-    //   ic11.Query(graph_store, decoder, encoder);
-    //   break;
-    // case 12:
-    //   thread_local gs::IC12 ic12;
-    //   LOG(INFO) << "Run IC12";
-    //   ic12.Query(graph_store, decoder, encoder);
-    //   break;
+  case 11:
+    thread_local gs::IC11 ic11;
+    LOG(INFO) << "Run IC11";
+    ic11.Query(graph_store, decoder, encoder);
+    break;
+  case 12:
+    thread_local gs::IC12 ic12;
+    LOG(INFO) << "Run IC12";
+    ic12.Query(graph_store, decoder, encoder);
+    break;
 
   default:
     LOG(INFO) << "Not registered app: " << type;

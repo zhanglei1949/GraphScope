@@ -47,7 +47,7 @@ class hqps_ic_handler : public seastar::httpd::handler_base {
     executor_idx_ = (executor_idx_ + 1) % shard_concurrency_;
 
     return executor_refs_[dst_executor]
-        .run_hqps_procedure_query(query_param{std::move(req->content)})
+        .run_hqps_benchmark(query_param{std::move(req->content)})
         .then_wrapped([rep = std::move(rep)](
                           seastar::future<query_result>&& fut) mutable {
           if (__builtin_expect(fut.failed(), false)) {
