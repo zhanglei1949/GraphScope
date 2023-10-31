@@ -73,12 +73,20 @@ void deserialize_plan_and_gen_pegasus(const std::string& input_file_path,
 void deserialize_plan_and_gen_hqps(const std::string& input_file_path,
                                    const std::string& output_file_path) {
   LOG(INFO) << "Start deserializing from: " << input_file_path;
-  std::string content_str = read_binary_str_from_path(input_file_path);
+  // distinguish the input file is binary or json
+  std::string content_str;
+  physical::PhysicalPlan plan_pb;
+  if (input_file_path.find(".json") != std::string::npos) {
+    content_str = read_json_str_from_path(input_file_path);
+    google::protobuf::util::JsonStringToMessage(content_str, &plan_pb);
+  } else {
+    content_str = read_binary_str_from_path(input_file_path);
+    auto stream = std::istringstream(content_str);
+    CHECK(plan_pb.ParseFromArray(content_str.data(), content_str.size()));
+  }
   LOG(INFO) << "Deserilized plan size : " << content_str.size() << ", from "
             << input_file_path;
-  physical::PhysicalPlan plan_pb;
-  auto stream = std::istringstream(content_str);
-  CHECK(plan_pb.ParseFromArray(content_str.data(), content_str.size()));
+
   LOG(INFO) << "deserilized plan size : " << plan_pb.ByteSizeLong();
   VLOG(1) << "deserilized plan : " << plan_pb.DebugString();
   BuildingContext context;
