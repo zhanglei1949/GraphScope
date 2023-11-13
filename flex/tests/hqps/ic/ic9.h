@@ -159,7 +159,7 @@ class IC9 {
   void Query(const MutableCSRInterface& graph,
              const boost::property_tree::ptree& input,
              boost::property_tree::ptree& output) {
-    oid_t id = input.get<oid_t>("personIdQ9");
+    int64_t id = input.get<int64_t>("personIdQ9");
     int64_t date = input.get<int64_t>("maxDate");
     int32_t limit = input.get<int32_t>("limit");
 

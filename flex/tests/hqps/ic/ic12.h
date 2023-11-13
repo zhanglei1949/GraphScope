@@ -158,7 +158,7 @@ class IC12 {
   void Query(const MutableCSRInterface& graph,
              const boost::property_tree::ptree& input,
              boost::property_tree::ptree& output) const {
-    oid_t id = input.get<oid_t>("personIdQ12");
+    int64_t id = input.get<int64_t>("personIdQ12");
     std::string tag_class_name = input.get<std::string>("tagClassName");
     int32_t limit = input.get<int32_t>("limit");
 

@@ -351,7 +351,7 @@ class IC5 {
   void Query(const MutableCSRInterface& graph,
              const boost::property_tree::ptree& input,
              boost::property_tree::ptree& output) const {
-    oid_t id = input.get<oid_t>("personIdQ5");
+    int64_t id = input.get<int64_t>("personIdQ5");
     int64_t min_date = input.get<int64_t>("minDate");
     int32_t limit = input.get<int32_t>("limit");
 

@@ -59,7 +59,10 @@ void deserialize_plan_and_gen_pegasus(const std::string& input_file_path,
                                       const std::string& output_file_path) {
   auto input_json = read_json_str_from_path(input_file_path);
   physical::PhysicalPlan plan;
-  google::protobuf::util::JsonStringToMessage(input_json, &plan);
+  auto status = google::protobuf::util::JsonStringToMessage(input_json, &plan);
+  if (!status.ok()){
+    LOG(FATAL) << "unable to read plan from json: " << status.error_message().as_string();
+  }
   gs::BuildingContext ctx;
   // parse query name from input_file_path
   std::string query_name =
@@ -77,12 +80,23 @@ void deserialize_plan_and_gen_hqps(const std::string& input_file_path,
   std::string content_str;
   physical::PhysicalPlan plan_pb;
   if (input_file_path.find(".json") != std::string::npos) {
+    LOG(INFO) << "reading from json";
     content_str = read_json_str_from_path(input_file_path);
     google::protobuf::util::JsonStringToMessage(content_str, &plan_pb);
   } else {
+    LOG(INFO) << "reading from binary";
     content_str = read_binary_str_from_path(input_file_path);
-    auto stream = std::istringstream(content_str);
     CHECK(plan_pb.ParseFromArray(content_str.data(), content_str.size()));
+    //dump to json
+    std::string json_str;
+    google::protobuf::util::MessageToJsonString(plan_pb, &json_str);
+    LOG(INFO) << "json size: " << json_str.size();
+    //dump to file
+    std::string json_file_path = input_file_path + ".json";
+    std::ofstream ofs(input_file_path + ".json");
+    CHECK(ofs.is_open()) << "Failed to open file: " << input_file_path + ".json";
+    ofs << json_str;
+    ofs.close();
   }
   LOG(INFO) << "Deserilized plan size : " << content_str.size() << ", from "
             << input_file_path;

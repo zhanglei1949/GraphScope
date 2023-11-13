@@ -454,7 +454,7 @@ class IC1 {
   void Query(const gs::MutableCSRInterface& graph,
              const boost::property_tree::ptree& input,
              boost::property_tree::ptree& output) {
-    oid_t id = input.get<oid_t>("personIdQ1");
+    int64_t id = input.get<int64_t>("personIdQ1");
     std::string firstName = input.get<std::string>("firstName");
 
     std::vector<char> input_buffer, output_buffer;

@@ -354,7 +354,7 @@ class IC3 {
   void Query(const MutableCSRInterface& graph,
              const boost::property_tree::ptree& input,
              boost::property_tree::ptree& output) const {
-    oid_t id = input.get<oid_t>("personIdQ3");
+    int64_t id = input.get<int64_t>("personIdQ3");
 
     int64_t start_date = input.get<int64_t>("startDate");
     int32_t duration_days = input.get<int32_t>("durationDays");

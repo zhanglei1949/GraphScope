@@ -192,7 +192,7 @@ class IC11 {
   void Query(const MutableCSRInterface& graph,
              const boost::property_tree::ptree& input,
              boost::property_tree::ptree& output) const {
-    oid_t id = input.get<oid_t>("personIdQ11");
+    int64_t id = input.get<int64_t>("personIdQ11");
     std::string country_name = input.get<std::string>("countryName");
     int32_t work_from_year = input.get<int32_t>("workFromYear");
     int32_t limit = input.get<int32_t>("limit");

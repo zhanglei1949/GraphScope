@@ -852,39 +852,6 @@ struct MatchQuery12Expr1 {
  private:
 };
 
-class MatchQuery12 : public HqpsAppBase<gs::MutableCSRInterface> {
- public:
-  using Engine = SyncEngine<gs::MutableCSRInterface>;
-  using label_id_t = typename gs::MutableCSRInterface::label_id_t;
-  using vertex_id_t = typename gs::MutableCSRInterface::vertex_id_t;
-  // Query function for query class
-  results::CollectiveResults Query(const gs::MutableCSRInterface& graph) const {
-    auto ctx0 = Engine::template ScanVertex<gs::AppendOpt::Persist>(
-        graph, 1, Filter<TruePredicate>());
-
-    auto ctx1 = Engine::Project<PROJ_TO_NEW>(
-        graph, std::move(ctx0),
-        std::tuple{gs::make_mapper_with_variable<INPUT_COL_ID(0)>(
-            gs::PropertySelector<Date>("birthday"))});
-    auto expr0 = gs::make_filter(MatchQuery12Expr0(),
-                                 gs::PropertySelector<Date>("None"));
-    auto ctx2 = Engine::template Select<INPUT_COL_ID(0)>(graph, std::move(ctx1),
-                                                         std::move(expr0));
-
-    auto ctx3 = Engine::Project<PROJ_TO_NEW>(
-        graph, std::move(ctx2),
-        std::tuple{gs::make_mapper_with_expr<0>(
-            MatchQuery12Expr1(), gs::PropertySelector<Date>("None"))});
-    return Engine::Sink(ctx3, std::array<int32_t, 1>{2});
-  }
-  // Wrapper query function for query class
-  results::CollectiveResults Query(const gs::MutableCSRInterface& graph,
-                                   Decoder& decoder) const override {
-    // decoding params from decoder, and call real query func
-
-    return Query(graph);
-  }
-};
 
 }  // namespace gs
 #endif  // TESTS_HQPS_MATCH_QUERY_H_

@@ -102,7 +102,7 @@ class IC8 {
   void Query(const MutableCSRInterface& graph,
              const boost::property_tree::ptree& input,
              boost::property_tree::ptree& output) const {
-    oid_t id = input.get<oid_t>("personIdQ8");
+    int64_t id = input.get<int64_t>("personIdQ8");
     int32_t limit = input.get<int32_t>("limit");
 
     std::vector<char> input_buffer, output_buffer;

@@ -458,7 +458,7 @@ class IC10 {
   void Query(const MutableCSRInterface& graph,
              const boost::property_tree::ptree& input,
              boost::property_tree::ptree& output) const {
-    oid_t id = input.get<oid_t>("personIdQ10");
+    int64_t id = input.get<int64_t>("personIdQ10");
     int32_t month = input.get<int64_t>("month");
     int32_t limit = input.get<int32_t>("limit");
 
