@@ -157,7 +157,8 @@ seastar::future<int> CodegenProxy::call_codegen_cmd_impl(
   // TODO: different suffix for different platform
   std::string cmd = codegen_bin_ + " -e=hqps " + " -i=" + plan_path +
                     " -w=" + work_dir + " --ir_conf=" + ir_compiler_prop_ +
-                    " --graph_schema_path=" + compiler_graph_schema_;
+                    " --graph_schema_path=" + compiler_graph_schema_ +
+                    "--build_type=DEBUG";
   LOG(INFO) << "Start call codegen cmd: [" << cmd << "]";
 
   return hiactor::thread_resource_pool::submit_work([this, cmd] {

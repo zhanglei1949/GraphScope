@@ -160,8 +160,8 @@ cypher_to_plan() {
 
 compile_hqps_so() {
   #check input params size eq 2 or 3
-  if [ $# -gt 7 ] || [ $# -lt 4 ]; then
-    echo "Usage: $0 <input_file> <work_dir> <ir_compiler_properties_file>  <graph_schema_file> "
+  if [ $# -gt 8 ] || [ $# -lt 5 ]; then
+    echo "Usage: $0 <input_file> <work_dir> <ir_compiler_properties_file>  <graph_schema_file> <cmake_build_type>"
     echo "          [output_dir] [stored_procedure_name] [stored_procedure_description]"
     exit 1
   fi
@@ -169,20 +169,21 @@ compile_hqps_so() {
   work_dir=$2
   ir_compiler_properties=$3
   graph_schema_path=$4
-  if [ $# -ge 5 ]; then
-    output_dir=$5
+  cmake_build_type=$5
+  if [ $# -ge 6 ]; then
+    output_dir=$6
   else
     output_dir=${work_dir}
   fi
 
-  if [ $# -ge 6 ]; then
-    procedure_name=$6
+  if [ $# -ge 7 ]; then
+    procedure_name=$7
   else
     procedure_name=""
   fi
 
-  if [ $# -ge 7 ]; then
-    procedure_description=$7
+  if [ $# -ge 8 ]; then
+    procedure_description=$8
   else
     procedure_description=""
   fi
@@ -191,6 +192,7 @@ compile_hqps_so() {
   info "Work dir = ${work_dir}"
   info "ir compiler properties = ${ir_compiler_properties}"
   info "graph schema path = ${graph_schema_path}"
+  info "Cmake build type = ${cmake_build_type}"
   info "Output dir = ${output_dir}"
   info "Procedure name = ${procedure_name}"
   info "Procedure description = ${procedure_description}"
@@ -230,6 +232,9 @@ compile_hqps_so() {
     err "Not support OS."
     exit 1
   fi
+
+  # get current time
+  current_time=$(date "+%Y-%m-%d %H:%M:%S")
 
   #only do codegen when receives a .pb file.
   if [[ $last_file_name == *.pb ]]; then
@@ -276,6 +281,8 @@ compile_hqps_so() {
   if [ ! -z ${CMAKE_C_COMPILER} ]; then
     cmd="${cmd} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
   fi
+  # if CMAKE_BUILD_TYPE is set, use it.
+  cmd="${cmd} -DCMAKE_BUILD_TYPE=${cmake_build_type}"
   info "Cmake command = ${cmd}"
   info "---------------------------"
   eval ${cmd}
@@ -300,6 +307,14 @@ compile_hqps_so() {
   fi
   info "Finish building, output to ${output_so_path}"
   popd
+
+  # get current time
+  end_time=$(date "+%Y-%m-%d %H:%M:%S")
+  # calculate time cost
+  start_seconds=$(date --date="$current_time" +%s)
+  end_seconds=$(date --date="$end_time" +%s)
+  time_cost=$((end_seconds - start_seconds))
+  info "Time cost: ${time_cost} seconds."
 
   ################### now copy ##########################
   # if dst_so_path eq output_so_path, skip copying.
@@ -500,6 +515,10 @@ run() {
       PROCEDURE_DESCRIPTION="${i#*=}"
       shift # past argument=value
       ;;
+    --build_type=*)
+      CMAKE_BUILD_TYPE="${i#*=}"
+      shift # past argument=value
+      ;;
     -* | --*)
       err "Unknown option $i"
       exit 1
@@ -517,6 +536,7 @@ run() {
   echo "Output path            ="${OUTPUT_DIR}
   echo "Procedure name         ="${PROCEDURE_NAME}
   echo "Procedure description  ="${PROCEDURE_DESCRIPTION}
+  echo "Cmake build type       ="${CMAKE_BUILD_TYPE}
 
   find_resources
 
@@ -528,6 +548,10 @@ run() {
 
   if [ -z "${OUTPUT_DIR}" ]; then
     OUTPUT_DIR=${WORK_DIR}
+  fi
+
+  if [ -z "${CMAKE_BUILD_TYPE}" ]; then
+    CMAKE_BUILD_TYPE=Release
   fi
 
   # if engine_type equals hqps
@@ -544,7 +568,7 @@ run() {
       PROCEDURE_NAME="${PROCEDURE_NAME%.cc}"
       PROCEDURE_NAME="${PROCEDURE_NAME%.pb}"
     fi
-    compile_hqps_so ${INPUT} ${WORK_DIR} ${IR_CONF} ${GRAPH_SCHEMA_PATH} ${OUTPUT_DIR} ${PROCEDURE_NAME} "${PROCEDURE_DESCRIPTION}"
+    compile_hqps_so ${INPUT} ${WORK_DIR} ${IR_CONF} ${GRAPH_SCHEMA_PATH} ${CMAKE_BUILD_TYPE} ${OUTPUT_DIR} ${PROCEDURE_NAME} "${PROCEDURE_DESCRIPTION}"
 
   # else if engine_type equals pegasus
   elif [ ${ENGINE_TYPE} == "pegasus" ]; then
