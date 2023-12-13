@@ -67,7 +67,7 @@ struct _add_vertex {
       auto casted_array = std::static_pointer_cast<arrow_array_t>(col);
       for (auto i = 0; i < row_num; ++i) {
         if (!indexer.add(casted_array->Value(i), vid)) {
-          LOG(FATAL) << "Duplicate vertex id: " << casted_array->Value(i)
+          LOG(ERROR) << "Duplicate vertex id: " << casted_array->Value(i)
                      << "..";
         }
         vids.emplace_back(vid);
@@ -79,7 +79,7 @@ struct _add_vertex {
           auto str = casted_array->GetView(i);
           std::string_view str_view(str.data(), str.size());
           if (!indexer.add(str_view, vid)) {
-            LOG(FATAL) << "Duplicate vertex id: " << str_view << "..";
+            LOG(ERROR) << "Duplicate vertex id: " << str_view << "..";
           }
           vids.emplace_back(vid);
         }
@@ -90,7 +90,7 @@ struct _add_vertex {
           auto str = casted_array->GetView(i);
           std::string_view str_view(str.data(), str.size());
           if (!indexer.add(str_view, vid)) {
-            LOG(FATAL) << "Duplicate vertex id: " << str_view << "..";
+            LOG(ERROR) << "Duplicate vertex id: " << str_view << "..";
           }
           vids.emplace_back(vid);
         }
@@ -143,13 +143,18 @@ static void append_edges(
         for (auto j = 0; j < casted->length(); ++j) {
           auto str = casted->GetView(j);
           std::string_view str_view(str.data(), str.size());
-          auto vid = indexer.get_index(Any::From(str_view));
+	  vid_t vid;
+          if (!indexer.get_index(Any::From(str_view), vid)) {
+	     vid = std::numeric_limits<vid_t>::max();
+	  }
+	  else {
+	     is_dst ? ie_degree[vid]++ : oe_degree[vid]++;
+	  }
           if (is_dst) {
             std::get<1>(parsed_edges[cur_ind++]) = vid;
           } else {
             std::get<0>(parsed_edges[cur_ind++]) = vid;
           }
-          is_dst ? ie_degree[vid]++ : oe_degree[vid]++;
         }
       } else {
         // must be large utf8
@@ -157,26 +162,36 @@ static void append_edges(
         for (auto j = 0; j < casted->length(); ++j) {
           auto str = casted->GetView(j);
           std::string_view str_view(str.data(), str.size());
-          auto vid = indexer.get_index(Any::From(str_view));
+          vid_t vid;
+          if (!indexer.get_index(Any::From(str_view), vid)) {
+	     vid = std::numeric_limits<vid_t>::max();
+	  }
+	  else {
+            is_dst ? ie_degree[vid]++ : oe_degree[vid]++;
+	  }
           if (is_dst) {
             std::get<1>(parsed_edges[cur_ind++]) = vid;
           } else {
             std::get<0>(parsed_edges[cur_ind++]) = vid;
           }
-          is_dst ? ie_degree[vid]++ : oe_degree[vid]++;
         }
       }
     } else {
       using arrow_array_type = typename gs::TypeConverter<PK_T>::ArrowArrayType;
       auto casted = std::static_pointer_cast<arrow_array_type>(col);
       for (auto j = 0; j < casted->length(); ++j) {
-        auto vid = indexer.get_index(Any::From(casted->Value(j)));
+          vid_t vid;
+          if (!indexer.get_index(Any::From(casted->Value(j)), vid)) {
+	     vid = std::numeric_limits<vid_t>::max();
+	  }
+	  else {
+             is_dst ? ie_degree[vid]++ : oe_degree[vid]++;
+	  }
         if (is_dst) {
           std::get<1>(parsed_edges[cur_ind++]) = vid;
         } else {
           std::get<0>(parsed_edges[cur_ind++]) = vid;
         }
-        is_dst ? ie_degree[vid]++ : oe_degree[vid]++;
       }
     }
   };
