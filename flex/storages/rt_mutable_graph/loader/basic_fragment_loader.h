@@ -121,7 +121,12 @@ class BasicFragmentLoader {
         ie_prefix(src_label_name, dst_label_name, edge_label_name),
         edata_prefix(src_label_name, dst_label_name, edge_label_name),
         tmp_dir(work_dir_), oe_degree, ie_degree);
+    auto invalid_value = std::numeric_limits<vid_t>::max();
     for (auto& edge : edges) {
+      if (std::get<0>(edge) == invalid_value || std::get<1>(edge) == invalid_value) {
+          VLOG(1) << "Found invalid edge";
+	  continue ;
+      }
       dual_csr->BatchPutEdge(std::get<0>(edge), std::get<1>(edge),
                              std::get<2>(edge));
     }
