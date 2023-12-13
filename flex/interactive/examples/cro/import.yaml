@@ -1,0 +1,58 @@
+graph: cro
+loading_config:
+  data_source:
+    scheme: odps  # file, oss, s3, hdfs; only file is supported now
+    #location: /home/graphscope/gs_interactive_default_graph/
+  import_option: init # append, overwrite, only init is supported now
+  format:
+    type: arrow
+    metadata:
+      batch_reader: false
+      batch_size: 16MB
+vertex_mappings:
+  - type_name: medium  # must align with the schema
+    inputs:
+      - lazada_sec_dev/adl_agraph_lzd_rela_orderoffline_medium
+    column_mappings:
+      - column:
+          index: 0    # can be omitted if the index is the same as the property index
+          name: medium_id  # can be omitted if the name is not known
+        property: id
+      - column:
+          index: 1
+          name: medium_type
+        property: type
+      - column:
+          index: 2
+          name: medium_weight
+        property: weight
+  - type_name: center
+    inputs:
+      - lazada_sec_dev/adl_agraph_lzd_rela_orderoffline_center
+    column_mappings:
+      - column:
+          index: 4
+          name: centerid
+        property: id
+edge_mappings:
+  - type_triplet:
+      edge: connect
+      source_vertex:  center
+      destination_vertex:  medium
+    inputs:
+      - lazada_sec_dev/adl_agraph_lzd_rela_orderoffline_center_medium
+    source_vertex_mappings:
+      - column:
+          index: 0
+          name: centeid
+        property: id
+    destination_vertex_mappings:
+      - column:
+          index: 1
+          name: medium_id
+        property: id
+    column_mappings:
+      - column:
+          index: 2
+          name: medium_weight
+        property: weight
