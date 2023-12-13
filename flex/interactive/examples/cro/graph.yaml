@@ -1,5 +1,11 @@
 name: cro # then must have a modern dir under ${data} directory
 store_type: mutable_csr  # v6d, groot, gart
+stored_procedures:
+  directory: /crodata/stored_procedures/
+  # enable_lists:
+  #   - libquery1.so
+  #   - libquery2.so
+  #   - libquery0.so
 schema:
   vertex_types:
     - type_id: 0
@@ -14,11 +20,11 @@ schema:
         - property_id: 1
           property_name: type
           property_type:
-            primitive_type: DT_STRING
+            primitive_type: DT_STRINGMAP
         - property_id: 2
           property_name: weight
           property_type:
-            primitive_type: DT_STRING
+            primitive_type: DT_DOUBLE
       primary_keys:
         - id
     - type_id: 1
