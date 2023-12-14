@@ -5,31 +5,30 @@
 #include "flex/engines/graph_db/database/wal.h"
 
 namespace gs {
+
+// This procedure is registered via raw .so, and compiler will not see it.
 // Update vertex and edges.
-class Query0 : public AppBase {
+class InsertEdge : public AppBase {
  public:
-  Query0(GraphDBSession& graph)
+  InsertEdge(GraphDBSession& graph)
       : medium_label_id_(graph.schema().get_vertex_label_id("medium")),
         center_label_id_(graph.schema().get_vertex_label_id("center")),
         connect_label_id_(graph.schema().get_edge_label_id("connect")),
         graph_(graph) {
-    insert_edges_.reserve(4096);
-    insert_vertices_.reserve(4096);
-    read_time_ = 0;
-    write_time_ = 0;
+    // insert_edges_.reserve(4096);
+    // insert_vertices_.reserve(4096);
+    // read_time_ = 0;
+    // write_time_ = 0;
   }
 
-  ~Query0() {}
+  ~InsertEdge() {}
 
   void clear() {
-    insert_vertices_.clear();
-    insert_edges_.clear();
+    // insert_vertices_.clear();
+    // insert_edges_.clear();
   }
 
   bool Query(Decoder& input, Encoder& output) {
-    auto begin = std::chrono::system_clock::now();
-    vertex_label_num_ = graph_.schema().vertex_label_num();
-    edge_label_num_ = graph_.schema().edge_label_num();
     size_t count = static_cast<size_t>(input.get_long());
     UpdateBatch updates;
     for (size_t idx = 0; idx < count; ++idx) {
@@ -52,29 +51,23 @@ class Query0 : public AppBase {
   }
 
  private:
-  size_t read_time_;
-  size_t write_time_;
   GraphDBSession& graph_;
   label_t medium_label_id_;
   label_t center_label_id_;
   label_t connect_label_id_;
 
   size_t vertex_label_num_;
-  size_t edge_label_num_;
-  std::vector<std::tuple<label_t, Any, std::vector<Any>>> insert_vertices_;
-  std::vector<std::tuple<label_t, Any, label_t, Any, label_t, Any>>
-      insert_edges_;
 };
 
 }  // namespace gs
 extern "C" {
 void* CreateApp(gs::GraphDBSession& db) {
-  gs::Query0* app = new gs::Query0(db);
+  gs::InsertEdge* app = new gs::InsertEdge(db);
   return static_cast<void*>(app);
 }
 
 void DeleteApp(void* app) {
-  gs::Query0* casted = static_cast<gs::Query0*>(app);
+  gs::InsertEdge* casted = static_cast<gs::InsertEdge*>(app);
   delete casted;
 }
 }

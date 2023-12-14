@@ -5,10 +5,10 @@ mode: READ  # WRITE, SCHEMA
 extension: ".so"
 library: libquery2.so  # To specify the directory to the stored procedure
 params:
-  - name: "personId2"  # TBD
-    type: "long"  # 
-  - name: "maxDate" # TBD
-    type: "long"
-returns:
-  - name: "name"
+  - name: "mediumId"  # TBD
+    type: "array(string)"  # 
+  - name: "centerId" # TBD
     type: "string"
+returns:
+  - name: "paths"
+    type: "array(string,double,string)"

@@ -36,6 +36,12 @@ void put_argment(Encoder& encoder, const query::Argument& argment) {
   case common::Value::kStr:
     encoder.put_string(value.str());
     break;
+  case common::Value::kStrArray:
+    encoder.put_int(value.str_array().item_size());
+    for (auto i = 0; i < value.str_array().item_size(); ++i) {
+      encoder.put_string(value.str_array().item(i));
+    }
+    break;
   default:
     LOG(ERROR) << "Not recognizable param type" << static_cast<int>(item_case);
   }

@@ -1,6 +1,7 @@
 #include <bitset>
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
+#include "flex/proto_generated_gie/results.pb.h"
 
 namespace gs {
 class Query1 : public AppBase {
@@ -19,6 +20,7 @@ class Query1 : public AppBase {
   ~Query1() {
     // LOG(INFO) << "duration = " << duration;
   }
+  // Input is (vec<medium_type: string>, center_id: string)
   bool Query(Decoder& input, Encoder& output) {
     // duration -= grape::GetCurrentTime();
     auto txn = graph_.GetReadTransaction();
@@ -59,7 +61,8 @@ class Query1 : public AppBase {
     auto reserver_edge_view = txn.GetIncomingGraphView<double>(
         medium_label_id_, center_label_id_, connect_label_id_);
     int num = 0;
-    size_t begin_loc = output.skip_int();
+    // size_t begin_loc = output.skip_int();
+    results::CollectiveResults res_pb;
     for (auto medium_vid : medium_vids) {
       auto oid = txn.GetVertexId(medium_label_id_, medium_vid).AsStringView();
       const auto& edges = reserver_edge_view.get_edges(medium_vid);
@@ -68,9 +71,29 @@ class Query1 : public AppBase {
         if (nbr_vid != center_vid) {
           auto nbr_oid =
               txn.GetVertexId(center_label_id_, nbr_vid).AsStringView();
-          output.put_string_view(oid);
-          output.put_double(e.data);
-          output.put_string_view(nbr_oid);
+          auto* cur_row = res_pb.add_results();
+          auto record = cur_row->mutable_record();
+          // centerId
+          auto col1 = record->add_columns();
+          col1->mutable_name_or_id()->set_id(0);
+          auto obj1 =
+              col1->mutable_entry()->mutable_element()->mutable_object();
+          obj1->set_str(oid.data(), oid.size());
+          // mediumWeight
+          auto col2 = record->add_columns();
+          col2->mutable_name_or_id()->set_id(1);
+          auto obj2 =
+              col2->mutable_entry()->mutable_element()->mutable_object();
+          obj2->set_f64(e.data);
+          // mediumId
+          auto col3 = record->add_columns();
+          col3->mutable_name_or_id()->set_id(2);
+          auto obj3 =
+              col3->mutable_entry()->mutable_element()->mutable_object();
+          obj3->set_str(nbr_oid.data(), nbr_oid.size());
+          // output.put_string_view(oid);
+          // output.put_double(e.data);
+          // output.put_string_view(nbr_oid);
           ++num;
           if (num == limit) {
             break;
@@ -81,7 +104,10 @@ class Query1 : public AppBase {
         break;
       }
     }
-    output.put_int_at(begin_loc, num);
+    std::string res_str = res_pb.SerializeAsString();
+    // encode results to encoder
+    output.put_string(res_str);
+    // output.put_int_at(begin_loc, num);
     // duration += grape::GetCurrentTime();
     return true;
   }

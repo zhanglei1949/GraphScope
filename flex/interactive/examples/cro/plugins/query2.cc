@@ -1,5 +1,6 @@
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
+#include "flex/proto_generated_gie/results.pb.h"
 
 namespace gs {
 // One hop query
@@ -11,6 +12,7 @@ class Query2 : public AppBase {
         connect_label_id_(graph.schema().get_edge_label_id("connect")),
         graph_(graph) {}
 
+  // input is (vector<medium_id: string>, center_id: string)
   bool Query(Decoder& input, Encoder& output) {
     auto txn = graph_.GetReadTransaction();
     // get center with center id.
@@ -52,13 +54,36 @@ class Query2 : public AppBase {
     }
     txn.Abort();
     // write to output
-    output.put_int(res_vec.size());
-    // LOG(INFO) << "Got res of size: " << res_vec.size();
-    for (auto& res : res_vec) {
-      output.put_string_view(std::get<0>(res));
-      output.put_double(std::get<1>(res));
-      output.put_string_view(std::get<2>(res));
+    // output.put_int(res_vec.size());
+    // // LOG(INFO) << "Got res of size: " << res_vec.size();
+    // for (auto& res : res_vec) {
+    //   output.put_string_view(std::get<0>(res));
+    //   output.put_double(std::get<1>(res));
+    //   output.put_string_view(std::get<2>(res));
+    // }
+    results::CollectiveResults res_pb;
+    for (auto& path : res_vec) {
+      auto* r = res_pb.add_results();
+      auto record = r->mutable_record();
+      // centerId
+      auto col1 = record->add_columns();
+      col1->mutable_name_or_id()->set_id(0);
+      auto obj1 = col1->mutable_entry()->mutable_element()->mutable_object();
+      obj1->set_str(std::get<0>(path).data(), std::get<0>(path).size());
+      // mediumWeight
+      auto col2 = record->add_columns();
+      col2->mutable_name_or_id()->set_id(1);
+      auto obj2 = col2->mutable_entry()->mutable_element()->mutable_object();
+      obj2->set_f64(std::get<1>(path));
+      // mediumId
+      auto col3 = record->add_columns();
+      col3->mutable_name_or_id()->set_id(2);
+      auto obj3 = col3->mutable_entry()->mutable_element()->mutable_object();
+      obj3->set_str(std::get<2>(path).data(), std::get<2>(path).size());
     }
+    std::string res_str = res_pb.SerializeAsString();
+    // encode results to encoder
+    output.put_string(res_str);
     // LOG(INFO) << "res count: " << res_vec.size() << " " << sum << "\n";
     return true;
   }
