@@ -22,6 +22,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import com.alibaba.graphscope.common.config.FrontendConfig;
+import com.alibaba.graphscope.common.ir.type.GraphTypeFactoryImpl;
 import org.apache.calcite.rel.type.*;
 import org.yaml.snakeyaml.Yaml;
 
@@ -33,7 +35,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class StoredProcedureMeta {
-    private static final RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
+//    private static final RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    private static final RelDataTypeFactory typeFactory =
+            new GraphTypeFactoryImpl(
+                    new Configs(
+                            ImmutableMap.of(
+                                    FrontendConfig.CALCITE_DEFAULT_CHARSET.getKey(), "UTF-8")));
 
     private final String name;
     private final RelDataType returnType;

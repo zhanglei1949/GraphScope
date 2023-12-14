@@ -159,6 +159,8 @@ public abstract class Utils {
                         return DataType.DOUBLE;
                     case "DT_STRING":
                         return DataType.STRING;
+		    case "DT_STRINGMAP":
+			return DataType.STRING;
                     case "DT_DATE32":
                         return DataType.DATE;
                     case "DT_TIME32":

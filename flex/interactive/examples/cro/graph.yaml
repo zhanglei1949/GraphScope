@@ -1,11 +1,11 @@
 name: cro # then must have a modern dir under ${data} directory
 store_type: mutable_csr  # v6d, groot, gart
 stored_procedures:
-  directory: /home/graphscope/GraphScope/flex/interactive/examples/cro/plugins/ 
-  # enable_lists:
-  #   - libquery1.so
-  #   - libquery2.so
-  #   - libquery0.so
+  directory: /tmp/workspace/data/cro/plugins/ 
+  enable_lists:
+    - libinsert_edge.so
+    - query1 
+    - query2
 schema:
   vertex_types:
     - type_id: 0

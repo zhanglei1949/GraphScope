@@ -10,5 +10,9 @@ params:
   - name: "centerId" # TBD
     type: "string"
 returns:
-  - name: "paths"
-    type: "array(string,double,string)"
+  - name: "centerId"
+    type: "string"
+  - name: "mediumWeight"
+    type: "double"
+  - name: "mediumId"
+    type: "string"
