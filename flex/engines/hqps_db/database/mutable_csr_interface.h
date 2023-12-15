@@ -850,6 +850,9 @@ class MutableCSRInterface {
     } else if (type == PropertyType::kFloat) {
       return std::make_shared<TypedRefColumn<float>>(
           *std::dynamic_pointer_cast<TypedColumn<float>>(column));
+    } else if (type == PropertyType::kStringMap) {
+      return std::make_shared<TypedRefColumn<std::string_view>>(
+          *std::dynamic_pointer_cast<TypedColumn<std::string_view>>(column));
     } else {
       LOG(FATAL) << "unexpected type to create column, "
                  << static_cast<int>(type);
