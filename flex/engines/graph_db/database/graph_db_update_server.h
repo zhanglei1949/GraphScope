@@ -254,11 +254,9 @@ class GraphDBUpdateServer {
         commit_.get();
       return;
     }
-    LOG(INFO) << "count: " << count_ << " size: " << size_ << "\n";
     char type = 3;
     memcpy(update_queries_.data() + size_, &type, sizeof(char));
     size_ += sizeof(char);
-    LOG(INFO) << "size: " << size_ << "\n";
     {
       if (commit_.valid()) {
         commit_.get();
