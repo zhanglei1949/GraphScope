@@ -64,7 +64,6 @@ class BasicFragmentLoader {
         vertex_map_prefix(schema_.get_vertex_label_name(v_label));
     auto primary_keys = schema_.get_vertex_primary_key(v_label);
     auto type = std::get<0>(primary_keys[0]);
-
     build_lf_indexer<KEY_T, vid_t>(indexer, filename, lf_indexers_[v_label],
                                    snapshot_dir(work_dir_, 0),
                                    tmp_dir(work_dir_), type);

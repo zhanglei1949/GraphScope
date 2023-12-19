@@ -409,6 +409,10 @@ static PropertyType StringToPropertyType(const std::string& str) {
     return PropertyType::kFloat;
   } else if (str == "double" || str == DT_DOUBLE) {
     return PropertyType::kDouble;
+  } else if (str.substr(0, 7) == "VARCHAR") {
+    int max_len;
+    sscanf(str.data(), "VARCHAR(%d)", &max_len);
+    return PropertyType::Varchar(max_len);
   } else {
     return PropertyType::kEmpty;
   }

@@ -201,6 +201,7 @@ class TypedColumn<std::string_view> : public ColumnBase {
               uint16_t width = PropertyType::STRING_DEFAULT_MAX_LENGTH)
       : width_(width) {}
   ~TypedColumn() { close(); }
+  void set_width(size_t width) { width_ = width; }
 
   void open(const std::string& name, const std::string& snapshot_dir,
             const std::string& work_dir) override {
@@ -370,7 +371,7 @@ class StringMapColumn : public ColumnBase {
   StringMapColumn(StorageStrategy strategy)
       : index_col_(strategy), meta_map_(nullptr) {
     meta_map_ = new LFIndexer<INDEX_T>();
-    meta_map_->init(PropertyType::kString);
+    meta_map_->init(PropertyType::Varchar(256));
   }
 
   ~StringMapColumn() {

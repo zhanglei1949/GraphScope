@@ -226,6 +226,8 @@ class LFIndexer {
     } else if (type.type_enum == impl::PropertyTypeImpl::kVarChar) {
       keys_ = new StringColumn(StorageStrategy::kMem,
                                type.additional_type_info.max_length);
+    } else if(type == PropertyType::kString){
+      keys_ = new StringColumn(StorageStrategy::kMem,256);
     } else {
       LOG(FATAL) << "Not support type [" << type << "] as pk type ..";
     }

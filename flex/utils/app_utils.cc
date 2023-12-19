@@ -35,10 +35,22 @@ void Encoder::put_long_at(size_t pos, int64_t v) {
   memcpy(&buf_[pos], &v, sizeof(int64_t));
 }
 
+void Encoder::put_ulong(uint64_t v) {
+  size_t size = buf_.size();
+  buf_.resize(size + sizeof(uint64_t));
+  memcpy(&buf_[size], &v, sizeof(uint64_t));
+}
+
 void Encoder::put_int(int v) {
   size_t size = buf_.size();
   buf_.resize(size + sizeof(int));
   memcpy(&buf_[size], &v, sizeof(int));
+}
+
+void Encoder::put_uint(uint32_t v) {
+  size_t size = buf_.size();
+  buf_.resize(size + sizeof(uint32_t));
+  memcpy(&buf_[size], &v, sizeof(uint32_t));
 }
 
 size_t Encoder::skip_int() {
@@ -79,11 +91,16 @@ void Encoder::put_string_view(const std::string_view& v) {
   memcpy(&buf_[size + 4], v.data(), len);
 }
 
-
-void Encoder::put_double(double v){
+void Encoder::put_double(double v) {
   size_t size = buf_.size();
   buf_.resize(size + sizeof(double));
   memcpy(&buf_[size], &v, sizeof(double));
+}
+
+void Encoder::put_float(float v) {
+  size_t size = buf_.size();
+  buf_.resize(size + sizeof(float));
+  memcpy(&buf_[size], &v, sizeof(float));
 }
 
 void Encoder::clear() { buf_.clear(); }
@@ -98,7 +115,7 @@ static int char_ptr_to_int(const char* data) {
   return *ptr;
 }
 
-static double char_ptr_to_double(const char* data){
+static double char_ptr_to_double(const char* data) {
   const double* ptr = reinterpret_cast<const double*>(data);
   return *ptr;
 }
@@ -115,7 +132,7 @@ int64_t Decoder::get_long() {
   return ret;
 }
 
-double Decoder::get_double(){
+double Decoder::get_double() {
   double ret = char_ptr_to_double(data_);
   data_ += 8;
   return ret;
