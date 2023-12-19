@@ -259,14 +259,10 @@ class GraphDBUpdateServer {
     memcpy(update_queries_.data() + size_, &type, sizeof(char));
     size_ += sizeof(char);
     LOG(INFO) << "size: " << size_ << "\n";
-    // const auto& result = cli_->Post(
-    //"/interactive/update", update_queries_.data(), size_, "text/plain");
-    // update_queries_.resize(size_);
     {
       if (commit_.valid()) {
         commit_.get();
       }
-      // memcpy(temp_.data(), update_queries_.data(), size_);
       update_queries_.swap(temp_);
       commit_ = std::async(
           std::launch::async,
