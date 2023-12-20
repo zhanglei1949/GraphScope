@@ -1,6 +1,6 @@
 package com.alibaba.graphscope.groot.sdk;
+
 import com.alibaba.graphscope.groot.sdk.HttpConfig;
-import java.util.concurrent.CompletableFuture;
 
 import java.io.IOException;
 import java.util.concurrent.*;
@@ -14,7 +14,6 @@ import okhttp3.internal.Util;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-
 
 class ResponseFuture implements Callback {
     final CompletableFuture<Response> future = new CompletableFuture<>();
@@ -34,16 +33,85 @@ class ResponseFuture implements Callback {
     }
 }
 
+final class Decoder {
+    public Decoder(byte[] bs) {
+        this.bs = bs;
+        this.loc = 0;
+        this.len = this.bs.length;
+    }
+
+    public static int get_int(byte[] bs, int loc) {
+        int ret = (bs[loc + 3] & 0xff);
+        ret <<= 8;
+        ret |= (bs[loc + 2] & 0xff);
+        ret <<= 8;
+        ret |= (bs[loc + 1] & 0xff);
+        ret <<= 8;
+        ret |= (bs[loc] & 0xff);
+        return ret;
+    }
+
+    public static long get_long(byte[] bs, int loc) {
+        long ret = (bs[loc + 7] & 0xff);
+        ret <<= 8;
+        ret |= (bs[loc + 6] & 0xff);
+        ret <<= 8;
+        ret |= (bs[loc + 5] & 0xff);
+        ret <<= 8;
+        ret |= (bs[loc + 4] & 0xff);
+        ret <<= 8;
+        ret |= (bs[loc + 3] & 0xff);
+        ret <<= 8;
+        ret |= (bs[loc + 2] & 0xff);
+        ret <<= 8;
+        ret |= (bs[loc + 1] & 0xff);
+        ret <<= 8;
+        ret |= (bs[loc] & 0xff);
+        return ret;
+    }
+
+    public long get_long() {
+        long ret = get_long(this.bs, this.loc);
+        this.loc += 8;
+        return ret;
+    }
+
+    public int get_int() {
+        int ret = get_int(this.bs, this.loc);
+        this.loc += 4;
+        return ret;
+    }
+
+    public byte get_byte() {
+        return (byte) (bs[loc++] & 0xFF);
+    }
+
+    public String get_string() {
+        int strlen = this.get_int();
+        String ret = new String(this.bs, this.loc, strlen);
+        this.loc += strlen;
+        return ret;
+    }
+
+    public boolean empty() {
+        return loc == len;
+    }
+
+    byte[] bs;
+    int loc;
+    int len;
+}
+
 public class HttpConnectionState {
     final private String uri;
     private static OkHttpClient client = null;
-    public HttpConnectionState(HttpConfig config){
+
+    public HttpConnectionState(HttpConfig config) {
         client = new OkHttpClient.Builder()
                 .dispatcher(new Dispatcher(new ThreadPoolExecutor(0, Integer.MAX_VALUE,
                         60L, TimeUnit.SECONDS,
                         new SynchronousQueue<>(),
-                        Util.threadFactory("OkHttp Dispatcher", false)
-                )))
+                        Util.threadFactory("OkHttp Dispatcher", false))))
                 .connectionPool(new ConnectionPool(config.getConnectPoolMaxIdle(),
                         config.getKeepAliveDuration(),
                         TimeUnit.MILLISECONDS))
@@ -55,7 +123,7 @@ public class HttpConnectionState {
         uri = config.getServerAddr() + "/interactive/update";
     }
 
-    public void syncPostWithoutReply(byte[] parameters) throws IOException {
+    public long syncPost(byte[] parameters) throws IOException {
         RequestBody body = RequestBody.create(parameters);
         Request request = new Request.Builder()
                 .url(uri)
@@ -66,8 +134,10 @@ public class HttpConnectionState {
             if (!response.isSuccessful()) {
                 throw new IOException("Unexpected code " + response);
             }
+            byte[] bs = response.body().bytes();
+            Decoder decoder = new Decoder(bs);
+            return decoder.get_long();
         }
     }
 
 }
-
