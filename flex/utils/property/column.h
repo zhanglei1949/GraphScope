@@ -144,7 +144,7 @@ class TypedColumn : public ColumnBase {
     }
   }
 
-  PropertyType type() const override { return AnyConverter<T>::type; }
+  PropertyType type() const override { return AnyConverter<T>::type(); }
 
   void set_value(size_t index, const T& val) {
     assert(index >= basic_size_ && index < basic_size_ + extra_size_);
@@ -197,8 +197,11 @@ using FloatColumn = TypedColumn<float>;
 template <>
 class TypedColumn<std::string_view> : public ColumnBase {
  public:
-  TypedColumn(StorageStrategy strategy, size_t width = 64) : width_(width) {}
+  TypedColumn(StorageStrategy strategy,
+              uint16_t width = PropertyType::STRING_DEFAULT_MAX_LENGTH)
+      : width_(width) {}
   ~TypedColumn() { close(); }
+  void set_width(size_t width) { width_ = width; }
 
   void open(const std::string& name, const std::string& snapshot_dir,
             const std::string& work_dir) override {
@@ -206,6 +209,7 @@ class TypedColumn<std::string_view> : public ColumnBase {
     if (std::filesystem::exists(basic_path + ".items")) {
       basic_buffer_.open(basic_path, true);
       basic_size_ = basic_buffer_.size();
+
     } else {
       basic_size_ = 0;
     }
@@ -215,7 +219,6 @@ class TypedColumn<std::string_view> : public ColumnBase {
     } else {
       extra_buffer_.open(work_dir + "/" + name, false);
       extra_size_ = extra_buffer_.size();
-
       pos_.store(extra_buffer_.data_size());
     }
   }
@@ -308,9 +311,7 @@ class TypedColumn<std::string_view> : public ColumnBase {
     }
   }
 
-  PropertyType type() const override {
-    return AnyConverter<std::string_view>::type;
-  }
+  PropertyType type() const override { return PropertyType::Varchar(width_); }
 
   void set_value(size_t idx, const std::string_view& val) {
     assert(idx >= basic_size_ && idx < basic_size_ + extra_size_);
@@ -357,7 +358,7 @@ class TypedColumn<std::string_view> : public ColumnBase {
   size_t extra_size_;
   std::atomic<size_t> pos_;
   StorageStrategy strategy_;
-  size_t width_;
+  uint16_t width_;
 };
 
 using StringColumn = TypedColumn<std::string_view>;
@@ -370,7 +371,7 @@ class StringMapColumn : public ColumnBase {
   StringMapColumn(StorageStrategy strategy)
       : index_col_(strategy), meta_map_(nullptr) {
     meta_map_ = new LFIndexer<INDEX_T>();
-    meta_map_->init(PropertyType::kString);
+    meta_map_->init(PropertyType::Varchar(256));
   }
 
   ~StringMapColumn() {

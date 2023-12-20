@@ -11,6 +11,17 @@ if(Hiactor_FOUND)
 endif()
 
 if(Hiactor_FOUND)
+        add_executable(rt_update_server rt_update_server.cc ../engines/http_server/service/graph_db_service.cc)
+        target_link_libraries(rt_update_server flex_utils flex_rt_mutable_graph flex_graph_db flex_server)
+
+        install(TARGETS rt_update_server
+                RUNTIME DESTINATION bin
+                ARCHIVE DESTINATION lib
+                LIBRARY DESTINATION lib)
+endif()
+
+
+if(Hiactor_FOUND)
         include_directories(../engines/http_server)
         add_executable(rt_bench rt_bench.cc)
         target_link_libraries(rt_bench flex_utils flex_rt_mutable_graph flex_graph_db flex_server)

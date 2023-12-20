@@ -50,6 +50,12 @@ class Encoder {
 
   void put_double(double v);
 
+  void put_float(float v);
+
+  void put_uint(uint32_t v);
+
+  void put_ulong(uint64_t v);
+
   void clear();
 
  private:

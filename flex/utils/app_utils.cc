@@ -35,10 +35,22 @@ void Encoder::put_long_at(size_t pos, int64_t v) {
   memcpy(&buf_[pos], &v, sizeof(int64_t));
 }
 
+void Encoder::put_ulong(uint64_t v) {
+  size_t size = buf_.size();
+  buf_.resize(size + sizeof(uint64_t));
+  memcpy(&buf_[size], &v, sizeof(uint64_t));
+}
+
 void Encoder::put_int(int v) {
   size_t size = buf_.size();
   buf_.resize(size + sizeof(int));
   memcpy(&buf_[size], &v, sizeof(int));
+}
+
+void Encoder::put_uint(uint32_t v) {
+  size_t size = buf_.size();
+  buf_.resize(size + sizeof(uint32_t));
+  memcpy(&buf_[size], &v, sizeof(uint32_t));
 }
 
 size_t Encoder::skip_int() {
@@ -83,6 +95,12 @@ void Encoder::put_double(double v) {
   size_t size = buf_.size();
   buf_.resize(size + sizeof(double));
   memcpy(&buf_[size], &v, sizeof(double));
+}
+
+void Encoder::put_float(float v) {
+  size_t size = buf_.size();
+  buf_.resize(size + sizeof(float));
+  memcpy(&buf_[size], &v, sizeof(float));
 }
 
 void Encoder::clear() { buf_.clear(); }

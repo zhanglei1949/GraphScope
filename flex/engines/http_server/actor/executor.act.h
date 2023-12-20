@@ -34,6 +34,7 @@ class ANNOTATION(actor:impl) executor : public hiactor::actor {
 
   seastar::future<query_result> ANNOTATION(actor:method) run_hqps_adhoc_query(adhoc_result&& param);
 
+  seastar::future<query_result> ANNOTATION(actor:method) run_graph_db_update_query(query_param&& param);
   // DECLARE_RUN_QUERYS;
   /// Declare `do_work` func here, no need to implement.
   ACTOR_DO_WORK()

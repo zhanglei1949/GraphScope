@@ -17,6 +17,7 @@
 
 #include "flex/engines/graph_db/database/graph_db.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
+#include "flex/engines/graph_db/database/graph_db_update_server.h"
 #include "flex/engines/http_server/codegen_proxy.h"
 #include "flex/engines/http_server/workdir_manipulator.h"
 #include "flex/proto_generated_gie/stored_procedure.pb.h"
@@ -36,6 +37,17 @@ executor::executor(hiactor::actor_base* exec_ctx, const hiactor::byte_t* addr)
   set_max_concurrency(1);  // set max concurrency for task reentrancy (stateful)
   // initialization
   // ...
+}
+
+seastar::future<query_result> executor::run_graph_db_update_query(
+    query_param&& param) {
+  auto ret = server::GraphDBUpdateServer::get().Eval(param.content);
+  if (!ret.ok()) {
+    LOG(ERROR) << "Eval failed: " << ret.status().error_message();
+  }
+  auto result = ret.value();
+  seastar::sstring content(result.data(), result.size());
+  return seastar::make_ready_future<query_result>(std::move(content));
 }
 
 seastar::future<query_result> executor::run_graph_db_query(
