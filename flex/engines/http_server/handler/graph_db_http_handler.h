@@ -16,9 +16,30 @@
 #ifndef ENGINES_HTTP_SERVER_HANDLER_GRAPH_DB_HTTP_HANDLER_H_
 #define ENGINES_HTTP_SERVER_HANDLER_GRAPH_DB_HTTP_HANDLER_H_
 
+#include <seastar/core/alien.hh>
+#include <seastar/core/print.hh>
+#include <seastar/http/handlers.hh>
 #include <seastar/http/httpd.hh>
+#include "flex/engines/http_server/generated/actor/executor_ref.act.autogen.h"
+#include "flex/engines/http_server/types.h"
 
 namespace server {
+
+class graph_db_ic_handler : public seastar::httpd::handler_base {
+ public:
+  graph_db_ic_handler(uint32_t group_id, uint32_t shard_concurrency);
+  ~graph_db_ic_handler() override = default;
+
+  seastar::future<std::unique_ptr<seastar::httpd::reply>> handle(
+      const seastar::sstring& path,
+      std::unique_ptr<seastar::httpd::request> req,
+      std::unique_ptr<seastar::httpd::reply> rep) override;
+
+ private:
+  const uint32_t shard_concurrency_;
+  uint32_t executor_idx_;
+  std::vector<executor_ref> executor_refs_;
+};
 
 class graph_db_http_handler {
  public:

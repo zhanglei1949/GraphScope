@@ -267,7 +267,7 @@ hqps_http_handler::hqps_http_handler(uint16_t http_port)
       shard_adhoc_concurrency);
   exit_handler_ = new hqps_exit_handler();
   update_handler_ =
-      new update_query_handler(ic_update_group_id, shard_update_concurrency);
+      new graph_db_ic_handler(ic_update_group_id, shard_update_concurrency);
 }
 
 hqps_http_handler::~hqps_http_handler() {
