@@ -16,68 +16,57 @@
 #include "flex/engines/http_server/options.h"
 #include "flex/engines/http_server/service/graph_db_update_service.h"
 
-#include <seastar/core/alien.hh>
-#include <seastar/core/print.hh>
-#include <seastar/http/handlers.hh>
 #include "flex/engines/graph_db/database/graph_db_update_server.h"
-#include "flex/engines/http_server/generated/actor/executor_ref.act.autogen.h"
+
 #include "flex/utils/property/types.h"
 
 namespace server {
 
-class update_query_handler : public seastar::httpd::handler_base {
- public:
-  update_query_handler(uint32_t group_id, uint32_t shard_concurrency)
-      : shard_concurrency_(shard_concurrency), executor_idx_(0) {
-    executor_refs_.reserve(shard_concurrency_);
-    hiactor::scope_builder builder;
-    builder.set_shard(hiactor::local_shard_id())
-        .enter_sub_scope(hiactor::scope<executor_group>(0))
-        .enter_sub_scope(hiactor::scope<hiactor::actor_group>(group_id));
-    for (unsigned i = 0; i < shard_concurrency_; ++i) {
-      executor_refs_.emplace_back(builder.build_ref<executor_ref>(i));
-    }
+update_query_handler::update_query_handler(uint32_t group_id,
+                                           uint32_t shard_concurrency)
+    : shard_concurrency_(shard_concurrency), executor_idx_(0) {
+  executor_refs_.reserve(shard_concurrency_);
+  hiactor::scope_builder builder;
+  builder.set_shard(hiactor::local_shard_id())
+      .enter_sub_scope(hiactor::scope<executor_group>(0))
+      .enter_sub_scope(hiactor::scope<hiactor::actor_group>(group_id));
+  for (unsigned i = 0; i < shard_concurrency_; ++i) {
+    executor_refs_.emplace_back(builder.build_ref<executor_ref>(i));
   }
-  ~update_query_handler() override = default;
+}
 
-  seastar::future<std::unique_ptr<seastar::httpd::reply>> handle(
-      const seastar::sstring& path,
-      std::unique_ptr<seastar::httpd::request> req,
-      std::unique_ptr<seastar::httpd::reply> rep) override {
-    auto dst_executor = executor_idx_;
-    executor_idx_ = (executor_idx_ + 1) % shard_concurrency_;
-    if (GraphDBUpdateService::get().forward()) {
-      req->content[req->content.size() - 1] += (1 << 7);
-    }
-    return executor_refs_[dst_executor]
-        .run_graph_db_update_query(query_param{std::move(req->content)})
-        .then_wrapped([rep = std::move(rep)](
-                          seastar::future<query_result>&& fut) mutable {
-          if (__builtin_expect(fut.failed(), false)) {
-            rep->set_status(
-                seastar::httpd::reply::status_type::internal_server_error);
-            try {
-              std::rethrow_exception(fut.get_exception());
-            } catch (std::exception& e) {
-              rep->write_body("bin", seastar::sstring(e.what()));
+seastar::future<std::unique_ptr<seastar::httpd::reply>>
+update_query_handler::handle(const seastar::sstring& path,
+                             std::unique_ptr<seastar::httpd::request> req,
+                             std::unique_ptr<seastar::httpd::reply> rep) {
+  auto dst_executor = executor_idx_;
+  executor_idx_ = (executor_idx_ + 1) % shard_concurrency_;
+  if (GraphDBUpdateService::get().forward()) {
+    req->content[req->content.size() - 1] += (1 << 7);
+  }
+  return executor_refs_[dst_executor]
+      .run_graph_db_update_query(query_param{std::move(req->content)})
+      .then_wrapped(
+          [rep = std::move(rep)](seastar::future<query_result>&& fut) mutable {
+            if (__builtin_expect(fut.failed(), false)) {
+              rep->set_status(
+                  seastar::httpd::reply::status_type::internal_server_error);
+              try {
+                std::rethrow_exception(fut.get_exception());
+              } catch (std::exception& e) {
+                rep->write_body("bin", seastar::sstring(e.what()));
+              }
+              rep->done();
+              return seastar::make_ready_future<
+                  std::unique_ptr<seastar::httpd::reply>>(std::move(rep));
             }
+            auto result = fut.get0();
+            rep->write_body("bin", std::move(result.content));
             rep->done();
             return seastar::make_ready_future<
                 std::unique_ptr<seastar::httpd::reply>>(std::move(rep));
-          }
-          auto result = fut.get0();
-          rep->write_body("bin", std::move(result.content));
-          rep->done();
-          return seastar::make_ready_future<
-              std::unique_ptr<seastar::httpd::reply>>(std::move(rep));
-        });
-  }
-
- private:
-  const uint32_t shard_concurrency_;
-  uint32_t executor_idx_;
-  std::vector<executor_ref> executor_refs_;
-};
+          });
+}
 
 class update_exit_handler : public seastar::httpd::handler_base {
  public:

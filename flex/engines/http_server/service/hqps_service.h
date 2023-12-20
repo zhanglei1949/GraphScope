@@ -20,6 +20,7 @@
 #include "flex/engines/graph_db/database/graph_db.h"
 #include "flex/engines/http_server/actor_system.h"
 #include "flex/engines/http_server/handler/admin_http_handler.h"
+#include "flex/engines/http_server/handler/graph_db_update_http_handler.h"
 #include "flex/engines/http_server/handler/hqps_http_handler.h"
 #include "flex/utils/result.h"
 #include "flex/utils/service_utils.h"

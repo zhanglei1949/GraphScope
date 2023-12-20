@@ -266,6 +266,8 @@ hqps_http_handler::hqps_http_handler(uint16_t http_port)
       ic_adhoc_group_id, codegen_group_id, max_group_id, group_inc_step,
       shard_adhoc_concurrency);
   exit_handler_ = new hqps_exit_handler();
+  update_handler_ =
+      new update_query_handler(ic_update_group_id, shard_update_concurrency);
 }
 
 hqps_http_handler::~hqps_http_handler() {
@@ -275,6 +277,7 @@ hqps_http_handler::~hqps_http_handler() {
   delete ic_handler_;
   delete adhoc_query_handler_;
   delete exit_handler_;
+  delete update_handler_;
 }
 
 uint16_t hqps_http_handler::get_port() const { return http_port_; }
@@ -338,6 +341,9 @@ seastar::future<> hqps_http_handler::set_routes() {
     r.add(seastar::httpd::operation_type::POST,
           seastar::httpd::url("/interactive/adhoc_query"),
           adhoc_query_handler_);
+    // Set update handler, defined in graph_db_update_http_handler.cc
+    r.add(seastar::httpd::operation_type::POST,
+          seastar::httpd::url("/interactive/update"), update_handler_);
     r.add(seastar::httpd::operation_type::POST,
           seastar::httpd::url("/interactive/exit"), exit_handler_);
     return seastar::make_ready_future<>();

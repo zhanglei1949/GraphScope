@@ -21,6 +21,7 @@
 #include <seastar/http/httpd.hh>
 #include "flex/engines/http_server/generated/actor/codegen_actor_ref.act.autogen.h"
 #include "flex/engines/http_server/generated/actor/executor_ref.act.autogen.h"
+#include "flex/engines/http_server/handler/graph_db_update_http_handler.h"
 
 namespace server {
 
@@ -109,6 +110,7 @@ class hqps_http_handler {
   hqps_ic_handler* ic_handler_;
   hqps_adhoc_query_handler* adhoc_query_handler_;
   hqps_exit_handler* exit_handler_;
+  update_query_handler* update_handler_;
 };
 
 }  // namespace server
