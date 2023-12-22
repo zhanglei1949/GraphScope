@@ -89,6 +89,10 @@ public class YamlConfigs extends Configs {
                                         return null;
                                     }
                                     String directory = value.toString();
+                                    //if directory is absolute path, use it directly
+                                    if (directory.startsWith("/")) {
+                                        return directory;
+                                    }
                                     return Path.of(workspace, subdir, graphName, directory)
                                             .toString();
                                 } else {
