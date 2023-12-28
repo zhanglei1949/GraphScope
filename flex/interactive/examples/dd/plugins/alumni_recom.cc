@@ -1,22 +1,24 @@
-#include <queue>
+
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
+#include "flex/storages/rt_mutable_graph/types.h"
 
 namespace gs {
 
 static constexpr int32_t EMPLOYEE_CNT = 100000;
 
 enum RecomReasonType {
-  classMateAndColleague = 0,  // 同学兼同事
-  exColleague = 1,            // 前同事
-  commonFriend = 2,           // 共同好友
-  commonGroup = 3,            // 共同群
-  communication = 4,          // 最近沟通
-  activeUser = 5,             // 活跃用户
-  default = 6                 // 默认
+  kClassMateAndColleague = 0,  // 同学兼同事
+  kExColleague = 1,            // 前同事
+  kCommonFriend = 2,           // 共同好友
+  kCommonGroup = 3,            // 共同群
+  kCommunication = 4,          // 最近沟通
+  kActiveUser = 5,             // 活跃用户
+  kDefault = 6                 // 默认
 };
 
-class RecomReason {
+struct RecomReason {
+  RecomReason() : type(kDefault) {}
   RecomReasonType type;
   int32_t num_common_group_or_friend;
   std::vector<vid_t> common_group_or_friend;
@@ -34,13 +36,15 @@ class AlumniRecom : public AppBase {
             graph.schema().get_vertex_label_id("DingEduOrg")),
         ding_group_label_id_(graph.schema().get_vertex_label_id("DingGroup")),
         intimacy_label_id_(graph.schema().get_edge_label_id("Intimacy")),
-        edu_org_num_(graph.graph().vertex_num(ding_edu_org_label_)),
+        edu_org_num_(graph.graph().vertex_num(ding_edu_org_label_id_)),
         users_num_(graph.graph().vertex_num(user_label_id_)),
-        is_user_in_org_(false) {}
+        is_user_in_org_inited_(false),
+        is_user_friend_inited_(false) {}
 
   bool Query(Decoder& input, Encoder& output) {
-    users_in_org_ids_not_friend_.clear();
-    is_user_in_org_ = false;
+    users_in_org_ids_.clear();
+    is_user_in_org_inited_ = false;
+    is_user_friend_inited_ = false;
 
     int64_t user_id = input.get_long();
     int32_t page_id = input.get_int();
@@ -56,17 +60,18 @@ class AlumniRecom : public AppBase {
     }
 
     //首先通过亲密度边，拿到所有有亲密度的User
-    auto user_user_view = txn.GetOutgoingGraphView<FixedChar>(
+    auto user_user_intimacy_view = txn.GetOutgoingGraphView<FixedChar>(
         user_label_id_, user_label_id_, intimacy_label_id_);
-    auto user_org_view = txn.GetOutgoingGraphView<int64_t>(
+    auto user_edu_org_view = txn.GetOutgoingGraphView<int64_t>(
         user_label_id_, ding_edu_org_label_id_, work_at_label_id_);
-    // 首先去除掉所有好友
+    auto user_user_friend_view = txn.GetOutgoingGraphView<int64_t>(
+        user_label_id_, user_label_id_, friend_label_id_);
 
     std::vector<bool> valid_edu_org_ids;
     std::vector<vid_t> edu_org_ids;
     valid_edu_org_ids.resize(edu_org_num_, false);
     {
-      for (auto& edge : org_view.GetEdges(vid)) {
+      for (auto& edge : user_edu_org_view.get_edges(vid)) {
         auto dst = edge.get_neighbor();
         valid_edu_org_ids[dst] = true;
         edu_org_ids.emplace_back(dst);
@@ -75,60 +80,80 @@ class AlumniRecom : public AppBase {
 
     std::vector<std::pair<vid_t, uint16_t>> intimacy_users;
 
-    // only keep the user that are in the same org, and not friend
-    traverse_intimacy_view(vid, user_user_view, user_org_view,
-                           valid_edu_org_ids, edu_org_ids.intimacy_users);
+    // only keep the user that are in the same org, AND not friend
+    traverse_intimacy_view(vid, user_user_intimacy_view, user_user_friend_view,
+                           user_edu_org_view, valid_edu_org_ids, edu_org_ids,
+                           intimacy_users);
     //
 
     VLOG(10) << "intimacy_users size: " << intimacy_users.size();
     if (start_ind > intimacy_users.size()) {
       start_ind = start_ind - intimacy_users.size();
       end_ind = end_ind - intimacy_users.size();
-      std::vector<vid_t, RecomReason> res =
+      std::vector<std::pair<vid_t, RecomReason>> res =
           try_without_intimacy(txn, vid, start_ind, end_ind);
-      serialize(res, output);
+      serialize(res, output, limit);
       txn.Commit();
       return true;
     } else if (end_ind > intimacy_users.size()) {
       // In this case, the first part of recommend users are in initmacy users,
       // the second part are from try_with_intimacy
       sort_intimacy_users(intimacy_users);
-      std::vector<vid_t, RecomReason> res =
-          try_with_intimacy(txn, vid, 0, end_ind - intimacy_users.size());
-      serialize(intimacy_users, res, output);
+      std::vector<std::pair<vid_t, RecomReason>> res =
+          try_without_intimacy(txn, vid, 0, end_ind - intimacy_users.size());
+      serialize(intimacy_users, res, output, limit);
       txn.Commit();
       return true;
     } else {
       sort_intimacy_users(intimacy_users);
-      serialize(intimacy_users, output);
+      serialize(intimacy_users, output, limit);
       txn.Commit();
       return true;
     }
   }
 
+  inline bool user_studied_at(vid_t user_vid,
+                              const std::vector<bool>& edu_org_ids,
+                              const GraphView<int64_t>& user_edu_org_view) {
+    for (auto edge : user_edu_org_view.get_edges(user_vid)) {
+      auto dst = edge.get_neighbor();
+      if (edu_org_ids[dst]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  inline bool is_friend(vid_t user_vid) {
+    return users_are_friends_.count(user_vid) > 0;
+  }
+
   // 通过共同好友和共同群，拿到User,这里只保留和当前组织有过关系的用户
-  void traverse_intimacy_view(vid vid,
-                              const GraphView<FixedChar>& user_user_view,
-                              const GraphView<int64_t>& user_org_view,
-                              const std::vector<bool>& valid_org_ids,
-                              const std::vector<vid_t> edu_org_ids,
-                              std::vector<vid_t, uint16_t>& intimacy_users) {
+  void traverse_intimacy_view(
+      vid_t vid, const GraphView<FixedChar>& user_user_intimacy_view,
+      const GraphView<int64_t>& user_user_friend_view,
+      const GraphView<int64_t>& user_edu_org_view,
+      const std::vector<bool>& valid_org_ids,
+      const std::vector<vid_t> edu_org_ids,
+      std::vector<std::pair<vid_t, uint16_t>>& intimacy_users) {
     // 如果所有edu_org的领边加起来超过阈值，我们将通过用户来访问edu_org.
     // 如果所有edu_org的领边加起来不超过阈值，我们将通过edu_org来访问用户.
     size_t org_employee_cnt = 0;
     {
       for (auto org_id : edu_org_ids) {
-        org_employee_cnt += user_org_view.GetEdges(org_id).estimated_degree();
+        org_employee_cnt +=
+            user_edu_org_view.get_edges(org_id).estimated_degree();
       }
     }
+    init_user_friend(vid, user_user_friend_view);
     if (org_employee_cnt >= EMPLOYEE_CNT) {
       VLOG(10) << "traverse_intimacy_view: org_employee_cnt: "
                << org_employee_cnt << " >= " << EMPLOYEE_CNT;
-      for (auto& edge : user_user_view.GetEdges(vid)) {
+      for (auto& edge : user_user_intimacy_view.get_edges(vid)) {
         auto dst = edge.get_neighbor();
         // only keep the user that are in the same org
-        if (user_studied_at(dst, edu_org_ids)) {
-          intimacy_users.emplace_back(dst);
+        if (user_studied_at(dst, valid_org_ids, user_edu_org_view) &&
+            !is_friend(dst)) {
           auto fc = edge.get_data();
           auto cur_ptr = static_cast<const char*>(fc.ptr);
           // the first it a uint8_t, the second is a uint16_t
@@ -142,11 +167,11 @@ class AlumniRecom : public AppBase {
                 << org_employee_cnt << " < " << EMPLOYEE_CNT;
       // In this case, we try to first calculate the bitset indicating whether a
       // person is in the orgs
-      init_user_in_org_ids(user_org_view, edu_org_ids);
+      init_user_in_org_ids(user_edu_org_view, edu_org_ids);
 
-      for (auto& edge : user_user_view.GetEdges(vid)) {
+      for (auto& edge : user_user_intimacy_view.get_edges(vid)) {
         auto dst = edge.get_neighbor();
-        if (users_in_org_ids_not_friend_.count(dst) > 0) {
+        if (users_in_org_ids_.count(dst) > 0 && !is_friend(dst)) {
           auto fc = edge.get_data();
           auto cur_ptr = static_cast<const char*>(fc.ptr);
           // the first it a uint8_t, the second is a uint16_t
@@ -158,66 +183,85 @@ class AlumniRecom : public AppBase {
     }
   }
 
-  void init_user_in_org_ids(const GraphView<int64_t>& user_org_view,
+  void init_user_in_org_ids(const GraphView<int64_t>& user_edu_org_view,
                             const std::vector<vid_t>& edu_org_ids) {
-    CHECK(!is_user_in_org_);
+    CHECK(!is_user_in_org_inited_);
     for (auto org_id : edu_org_ids) {
-      for (auto& edge : user_org_view.GetEdges(org_id)) {
+      for (auto& edge : user_edu_org_view.get_edges(org_id)) {
         auto dst = edge.get_neighbor();
-        users_in_org_ids_not_friend_.set_bit(dst);
+        users_in_org_ids_.insert(dst);
       }
     }
-    is_user_in_org_ = true;
+    is_user_in_org_inited_ = true;
+  }
+
+  void init_user_friend(vid_t user_vid,
+                        const GraphView<int64_t>& user_user_friend) {
+    CHECK(!is_user_friend_inited_);
+    for (auto& edge : user_user_friend.get_edges(user_vid)) {
+      auto dst = edge.get_neighbor();
+      users_are_friends_.insert(dst);
+    }
+    is_user_friend_inited_ = true;
   }
 
   // Find the recommend users located in [start_ind, end_ind) from the result
   // with intimacy
-  void try_without_intimacy(const ReadTransaction& txn, vid_t vid,
-                            int32_t start_ind, int32_t end_ind,
-                            std::vector<vid_t, RecomReason>& res) {
-    auto user_user_view = txn.GetOutgoingGraphView<FixedChar>(
-        user_label_id_, user_label_id_, intimacy_label_id_);
-    auto user_org_view = txn.GetOutgoingGraphView<int64_t>(
-        user_label_id_, ding_edu_org_label_id_, work_at_label_id_);
-    auto user_group_view = txn.GetOutgoingGraphView<int64_t>(
-        user_label_id_, ding_group_label_id_, chat_in_group_label_id_);
-    auto user_friend_view = txn.GetOutgoingGraphView<int64_t>(
-        user_label_id_, user_label_id_, friend_label_id_);
+  std::vector<std::pair<vid_t, RecomReason>> try_without_intimacy(
+      const ReadTransaction& txn, vid_t vid, int32_t start_ind,
+      int32_t end_ind) {
+    std::vector<std::pair<vid_t, RecomReason>> res;
+    return res;
+  }
 
-    std::vector<bool> valid_edu_org_ids;
-    std::vector<vid_t> edu_org_ids;
-    valid_edu_org_ids.resize(edu_org_num_, false);
-    {
-      for (auto& edge : org_view.GetEdges(vid)) {
-        auto dst = edge.get_neighbor();
-        valid_edu_org_ids[dst] = true;
-        edu_org_ids.emplace_back(dst);
-      }
+  void serialize(const std::vector<std::pair<vid_t, uint16_t>>& intimacy_users,
+                 Encoder& output, int32_t limit) {
+    CHECK(intimacy_users.size() <= limit);
+    output.put_int(intimacy_users.size());
+    for (auto& pair : intimacy_users) {
+      output.put_long(pair.first);
+      output.put_int(pair.second);  // Only return the recomReason temporarily,
+                                    // we will return the detail later.
     }
+  }
 
-    std::vector<vid_t> common_group_users;
-    std::vector<vid_t> common_friend_users;
-    std::vector<vid_t> ex_colleague_users;
-    std::vector<vid_t> classmate_and_colleague_users;
-    std::vector<vid_t> communication_users;
-    std::vector<vid_t> active_users;
+  void serialize(const std::vector<std::pair<vid_t, RecomReason>>& res,
+                 Encoder& output, int32_t limit) {
+    CHECK(res.size() <= limit);
+    output.put_int(res.size());
+    for (auto& pair : res) {
+      output.put_long(pair.first);
+      output.put_int(
+          pair.second.type);  // Only return the recomReason temporarily,
+                              // we will return the detail later.
+    }
+  }
 
-    traverse_group_view(user_group_view, valid_edu_org_ids, edu_org_ids,
-                        common_group_users);
-    traverse_friend_view(user_friend_view, valid_edu_org_ids, edu_org_ids,
-                         common_friend_users);
-    traverse_org_view(user_org_view, valid_edu_org_ids, edu_org_ids,
-                      ex_colleague_users, classmate_and_colleague_users);
-    traverse_communication_view(user_user_view, valid_edu_org_ids, edu_org_ids,
-                                communication_users);
-    traverse_active_view(user_user_view, valid_edu_org_ids, edu_org_ids,
-                         active_users);
+  void serialize(const std::vector<std::pair<vid_t, uint16_t>>& intimacy_users,
+                 const std::vector<std::pair<vid_t, RecomReason>>& res,
+                 Encoder& output, int32_t limit) {
+    auto total_size = res.size() + intimacy_users.size();
+    CHECK(total_size <= limit);
+    output.put_int(total_size);
+    for (auto pair : intimacy_users) {
+      output.put_long(pair.first);
+      output.put_int(pair.second);
+    }
+    for (auto& pair : res) {
+      output.put_long(pair.first);
+      output.put_int(
+          pair.second.type);  // Only return the recomReason temporarily,
+                              // we will return the detail later.
+    }
+  }
 
-    std::vector<std::pair<vid_t, uint16_t>> res;
-    res.reserve(common_group_users.size() + common_friend_users.size() +
-                ex_colleague_users.size() +
-                classmate_and_colleague_users.size() +
-                communication_users.size() + active_users.size());
+  void sort_intimacy_users(
+      std::vector<std::pair<vid_t, uint16_t>>& intimacy_users) {
+    std::sort(intimacy_users.begin(), intimacy_users.end(),
+              [](const std::pair<vid_t, uint16_t>& a,
+                 const std::pair<vid_t, uint16_t>& b) {
+                return a.second > b.second;
+              });
   }
 
  private:
@@ -236,9 +280,13 @@ class AlumniRecom : public AppBase {
   int32_t edu_org_num_ = 0;
   int32_t users_num_ = 0;
 
-  bool is_user_in_org_ = false;
+  bool is_user_in_org_inited_ = false;
+  bool is_user_friend_inited_ = false;
 
-  std::unordered_set<vid_t> users_in_org_ids_not_friend_;
+  // A hash_set to store the users that are in the same org as the input user
+  // Can be reused for different stage of recommendation.
+  std::unordered_set<vid_t> users_in_org_ids_;
+  std::unordered_set<vid_t> users_are_friends_;
 };
 
 }  // namespace gs
