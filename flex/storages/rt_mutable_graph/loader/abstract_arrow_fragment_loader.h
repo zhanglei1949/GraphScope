@@ -355,7 +355,7 @@ static void cast_array_and_append_impl(
       // offset to offset + sizeof(T)
       auto& vec = std::get<2>(parsed_edges[cur_ind++]);
       auto value = casted->Value(j);
-      CHECK(vec.size() >= offset + sizeof(T));
+      CHECK(vec.size() >= offset + sizeof(T)) << "vec.size() " << vec.size() << " " << offset + sizeof(T);
       memcpy(vec.data() + offset, &value, sizeof(T));
     }
   } else {

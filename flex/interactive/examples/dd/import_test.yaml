@@ -146,7 +146,7 @@ edge_mappings:
       source_vertex: User
       destination_vertex: DingOrg
     inputs:
-      - grape_dev/user_org_edge
+      - grape_dev/org_user_edge
     source_vertex_mappings:
       - column:
           index: 0
