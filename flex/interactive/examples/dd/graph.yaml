@@ -52,9 +52,6 @@ schema:
         - property_name: id
           property_type:
             primitive_type: DT_SIGNED_INT64
-        - property_name: name
-          property_type:
-            primitive_type: DT_STRING
       primary_keys:
         - id
   edge_types:
