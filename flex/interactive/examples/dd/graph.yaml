@@ -7,9 +7,6 @@ schema:
         - property_name: id
           property_type:
             primitive_type: DT_SIGNED_INT64
-        - property_name: name
-          property_type:
-            primitive_type: DT_STRING
         - property_name: city # limited number of values.(distinct count 8425)
           property_type:
             primitive_type: DT_STRINGMAP
@@ -30,9 +27,6 @@ schema:
         - property_name: id
           property_type:
             primitive_type: DT_SIGNED_INT64
-        - property_name: name
-          property_type:
-            primitive_type: DT_STRING
       primary_keys:
         - id
     - type_id: 2
@@ -41,9 +35,6 @@ schema:
         - property_name: id
           property_type:
             primitive_type: DT_SIGNED_INT64
-        - property_name: name
-          property_type:
-            primitive_type: DT_STRING
       primary_keys:
         - id
     - type_id: 3
@@ -52,9 +43,6 @@ schema:
         - property_name: id
           property_type:
             primitive_type: DT_SIGNED_INT64
-        - property_name: name
-          property_type:
-            primitive_type: DT_STRING
       primary_keys:
         - id
   edge_types:

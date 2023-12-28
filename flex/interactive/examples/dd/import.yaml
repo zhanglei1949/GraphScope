@@ -18,10 +18,6 @@ vertex_mappings:
           name: ding_user_id  # can be omitted if the name is not known
         property: id
       - column:
-          index: 1
-          name: ding_user_nick
-        property: name
-      - column:
           index: 2
           name: city_last_visit
         property: city
@@ -45,10 +41,6 @@ vertex_mappings:
           index: 0
           name: org_id
         property: id
-      - column:
-          index: 1
-          name: org_name
-        property: name
   - type_name: DingEduOrg
     inputs:
       - dd_undata/dim_ding_edu_org_node/ds=20231226
@@ -57,10 +49,6 @@ vertex_mappings:
           index: 0
           name: org_id
         property: id
-      - column:
-          index: 1
-          name: org_name
-        property: name
   - type_name: DingGroup
     inputs:
       - dd_undata/dim_ding_group_node/ds=20231226
@@ -69,10 +57,6 @@ vertex_mappings:
           index: 0
           name: group_id
         property: id
-      - column:
-          index: 1
-          name: group_name
-        property: name
 edge_mappings:
   - type_triplet:
       edge: Friend
