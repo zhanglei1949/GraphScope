@@ -69,10 +69,6 @@ vertex_mappings:
           index: 0
           name: group_id
         property: id
-      - column:
-          index: 1
-          name: group_name
-        property: name
 edge_mappings:
   - type_triplet:
       edge: Friend
