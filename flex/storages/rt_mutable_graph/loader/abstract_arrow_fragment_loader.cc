@@ -42,7 +42,13 @@ void set_vertex_column_from_string_array(
           std::static_pointer_cast<arrow::LargeStringArray>(array->chunk(j));
       for (auto k = 0; k < casted->length(); ++k) {
         auto str = casted->GetView(k);
-        std::string_view sw(str.data(), str.size());
+        std::string_view sw;
+        if (casted->IsNull(k)) {
+          VLOG(1) << "Found null string in vertex property.";
+          sw = "";
+        } else {
+          sw = std::string_view(str.data(), str.size());
+        }
         if (vids[cur_ind] == std::numeric_limits<vid_t>::max()) {
           cur_ind++;
         } else {

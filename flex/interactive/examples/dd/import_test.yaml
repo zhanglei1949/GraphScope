@@ -93,7 +93,7 @@ edge_mappings:
     column_mappings:
       - column:
           index: 2
-          name: gmt_create
+          name: gmt_create_mill
         property: creationDate
   - type_triplet:
       edge: ChatInGroup
@@ -109,19 +109,19 @@ edge_mappings:
     destination_vertex_mappings:
       - column:
           index: 1
-          name: ding_group_id
+          name: group_id
         property: id
     column_mappings:
       - column:
           index: 2
-          name: gmt_create
+          name: gmt_create_mill 
         property: creationDate
   - type_triplet:
       edge: Intimacy
       source_vertex: User
       destination_vertex: User
     inputs:
-      - grape_dev/user_intimacy_edge
+      - grape_dev/user_user_edge
     source_vertex_mappings:
       - column:
           index: 0
