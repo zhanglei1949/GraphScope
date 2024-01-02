@@ -840,7 +840,7 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
 
     // Since edge contains multiple properties, we need spaces to store them.
     MMapVector<std::tuple<vid_t, vid_t, char_array<4>>> parsed_edges(
-        "/root/data/",
+        "/home/data/",
         src_label_name + "_" + dst_label_name + "_" + edge_label_name);
     std::vector<int32_t> ie_degree, oe_degree;
     const auto& src_indexer = basic_fragment_loader_.GetLFIndexer(src_label_id);
