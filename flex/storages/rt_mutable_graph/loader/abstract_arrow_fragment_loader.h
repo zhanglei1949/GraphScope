@@ -156,18 +156,17 @@ struct _add_vertex {
                    << col->type()->ToString();
       }
       auto casted_array = std::static_pointer_cast<arrow_array_t>(col);
-      auto batch = std::max((int) row_num / 20, 1);
+      // auto batch = std::max((int) row_num / 5, 1);
       for (auto i = 0; i < row_num; ++i) {
         if (!indexer.add(casted_array->Value(i), vid)) {
-          LOG(ERROR) << "Duplicate vertex id: " << casted_array->Value(i)
-                     << "..";
+          VLOG(2) << "Duplicate vertex id: " << casted_array->Value(i) << "..";
           vids.emplace_back(std::numeric_limits<vid_t>::max());
         } else {
           vids.emplace_back(vid);
         }
-        if (i % batch == 0) {
-          VLOG(1) << "Inserting: " << i << "th vertices: " << row_num;
-        }
+        // if (i % batch == 0) {
+        //   VLOG(1) << "Inserting: " << i << "th vertices: " << row_num;
+        // }
       }
     } else {
       if (col->type()->Equals(arrow::utf8())) {

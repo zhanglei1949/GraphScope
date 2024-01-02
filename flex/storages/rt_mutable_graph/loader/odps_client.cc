@@ -205,7 +205,8 @@ std::shared_ptr<arrow::Table> ODPSReadClient::ReadTable(
   for (auto i = 0; i < cur_thread_num; ++i) {
     auto indices = split_indices(i, cur_thread_num, split_count);
     LOG(INFO) << "Thread " << i << " will read " << indices.size()
-              << " splits of " << split_count << " splits: " << gs::to_string(indices);
+              << " splits of " << split_count
+              << " splits: " << gs::to_string(indices);
     producers.emplace_back(std::thread(
         &ODPSReadClient::producerRoutine, this, std::cref(session_id),
         std::cref(table_id), std::ref(all_batches), std::move(indices)));
