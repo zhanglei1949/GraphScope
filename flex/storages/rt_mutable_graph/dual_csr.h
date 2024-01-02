@@ -65,6 +65,7 @@ class DualCsr : public DualCsrBase {
  public:
   DualCsr(EdgeStrategy oe_strategy, EdgeStrategy ie_strategy, bool mut = true)
       : in_csr_(nullptr), out_csr_(nullptr) {
+    LOG(INFO) << "DualCsr: " << oe_strategy << " " << ie_strategy << " " << mut;
     if (ie_strategy == EdgeStrategy::kNone) {
       in_csr_ = new EmptyCsr<EDATA_T>();
     } else if (ie_strategy == EdgeStrategy::kMultiple) {

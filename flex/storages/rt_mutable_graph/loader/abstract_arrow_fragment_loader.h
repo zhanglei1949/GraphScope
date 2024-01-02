@@ -787,8 +787,8 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     const auto& dst_indexer = basic_fragment_loader_.GetLFIndexer(dst_label_id);
     ie_degree.resize(dst_indexer.size());
     oe_degree.resize(src_indexer.size());
-    VLOG(10) << "src indexer size: " << src_indexer.size()
-             << " dst indexer size: " << dst_indexer.size();
+    LOG(INFO) << "src indexer size: " << src_indexer.size()
+              << " dst indexer size: " << dst_indexer.size();
     // first get offset vector
     auto edge_properties =
         schema_.get_edge_properties(src_label_id, dst_label_id, e_label_id);
@@ -876,9 +876,9 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                << src_label_name << " -> " << dst_label_name << " -> "
                << edge_label_name;
     }
-    VLOG(10) << "Finish parsing edge file:" << e_files.size() << " for label "
-             << src_label_name << " -> " << dst_label_name << " -> "
-             << edge_label_name;
+    LOG(INFO) << "Finish parsing edge file:" << e_files.size() << " for label "
+              << src_label_name << " -> " << dst_label_name << " -> "
+              << edge_label_name;
 
     basic_fragment_loader_.PutMultiPropEdges(src_label_id, dst_label_id,
                                              e_label_id, parsed_edges,

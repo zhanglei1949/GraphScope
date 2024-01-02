@@ -192,6 +192,7 @@ class BasicFragmentLoader {
       const std::vector<std::tuple<vid_t, vid_t, std::vector<char>>>& edges,
       const std::vector<int32_t>& ie_degree,
       const std::vector<int32_t>& oe_degree) {
+    LOG(INFO) << "putMultiPropEdges: " << demangle(typeid(CHAR_ARRAY_T).name());
     size_t index = src_label_id * vertex_label_num_ * edge_label_num_ +
                    dst_label_id * edge_label_num_ + edge_label_id;
     auto& src_indexer = lf_indexers_[src_label_id];
@@ -223,6 +224,10 @@ class BasicFragmentLoader {
         ie_prefix(src_label_name, dst_label_name, edge_label_name),
         edata_prefix(src_label_name, dst_label_name, edge_label_name),
         tmp_dir(work_dir_), oe_degree, ie_degree);
+    LOG(INFO) << "Add edge batch of size: " << edges.size() << " to "
+              << src_label_name << "->" << dst_label_name << "->"
+              << edge_label_name << " with mutability: " << mutability
+              << " and edge_properties size: " << edge_properties.size();
     for (auto& edge : edges) {
       if (std::get<1>(edge) == INVALID_VID ||
           std::get<0>(edge) == INVALID_VID) {
