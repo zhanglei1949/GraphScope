@@ -156,7 +156,7 @@ struct _add_vertex {
                    << col->type()->ToString();
       }
       auto casted_array = std::static_pointer_cast<arrow_array_t>(col);
-      auto batch = std::max((int)row_num / 20, 1);
+      auto batch = std::max((int) row_num / 20, 1);
       for (auto i = 0; i < row_num; ++i) {
         if (!indexer.add(casted_array->Value(i), vid)) {
           LOG(ERROR) << "Duplicate vertex id: " << casted_array->Value(i)
@@ -359,7 +359,8 @@ static void cast_array_and_append_impl(
       // offset to offset + sizeof(T)
       auto& vec = std::get<2>(parsed_edges[cur_ind++]);
       auto value = casted->Value(j);
-      CHECK(vec.size() >= offset + sizeof(T)) << "vec.size() " << vec.size() << " " << offset + sizeof(T);
+      CHECK(vec.size() >= offset + sizeof(T))
+          << "vec.size() " << vec.size() << " " << offset + sizeof(T);
       memcpy(vec.data() + offset, &value, sizeof(T));
     }
   } else {
@@ -576,6 +577,8 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     size_t primary_key_ind = std::get<2>(primary_key);
     IdIndexer<KEY_T, vid_t> indexer;
 
+    std::vector<std::shared_ptr<arrow::Array>> property_str_cols;
+
     for (auto& v_file : v_files) {
       VLOG(10) << "Parsing vertex file:" << v_file << " for label "
                << v_label_name;
@@ -604,6 +607,13 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
         auto other_columns_array = columns;
         other_columns_array.erase(other_columns_array.begin() +
                                   primary_key_ind);
+
+        for (auto i = 0; i < other_columns_array.size(); ++i) {
+          if (other_columns_array[i]->type()->Equals(arrow::large_utf8()) ||
+              other_columns_array[i]->type()->Equals(arrow::utf8())) {
+            property_str_cols.emplace_back(other_columns_array[i]);
+          }
+        }
         addVertexBatchFromArray(v_label_id, indexer, primary_key_column,
                                 other_columns_array);
       }
