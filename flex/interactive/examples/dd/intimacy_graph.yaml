@@ -29,7 +29,8 @@ schema:
           destination_vertex: User
           relation: MANY_TO_MANY
           x_csr_params:
-            incoming_edge_strategy: None
+            edge_storage_strategy: ONLY_OUT
+            mutability: IMMUTABLE
       properties:
         - property_name: intimacy_score
           property_type:
