@@ -50,7 +50,7 @@ ODPSStreamRecordBatchSupplier::ODPSStreamRecordBatchSupplier(
 std::shared_ptr<arrow::RecordBatch>
 ODPSStreamRecordBatchSupplier::GetNextBatch() {
   std::shared_ptr<arrow::RecordBatch> record_batch;
-  if (!cur_batch_reader_) {
+  if (!cur_batch_reader_ || cur_split_index_ >= split_count_) {
     return record_batch;
   }
   while (true) {
