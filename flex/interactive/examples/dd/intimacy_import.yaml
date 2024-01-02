@@ -17,10 +17,10 @@ vertex_mappings:
           index: 0    # can be omitted if the index is the same as the property index
           name: ding_user_id  # can be omitted if the name is not known
         property: id
-      - column:
-          index: 2
-          name: city_last_visit
-        property: city
+        # - column:
+        #   index: 2
+        #   name: city_last_visit
+        #  property: city
       - column:
           index: 3
           name: role_name
@@ -29,10 +29,10 @@ vertex_mappings:
           index: 4
           name: act_usr_days_1m
         property: activeDays
-      - column:
-          index: 5
-          name: org_industry_sub_id
-        property: subIndustry
+        #      - column:
+        #   index: 5
+        #  name: org_industry_sub_id
+        # property: subIndustry
 edge_mappings:
   - type_triplet:
       edge: Intimacy

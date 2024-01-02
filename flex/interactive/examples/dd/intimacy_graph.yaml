@@ -7,18 +7,18 @@ schema:
         - property_name: id
           property_type:
             primitive_type: DT_SIGNED_INT64
-        - property_name: city # limited number of values.(distinct count 8425)
-          property_type:
-            primitive_type: DT_STRINGMAP
+            #        - property_name: city # limited number of values.(distinct count 8425)
+            # property_type:
+            # primitive_type: DT_STRINGMAP
         - property_name: roleName # limited number of values.(distinct count 11)
           property_type:
             primitive_type: DT_UNSIGNED_INT8 
         - property_name: activeDays
           property_type:
             primitive_type: DT_UNSIGNED_INT8
-        - property_name: subIndustry # limited number of values.(distinct count 9368)
-          property_type:
-            primitive_type: DT_STRINGMAP
+            # - property_name: subIndustry # limited number of values.(distinct count 9368)
+            #  property_type:
+            # primitive_type: DT_STRINGMAP
       primary_keys:
         - id
   edge_types:

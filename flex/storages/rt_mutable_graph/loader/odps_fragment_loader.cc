@@ -80,11 +80,13 @@ ODPSStreamRecordBatchSupplier::GetNextBatch() {
       break;
     }
   }
+  if (record_batch){
   for (auto i = 0; i < record_batch->num_columns(); ++i) {
     if (record_batch->column(i)->type()->Equals(arrow::utf8()) ||
         record_batch->column(i)->type()->Equals(arrow::large_utf8())) {
       string_arrays_.emplace_back(record_batch->column(i));
     }
+  }
   }
 
   return record_batch;
