@@ -6,7 +6,7 @@ loading_config:
   format:
     type: arrow
     metadata:
-      batch_reader: false
+      batch_reader: true
       batch_size: 16MB
 vertex_mappings:
   - type_name: User  # must align with the schema
