@@ -61,21 +61,23 @@ ODPSStreamRecordBatchSupplier::GetNextBatch() {
                    << cur_batch_reader_->GetErrorMessage() << ", "
                    << cur_batch_reader_->GetStatus()
                    << ", split id: " << cur_split_index_;
-      } else {
-        VLOG(1) << "Read split " << cur_split_index_ << " finished";
-        // move to next split
-        ++cur_split_index_;
-        if (cur_split_index_ >= split_count_) {
-          VLOG(1) << "Finish Read all splits";
-          cur_batch_reader_.reset();
-          break;
-        } else {
-          VLOG(1) << "Start reading split " << cur_split_index_;
-          read_rows_req_.split_index_ = cur_split_index_;
-          cur_batch_reader_ =
-              odps_read_client_.GetArrowClient()->ReadRows(read_rows_req_);
-        }
       }
+      // Whether or not the status is ok, we always proceed on.
+      // else {
+      VLOG(1) << "Read split " << cur_split_index_ << " finished";
+      // move to next split
+      ++cur_split_index_;
+      if (cur_split_index_ >= split_count_) {
+        VLOG(1) << "Finish Read all splits";
+        cur_batch_reader_.reset();
+        break;
+      } else {
+        VLOG(1) << "Start reading split " << cur_split_index_;
+        read_rows_req_.split_index_ = cur_split_index_;
+        cur_batch_reader_ =
+            odps_read_client_.GetArrowClient()->ReadRows(read_rows_req_);
+      }
+      // }
     } else {
       break;
     }
