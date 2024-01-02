@@ -326,6 +326,7 @@ class TypedColumn<std::string_view> : public ColumnBase {
   size_t size() const override { return basic_size_ + extra_size_; }
 
   void resize(size_t size) override {
+    LOG(INFO) << "resize column to " << size << " from " << basic_size_;
     if (size < basic_buffer_.size()) {
       basic_size_ = size;
       extra_size_ = 0;
@@ -339,7 +340,8 @@ class TypedColumn<std::string_view> : public ColumnBase {
   PropertyType type() const override { return PropertyType::Varchar(width_); }
 
   void set_value(size_t idx, const std::string_view& val) {
-    assert(idx >= basic_size_ && idx < basic_size_ + extra_size_);
+    //assert(idx >= basic_size_ && idx < basic_size_ + extra_size_);
+    CHECK(idx >= basic_size_ && idx < basic_size_ + extra_size_) << "idx: " << idx << ", " << basic_size_ << " " << extra_size_;
     size_t offset = pos_.fetch_add(val.size());
     extra_buffer_.set(idx - basic_size_, offset, val);
   }

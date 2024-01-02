@@ -156,7 +156,7 @@ struct _add_vertex {
                    << col->type()->ToString();
       }
       auto casted_array = std::static_pointer_cast<arrow_array_t>(col);
-      auto batch = row_num / 20;
+      auto batch = std::max((int)row_num / 20, 1);
       for (auto i = 0; i < row_num; ++i) {
         if (!indexer.add(casted_array->Value(i), vid)) {
           LOG(ERROR) << "Duplicate vertex id: " << casted_array->Value(i)
@@ -166,7 +166,7 @@ struct _add_vertex {
           vids.emplace_back(vid);
         }
         if (i % batch == 0) {
-          VLOG(10) << "Inserting: " << i << " vertices";
+          VLOG(1) << "Inserting: " << i << "th vertices: " << row_num;
         }
       }
     } else {
