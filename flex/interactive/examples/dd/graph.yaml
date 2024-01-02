@@ -54,10 +54,6 @@ schema:
           relation: MANY_TO_MANY
           x_csr_params:
             mutability: IMMUTABLE
-      properties:
-        - property_name: creationDate
-          property_type:
-            primitive_type: DT_SIGNED_INT64
     - type_id: 1
       type_name: ChatInGroup
       vertex_type_pair_relations:
@@ -67,10 +63,6 @@ schema:
           x_csr_params:
             edge_storage_strategy: ONLY_OUT
             mutability: IMMUTABLE
-      properties:
-        - property_name: creationDate
-          property_type:
-            primitive_type: DT_SIGNED_INT64
     - type_id: 2
       type_name: Intimacy
       vertex_type_pair_relations:

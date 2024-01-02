@@ -163,7 +163,7 @@ bool ODPSReadClient::readRows(
   req.table_identifier_ = table_identifier;
   req.session_id_ = session_id;
   req.split_index_ = split_index;
-  req.max_batch_rows_ = 4096 * 128;
+  req.max_batch_rows_ = 20000;
 
   auto reader = arrow_client_ptr_->ReadRows(req);
   std::shared_ptr<arrow::RecordBatch> record_batch;
