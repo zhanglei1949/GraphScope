@@ -19,6 +19,7 @@
 
 #include "flex/storages/rt_mutable_graph/loader/basic_fragment_loader.h"
 #include "flex/storages/rt_mutable_graph/loader/i_fragment_loader.h"
+#include "flex/storages/rt_mutable_graph/loader/loader_utils.h"
 #include "flex/storages/rt_mutable_graph/loading_config.h"
 #include "flex/storages/rt_mutable_graph/mutable_property_fragment.h"
 
@@ -276,6 +277,64 @@ static void append_src_or_dst(
 }
 
 template <typename PK_T, typename EDATA_T>
+static void append_src_or_dst(
+    bool is_dst, size_t old_size, const std::shared_ptr<arrow::Array> col,
+    const LFIndexer<vid_t>& indexer,
+    MMapVector<std::tuple<vid_t, vid_t, EDATA_T>>& parsed_edges,
+    std::vector<int32_t>& ie_degree, std::vector<int32_t>& oe_degree) {
+  size_t cur_ind = old_size;
+  auto invalid_vid = std::numeric_limits<vid_t>::max();
+  if constexpr (std::is_same_v<PK_T, std::string_view>) {
+    if (col->type()->Equals(arrow::utf8())) {
+      auto casted = std::static_pointer_cast<arrow::StringArray>(col);
+      for (auto j = 0; j < casted->length(); ++j) {
+        auto str = casted->GetView(j);
+        std::string_view str_view(str.data(), str.size());
+        auto vid = indexer.get_index(Any::From(str_view));
+        if (is_dst) {
+          std::get<1>(parsed_edges[cur_ind++]) = vid;
+        } else {
+          std::get<0>(parsed_edges[cur_ind++]) = vid;
+        }
+        if (vid != invalid_vid) {
+          is_dst ? ie_degree[vid]++ : oe_degree[vid]++;
+        }
+      }
+    } else {
+      // must be large utf8
+      auto casted = std::static_pointer_cast<arrow::LargeStringArray>(col);
+      for (auto j = 0; j < casted->length(); ++j) {
+        auto str = casted->GetView(j);
+        std::string_view str_view(str.data(), str.size());
+        auto vid = indexer.get_index(Any::From(str_view));
+        if (is_dst) {
+          std::get<1>(parsed_edges[cur_ind++]) = vid;
+        } else {
+          std::get<0>(parsed_edges[cur_ind++]) = vid;
+        }
+        if (vid != invalid_vid) {
+          is_dst ? ie_degree[vid]++ : oe_degree[vid]++;
+        }
+      }
+    }
+  } else {
+    using arrow_array_type = typename gs::TypeConverter<PK_T>::ArrowArrayType;
+    auto casted = std::static_pointer_cast<arrow_array_type>(col);
+    for (auto j = 0; j < casted->length(); ++j) {
+      auto vid = indexer.get_index(Any::From(casted->Value(j)));
+      if (is_dst) {
+        std::get<1>(parsed_edges[cur_ind++]) = vid;
+      } else {
+        std::get<0>(parsed_edges[cur_ind++]) = vid;
+      }
+      if (vid != invalid_vid) {
+        is_dst ? ie_degree[vid]++ : oe_degree[vid]++;
+      }
+    }
+  }
+}
+
+template <typename PK_T, typename EDATA_T>
 static void append_edges(
     std::shared_ptr<arrow::Array> src_col,
     std::shared_ptr<arrow::Array> dst_col, const LFIndexer<vid_t>& src_indexer,
@@ -340,11 +399,11 @@ static void append_edges(
   edata_col_thread.join();
 }
 
-template <typename T>
+template <typename T, typename CHAR_ARRAY_T>
 static void cast_array_and_append_impl(
     size_t old_size, size_t offset, PropertyType property_type,
     std::shared_ptr<arrow::Array> array,
-    std::vector<std::tuple<vid_t, vid_t, std::vector<char>>>& parsed_edges) {
+    MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>& parsed_edges) {
   using arrow_array_type = typename gs::TypeConverter<T>::ArrowArrayType;
   auto array_type = array->type();
   auto arrow_type = gs::TypeConverter<T>::ArrowTypeValue();
@@ -360,7 +419,7 @@ static void cast_array_and_append_impl(
       auto value = casted->Value(j);
       CHECK(vec.size() >= offset + sizeof(T))
           << "vec.size() " << vec.size() << " " << offset + sizeof(T);
-      memcpy(vec.data() + offset, &value, sizeof(T));
+      memcpy(vec.data + offset, &value, sizeof(T));
     }
   } else {
     if (array_type->Equals(arrow::int64()) &&
@@ -371,7 +430,7 @@ static void cast_array_and_append_impl(
         auto value = casted->Value(j);
         auto& vec = std::get<2>(parsed_edges[cur_ind++]);
         CHECK(vec.size() >= offset + sizeof(uint8_t));
-        memcpy(vec.data() + offset, &value, sizeof(uint8_t));
+        memcpy(vec.data + offset, &value, sizeof(uint8_t));
       }
     } else if (array_type->Equals(arrow::int64()) &&
                arrow_type->Equals(arrow::uint16())) {
@@ -381,7 +440,7 @@ static void cast_array_and_append_impl(
         auto value = casted->Value(j);
         auto& vec = std::get<2>(parsed_edges[cur_ind++]);
         CHECK(vec.size() >= offset + sizeof(uint16_t));
-        memcpy(vec.data() + offset, &value, sizeof(uint16_t));
+        memcpy(vec.data + offset, &value, sizeof(uint16_t));
       }
     } else if (array_type->Equals(arrow::float64()) &&
                arrow_type->Equals(arrow::uint8())) {
@@ -391,7 +450,7 @@ static void cast_array_and_append_impl(
         auto value = casted->Value(j);
         auto& vec = std::get<2>(parsed_edges[cur_ind++]);
         CHECK(vec.size() >= offset + sizeof(uint8_t));
-        memcpy(vec.data() + offset, &value, sizeof(uint8_t));
+        memcpy(vec.data + offset, &value, sizeof(uint8_t));
       }
     } else {
       LOG(FATAL) << "Not support type: " << array_type->ToString() << ", "
@@ -400,55 +459,56 @@ static void cast_array_and_append_impl(
   }
 }
 
+template <typename CHAR_ARRAY_T>
 static void cast_array_and_append(
     size_t old_size, size_t offset, PropertyType property_type,
     std::shared_ptr<arrow::Array> array,
-    std::vector<std::tuple<vid_t, vid_t, std::vector<char>>>& parsed_edges) {
+    MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>& parsed_edges) {
   auto type = array->type();
   if (property_type == PropertyType::kInt32) {
-    cast_array_and_append_impl<int32_t>(old_size, offset, property_type, array,
-                                        parsed_edges);
+    cast_array_and_append_impl<int32_t, CHAR_ARRAY_T>(
+        old_size, offset, property_type, array, parsed_edges);
   } else if (property_type == PropertyType::kUInt8) {
-    cast_array_and_append_impl<uint8_t>(old_size, offset, property_type, array,
-                                        parsed_edges);
+    cast_array_and_append_impl<uint8_t, CHAR_ARRAY_T>(
+        old_size, offset, property_type, array, parsed_edges);
   } else if (property_type == PropertyType::kUInt16) {
-    cast_array_and_append_impl<uint16_t>(old_size, offset, property_type, array,
-                                         parsed_edges);
+    cast_array_and_append_impl<uint16_t, CHAR_ARRAY_T>(
+        old_size, offset, property_type, array, parsed_edges);
   } else if (property_type == PropertyType::kInt64) {
-    cast_array_and_append_impl<int64_t>(old_size, offset, property_type, array,
-                                        parsed_edges);
+    cast_array_and_append_impl<int64_t, CHAR_ARRAY_T>(
+        old_size, offset, property_type, array, parsed_edges);
   } else if (property_type == PropertyType::kUInt32) {
-    cast_array_and_append_impl<uint32_t>(old_size, offset, property_type, array,
-                                         parsed_edges);
+    cast_array_and_append_impl<uint32_t, CHAR_ARRAY_T>(
+        old_size, offset, property_type, array, parsed_edges);
   } else if (property_type == PropertyType::kUInt64) {
-    cast_array_and_append_impl<uint64_t>(old_size, offset, property_type, array,
-                                         parsed_edges);
+    cast_array_and_append_impl<uint64_t, CHAR_ARRAY_T>(
+        old_size, offset, property_type, array, parsed_edges);
   } else if (property_type == PropertyType::kFloat) {
-    cast_array_and_append_impl<float>(old_size, offset, property_type, array,
-                                      parsed_edges);
+    cast_array_and_append_impl<float, CHAR_ARRAY_T>(
+        old_size, offset, property_type, array, parsed_edges);
   } else if (property_type == PropertyType::kDouble) {
-    cast_array_and_append_impl<double>(old_size, offset, property_type, array,
-                                       parsed_edges);
+    cast_array_and_append_impl<double, CHAR_ARRAY_T>(
+        old_size, offset, property_type, array, parsed_edges);
   } else if (property_type == PropertyType::kString ||
              property_type == PropertyType::kStringMap) {
-    cast_array_and_append_impl<std::string_view>(
+    cast_array_and_append_impl<std::string_view, CHAR_ARRAY_T>(
         old_size, offset, property_type, array, parsed_edges);
   } else if (property_type == PropertyType::kDate) {
-    cast_array_and_append_impl<Date>(old_size, offset, property_type, array,
-                                     parsed_edges);
+    cast_array_and_append_impl<Date, CHAR_ARRAY_T>(
+        old_size, offset, property_type, array, parsed_edges);
   } else {
     LOG(FATAL) << "Not support type: " << type->ToString();
   }
 }
 
-template <typename PK_T, typename EDATA_T>
+template <typename PK_T, typename EDATA_T, typename CHAR_ARRAY_T>
 static void append_edges_for_multiple_props(
     std::shared_ptr<arrow::Array> src_col,
     std::shared_ptr<arrow::Array> dst_col, const LFIndexer<vid_t>& src_indexer,
     const LFIndexer<vid_t>& dst_indexer,
     std::vector<std::shared_ptr<arrow::Array>>& edata_cols,
     const std::vector<PropertyType>& edge_props,
-    std::vector<std::tuple<vid_t, vid_t, std::vector<char>>>& parsed_edges,
+    MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>& parsed_edges,
     std::vector<int32_t>& ie_degree, std::vector<int32_t>& oe_degree,
     const std::vector<size_t>& offset_vec) {
   CHECK(src_col->length() == dst_col->length());
@@ -461,14 +521,12 @@ static void append_edges_for_multiple_props(
            << parsed_edges.size();
 
   auto src_col_thread = std::thread([&]() {
-    append_src_or_dst<PK_T, std::vector<char>>(false, old_size, src_col,
-                                               src_indexer, parsed_edges,
-                                               ie_degree, oe_degree);
+    append_src_or_dst<PK_T, CHAR_ARRAY_T>(false, old_size, src_col, src_indexer,
+                                          parsed_edges, ie_degree, oe_degree);
   });
   auto dst_col_thread = std::thread([&]() {
-    append_src_or_dst<PK_T, std::vector<char>>(true, old_size, dst_col,
-                                               dst_indexer, parsed_edges,
-                                               ie_degree, oe_degree);
+    append_src_or_dst<PK_T, CHAR_ARRAY_T>(true, old_size, dst_col, dst_indexer,
+                                          parsed_edges, ie_degree, oe_degree);
   });
   auto edata_col_thread = std::thread([&]() {
     CHECK(edata_cols.size() == edge_props.size());
@@ -484,7 +542,7 @@ static void append_edges_for_multiple_props(
     // }
 
     for (auto i = old_size; i < parsed_edges.size(); ++i) {
-      std::get<2>(parsed_edges[i]).resize(offset_vec.back());
+      // std::get<2>(parsed_edges[i]).resize(offset_vec.back());
     }
 
     for (auto i = 0; i < edata_cols.size(); ++i) {
@@ -781,7 +839,9 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                          dst_col_ind, src_label_id, dst_label_id, e_label_id);
 
     // Since edge contains multiple properties, we need spaces to store them.
-    std::vector<std::tuple<vid_t, vid_t, std::vector<char>>> parsed_edges;
+    MMapVector<std::tuple<vid_t, vid_t, char_array<4>>> parsed_edges(
+        "/root/data/",
+        src_label_name + "_" + dst_label_name + "_" + edge_label_name);
     std::vector<int32_t> ie_degree, oe_degree;
     const auto& src_indexer = basic_fragment_loader_.GetLFIndexer(src_label_id);
     const auto& dst_indexer = basic_fragment_loader_.GetLFIndexer(dst_label_id);

@@ -177,7 +177,7 @@ struct char_array {
     memcpy(data, other.data, N);
     return *this;
   };
-
+  size_t size() const { return N; }
   char data[N];
 };
 
