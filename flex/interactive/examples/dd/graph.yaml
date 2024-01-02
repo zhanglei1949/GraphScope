@@ -52,6 +52,8 @@ schema:
         - source_vertex: User
           destination_vertex: User
           relation: MANY_TO_MANY
+          x_csr_params:
+            mutability: IMMUTABLE
       properties:
         - property_name: creationDate
           property_type:
@@ -63,7 +65,7 @@ schema:
           destination_vertex: DingGroup
           relation: MANY_TO_MANY
           x_csr_params:
-            incoming_edge_strategy: None
+            edge_storage_strategy: ONLY_OUT
             mutability: IMMUTABLE
       properties:
         - property_name: creationDate
@@ -76,7 +78,8 @@ schema:
           destination_vertex: User
           relation: MANY_TO_MANY
           x_csr_params:
-            incoming_edge_strategy: None
+            edge_storage_strategy: ONLY_OUT
+            mutability: IMMUTABLE
       properties:
         - property_name: intimacy_score
           property_type:
@@ -91,7 +94,7 @@ schema:
           destination_vertex: DingOrg
           relation: MANY_TO_MANY
           x_csr_params:
-            incoming_edge_strategy: None
+            edge_storage_strategy: ONLY_OUT
       properties:
         - property_name: joinDate
           property_type:
@@ -109,7 +112,7 @@ schema:
           destination_vertex: DingEduOrg
           relation: MANY_TO_MANY
           x_csr_params:
-            incoming_edge_strategy: None
+            edge_storage_strategy: ONLY_OUT
       properties:
         - property_name: joinDate
           property_type:
