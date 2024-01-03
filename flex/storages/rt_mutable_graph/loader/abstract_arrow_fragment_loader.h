@@ -838,17 +838,6 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     check_edge_invariant(schema_, edge_column_mappings, src_col_ind,
                          dst_col_ind, src_label_id, dst_label_id, e_label_id);
 
-    // Since edge contains multiple properties, we need spaces to store them.
-    MMapVector<std::tuple<vid_t, vid_t, char_array<4>>> parsed_edges(
-        "/root/data/",
-        src_label_name + "_" + dst_label_name + "_" + edge_label_name);
-    std::vector<int32_t> ie_degree, oe_degree;
-    const auto& src_indexer = basic_fragment_loader_.GetLFIndexer(src_label_id);
-    const auto& dst_indexer = basic_fragment_loader_.GetLFIndexer(dst_label_id);
-    ie_degree.resize(dst_indexer.size());
-    oe_degree.resize(src_indexer.size());
-    LOG(INFO) << "src indexer size: " << src_indexer.size()
-              << " dst indexer size: " << dst_indexer.size();
     // first get offset vector
     auto edge_properties =
         schema_.get_edge_properties(src_label_id, dst_label_id, e_label_id);
@@ -863,7 +852,76 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
       VLOG(10) << "offset_vec: " << gs::to_string(offset_vec)
                << ", total size: " << cur_offset;
     }
+    const auto& work_dir = basic_fragment_loader_.work_dir();
+    // Since edge contains multiple properties, we need spaces to store
+    // them.
+    if (cur_offset <= 4) {
+      MMapVector<std::tuple<vid_t, vid_t, char_array<4>>> parsed_edges(
+          work_dir,
+          src_label_name + "_" + dst_label_name + "_" + edge_label_name);
+      collect_edge_properties<EDATA_T, char_array<4>>(
+          src_label_id, dst_label_id, e_label_id, parsed_edges, e_files,
+          offset_vec, supplier_creator);
+    } else if (cur_offset <= 8) {
+      MMapVector<std::tuple<vid_t, vid_t, char_array<8>>> parsed_edges(
+          work_dir,
+          src_label_name + "_" + dst_label_name + "_" + edge_label_name);
+      collect_edge_properties<EDATA_T, char_array<8>>(
+          src_label_id, dst_label_id, e_label_id, parsed_edges, e_files,
+          offset_vec, supplier_creator);
+    } else if (cur_offset <= 12) {
+      MMapVector<std::tuple<vid_t, vid_t, char_array<12>>> parsed_edges(
+          work_dir,
+          src_label_name + "_" + dst_label_name + "_" + edge_label_name);
+      collect_edge_properties<EDATA_T, char_array<12>>(
+          src_label_id, dst_label_id, e_label_id, parsed_edges, e_files,
+          offset_vec, supplier_creator);
+    } else if (cur_offset <= 16) {
+      MMapVector<std::tuple<vid_t, vid_t, char_array<16>>> parsed_edges(
+          work_dir,
+          src_label_name + "_" + dst_label_name + "_" + edge_label_name);
+      collect_edge_properties<EDATA_T, char_array<16>>(
+          src_label_id, dst_label_id, e_label_id, parsed_edges, e_files,
+          offset_vec, supplier_creator);
+    } else if (cur_offset <= 20) {
+      MMapVector<std::tuple<vid_t, vid_t, char_array<20>>> parsed_edges(
+          work_dir,
+          src_label_name + "_" + dst_label_name + "_" + edge_label_name);
+      collect_edge_properties<EDATA_T, char_array<20>>(
+          src_label_id, dst_label_id, e_label_id, parsed_edges, e_files,
+          offset_vec, supplier_creator);
+    } else if (cur_offset <= 24) {
+      MMapVector<std::tuple<vid_t, vid_t, char_array<24>>> parsed_edges(
+          work_dir,
+          src_label_name + "_" + dst_label_name + "_" + edge_label_name);
+      collect_edge_properties<EDATA_T, char_array<24>>(
+          src_label_id, dst_label_id, e_label_id, parsed_edges, e_files,
+          offset_vec, supplier_creator);
+    }
+  }
 
+  template <typename EDATA_T, typename CHAR_ARRAY_T>
+  void collect_edge_properties(
+      label_t src_label_id, label_t dst_label_id, label_t e_label_id,
+      MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>& parsed_edges,
+      const std::vector<std::string>& e_files,
+      const std::vector<size_t>& offset_vec,
+      std::function<std::shared_ptr<IRecordBatchSupplier>(
+          label_t, label_t, label_t, const std::string&, const LoadingConfig&)>
+          supplier_creator) {
+    auto src_label_name = schema_.get_vertex_label_name(src_label_id);
+    auto dst_label_name = schema_.get_vertex_label_name(dst_label_id);
+    auto edge_label_name = schema_.get_edge_label_name(e_label_id);
+
+    std::vector<int32_t> ie_degree, oe_degree;
+    const auto& src_indexer = basic_fragment_loader_.GetLFIndexer(src_label_id);
+    const auto& dst_indexer = basic_fragment_loader_.GetLFIndexer(dst_label_id);
+    ie_degree.resize(dst_indexer.size());
+    oe_degree.resize(src_indexer.size());
+    LOG(INFO) << "src indexer size: " << src_indexer.size()
+              << " dst indexer size: " << dst_indexer.size();
+    auto edge_properties =
+        schema_.get_edge_properties(src_label_id, dst_label_id, e_label_id);
     for (auto filename : e_files) {
       auto record_batch_supplier = supplier_creator(
           src_label_id, dst_label_id, e_label_id, filename, loading_config_);

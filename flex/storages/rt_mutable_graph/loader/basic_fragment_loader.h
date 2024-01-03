@@ -262,6 +262,7 @@ class BasicFragmentLoader {
 
   // get lf_indexer
   const LFIndexer<vid_t>& GetLFIndexer(label_t v_label) const;
+  const std::string& work_dir() const { return work_dir_; }
 
  private:
   void init_vertex_data();
