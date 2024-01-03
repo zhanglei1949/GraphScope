@@ -142,6 +142,12 @@ class ImmutableCsr : public TypedMutableCsrBase<EDATA_T> {
       fclose(fp);
     }
   }
+  void clear_tmp(const std::string& name,
+                 const std::string& work_dir) override {
+    unlink((work_dir + "/" + name + ".nbr").c_str());
+    unlink((work_dir + "/" + name + ".adj").c_str());
+    unlink((work_dir + "/" + name + ".deg").c_str());
+  }
 
   void resize(vid_t vnum) override { LOG(FATAL) << "not support"; }
 
@@ -248,6 +254,11 @@ class SingleImmutableCsr : public TypedMutableCsrBase<EDATA_T> {
     assert(!nbr_list_.read_only());
     std::filesystem::create_hard_link(nbr_list_.filename(),
                                       new_snapshot_dir + "/" + name + ".snbr");
+  }
+
+  void clear_tmp(const std::string& name,
+                 const std::string& work_dir) override {
+    unlink((work_dir + "/" + name + ".snbr").c_str());
   }
 
   void resize(vid_t vnum) override { LOG(FATAL) << "not support"; }

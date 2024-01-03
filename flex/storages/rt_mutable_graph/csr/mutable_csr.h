@@ -220,6 +220,13 @@ class MutableCsr : public TypedMutableCsrBase<EDATA_T> {
     }
   }
 
+  void clear_tmp(const std::string& name,
+                 const std::string& work_dir) override {
+    unlink((work_dir + "/" + name + ".nbr").c_str());
+    unlink((work_dir + "/" + name + ".adj").c_str());
+    unlink((work_dir + "/" + name + ".deg").c_str());
+  }
+
   void resize(vid_t vnum) override {
     if (vnum > adj_lists_.size()) {
       size_t old_size = adj_lists_.size();
@@ -444,6 +451,13 @@ class MutableCsr<
     }
   }
 
+  void clear_tmp(const std::string& name,
+                 const std::string& work_dir) override {
+    unlink((work_dir + "/" + name + ".nbr").c_str());
+    unlink((work_dir + "/" + name + ".adj").c_str());
+    unlink((work_dir + "/" + name + ".deg").c_str());
+  }
+
   void resize(vid_t vnum) override {
     if (vnum > adj_lists_.size()) {
       size_t old_size = adj_lists_.size();
@@ -580,6 +594,11 @@ class SingleMutableCsr : public TypedMutableCsrBase<EDATA_T> {
     assert(!nbr_list_.read_only());
     std::filesystem::create_hard_link(nbr_list_.filename(),
                                       new_snapshot_dir + "/" + name + ".snbr");
+  }
+
+  void clear_tmp(const std::string& name,
+                 const std::string& work_dir) override {
+    unlink((work_dir + "/" + name + ".snbr").c_str());
   }
 
   void resize(vid_t vnum) override {
@@ -756,6 +775,10 @@ class SingleMutableCsr<
     std::filesystem::create_hard_link(nbr_list_.filename(),
                                       new_snapshot_dir + "/" + name + ".snbr");
   }
+  void clear_tmp(const std::string& name,
+                 const std::string& work_dir) override {
+    unlink((work_dir + "/" + name + ".snbr").c_str());
+  }
 
   void resize(vid_t vnum) override {
     if (vnum > nbr_list_.size()) {
@@ -916,6 +939,8 @@ class EmptyCsr : public TypedMutableCsrBase<EDATA_T> {
 
   void dump(const std::string& name,
             const std::string& new_spanshot_dir) override {}
+  void clear_tmp(const std::string& name,
+                 const std::string& work_dir) override {}
 
   void warmup(int thread_num) const override {}
 
@@ -980,6 +1005,8 @@ class EmptyCsr<EDATA_T,
 
   void dump(const std::string& name,
             const std::string& new_spanshot_dir) override {}
+  void clear_tmp(const std::string& name,
+                 const std::string& work_dir) override {}
 
   void warmup(int thread_num) const override {}
 

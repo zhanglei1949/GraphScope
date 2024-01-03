@@ -40,6 +40,8 @@ class ColumnBase {
 
   virtual void dump(const std::string& filename) = 0;
 
+  virtual void clear_tmp(const std::string& filename) = 0;
+
   virtual size_t size() const = 0;
 
   virtual void copy_to_tmp(const std::string& cur_path,
@@ -144,6 +146,10 @@ class TypedColumn : public ColumnBase {
         tmp.set(k + basic_size_, extra_buffer_.get(k));
       }
     }
+  }
+
+  void clear_tmp(const std::string& filename) override {
+    unlink(filename.c_str());
   }
 
   size_t size() const override { return basic_size_ + extra_size_; }
@@ -323,6 +329,11 @@ class TypedColumn<std::string_view> : public ColumnBase {
     }
   }
 
+  void clear_tmp(const std::string& file_name) override {
+    unlink((file_name + ".items").c_str());
+    unlink((file_name + ".data").c_str());
+  }
+
   size_t size() const override { return basic_size_ + extra_size_; }
 
   void resize(size_t size) override {
@@ -340,8 +351,9 @@ class TypedColumn<std::string_view> : public ColumnBase {
   PropertyType type() const override { return PropertyType::Varchar(width_); }
 
   void set_value(size_t idx, const std::string_view& val) {
-    //assert(idx >= basic_size_ && idx < basic_size_ + extra_size_);
-    CHECK(idx >= basic_size_ && idx < basic_size_ + extra_size_) << "idx: " << idx << ", " << basic_size_ << " " << extra_size_;
+    // assert(idx >= basic_size_ && idx < basic_size_ + extra_size_);
+    CHECK(idx >= basic_size_ && idx < basic_size_ + extra_size_)
+        << "idx: " << idx << ", " << basic_size_ << " " << extra_size_;
     size_t offset = pos_.fetch_add(val.size());
     extra_buffer_.set(idx - basic_size_, offset, val);
   }
@@ -476,6 +488,10 @@ class TypedColumn<FixedChar> : public ColumnBase {
     }
   }
 
+  void clear_tmp(const std::string& file_name) override {
+    unlink(file_name.c_str());
+  }
+
   size_t size() const override { return basic_size_ + extra_size_; }
 
   void resize(size_t size) override {
@@ -586,6 +602,7 @@ class StringMapColumn : public ColumnBase {
             const std::string& work_dir) override;
   void open_in_memory(const std::string& name) override;
   void dump(const std::string& filename) override;
+  void clear_tmp(const std::string& filename) override;
 
   void touch(const std::string& filename) override {
     index_col_.touch(filename);
@@ -653,6 +670,12 @@ template <typename INDEX_T>
 void StringMapColumn<INDEX_T>::dump(const std::string& filename) {
   index_col_.dump(filename);
   meta_map_->dump(filename + ".map_meta", "");
+}
+
+template <typename INDEX_T>
+void StringMapColumn<INDEX_T>::clear_tmp(const std::string& filename) {
+  index_col_.clear_tmp(filename);
+  meta_map_->clear_tmp(filename + ".map_meta");
 }
 
 template <typename INDEX_T>

@@ -67,6 +67,10 @@ void BasicFragmentLoader::LoadFragment() {
     auto label_name = schema_.get_vertex_label_name(v_label);
     v_data.resize(lf_indexers_[v_label].size());
     v_data.dump(vertex_table_prefix(label_name), snapshot_dir(work_dir_, 0));
+
+    v_data.clear_tmp(vertex_table_prefix(label_name), tmp_dir(work_dir_));
+    lf_indexers_[v_label].clear_tmp(tmp_dir(work_dir_) +
+                                    vertex_map_prefix(label_name));
   }
 
   for (size_t src_label = 0; src_label < vertex_label_num_; src_label++) {
@@ -84,6 +88,11 @@ void BasicFragmentLoader::LoadFragment() {
                 ie_prefix(src_label_name, dst_label_name, edge_label_name),
                 edata_prefix(src_label_name, dst_label_name, edge_label_name),
                 snapshot_dir(work_dir_, 0));
+            dual_csr_list_[index]->ClearTmp(
+                oe_prefix(src_label_name, dst_label_name, edge_label_name),
+                ie_prefix(src_label_name, dst_label_name, edge_label_name),
+                edata_prefix(src_label_name, dst_label_name, edge_label_name),
+                tmp_dir(work_dir_));
           }
         }
       }

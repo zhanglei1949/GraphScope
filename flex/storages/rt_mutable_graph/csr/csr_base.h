@@ -68,6 +68,9 @@ class MutableCsrBase {
   virtual void dump(const std::string& name,
                     const std::string& new_spanshot_dir) = 0;
 
+  virtual void clear_tmp(const std::string& name,
+                         const std::string& work_dir) = 0;
+
   virtual void warmup(int thread_num) const = 0;
 
   virtual void resize(vid_t vnum) = 0;

@@ -46,6 +46,9 @@ class DualCsrBase {
   virtual void Dump(const std::string& oe_name, const std::string& ie_name,
                     const std::string& edata_name,
                     const std::string& new_snapshot_dir) = 0;
+  virtual void ClearTmp(const std::string& oe_name, const std::string& ie_name,
+                        const std::string& edata_name,
+                        const std::string& work_dir) = 0;
 
   virtual void PutEdge(vid_t src, vid_t dst, const Any& data, timestamp_t ts,
                        Allocator& alloc) = 0;
@@ -135,6 +138,13 @@ class DualCsr : public DualCsrBase {
     out_csr_->dump(oe_name, new_snapshot_dir);
   }
 
+  void ClearTmp(const std::string& oe_name, const std::string& ie_name,
+                const std::string& edata_name,
+                const std::string& work_dir) override {
+    LOG(INFO) << work_dir << " work_dir " << ie_name << "\n";
+    in_csr_->clear_tmp(ie_name, work_dir);
+    out_csr_->clear_tmp(oe_name, work_dir);
+  }
   MutableCsrBase* GetInCsr() override { return in_csr_; }
   MutableCsrBase* GetOutCsr() override { return out_csr_; }
   void PutEdge(vid_t src, vid_t dst, const Any& data, timestamp_t ts,
@@ -262,6 +272,13 @@ class DualCsr<EDATA_T, std::enable_if_t<is_col_property_type<EDATA_T>::value>>
     out_csr_->dump(oe_name, new_snapshot_dir);
     column_.resize(column_idx_.load());
     column_.dump(new_snapshot_dir + "/" + edata_name);
+  }
+  void ClearTmp(const std::string& oe_name, const std::string& ie_name,
+                const std::string& edata_name,
+                const std::string& work_dir) override {
+    in_csr_->clear_tmp(ie_name, work_dir);
+    out_csr_->clear_tmp(oe_name, work_dir);
+    column_.clear_tmp(work_dir + "/" + edata_name);
   }
 
   MutableCsrBase* GetInCsr() override { return in_csr_; }
