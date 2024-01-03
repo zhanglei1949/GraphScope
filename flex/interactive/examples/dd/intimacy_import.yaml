@@ -11,7 +11,7 @@ loading_config:
 vertex_mappings:
   - type_name: User  # must align with the schema
     inputs:
-      - dd_undata/dim_ding_user_node/ds=20231226
+      - dd_undata/dim_ding_user_node/ds=20231230
     column_mappings:
       - column:
           index: 0    # can be omitted if the index is the same as the property index
@@ -39,7 +39,7 @@ edge_mappings:
       source_vertex: User
       destination_vertex: User
     inputs:
-      - dd_undata/dim_ding_user_user_edge/ds=20231227
+      - dd_undata/dim_ding_user_user_edge/ds=20231230
     source_vertex_mappings:
       - column:
           index: 0

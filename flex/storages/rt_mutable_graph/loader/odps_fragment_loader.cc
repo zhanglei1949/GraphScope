@@ -42,7 +42,7 @@ ODPSStreamRecordBatchSupplier::ODPSStreamRecordBatchSupplier(
   read_rows_req_.table_identifier_ = table_identifier_;
   read_rows_req_.session_id_ = session_id_;
   read_rows_req_.split_index_ = cur_split_index_;
-  read_rows_req_.max_batch_rows_ = 32768;
+  read_rows_req_.max_batch_rows_ = 20000;
   cur_batch_reader_ =
       odps_read_client_.GetArrowClient()->ReadRows(read_rows_req_);
 }
