@@ -17,6 +17,7 @@
 #define STORAGES_RT_MUTABLE_GRAPH_LOADER_BASIC_FRAGMENT_LOADER_H_
 
 #include "flex/storages/rt_mutable_graph/file_names.h"
+#include "flex/storages/rt_mutable_graph/loader/loader_utils.h"
 #include "flex/storages/rt_mutable_graph/mutable_property_fragment.h"
 #include "flex/storages/rt_mutable_graph/schema.h"
 
@@ -189,7 +190,7 @@ class BasicFragmentLoader {
   template <typename CHAR_ARRAY_T>
   void putMultiPropEdges(
       label_t src_label_id, label_t dst_label_id, label_t edge_label_id,
-      const std::vector<std::tuple<vid_t, vid_t, std::vector<char>>>& edges,
+      const MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>& edges,
       const std::vector<int32_t>& ie_degree,
       const std::vector<int32_t>& oe_degree) {
     LOG(INFO) << "putMultiPropEdges: " << demangle(typeid(CHAR_ARRAY_T).name());
@@ -237,44 +238,21 @@ class BasicFragmentLoader {
       }
       auto& vec = std::get<2>(edge);
 
-      dual_csr->BatchPutEdge(std::get<0>(edge), std::get<1>(edge), vec.data());
+      dual_csr->BatchPutEdge(std::get<0>(edge), std::get<1>(edge), vec.data);
     }
 
     VLOG(10) << "Finish adding edge batch of size: " << edges.size();
   }
+
+  template <typename CHAR_ARRAY_T>
   void PutMultiPropEdges(
       label_t src_label_id, label_t dst_label_id, label_t edge_label_id,
-      const std::vector<std::tuple<vid_t, vid_t, std::vector<char>>>& edges,
+      const MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>& edges,
       const std::vector<int32_t>& ie_degree,
       const std::vector<int32_t>& oe_degree,
       const std::vector<size_t>& offset_vec) {
-    size_t len = offset_vec.back();
-
-    if (len <= 4) {
-      putMultiPropEdges<char_array<4>>(src_label_id, dst_label_id,
-                                       edge_label_id, edges, ie_degree,
-                                       oe_degree);
-    } else if (len <= 8) {
-      putMultiPropEdges<char_array<8>>(src_label_id, dst_label_id,
-                                       edge_label_id, edges, ie_degree,
-                                       oe_degree);
-    } else if (len <= 12) {
-      putMultiPropEdges<char_array<12>>(src_label_id, dst_label_id,
-                                        edge_label_id, edges, ie_degree,
-                                        oe_degree);
-    } else if (len <= 16) {
-      putMultiPropEdges<char_array<16>>(src_label_id, dst_label_id,
-                                        edge_label_id, edges, ie_degree,
-                                        oe_degree);
-    } else if (len <= 20) {
-      putMultiPropEdges<char_array<20>>(src_label_id, dst_label_id,
-                                        edge_label_id, edges, ie_degree,
-                                        oe_degree);
-    } else if (len <= 24) {
-      putMultiPropEdges<char_array<24>>(src_label_id, dst_label_id,
-                                        edge_label_id, edges, ie_degree,
-                                        oe_degree);
-    }
+    putMultiPropEdges<CHAR_ARRAY_T>(src_label_id, dst_label_id, edge_label_id,
+                                    edges, ie_degree, oe_degree);
   }
 
   Table& GetVertexTable(size_t ind) {
