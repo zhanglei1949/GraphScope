@@ -27,7 +27,7 @@ class MMapVector {
     array_.open(work_dir + "/" + file_name_ + ".tmp", false);
     array_.resize(1024);
     size_ = 0;
-    cap_ = 0;
+    cap_ = 1024;
   }
   ~MMapVector() {
     array_.reset();
@@ -36,18 +36,19 @@ class MMapVector {
 
   void push_back(const EDATA_T& val) {
     if (size_ == cap_) {
-      array_.resize(size_ * 2);
-      cap_ = size_ * 2;
+      array_.resize(cap_ * 2);
+      cap_ = cap_ * 2;
     }
-    array_.set_value(size_, val);
+    array_.set(size_, val);
     ++size_;
   }
 
   void emplace_back(EDATA_T&& val) {
     if (size_ == cap_) {
-      array_.resize(size_ * 2);
+      array_.resize(cap_ * 2);
+      cap_ = cap_ * 2;
     }
-    array_.set_value(size_, val);
+    array_.set(size_, val);
     ++size_;
   }
 
@@ -66,7 +67,7 @@ class MMapVector {
   const EDATA_T* begin() const { return array_.data(); }
   const EDATA_T* end() const { return array_.data() + size_; }
 
-  void clear() { size_ = 0; }
+  void clear() { size_ = 0; cap_ = 0;}
 
  private:
   mmap_array<EDATA_T> array_;
