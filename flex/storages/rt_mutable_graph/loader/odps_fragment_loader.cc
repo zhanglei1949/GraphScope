@@ -42,7 +42,7 @@ ODPSStreamRecordBatchSupplier::ODPSStreamRecordBatchSupplier(
   read_rows_req_.table_identifier_ = table_identifier_;
   read_rows_req_.session_id_ = session_id_;
   read_rows_req_.split_index_ = cur_split_index_;
-  read_rows_req_.max_batch_rows_ = 32768;
+  read_rows_req_.max_batch_rows_ = 20000;
   cur_batch_reader_ =
       odps_read_client_.GetArrowClient()->ReadRows(read_rows_req_);
 }
@@ -82,11 +82,13 @@ ODPSStreamRecordBatchSupplier::GetNextBatch() {
       break;
     }
   }
+  if (record_batch){
   for (auto i = 0; i < record_batch->num_columns(); ++i) {
     if (record_batch->column(i)->type()->Equals(arrow::utf8()) ||
         record_batch->column(i)->type()->Equals(arrow::large_utf8())) {
       string_arrays_.emplace_back(record_batch->column(i));
     }
+  }
   }
 
   return record_batch;

@@ -11,16 +11,16 @@ loading_config:
 vertex_mappings:
   - type_name: User  # must align with the schema
     inputs:
-      - dd_undata/dim_ding_user_node/ds=20231226
+      - dd_undata/dim_ding_user_node/ds=20231230
     column_mappings:
       - column:
           index: 0    # can be omitted if the index is the same as the property index
           name: ding_user_id  # can be omitted if the name is not known
         property: id
-      - column:
-          index: 2
-          name: city_last_visit
-        property: city
+        # - column:
+        #   index: 2
+        #   name: city_last_visit
+        #  property: city
       - column:
           index: 3
           name: role_name
@@ -29,17 +29,17 @@ vertex_mappings:
           index: 4
           name: act_usr_days_1m
         property: activeDays
-      - column:
-          index: 5
-          name: org_industry_sub_id
-        property: subIndustry
+        #      - column:
+        #   index: 5
+        #  name: org_industry_sub_id
+        # property: subIndustry
 edge_mappings:
   - type_triplet:
       edge: Intimacy
       source_vertex: User
       destination_vertex: User
     inputs:
-      - dd_undata/dim_ding_user_user_edge/ds=20231227
+      - dd_undata/dim_ding_user_user_edge/ds=20231230
     source_vertex_mappings:
       - column:
           index: 0

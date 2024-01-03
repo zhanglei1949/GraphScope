@@ -67,7 +67,10 @@ class MMapVector {
   const EDATA_T* begin() const { return array_.data(); }
   const EDATA_T* end() const { return array_.data() + size_; }
 
-  void clear() { size_ = 0; }
+  void clear() {
+    size_ = 0;
+    cap_ = 0;
+  }
 
  private:
   mmap_array<EDATA_T> array_;
