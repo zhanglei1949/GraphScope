@@ -69,7 +69,7 @@ void BasicFragmentLoader::LoadFragment() {
     v_data.dump(vertex_table_prefix(label_name), snapshot_dir(work_dir_, 0));
 
     v_data.clear_tmp(vertex_table_prefix(label_name), tmp_dir(work_dir_));
-    lf_indexers_[v_label].clear_tmp(tmp_dir(work_dir_) +
+    lf_indexers_[v_label].clear_tmp(tmp_dir(work_dir_) + "/" +
                                     vertex_map_prefix(label_name));
   }
 
