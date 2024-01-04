@@ -123,6 +123,11 @@ class DualCsr : public DualCsrBase {
     out_csr_->open(oe_name, snapshot_dir, work_dir);
   }
 
+  void Close() {
+    in_csr_->close();
+    out_csr_->close();
+  }
+
   void OpenInMemory(const std::string& oe_name, const std::string& ie_name,
                     const std::string& edata_name,
                     const std::string& snapshot_dir, size_t src_vertex_cap,
@@ -141,7 +146,6 @@ class DualCsr : public DualCsrBase {
   void ClearTmp(const std::string& oe_name, const std::string& ie_name,
                 const std::string& edata_name,
                 const std::string& work_dir) override {
-    LOG(INFO) << work_dir << " work_dir " << ie_name << "\n";
     in_csr_->clear_tmp(ie_name, work_dir);
     out_csr_->clear_tmp(oe_name, work_dir);
   }
@@ -349,6 +353,11 @@ class DualCsr<EDATA_T, std::enable_if_t<is_col_property_type<EDATA_T>::value>>
 
     in_csr_->batch_put_edge_with_index(dst, src, row_id);
     out_csr_->batch_put_edge_with_index(src, dst, row_id);
+  }
+  void Close() {
+    in_csr_->close();
+    out_csr_->close();
+    column_.close();
   }
 
  private:

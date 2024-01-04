@@ -103,6 +103,7 @@ void Table::dump(const std::string& name, const std::string& snapshot_dir) {
   int i = 0;
   for (auto col : columns_) {
     col->dump(snapshot_dir + "/" + name + ".col_" + std::to_string(i++));
+    col->close();
   }
   columns_.clear();
   column_ptrs_.clear();

@@ -204,6 +204,11 @@ class ImmutableCsr : public TypedMutableCsrBase<EDATA_T> {
   const nbr_t* get_edges_end(vid_t v) const override {
     return adj_lists_[v] + degree_list_[v];
   }
+  void close() override {
+    adj_lists_.reset();
+    degree_list_.reset();
+    nbr_list_.reset();
+  }
 
  private:
   mmap_array<nbr_t*> adj_lists_;
@@ -326,6 +331,7 @@ class SingleImmutableCsr : public TypedMutableCsrBase<EDATA_T> {
                ? &nbr_list_[v]
                : (&nbr_list_[v] + 1);
   }
+  void close() override { nbr_list_.reset(); }
 
  private:
   mmap_array<nbr_t> nbr_list_;

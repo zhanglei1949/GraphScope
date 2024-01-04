@@ -69,6 +69,13 @@ class BasicFragmentLoader {
     build_lf_indexer<KEY_T, vid_t>(indexer, filename, lf_indexers_[v_label],
                                    snapshot_dir(work_dir_, 0),
                                    tmp_dir(work_dir_), type);
+    auto& v_data = vertex_data_[v_label];
+    auto label_name = schema_.get_vertex_label_name(v_label);
+
+    v_data.resize(lf_indexers_[v_label].size());
+    v_data.dump(vertex_table_prefix(label_name), snapshot_dir(work_dir_, 0));
+
+    v_data.clear_tmp(vertex_table_prefix(label_name), tmp_dir(work_dir_));
   }
 
   template <typename EDATA_T>
@@ -183,6 +190,17 @@ class BasicFragmentLoader {
         dual_csr->BatchPutEdge(std::get<0>(edge), std::get<1>(edge),
                                std::get<2>(edge));
       }
+      dual_csr->Dump(
+          oe_prefix(src_label_name, dst_label_name, edge_label_name),
+          ie_prefix(src_label_name, dst_label_name, edge_label_name),
+          edata_prefix(src_label_name, dst_label_name, edge_label_name),
+          snapshot_dir(work_dir_, 0));
+      dual_csr->Close();
+      dual_csr->ClearTmp(
+          oe_prefix(src_label_name, dst_label_name, edge_label_name),
+          ie_prefix(src_label_name, dst_label_name, edge_label_name),
+          edata_prefix(src_label_name, dst_label_name, edge_label_name),
+          tmp_dir(work_dir_));
     }
     VLOG(10) << "Finish adding edge batch of size: " << edges.size();
   }
@@ -240,6 +258,17 @@ class BasicFragmentLoader {
 
       dual_csr->BatchPutEdge(std::get<0>(edge), std::get<1>(edge), vec.data);
     }
+    dual_csr->Dump(
+        oe_prefix(src_label_name, dst_label_name, edge_label_name),
+        ie_prefix(src_label_name, dst_label_name, edge_label_name),
+        edata_prefix(src_label_name, dst_label_name, edge_label_name),
+        snapshot_dir(work_dir_, 0));
+    dual_csr->Close();
+    dual_csr->ClearTmp(
+        oe_prefix(src_label_name, dst_label_name, edge_label_name),
+        ie_prefix(src_label_name, dst_label_name, edge_label_name),
+        edata_prefix(src_label_name, dst_label_name, edge_label_name),
+        tmp_dir(work_dir_));
 
     VLOG(10) << "Finish adding edge batch of size: " << edges.size();
   }

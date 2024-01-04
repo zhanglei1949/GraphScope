@@ -296,6 +296,10 @@ class MutableCsr : public TypedMutableCsrBase<EDATA_T> {
   std::shared_ptr<MutableCsrEdgeIterBase> edge_iter_mut(vid_t v) override {
     return std::make_shared<TypedMutableCsrEdgeIter<EDATA_T>>(get_edges_mut(v));
   }
+  void close() override {
+    adj_lists_.reset();
+    nbr_list_.reset();
+  }
 
  private:
   grape::SpinLock* locks_;
@@ -533,6 +537,14 @@ class MutableCsr<
     return std::make_shared<TypedMutableCsrEdgeIter<EDATA_T>>(get_edges_mut(v));
   }
 
+  void close() override {
+    if (locks_ != nullptr) {
+      delete[] locks_;
+    }
+    adj_lists_.reset();
+    nbr_list_.reset();
+  }
+
  private:
   grape::SpinLock* locks_;
   mmap_array<adjlist_t> adj_lists_;
@@ -723,6 +735,7 @@ class SingleMutableCsr : public TypedMutableCsrBase<EDATA_T> {
     }
     (void) output.load();
   }
+  void close() override { nbr_list_.reset(); }
 
  private:
   mmap_array<nbr_t> nbr_list_;
@@ -910,6 +923,7 @@ class SingleMutableCsr<
     }
     (void) output.load();
   }
+  void close() override { nbr_list_.reset(); }
 
  private:
   mmap_array<nbr_t> nbr_list_;
@@ -979,6 +993,7 @@ class EmptyCsr : public TypedMutableCsrBase<EDATA_T> {
     return std::make_shared<TypedMutableCsrEdgeIter<EDATA_T>>(
         MutableNbrSliceMut<EDATA_T>::empty());
   }
+  void close() override {}
 };
 
 template <typename EDATA_T>
@@ -1048,6 +1063,7 @@ class EmptyCsr<EDATA_T,
     return std::make_shared<TypedMutableCsrEdgeIter<EDATA_T>>(
         MutableNbrSliceMut<EDATA_T>::empty(column_));
   }
+  void close() override {}
   std::atomic<size_t>& column_idx_;
   TypedColumn<EDATA_T>& column_;
 };
