@@ -51,7 +51,7 @@ class MutableCsr : public TypedMutableCsrBase<EDATA_T> {
                     double reserve_ratio) override {
     reserve_ratio = std::max(reserve_ratio, 1.0);
     size_t vnum = degree.size();
-    adj_lists_.open(work_dir + "/" + name + ".adj", false);
+    adj_lists_.open_in_memory(work_dir + "/" + name + ".adj");
     adj_lists_.resize(vnum);
 
     locks_ = new grape::SpinLock[vnum];
@@ -60,7 +60,8 @@ class MutableCsr : public TypedMutableCsrBase<EDATA_T> {
     for (auto d : degree) {
       edge_num += (std::ceil(d * reserve_ratio));
     }
-    nbr_list_.open(work_dir + "/" + name + ".nbr", false);
+    nbr_list_.open_in_memory(work_dir + "/" + name + ".nbr");
+
     nbr_list_.resize(edge_num);
 
     nbr_t* ptr = nbr_list_.data();
@@ -329,7 +330,7 @@ class MutableCsr<
                     const std::vector<int>& degree,
                     double reserve_ratio) override {
     size_t vnum = degree.size();
-    adj_lists_.open(work_dir + "/" + name + ".adj", false);
+    adj_lists_.open_in_memory(work_dir + "/" + name + ".adj");
     adj_lists_.resize(vnum);
 
     locks_ = new grape::SpinLock[vnum];
@@ -338,7 +339,7 @@ class MutableCsr<
     for (auto d : degree) {
       edge_num += d;
     }
-    nbr_list_.open(work_dir + "/" + name + ".nbr", false);
+    nbr_list_.open_in_memory(work_dir + "/" + name + ".nbr");
     nbr_list_.resize(edge_num);
 
     nbr_t* ptr = nbr_list_.data();
@@ -567,7 +568,7 @@ class SingleMutableCsr : public TypedMutableCsrBase<EDATA_T> {
                     const std::vector<int>& degree,
                     double reserve_ratio) override {
     size_t vnum = degree.size();
-    nbr_list_.open(work_dir + "/" + name + ".snbr", false);
+    nbr_list_.open_in_memory(work_dir + "/" + name + ".snbr");
     nbr_list_.resize(vnum);
     for (size_t k = 0; k != vnum; ++k) {
       nbr_list_[k].timestamp.store(std::numeric_limits<timestamp_t>::max());
@@ -601,11 +602,19 @@ class SingleMutableCsr : public TypedMutableCsrBase<EDATA_T> {
 
   void dump(const std::string& name,
             const std::string& new_snapshot_dir) override {
-    assert(!nbr_list_.filename().empty() &&
-           std::filesystem::exists(nbr_list_.filename()));
-    assert(!nbr_list_.read_only());
-    std::filesystem::create_hard_link(nbr_list_.filename(),
-                                      new_snapshot_dir + "/" + name + ".snbr");
+    // assert(!nbr_list_.filename().empty() &&
+    //      std::filesystem::exists(nbr_list_.filename()));
+    if ((!nbr_list_.filename().empty() &&
+         std::filesystem::exists(nbr_list_.filename()))) {
+      assert(!nbr_list_.read_only());
+      std::filesystem::create_hard_link(
+          nbr_list_.filename(), new_snapshot_dir + "/" + name + ".snbr");
+    } else {
+      FILE* fp = fopen((new_snapshot_dir + "/" + name + ".snbr").c_str(), "wb");
+      fwrite(nbr_list_.data(), sizeof(nbr_t), nbr_list_.size(), fp);
+      fflush(fp);
+      fclose(fp);
+    }
   }
 
   void clear_tmp(const std::string& name,
@@ -759,7 +768,7 @@ class SingleMutableCsr<
                     const std::vector<int>& degree,
                     double reserve_ratio) override {
     size_t vnum = degree.size();
-    nbr_list_.open(work_dir + "/" + name + ".snbr", false);
+    nbr_list_.open_in_memory(work_dir + "/" + name + ".snbr");
     nbr_list_.resize(vnum);
     for (size_t k = 0; k != vnum; ++k) {
       nbr_list_[k].timestamp.store(std::numeric_limits<timestamp_t>::max());
@@ -782,11 +791,22 @@ class SingleMutableCsr<
 
   void dump(const std::string& name,
             const std::string& new_snapshot_dir) override {
-    assert(!nbr_list_.filename().empty() &&
-           std::filesystem::exists(nbr_list_.filename()));
-    assert(!nbr_list_.read_only());
-    std::filesystem::create_hard_link(nbr_list_.filename(),
-                                      new_snapshot_dir + "/" + name + ".snbr");
+    // assert(!nbr_list_.filename().empty() &&
+    // std::filesystem::exists(nbr_list_.filename()));
+    if ((!nbr_list_.filename().empty() &&
+         std::filesystem::exists(nbr_list_.filename()))) {
+      assert(!nbr_list_.read_only());
+      std::filesystem::create_hard_link(
+          nbr_list_.filename(), new_snapshot_dir + "/" + name + ".snbr");
+    } else {
+      FILE* fp = fopen((new_snapshot_dir + "/" + name + ".snbr").c_str(), "wb");
+      fwrite(nbr_list_.data(), sizeof(nbr_t), nbr_list_.size(), fp);
+      fflush(fp);
+      fclose(fp);
+    }
+    // assert(!nbr_list_.read_only());
+    // std::filesystem::create_hard_link(nbr_list_.filename(),
+    //                                 new_snapshot_dir + "/" + name + ".snbr");
   }
   void clear_tmp(const std::string& name,
                  const std::string& work_dir) override {

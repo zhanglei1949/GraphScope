@@ -47,10 +47,10 @@ class ImmutableCsr : public TypedMutableCsrBase<EDATA_T> {
       edge_num += d;
     }
 
-    nbr_list_.open(work_dir + "/" + name + ".nbr", false);
+    nbr_list_.open_in_memory(work_dir + "/" + name + ".nbr");
     nbr_list_.resize(edge_num);
 
-    degree_list_.open(work_dir + "/" + name + ".deg", false);
+    degree_list_.open_in_memory(work_dir + "/" + name + ".deg");
     degree_list_.resize(vnum);
 
     nbr_t* ptr = nbr_list_.data();
@@ -227,7 +227,7 @@ class SingleImmutableCsr : public TypedMutableCsrBase<EDATA_T> {
   size_t batch_init(const std::string& name, const std::string& work_dir,
                     const std::vector<int>& degree, double) override {
     size_t vnum = degree.size();
-    nbr_list_.open(work_dir + "/" + name + ".snbr", false);
+    nbr_list_.open_in_memory(work_dir + "/" + name + ".snbr");
     nbr_list_.resize(vnum);
 
     for (size_t k = 0; k != vnum; ++k) {
@@ -254,11 +254,17 @@ class SingleImmutableCsr : public TypedMutableCsrBase<EDATA_T> {
 
   void dump(const std::string& name,
             const std::string& new_snapshot_dir) override {
-    assert(!nbr_list_.filename().empty() &&
-           std::filesystem::exists(nbr_list_.filename()));
-    assert(!nbr_list_.read_only());
-    std::filesystem::create_hard_link(nbr_list_.filename(),
-                                      new_snapshot_dir + "/" + name + ".snbr");
+    if ((!nbr_list_.filename().empty() &&
+         std::filesystem::exists(nbr_list_.filename()))) {
+      assert(!nbr_list_.read_only());
+      std::filesystem::create_hard_link(
+          nbr_list_.filename(), new_snapshot_dir + "/" + name + ".snbr");
+    } else {
+      FILE* fp = fopen((new_snapshot_dir + "/" + name + ".snbr").c_str(), "wb");
+      fwrite(nbr_list_.data(), sizeof(nbr_t), nbr_list_.size(), fp);
+      fflush(fp);
+      fclose(fp);
+    }
   }
 
   void clear_tmp(const std::string& name,
