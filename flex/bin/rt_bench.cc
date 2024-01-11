@@ -47,6 +47,18 @@ class Req {
   void load(const std::string& file) {
     std::cout << "load queries from " << file << "\n";
     std::ifstream fi(file, std::ios::binary);
+    int64_t id;
+    while(fi >> id){
+	    char temp[8];
+	    memcpy(temp,&id,sizeof(int64_t));
+	    std::string s(temp, temp+8);
+	    s += char(1);
+	    //int64_t val = *static_cast<const int64_t*>(static_cast<const void*>(s.data()));
+	    //std::cout << id << " " << val << "\n";
+	    reqs_.emplace_back(s);
+
+    }
+    /**
     const size_t size = 4096;
     std::vector<char> buffer(size);
     std::vector<char> tmp(size);
@@ -66,7 +78,7 @@ class Req {
         tmp[index++] = buffer[i];
       }
       buffer.clear();
-    }
+    }*/
     fi.close();
     std::cout << "load " << reqs_.size() << " queries\n";
     num_of_reqs_ = reqs_.size();

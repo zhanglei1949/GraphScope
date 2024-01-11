@@ -1,4 +1,8 @@
 name: dd_graph
+stored_procedures:
+  directory: /home/graphscope/GraphScope/flex/interactive/examples/dd/plugins
+  enable_lists:
+    - libquery0.so
 schema:
   vertex_types:
     - type_id: 0
@@ -63,7 +67,7 @@ schema:
           x_csr_params:
             edge_storage_strategy: ONLY_OUT
             mutability: IMMUTABLE
-    - type_id: 2
+    - type_id: 2           
       type_name: Intimacy
       vertex_type_pair_relations:
         - source_vertex: User
@@ -85,8 +89,8 @@ schema:
         - source_vertex: User
           destination_vertex: DingOrg
           relation: MANY_TO_MANY
-          x_csr_params:
-            edge_storage_strategy: ONLY_OUT
+          #x_csr_params:
+          # edge_storage_strategy: ONLY_OUT
       properties:
         - property_name: joinDate
           property_type:
@@ -103,8 +107,8 @@ schema:
         - source_vertex: User
           destination_vertex: DingEduOrg
           relation: MANY_TO_MANY
-          x_csr_params:
-            edge_storage_strategy: ONLY_OUT
+          #x_csr_params:
+                  #edge_storage_strategy: ONLY_OUT
       properties:
         - property_name: joinDate
           property_type:
