@@ -33,9 +33,9 @@ class Query0 : public AppBase {
         ding_org_label_id_(graph.schema().get_vertex_label_id("DingOrg")),
         ding_edu_org_label_id_(
             graph.schema().get_vertex_label_id("DingEduOrg")),
-        ding_group_label_id_(graph.schema().get_vertex_label_id("DingGroup")),
+	ding_group_label_id_(graph.schema().get_vertex_label_id("DingGroup")),
         intimacy_label_id_(graph.schema().get_edge_label_id("Intimacy")),
-        workat_label_id_(graph_.schema().get_edge_label_id("WorkAt")),
+        study_at_label_id_(graph_.schema().get_edge_label_id("StudyAt")),
         friend_label_id_(graph_.schema().get_edge_label_id("Friend")),
         chat_in_group_label_id_(
             graph_.schema().get_edge_label_id("ChatInGroup")),
@@ -61,12 +61,12 @@ class Query0 : public AppBase {
   }
 
   bool check_same_org(const std::unordered_set<uint32_t>& st,
-		  const GraphView<char_array<20>>& view,uint32_t root,std::unordered_map<uint32_t,bool>& mem){
+		  const GraphView<char_array<16>>& view,uint32_t root,std::unordered_map<uint32_t,bool>& mem){
 	  if(mem.count(root))return mem[root];
 	  
-	  const auto& ie = view.get_edges(root);
+	  const auto& oe = view.get_edges(root);
 	  mem[root] = false;
-	  for(auto& e: ie){
+	  for(auto& e: oe){
 		  if(st.count(e.neighbor)){
 			 mem[root] = true;
 			break; 
@@ -81,14 +81,14 @@ class Query0 : public AppBase {
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
     graph_.graph().get_lid(user_label_id_, oid, root);
-    const auto& workat_edges = txn.GetOutgoingEdges<char_array<20>>(
-        user_label_id_, root, ding_org_label_id_, workat_label_id_);
-    const auto& workat_ie = txn.GetIncomingGraphView<char_array<20>>(
-        ding_org_label_id_, user_label_id_, workat_label_id_);
+    const auto& studyat_edges = txn.GetOutgoingEdges<char_array<16>>(
+        user_label_id_, root, ding_edu_org_label_id_, study_at_label_id_);
+    const auto& studyat_ie = txn.GetIncomingGraphView<char_array<16>>(
+        ding_edu_org_label_id_, user_label_id_, study_at_label_id_);
     std::unordered_set<vid_t> orgs;
     size_t sum = 0;
-    for (auto& e : workat_edges) {
-      int d = workat_ie.get_edges(e.neighbor).estimated_degree();
+    for (auto& e : studyat_edges) {
+      int d = studyat_ie.get_edges(e.neighbor).estimated_degree();
       if(d <= 1) continue;
       orgs.emplace(e.get_neighbor());  // org
       sum += d;
@@ -144,13 +144,13 @@ class Query0 : public AppBase {
       intimacy_users.resize(k);
     }
 
-    auto workat_oe = txn.GetOutgoingGraphView<char_array<20>>(
-        user_label_id_, ding_org_label_id_, workat_label_id_);
+    auto studyat_oe = txn.GetOutgoingGraphView<char_array<16>>(
+        user_label_id_, ding_edu_org_label_id_, study_at_label_id_);
     std::unordered_map<uint32_t,bool> mem;
     std::vector<vid_t> ans;
     // root -> Intimacy -> Users
     for (auto& v : intimacy_users) {
-        if(check_same_org(orgs,workat_oe,v,mem)){
+        if(check_same_org(orgs,studyat_oe,v,mem)){
 	  ans.emplace_back(v);
 	  vis_set.emplace(v);
           if (ans.size() > 50) {
@@ -160,7 +160,6 @@ class Query0 : public AppBase {
 	    
             return true;
           }
-          //break;
         }
       }
     auto friends_ie = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
@@ -189,7 +188,7 @@ class Query0 : public AppBase {
 		if(d <= 1)continue;
 		auto ie = group_ies.get_edges(g);
 		for(auto e : ie){
-			if(e.neighbor != root&&check_same_org(orgs,workat_oe,e.neighbor,mem)){
+			if(e.neighbor != root&&check_same_org(orgs,studyat_oe,e.neighbor,mem)){
 				mp[e.neighbor] += 1;
 			}
 		}
@@ -203,12 +202,12 @@ class Query0 : public AppBase {
         const auto& ie = friends_ie.get_edges(cur);
 	const auto& oe = friends_oe.get_edges(cur);
 	for(auto& e: ie){
-		if(e.neighbor != root && check_same_org(orgs,workat_oe,e.neighbor,mem)){
+		if(e.neighbor != root && check_same_org(orgs,studyat_oe,e.neighbor,mem)){
 			mp[e.neighbor] +=1;
 		}
 	}
 	for(auto& e: oe){
-		if(e.neighbor != root && check_same_org(orgs,workat_oe,e.neighbor, mem)){
+		if(e.neighbor != root && check_same_org(orgs,studyat_oe,e.neighbor, mem)){
 			mp[e.neighbor] += 1;
 		}
 	}
