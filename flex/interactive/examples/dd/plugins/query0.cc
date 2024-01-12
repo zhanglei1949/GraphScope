@@ -114,6 +114,7 @@ class Query0 : public AppBase {
             user_label_id_, root, user_label_id_, friend_label_id_);
     std::vector<vid_t> friends;
     std::unordered_set<vid_t> vis_set;
+    // 1-hop friends
     for (auto& e : friend_edges_oe) {
       friends.emplace_back(e.get_neighbor());
       vis_set.emplace(e.get_neighbor());
@@ -144,12 +145,11 @@ class Query0 : public AppBase {
         user_label_id_, ding_org_label_id_, workat_label_id_);
     std::unordered_map<uint32_t,bool> mem;
     std::vector<vid_t> ans;
+    // root -> Intimacy -> Users
     for (auto& v : intimacy_users) {
-      //const auto& oe = workat_oe.get_edges(v);
-      //for (auto& e : oe) {
-        //if (orgs.count(e.get_neighbor())) {
         if(check_same_org(orgs,workat_oe,v,mem)){
 	  ans.emplace_back(v);
+	  vis_set.emplace(v);
           if (ans.size() > 50) {
 	    for (auto vid : ans) {
 		   output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
@@ -160,13 +160,13 @@ class Query0 : public AppBase {
           break;
         }
       }
-    //}
     auto friends_ie = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
         user_label_id_, user_label_id_, friend_label_id_);
     auto friends_oe = txn.GetOutgoingImmutableGraphView<grape::EmptyType>(
         user_label_id_, user_label_id_, friend_label_id_);
 
     std::unordered_set<vid_t> groups;
+    // root -> oe chatInGroup -> groups
     auto group_oes = txn.GetOutgoingImmutableGraphView<grape::EmptyType>(
         user_label_id_, ding_group_label_id_, chat_in_group_label_id_);
     {
@@ -174,12 +174,12 @@ class Query0 : public AppBase {
       for (auto& e : oe) {
         groups.emplace(e.get_neighbor());
       }
-      //std::unordered_map<uint32_t,int> mp;
 
     }
-    
+    //friends num + groups num,vid_t
     std::unordered_map<uint32_t,int> mp;
     {
+	// groups -> ie chatInGroup -> users
 	auto group_ies = txn.GetIncomingImmutableGraphView<grape::EmptyType>(ding_group_label_id_,user_label_id_,chat_in_group_label_id_);
 	for(auto g : groups){
 		auto d = group_ies.get_edges(g).estimated_degree();
@@ -192,11 +192,9 @@ class Query0 : public AppBase {
 		}
 	}
     }
-    //int res = 50 - ans.size();
     std::vector<std::pair<int, vid_t>> users;
-    //std::priority_queue<std::pair<int,vid_t>,std::vector<std::pair<int,vid_t>>,std::greater<std::pair<int,vid_t>>>pq;
+    // 2-hop friends
     if (friends.size()) {
-      //std::vector<vid_t> vec;
       for (size_t i = 0; i < friends.size(); ++i) {
         auto cur = friends[i];
         const auto& ie = friends_ie.get_edges(cur);
@@ -214,38 +212,14 @@ class Query0 : public AppBase {
       }
     }
     for(auto&[a,b]: mp){
-	    users.emplace_back(a,b);
+	    users.emplace_back(b,a);
     }
-    /**
-    if (orgs.size()) {
-      for (auto o : orgs) {
-        const auto& ie = workat_ie.get_edges(o);
-        for (auto& e : ie) {
-          auto nbr = e.get_neighbor();
-          if (vis_set.count(nbr)) {
-            continue;
-          }
-          vis_set.emplace(nbr);
-          int num = 0;
-          if (groups.size()) {
-            auto group_oe = group_oes.get_edges(nbr);
-            for (auto& e : group_oe) {
-              if (groups.count(e.get_neighbor())) {
-                ++num;
-              }
-            }
-          }
-          users.emplace_back(num, nbr);
-	  if(users.size() > 5000){
-		  break;
-	  }
-        }
-      }
-    }*/
     std::sort(users.begin(), users.end());
     size_t idx = users.size();
     while (ans.size() < 50 && idx > 0) {
-      ans.emplace_back(users[idx - 1].second);
+      auto vid = users[idx - 1].second;
+      if(vis_set.count(vid))continue;
+      ans.emplace_back(vid);
       --idx;
     }
     std::cout <<"user size: " <<users.size() << " ans size: " << ans.size() << "\n";
