@@ -124,6 +124,8 @@ class Query0 : public AppBase {
       vis_set.emplace(e.get_neighbor());
     }
     std::sort(friends.begin(), friends.end());
+    size_t friend_num = std::unique(friends.begin(),friends.end()) - friends.begin();
+    friends.resize(friend_num);
     {
       auto len = std::unique(intimacy_users.begin(), intimacy_users.end()) -
                  intimacy_users.begin();
