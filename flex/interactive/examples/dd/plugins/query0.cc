@@ -1,7 +1,7 @@
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/storages/rt_mutable_graph/types.h"
-
+#include <queue>
 namespace gs {
 
 static constexpr int32_t EMPLOYEE_CNT = 100000;
@@ -45,26 +45,67 @@ class Query0 : public AppBase {
         is_user_in_org_inited_(false),
         is_user_friend_inited_(false) {}
 
+  void get_friends(vid_t root, gs::ImmutableGraphView<grape::EmptyType>& oes,
+                   gs::ImmutableGraphView<grape::EmptyType>& ies,
+                   std::vector<vid_t>& friends) {
+    const auto& oe = oes.get_edges(root);
+    friends.clear();
+    for (auto& e : oe) {
+      friends.emplace_back(e.neighbor);
+    }
+    const auto& ie = ies.get_edges(root);
+    for (auto& e : ie) {
+      friends.emplace_back(e.neighbor);
+    }
+    std::sort(friends.begin(), friends.end());
+  }
+
+  bool check_same_org(const std::unordered_set<uint32_t>& st,
+		  const GraphView<char_array<20>>& view,uint32_t root,std::unordered_map<uint32_t,bool>& mem){
+	  if(mem.count(root))return mem[root];
+	  
+	  const auto& ie = view.get_edges(root);
+	  mem[root] = false;
+	  for(auto& e: ie){
+		  if(st.count(e.neighbor)){
+			 mem[root] = true;
+			break; 
+		 }
+	  }
+	  return mem[root];
+
+
+  }
   bool Query(Decoder& input, Encoder& output) {
     int64_t oid = input.get_long();
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
     graph_.graph().get_lid(user_label_id_, oid, root);
-    LOG(INFO) << "PASS\n";
     const auto& workat_edges = txn.GetOutgoingEdges<char_array<20>>(
         user_label_id_, root, ding_org_label_id_, workat_label_id_);
+    const auto& workat_ie = txn.GetIncomingGraphView<char_array<20>>(
+        ding_org_label_id_, user_label_id_, workat_label_id_);
     std::unordered_set<vid_t> orgs;
+    size_t sum = 0;
     for (auto& e : workat_edges) {
+      int d = workat_ie.get_edges(e.neighbor).estimated_degree();
+      if(d <= 1) continue;
       orgs.emplace(e.get_neighbor());  // org
+      sum += d;
     }
-    LOG(INFO) << "PASS\n";
+    if (sum == 0) {
+      return true;
+    }
+
     const auto& intimacy_edges = txn.GetOutgoingImmutableEdges<char_array<4>>(
         user_label_id_, root, user_label_id_, intimacy_label_id_);
     std::vector<vid_t> intimacy_users;
+
     for (auto& e : intimacy_edges) {
       intimacy_users.emplace_back(e.get_neighbor());
     }
     std::sort(intimacy_users.begin(), intimacy_users.end());
+
     const auto& friend_edges_oe =
         txn.GetOutgoingImmutableEdges<grape::EmptyType>(
             user_label_id_, root, user_label_id_, friend_label_id_);
@@ -72,23 +113,19 @@ class Query0 : public AppBase {
         txn.GetIncomingImmutableEdges<grape::EmptyType>(
             user_label_id_, root, user_label_id_, friend_label_id_);
     std::vector<vid_t> friends;
-    std::unordered_set<vid_t> vis_set, friend_set;
+    std::unordered_set<vid_t> vis_set;
     for (auto& e : friend_edges_oe) {
       friends.emplace_back(e.get_neighbor());
       vis_set.emplace(e.get_neighbor());
-      friend_set.emplace(e.get_neighbor());
     }
     for (auto& e : friend_edges_ie) {
       friends.emplace_back(e.get_neighbor());
       vis_set.emplace(e.get_neighbor());
-      friend_set.emplace(e.get_neighbor());
     }
-    LOG(INFO) << "PASS\n";
     std::sort(friends.begin(), friends.end());
     {
       auto len = std::unique(intimacy_users.begin(), intimacy_users.end()) -
                  intimacy_users.begin();
-      LOG(INFO) << len << "\n";
       intimacy_users.resize(len);
       int j = 0;
       int k = 0;
@@ -102,26 +139,28 @@ class Query0 : public AppBase {
       }
       intimacy_users.resize(k);
     }
-    LOG(INFO) << "PASS\n";
 
     auto workat_oe = txn.GetOutgoingGraphView<char_array<20>>(
         user_label_id_, ding_org_label_id_, workat_label_id_);
-
+    std::unordered_map<uint32_t,bool> mem;
     std::vector<vid_t> ans;
     for (auto& v : intimacy_users) {
-      const auto& oe = workat_oe.get_edges(v);
-      for (auto& e : oe) {
-        if (orgs.count(e.get_neighbor())) {
-          ans.emplace_back(v);
-          if (ans.size() > 20) {
+      //const auto& oe = workat_oe.get_edges(v);
+      //for (auto& e : oe) {
+        //if (orgs.count(e.get_neighbor())) {
+        if(check_same_org(orgs,workat_oe,v,mem)){
+	  ans.emplace_back(v);
+          if (ans.size() > 50) {
+	    for (auto vid : ans) {
+		   output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
+	    }
+	    
             return true;
           }
           break;
         }
       }
-    }
-    auto workat_ie = txn.GetIncomingGraphView<char_array<20>>(
-        ding_org_label_id_, user_label_id_, workat_label_id_);
+    //}
     auto friends_ie = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
         user_label_id_, user_label_id_, friend_label_id_);
     auto friends_oe = txn.GetOutgoingImmutableGraphView<grape::EmptyType>(
@@ -135,50 +174,83 @@ class Query0 : public AppBase {
       for (auto& e : oe) {
         groups.emplace(e.get_neighbor());
       }
-    }
-    std::vector<std::pair<int, vid_t>> users;
+      //std::unordered_map<uint32_t,int> mp;
 
-    for (auto o : orgs) {
-      const auto& ie = workat_ie.get_edges(o);
-      for (auto& e : ie) {
-        auto nbr = e.get_neighbor();
-        if (vis_set.count(nbr)) {
-          continue;
-        }
-        auto ies = friends_ie.get_edges(nbr);
-        int num = 0;
-        for (auto& e : ies) {
-          if (friend_set.count(e.get_neighbor())) {
-            ++num;
-          }
-        }
-        auto oes = friends_oe.get_edges(nbr);
-        for (auto& e : oes) {
-          if (friend_set.count(e.get_neighbor())) {
-            ++num;
-          }
-        }
-        auto group_oe = group_oes.get_edges(nbr);
-        for (auto& e : group_oe) {
-          if (groups.count(e.get_neighbor())) {
-            ++num;
-          }
-        }
-        users.emplace_back(num, nbr);
+    }
+    
+    std::unordered_map<uint32_t,int> mp;
+    {
+	auto group_ies = txn.GetIncomingImmutableGraphView<grape::EmptyType>(ding_group_label_id_,user_label_id_,chat_in_group_label_id_);
+	for(auto g : groups){
+		auto d = group_ies.get_edges(g).estimated_degree();
+		if(d <= 1)continue;
+		auto ie = group_ies.get_edges(g);
+		for(auto e : ie){
+			if(e.neighbor != root&&check_same_org(orgs,workat_oe,e.neighbor,mem)){
+				mp[e.neighbor] += 1;
+			}
+		}
+	}
+    }
+    //int res = 50 - ans.size();
+    std::vector<std::pair<int, vid_t>> users;
+    //std::priority_queue<std::pair<int,vid_t>,std::vector<std::pair<int,vid_t>>,std::greater<std::pair<int,vid_t>>>pq;
+    if (friends.size()) {
+      //std::vector<vid_t> vec;
+      for (size_t i = 0; i < friends.size(); ++i) {
+        auto cur = friends[i];
+        const auto& ie = friends_ie.get_edges(cur);
+	const auto& oe = friends_oe.get_edges(cur);
+	for(auto& e: ie){
+		if(e.neighbor != root && check_same_org(orgs,workat_oe,e.neighbor,mem)){
+			mp[e.neighbor] +=1;
+		}
+	}
+	for(auto& e: oe){
+		if(e.neighbor != root && check_same_org(orgs,workat_oe,e.neighbor, mem)){
+			mp[e.neighbor] += 1;
+		}
+	}
       }
     }
+    for(auto&[a,b]: mp){
+	    users.emplace_back(a,b);
+    }
+    /**
+    if (orgs.size()) {
+      for (auto o : orgs) {
+        const auto& ie = workat_ie.get_edges(o);
+        for (auto& e : ie) {
+          auto nbr = e.get_neighbor();
+          if (vis_set.count(nbr)) {
+            continue;
+          }
+          vis_set.emplace(nbr);
+          int num = 0;
+          if (groups.size()) {
+            auto group_oe = group_oes.get_edges(nbr);
+            for (auto& e : group_oe) {
+              if (groups.count(e.get_neighbor())) {
+                ++num;
+              }
+            }
+          }
+          users.emplace_back(num, nbr);
+	  if(users.size() > 5000){
+		  break;
+	  }
+        }
+      }
+    }*/
     std::sort(users.begin(), users.end());
     size_t idx = users.size();
     while (ans.size() < 50 && idx > 0) {
       ans.emplace_back(users[idx - 1].second);
       --idx;
     }
-    std::vector<int64_t> vec;
+    std::cout <<"user size: " <<users.size() << " ans size: " << ans.size() << "\n";
     for (auto vid : ans) {
-      vec.emplace_back(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
-    }
-    for (auto oid : vec) {
-      output.put_long(oid);
+      output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
     }
 
     return true;

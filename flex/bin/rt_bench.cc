@@ -115,16 +115,19 @@ class Req {
     std::vector<long long> vec(29, 0);
     std::vector<int> count(29, 0);
     std::vector<std::vector<long long>> ts(29);
+    size_t ma = 0;
     for (size_t idx = warmup_num_; idx < num_of_reqs_; idx++) {
       auto& s = reqs_[idx];
       size_t id = static_cast<size_t>(s.back()) - 1;
       auto tmp = std::chrono::duration_cast<std::chrono::microseconds>(
                      end_[idx] - start_[idx])
                      .count();
+      ma = std::max(ma,1lu*std::chrono::duration_cast<std::chrono::microseconds>(end_[idx] - start_[warmup_num_]).count());
       ts[id].emplace_back(tmp);
       vec[id] += tmp;
       count[id] += 1;
     }
+    std::cout << "QPS: " << 1000000.*(num_of_reqs_ - warmup_num_)/ma << "\n";
     std::vector<std::string> queries = {
         "IC1", "IC2",  "IC3",  "IC4",  "IC5",  "IC6",  "IC7", "IC8",
         "IC9", "IC10", "IC11", "IC12", "IC13", "IC14", "IS1", "IS2",
