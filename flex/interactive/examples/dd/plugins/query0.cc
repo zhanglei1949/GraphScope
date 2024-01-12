@@ -218,8 +218,9 @@ class Query0 : public AppBase {
     size_t idx = users.size();
     while (ans.size() < 50 && idx > 0) {
       auto vid = users[idx - 1].second;
-      if(vis_set.count(vid))continue;
-      ans.emplace_back(vid);
+      if(!vis_set.count(vid)){
+       ans.emplace_back(vid);
+      }
       --idx;
     }
     std::cout <<"user size: " <<users.size() << " ans size: " << ans.size() << "\n";
@@ -251,10 +252,6 @@ class Query0 : public AppBase {
   bool is_user_in_org_inited_ = false;
   bool is_user_friend_inited_ = false;
 
-  // A hash_set to store the users that are in the same org as the input user
-  // Can be reused for different stage of recommendation.
-  std::unordered_set<vid_t> users_in_org_ids_;
-  std::unordered_set<vid_t> users_are_friends_;
 };
 
 }  // namespace gs
