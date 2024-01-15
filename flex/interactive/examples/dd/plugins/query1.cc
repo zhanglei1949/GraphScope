@@ -274,7 +274,7 @@ class AlumniRecom : public AppBase {
       auto ie = studyAt_ie.get_edges(org_id);
       auto len = ie.estimated_degree();
       if (len == 0) {
-        sample_cont_failed_cnt = 0;
+        ++sample_cont_failed_cnt;
         continue;
       }
       auto idx = rand() % len;
@@ -296,6 +296,7 @@ class AlumniRecom : public AppBase {
       visited.emplace(nbr->neighbor);
       res.emplace_back(nbr->neighbor);
       ++cnt;
+      sample_cont_failed_cnt = 0;
     }
     LOG(INFO) << "get_potential_friends_via_joindate: " << cnt;
   }
@@ -327,6 +328,7 @@ class AlumniRecom : public AppBase {
       // auto vertex_iter = txn.GetVertexIterator(user_label_id_);
       auto cur_data = city_column->get_view(idx);
       if (cur_data.empty()) {
+        ++sample_cont_failed_cnt;
         continue;
       }
       if (visited.count(idx) > 0) {
@@ -339,6 +341,7 @@ class AlumniRecom : public AppBase {
       }
       visited.emplace(idx);
       res.emplace_back(idx);
+      sample_cont_failed_cnt = 0;
       ++cnt;
     }
     LOG(INFO) << "get_potential_friends_via_city: " << cnt;
@@ -380,6 +383,7 @@ class AlumniRecom : public AppBase {
       }
       visited.emplace(idx);
       res.emplace_back(idx);
+      sample_cont_failed_cnt = 0;
       ++cnt;
     }
     LOG(INFO) << " get_potential_friends_via_profession: " << cnt;
@@ -562,22 +566,33 @@ class AlumniRecom : public AppBase {
       res.emplace_back(user, RecomReason(kAlumni));
     }
     if (res.size() < end_ind - start_ind) {
-      auto user_study_at_edu_org_oe_view_ =
+      auto user_study_at_edu_org_ie_view_ =
           txn.GetOutgoingGraphView<studyAt_edge_type>(
-              user_label_id_, ding_edu_org_label_id_, study_at_label_id_);
+              ding_edu_org_label_id_, user_label_id_, study_at_label_id_);
       LOG(INFO) << "try more friends by random sampling, since cur only: "
                 << res.size() << " but need: " << end_ind - start_ind;
       // try more friends by random sampling
-      while (res.size() < end_ind - start_ind) {
-        auto vid = rand() % users_num_;
-        if (visited.count(vid) > 0) {
+      int32_t failed_contd_cnt = 0;
+      while (res.size() < end_ind - start_ind &&
+             failed_contd_cnt < 3) {  // try 3 times
+        auto idx = rand() % valid_edu_org_ids_.size();
+        auto org_id = valid_edu_org_ids_[idx].first;
+        auto ie = user_study_at_edu_org_ie_view_.get_edges(org_id);
+        auto len = ie.estimated_degree();
+        if (len == 0) {
+          ++failed_contd_cnt;
           continue;
         }
-        if (user_studied_at(vid, user_study_at_edu_org_oe_view_) &&
-            !is_friend(vid)) {
-          visited.emplace(vid);
-          res.emplace_back(vid, RecomReason());
+        auto idx2 = rand() % len;
+        auto nbr_slice = ie.slice();
+        auto nbr = nbr_slice.get_index(idx2);
+        if (visited.count(nbr->neighbor) || is_friend(nbr->neighbor)) {
+          ++failed_contd_cnt;
+          continue;
         }
+        visited.emplace(nbr->neighbor);
+        res.emplace_back(nbr->neighbor, RecomReason(kAlumni));
+        failed_contd_cnt = 0;
       }
     }
 
