@@ -257,7 +257,6 @@ class Query0 : public AppBase {
   label_t friend_label_id_;
   label_t chat_in_group_label_id_;
   label_t intimacy_label_id_;
-  label_t work_at_label_id_;
   label_t study_at_label_id_;
 
   size_t edu_org_num_ = 0;

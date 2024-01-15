@@ -82,6 +82,7 @@ class AlumniRecom : public AppBase {
     auto user_study_at_edu_org_ie_view_ =
         txn.GetIncomingGraphView<studyAt_edge_type>(
             user_label_id_, ding_edu_org_label_id_, study_at_label_id_);
+
     auto user_user_friend_oe_view_ =
         txn.GetOutgoingImmutableGraphView<friend_edge_type>(
             user_label_id_, user_label_id_, friend_label_id_);
@@ -193,7 +194,7 @@ class AlumniRecom : public AppBase {
       }
       for (auto& edge : user_user_friend_view_ie.get_edges(user_vid)) {
         auto dst = edge.get_neighbor();
-        if (visited.count(dst) < 0 &&
+        if (visited.count(dst) <= 0 &&
             user_studied_at(dst, valid_edu_org_ids_,
                             user_study_at_edu_org_oe_view_) &&
             !is_friend(dst)) {
@@ -207,6 +208,38 @@ class AlumniRecom : public AppBase {
       }
     }
     LOG(INFO) << "common friend size: " << common_friends.size();
+    // Get for common chat group
+    std::unordered_set<vid_t> groups;
+    // root -> oe chatInGroup -> groups
+    auto group_oes = txn.GetOutgoingImmutableGraphView<grape::EmptyType>(
+        user_label_id_, ding_group_label_id_, chat_in_group_label_id_);
+
+    {
+      const auto& oe = group_oes.get_edges(vid);
+      for (auto& e : oe) {
+        groups.emplace(e.get_neighbor());
+      }
+    }
+    {
+      // groups -> ie chatInGroup -> users
+      auto group_ies = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
+          ding_group_label_id_, user_label_id_, chat_in_group_label_id_);
+      for (auto g : groups) {
+        auto d = group_ies.get_edges(g).estimated_degree();
+        if (d <= 1)
+          continue;
+        auto ie = group_ies.get_edges(g);
+        for (auto e : ie) {
+          if (e.neighbor != vid &&
+              user_studied_at(e.neighbor, valid_edu_org_ids_,
+                              user_study_at_edu_org_oe_view_) &&
+              !is_friend(e.neighbor)) {
+            common_friends[e.neighbor] += 1;
+          }
+        }
+      }
+    }
+
     std::vector<std::pair<vid_t, RecomReason>> res;
     for (auto& pair : common_friends) {
       res.emplace_back(pair.first, RecomReason(kCommonFriend));
@@ -272,6 +305,37 @@ class AlumniRecom : public AppBase {
                                       std::unordered_set<vid_t>& visited,
                                       std::vector<vid_t>& res) {
     // TODO: to be implemented
+    if (limit <= 0) {
+      return;
+    }
+    auto vertex_iter = txn.GetVertexIterator(user_label_id_);
+    vertex_iter.Goto(root);
+    auto data = vertex_iter.GetField(0).AsStringView();
+    LOG(INFO) << "root 's city: " << data;
+    if (data.empty()) {
+      return;
+    }
+
+    int32_t cnt = 0;
+    int32_t sample_cont_failed_cnt = 0;  // sample continue failed count
+    while (cnt < limit && sample_cont_failed_cnt < 5) {
+      auto idx = rand() % users_num_;
+      // auto vertex_iter = txn.GetVertexIterator(user_label_id_);
+      vertex_iter.Goto(idx);
+      auto data = vertex_iter.GetField(0).AsStringView();
+      if (data.empty()) {
+        ++sample_cont_failed_cnt;
+        continue;
+      }
+      if (visited.count(idx) > 0) {
+        ++sample_cont_failed_cnt;
+        continue;
+      }
+      visited.emplace(idx);
+      res.emplace_back(idx);
+      ++cnt;
+    }
+    LOG(INFO) << "after get_potential_friends_via_city: " << res.size();
   }
 
   void get_potential_friends_via_profession(ReadTransaction& txn, vid_t root,
@@ -282,8 +346,34 @@ class AlumniRecom : public AppBase {
     // find the users that have the same
     // roleName
     // Sample from users, until find limit users, which have the same roleName
-
     // TODO: to be implemented
+    auto vertex_iter = txn.GetVertexIterator(user_label_id_);
+    vertex_iter.Goto(root);
+    auto data = vertex_iter.GetField(1).AsStringView();
+    LOG(INFO) << "root 's profession: " << data;
+    if (data.empty()) {
+      return;
+    }
+
+    int32_t cnt = 0;
+    int32_t sample_cont_failed_cnt = 0;  // sample continue failed count
+    while (cnt < limit && sample_cont_failed_cnt < 5) {
+      auto idx = rand() % users_num_;
+      vertex_iter.Goto(idx);
+      auto data = vertex_iter.GetField(1).AsStringView();  // roleName
+      if (data.empty()) {
+        ++sample_cont_failed_cnt;
+        continue;
+      }
+      if (visited.count(idx) > 0) {
+        ++sample_cont_failed_cnt;
+        continue;
+      }
+      visited.emplace(idx);
+      res.emplace_back(idx);
+      ++cnt;
+    }
+    LOG(INFO) << "after get_potential_friends_via_profession: " << res.size();
   }
 
   auto get_potential_friends(
@@ -311,7 +401,10 @@ class AlumniRecom : public AppBase {
       const GraphView<studyAt_edge_type>& user_edu_org_oe_view,
       std::vector<std::pair<vid_t, uint16_t>>& intimacy_users,
       std::unordered_set<vid_t>& visited) {
-    for (auto& edge : user_user_intimacy_view.get_edges(vid)) {
+    auto edges = user_user_intimacy_view.get_edges(vid);
+    LOG(INFO) << "num intimacy edges: " << edges.estimated_degree();
+    int32_t cnt = 0;
+    for (auto& edge : edges) {
       auto dst = edge.get_neighbor();
       // only keep the user that are in the same org
       if (visited.count(dst) > 0) {
@@ -325,8 +418,11 @@ class AlumniRecom : public AppBase {
         auto comm_score = *reinterpret_cast<const uint16_t*>(fc.data + 1);
         intimacy_users.emplace_back(dst, intimacy + comm_score);
         visited.emplace(dst);
+        cnt += 1;
       }
     }
+    LOG(INFO) << "Select " << cnt << " users from intimacy view, out of : "
+              << edges.estimated_degree();
   }
 
   void init_user_studyAt_edu_org(
@@ -436,13 +532,24 @@ class AlumniRecom : public AppBase {
       std::unordered_set<vid_t>& visited) {
     std::vector<std::pair<vid_t, RecomReason>> res;
     std::vector<std::pair<vid_t, RecomReason>> common_friend_users;
-    if (!is_user_in_org_inited_) {
-      // If the user_in_org not inited, it means that the orgs have too many
-      // employees in edu_orgs.
-      auto tmp = try_get_common_friend_users(txn, vid, visited);
-      common_friend_users.insert(common_friend_users.end(), tmp.begin(),
-                                 tmp.end());
+    auto tmp = try_get_common_friend_users(txn, vid, visited);
+    if (tmp.size() > start_ind && tmp.size() > end_ind) {
+      LOG(INFO) << "tmp.size() > start_ind && tmp.size() > end_ind: "
+                << tmp.size() << " " << start_ind << " " << end_ind;
+      common_friend_users.insert(common_friend_users.end(),
+                                 tmp.begin() + start_ind,
+                                 tmp.begin() + end_ind);
+    } else if (tmp.size() > start_ind && tmp.size() <= end_ind) {
+      LOG(INFO) << "tmp.size() > start_ind && tmp.size() <= end_ind: "
+                << tmp.size() << " " << start_ind << " " << end_ind;
+      common_friend_users.insert(common_friend_users.end(),
+                                 tmp.begin() + start_ind, tmp.end());
+    } else if (tmp.size() <= start_ind) {
+      // do nothing
+      LOG(INFO) << "tmp.size() <= start_ind: " << tmp.size() << " " << start_ind
+                << " " << end_ind;
     }
+
     int32_t expect_potential_users_num =
         std::max(end_ind - start_ind - (int32_t) common_friend_users.size(), 0);
     auto potential_users = get_potential_friends(
