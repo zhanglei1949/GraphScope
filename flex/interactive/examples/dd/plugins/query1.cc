@@ -63,6 +63,7 @@ class AlumniRecom : public AppBase {
     users_are_friends_.clear();
     users_studyAt_edu_org_.clear();
     valid_edu_org_ids_.clear();
+    valid_edu_org_ids_set_.clear();
 
     int64_t user_id = input.get_long();
     int32_t page_id = input.get_int();
@@ -181,8 +182,7 @@ class AlumniRecom : public AppBase {
         auto dst = edge.get_neighbor();
         // check is in the same org
         if (visited.count(dst) <= 0 &&
-            user_studied_at(dst, valid_edu_org_ids_,
-                            user_study_at_edu_org_oe_view_) &&
+            user_studied_at(dst, user_study_at_edu_org_oe_view_) &&
             !is_friend(dst)) {
           visited.emplace(dst);
           if (common_friends.count(dst) == 0) {
@@ -195,8 +195,7 @@ class AlumniRecom : public AppBase {
       for (auto& edge : user_user_friend_view_ie.get_edges(user_vid)) {
         auto dst = edge.get_neighbor();
         if (visited.count(dst) <= 0 &&
-            user_studied_at(dst, valid_edu_org_ids_,
-                            user_study_at_edu_org_oe_view_) &&
+            user_studied_at(dst, user_study_at_edu_org_oe_view_) &&
             !is_friend(dst)) {
           visited.emplace(dst);
           if (common_friends.count(dst) == 0) {
@@ -231,8 +230,7 @@ class AlumniRecom : public AppBase {
         auto ie = group_ies.get_edges(g);
         for (auto e : ie) {
           if (e.neighbor != vid &&
-              user_studied_at(e.neighbor, valid_edu_org_ids_,
-                              user_study_at_edu_org_oe_view_) &&
+              user_studied_at(e.neighbor, user_study_at_edu_org_oe_view_) &&
               !is_friend(e.neighbor)) {
             common_friends[e.neighbor] += 1;
           }
@@ -361,6 +359,9 @@ class AlumniRecom : public AppBase {
     CHECK(city_column != nullptr);
     auto data = city_column->get_view(root);
     LOG(INFO) << "root 's profession: " << std::to_string(data);
+    if (data == 0) {
+      return;
+    }
 
     int32_t cnt = 0;
     int32_t sample_cont_failed_cnt = 0;  // sample continue failed count
@@ -417,8 +418,7 @@ class AlumniRecom : public AppBase {
       if (visited.count(dst) > 0) {
         continue;
       }
-      if (user_studied_at(dst, valid_edu_org_ids_, user_edu_org_oe_view) &&
-          !is_friend(dst)) {
+      if (user_studied_at(dst, user_edu_org_oe_view) && !is_friend(dst)) {
         auto fc = edge.get_data();
         // the first it a uint8_t, the second is a uint16_t
         auto intimacy = *reinterpret_cast<const uint8_t*>(fc.data);
@@ -445,22 +445,21 @@ class AlumniRecom : public AppBase {
         auto cur_ptr = static_cast<const char*>(data.data);
         auto joinDate = *reinterpret_cast<const int64_t*>(cur_ptr);
         valid_edu_org_ids_.emplace_back(dst, joinDate);
+        valid_edu_org_ids_set_.emplace(dst);
       }
     }
     // 如果所有edu_org的邻边加起来超过阈值，我们将通过用户来访问edu_org.
     // 如果所有edu_org的邻边加起来不超过阈值，我们将通过edu_org来访问用户.
     size_t org_employee_cnt = 0;
     {
-      for (auto org_id_date : valid_edu_org_ids_) {
-        auto org_id = org_id_date.first;
+      for (auto org_id : valid_edu_org_ids_set_) {
         org_employee_cnt +=
             user_study_at_edu_org_ie_view_.get_edges(org_id).estimated_degree();
       }
     }
     LOG(INFO) << "org_employee_cnt: " << org_employee_cnt;
     if (org_employee_cnt < EMPLOYEE_CNT) {
-      for (auto org_id_date : valid_edu_org_ids_) {
-        auto org_id = org_id_date.first;
+      for (auto org_id : valid_edu_org_ids_set_) {
         for (auto& edge : user_study_at_edu_org_ie_view_.get_edges(org_id)) {
           auto dst = edge.get_neighbor();
           users_studyAt_edu_org_.insert(dst);
@@ -476,19 +475,13 @@ class AlumniRecom : public AppBase {
   // Suppose edu_org_ids are sorted asc.
   inline bool user_studied_at(
       vid_t user_vid,
-      const std::vector<std::pair<vid_t, int64_t>>& edu_org_ids_date,
       const GraphView<studyAt_edge_type>& user_edu_org_oe_view) const {
     if (is_user_in_org_inited_) {
       return users_studyAt_edu_org_.count(user_vid) > 0;
     }
     for (auto edge : user_edu_org_oe_view.get_edges(user_vid)) {
       auto dst = edge.get_neighbor();
-      // binary search on edu_org_ids, on each element's first
-      auto iter = std::lower_bound(edu_org_ids_date.begin(),
-                                   edu_org_ids_date.end(), dst,
-                                   [](const std::pair<vid_t, int64_t>& a,
-                                      vid_t b) { return a.first < b; });
-      if (iter != edu_org_ids_date.end() && iter->first == dst) {
+      if (valid_edu_org_ids_set_.count(dst) > 0) {
         return true;
       }
     }
@@ -509,6 +502,7 @@ class AlumniRecom : public AppBase {
       users_are_friends_.insert(dst);
     }
     is_user_friend_inited_ = true;
+    LOG(INFO) << "user_friend_set size: " << users_are_friends_.size();
   }
 
   inline bool is_friend(vid_t user_vid) const {
@@ -646,6 +640,7 @@ class AlumniRecom : public AppBase {
   std::unordered_set<vid_t> users_are_friends_;
 
   std::vector<std::pair<vid_t, int64_t>> valid_edu_org_ids_;  // and joinDate
+  std::unordered_set<vid_t> valid_edu_org_ids_set_;
 };
 
 }  // namespace gs
