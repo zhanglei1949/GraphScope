@@ -295,7 +295,7 @@ class AlumniRecom : public AppBase {
       res.emplace_back(nbr->neighbor);
       ++cnt;
     }
-    LOG(INFO) << "get_potential_friends_via_joindate: " << res.size();
+    LOG(INFO) << "get_potential_friends_via_joindate: " << cnt;
   }
 
   void get_potential_friends_via_city(ReadTransaction& txn, vid_t root,
@@ -339,7 +339,7 @@ class AlumniRecom : public AppBase {
       res.emplace_back(idx);
       ++cnt;
     }
-    LOG(INFO) << "after get_potential_friends_via_city: " << res.size();
+    LOG(INFO) << "get_potential_friends_via_city: " << cnt;
   }
 
   void get_potential_friends_via_profession(ReadTransaction& txn, vid_t root,
@@ -380,7 +380,7 @@ class AlumniRecom : public AppBase {
       res.emplace_back(idx);
       ++cnt;
     }
-    LOG(INFO) << "after get_potential_friends_via_profession: " << res.size();
+    LOG(INFO) << " get_potential_friends_via_profession: " << cnt;
   }
 
   auto get_potential_friends(
@@ -527,7 +527,8 @@ class AlumniRecom : public AppBase {
   //
   // If no users are found, return an empty vector.
   //
-  // AS FIRST ATTEMPT, only try to get common friends.
+  // If the result is less than end_ind - start_ind, we will try to find more
+  // by randomly sampling from the potential users.
   std::vector<std::pair<vid_t, RecomReason>> try_without_intimacy(
       ReadTransaction& txn, vid_t vid, int32_t start_ind, int32_t end_ind,
       std::unordered_set<vid_t>& visited) {
@@ -535,21 +536,16 @@ class AlumniRecom : public AppBase {
     std::vector<std::pair<vid_t, RecomReason>> common_friend_users;
     auto tmp = try_get_common_friend_users(txn, vid, visited);
     if (tmp.size() > start_ind && tmp.size() > end_ind) {
-      LOG(INFO) << "tmp.size() > start_ind && tmp.size() > end_ind: "
-                << tmp.size() << " " << start_ind << " " << end_ind;
       common_friend_users.insert(common_friend_users.end(),
                                  tmp.begin() + start_ind,
                                  tmp.begin() + end_ind);
     } else if (tmp.size() > start_ind && tmp.size() <= end_ind) {
-      LOG(INFO) << "tmp.size() > start_ind && tmp.size() <= end_ind: "
-                << tmp.size() << " " << start_ind << " " << end_ind;
       common_friend_users.insert(common_friend_users.end(),
                                  tmp.begin() + start_ind, tmp.end());
     } else if (tmp.size() <= start_ind) {
       // do nothing
-      LOG(INFO) << "tmp.size() <= start_ind: " << tmp.size() << " " << start_ind
-                << " " << end_ind;
     }
+    LOG(INFO) << "common_friend_users size: " << common_friend_users.size();
 
     int32_t expect_potential_users_num =
         std::max(end_ind - start_ind - (int32_t) common_friend_users.size(), 0);
@@ -562,6 +558,26 @@ class AlumniRecom : public AppBase {
     for (auto user : potential_users) {
       res.emplace_back(user, RecomReason(kAlumni));
     }
+    if (res.size() < end_ind - start_ind) {
+      auto user_study_at_edu_org_oe_view_ =
+          txn.GetOutgoingGraphView<studyAt_edge_type>(
+              user_label_id_, ding_edu_org_label_id_, study_at_label_id_);
+      LOG(INFO) << "try more friends by random sampling, since cur only: "
+                << res.size() << " but need: " << end_ind - start_ind;
+      // try more friends by random sampling
+      while (res.size() < end_ind - start_ind) {
+        auto vid = rand() % users_num_;
+        if (visited.count(vid) > 0) {
+          continue;
+        }
+        if (user_studied_at(vid, user_study_at_edu_org_oe_view_) &&
+            !is_friend(vid)) {
+          visited.emplace(vid);
+          res.emplace_back(vid, RecomReason());
+        }
+      }
+    }
+
     return res;
   }
 
