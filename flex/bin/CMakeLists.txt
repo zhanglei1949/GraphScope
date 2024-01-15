@@ -37,6 +37,14 @@ install(TARGETS flex_analytical_engine
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib)
 
+if(Hiactor_FOUND)
+	add_executable(rt_test rt_test.cc)
+	target_link_libraries(rt_test flex_utils flex_rt_mutable_graph flex_graph_db flex_server)
+	install(TARGETS rt_test
+		RUNTIME DESTINATION bin
+		ARCHIVE DESTINATION lib
+		LIBRARY DESTINATION lib)
+endif()
 if(BUILD_HQPS)
         if(Hiactor_FOUND)
                 add_executable(interactive_server interactive_server.cc)

@@ -52,7 +52,7 @@ class Req {
 	    char temp[8];
 	    memcpy(temp,&id,sizeof(int64_t));
 	    std::string s(temp, temp+8);
-	    s += char(1);
+	    s += char(3);
 	    //int64_t val = *static_cast<const int64_t*>(static_cast<const void*>(s.data()));
 	    //std::cout << id << " " << val << "\n";
 	    reqs_.emplace_back(s);

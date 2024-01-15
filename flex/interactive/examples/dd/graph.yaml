@@ -3,6 +3,9 @@ stored_procedures:
   directory: /home/graphscope/GraphScope/flex/interactive/examples/dd/plugins
   enable_lists:
     - libquery0.so
+    - libquery1.so
+    - libquery2.so
+    - libquery3.so
 schema:
   vertex_types:
     - type_id: 0
@@ -65,7 +68,7 @@ schema:
           destination_vertex: DingGroup
           relation: MANY_TO_MANY
           x_csr_params:
-            edge_storage_strategy: ONLY_OUT
+          #  edge_storage_strategy: ONLY_OUT
             mutability: IMMUTABLE
     - type_id: 2           
       type_name: Intimacy

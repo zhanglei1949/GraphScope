@@ -119,7 +119,7 @@ class Query3 : public AppBase {
     for (auto& v : intimacy_users) {
 	  ans.emplace_back(v);
 	  vis_set.emplace(v);
-          if (ans.size() > 50) {
+          if (ans.size() > 500) {
 	    for (auto vid : ans) {
 		   output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
 	    }
@@ -183,7 +183,7 @@ class Query3 : public AppBase {
     }
     std::sort(users.begin(), users.end());
     size_t idx = users.size();
-    while (ans.size() < 50 && idx > 0) {
+    while (ans.size() < 500 && idx > 0) {
       auto vid = users[idx - 1].second;
       if(!vis_set.count(vid)){
        ans.emplace_back(vid);
