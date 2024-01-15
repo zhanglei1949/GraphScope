@@ -310,9 +310,13 @@ class AlumniRecom : public AppBase {
     if (limit <= 0) {
       return;
     }
-    auto vertex_iter = txn.GetVertexIterator(user_label_id_);
-    vertex_iter.Goto(root);
-    auto data = vertex_iter.GetField(0).AsStringView();
+    auto column_base =
+        graph_.get_vertex_property_column(user_label_id_, "city");
+    CHECK(column_base != nullptr);
+    auto city_column =
+        std::dynamic_pointer_cast<gs::StringMapColumn<uint16_t>>(column_base);
+    CHECK(city_column != nullptr);
+    auto data = city_column->get_view(root);
     LOG(INFO) << "root 's city: " << data;
     if (data.empty()) {
       return;
@@ -323,13 +327,15 @@ class AlumniRecom : public AppBase {
     while (cnt < limit && sample_cont_failed_cnt < 5) {
       auto idx = rand() % users_num_;
       // auto vertex_iter = txn.GetVertexIterator(user_label_id_);
-      vertex_iter.Goto(idx);
-      auto data = vertex_iter.GetField(0).AsStringView();
-      if (data.empty()) {
-        ++sample_cont_failed_cnt;
+      auto cur_data = city_column->get_view(idx);
+      if (cur_data.empty()) {
         continue;
       }
       if (visited.count(idx) > 0) {
+        ++sample_cont_failed_cnt;
+        continue;
+      }
+      if (cur_data != data) {
         ++sample_cont_failed_cnt;
         continue;
       }
@@ -349,26 +355,26 @@ class AlumniRecom : public AppBase {
     // roleName
     // Sample from users, until find limit users, which have the same roleName
     // TODO: to be implemented
-    auto vertex_iter = txn.GetVertexIterator(user_label_id_);
-    vertex_iter.Goto(root);
-    auto data = vertex_iter.GetField(1).AsStringView();
-    LOG(INFO) << "root 's profession: " << data;
-    if (data.empty()) {
-      return;
-    }
+    auto column_base =
+        graph_.get_vertex_property_column(user_label_id_, "roleName");
+    CHECK(column_base != nullptr);
+    auto city_column =
+        std::dynamic_pointer_cast<gs::TypedColumn<uint8_t>>(column_base);
+    CHECK(city_column != nullptr);
+    auto data = city_column->get_view(root);
+    LOG(INFO) << "root 's profession: " << std::to_string(data);
 
     int32_t cnt = 0;
     int32_t sample_cont_failed_cnt = 0;  // sample continue failed count
     while (cnt < limit && sample_cont_failed_cnt < 5) {
       auto idx = rand() % users_num_;
-      vertex_iter.Goto(idx);
-      auto data = vertex_iter.GetField(1).AsStringView();  // roleName
-      if (data.empty()) {
+      auto cur_data = city_column->get_view(idx);
+
+      if (visited.count(idx) > 0) {
         ++sample_cont_failed_cnt;
         continue;
       }
-      if (visited.count(idx) > 0) {
-        ++sample_cont_failed_cnt;
+      if (cur_data != data) {
         continue;
       }
       visited.emplace(idx);
@@ -388,10 +394,11 @@ class AlumniRecom : public AppBase {
     get_potential_friends_via_joindate(txn, root, limit, org_ids_date, visited,
                                        res);
     // 3. Same city
-    get_potential_friends_via_city(txn, root, limit - res.size(), visited, res);
+    get_potential_friends_via_city(
+        txn, root, std::max(0, limit - (int32_t) res.size()), visited, res);
     // 4. Same profession
-    get_potential_friends_via_profession(txn, root, limit - res.size(), visited,
-                                         res);
+    get_potential_friends_via_profession(
+        txn, root, std::max(0, limit - (int32_t) res.size()), visited, res);
     // res.size() must be <= limit
     return res;
   }
