@@ -116,6 +116,11 @@ class MutableNbrSlice {
   const_nbr_ptr_t begin() const { return ptr_; }
   const_nbr_ptr_t end() const { return ptr_ + size_; }
 
+  const_nbr_ptr_t get_index(int idx) const {
+    CHECK(idx < size_);
+    return ptr_ + idx;
+  }
+
   static MutableNbrSlice empty() {
     MutableNbrSlice ret;
     ret.set_begin(nullptr);

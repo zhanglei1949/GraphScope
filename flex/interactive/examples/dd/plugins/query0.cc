@@ -1,7 +1,7 @@
+#include <queue>
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/storages/rt_mutable_graph/types.h"
-#include <queue>
 namespace gs {
 
 static constexpr int32_t EMPLOYEE_CNT = 100000;
@@ -61,23 +61,27 @@ class Query0 : public AppBase {
   }
 
   bool check_same_org(const std::unordered_set<uint32_t>& st,
-		  const GraphView<char_array<20>>& view,uint32_t root,std::unordered_map<uint32_t,bool>& mem){
-	  if(mem.count(root))return mem[root];
-	  
-	  const auto& ie = view.get_edges(root);
-	  mem[root] = false;
-	  for(auto& e: ie){
-		  if(st.count(e.neighbor)){
-			 mem[root] = true;
-			break; 
-		 }
-	  }
-	  return mem[root];
+                      const GraphView<char_array<20>>& view, uint32_t root,
+                      std::unordered_map<uint32_t, bool>& mem) {
+    if (mem.count(root))
+      return mem[root];
 
-
+    const auto& ie = view.get_edges(root);
+    mem[root] = false;
+    for (auto& e : ie) {
+      if (st.count(e.neighbor)) {
+        mem[root] = true;
+        break;
+      }
+    }
+    return mem[root];
   }
   bool Query(Decoder& input, Encoder& output) {
     int64_t oid = input.get_long();
+    // int32_t page_id = input.get_int();
+    // // page_id is no more that 10
+    // page_id = page_id % 10;
+    // LOG(INFO) << "Query for user " << oid << " page_id " << page_id;
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
     graph_.graph().get_lid(user_label_id_, oid, root);
@@ -89,7 +93,8 @@ class Query0 : public AppBase {
     size_t sum = 0;
     for (auto& e : workat_edges) {
       int d = workat_ie.get_edges(e.neighbor).estimated_degree();
-      if(d <= 1) continue;
+      if (d <= 1)
+        continue;
       orgs.emplace(e.get_neighbor());  // org
       sum += d;
     }
@@ -125,7 +130,8 @@ class Query0 : public AppBase {
       vis_set.emplace(e.get_neighbor());
     }
     std::sort(friends.begin(), friends.end());
-    size_t friend_num = std::unique(friends.begin(),friends.end()) - friends.begin();
+    size_t friend_num =
+        std::unique(friends.begin(), friends.end()) - friends.begin();
     friends.resize(friend_num);
     {
       auto len = std::unique(intimacy_users.begin(), intimacy_users.end()) -
@@ -146,23 +152,23 @@ class Query0 : public AppBase {
 
     auto workat_oe = txn.GetOutgoingGraphView<char_array<20>>(
         user_label_id_, ding_org_label_id_, workat_label_id_);
-    std::unordered_map<uint32_t,bool> mem;
+    std::unordered_map<uint32_t, bool> mem;
     std::vector<vid_t> ans;
     // root -> Intimacy -> Users
     for (auto& v : intimacy_users) {
-        if(check_same_org(orgs,workat_oe,v,mem)){
-	  ans.emplace_back(v);
-	  vis_set.emplace(v);
-          if (ans.size() > 50) {
-	    for (auto vid : ans) {
-		   output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
-	    }
-	    
-            return true;
+      if (check_same_org(orgs, workat_oe, v, mem)) {
+        ans.emplace_back(v);
+        vis_set.emplace(v);
+        if (ans.size() > 50) {
+          for (auto vid : ans) {
+            output.put_long(
+                graph_.graph().get_oid(user_label_id_, vid).AsInt64());
           }
-          //break;
+          return true;
         }
+        // break;
       }
+    }
     auto friends_ie = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
         user_label_id_, user_label_id_, friend_label_id_);
     auto friends_oe = txn.GetOutgoingImmutableGraphView<grape::EmptyType>(
@@ -177,23 +183,25 @@ class Query0 : public AppBase {
       for (auto& e : oe) {
         groups.emplace(e.get_neighbor());
       }
-
     }
-    //friends num + groups num,vid_t
-    std::unordered_map<uint32_t,int> mp;
+    // friends num + groups num,vid_t
+    std::unordered_map<uint32_t, int> mp;
     {
-	// groups -> ie chatInGroup -> users
-	auto group_ies = txn.GetIncomingImmutableGraphView<grape::EmptyType>(ding_group_label_id_,user_label_id_,chat_in_group_label_id_);
-	for(auto g : groups){
-		auto d = group_ies.get_edges(g).estimated_degree();
-		if(d <= 1)continue;
-		auto ie = group_ies.get_edges(g);
-		for(auto e : ie){
-			if(e.neighbor != root&&check_same_org(orgs,workat_oe,e.neighbor,mem)){
-				mp[e.neighbor] += 1;
-			}
-		}
-	}
+      // groups -> ie chatInGroup -> users
+      auto group_ies = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
+          ding_group_label_id_, user_label_id_, chat_in_group_label_id_);
+      for (auto g : groups) {
+        auto d = group_ies.get_edges(g).estimated_degree();
+        if (d <= 1)
+          continue;
+        auto ie = group_ies.get_edges(g);
+        for (auto e : ie) {
+          if (e.neighbor != root &&
+              check_same_org(orgs, workat_oe, e.neighbor, mem)) {
+            mp[e.neighbor] += 1;
+          }
+        }
+      }
     }
     std::vector<std::pair<int, vid_t>> users;
     // 2-hop friends
@@ -201,32 +209,36 @@ class Query0 : public AppBase {
       for (size_t i = 0; i < friends.size(); ++i) {
         auto cur = friends[i];
         const auto& ie = friends_ie.get_edges(cur);
-	const auto& oe = friends_oe.get_edges(cur);
-	for(auto& e: ie){
-		if(e.neighbor != root && check_same_org(orgs,workat_oe,e.neighbor,mem)){
-			mp[e.neighbor] +=1;
-		}
-	}
-	for(auto& e: oe){
-		if(e.neighbor != root && check_same_org(orgs,workat_oe,e.neighbor, mem)){
-			mp[e.neighbor] += 1;
-		}
-	}
+        const auto& oe = friends_oe.get_edges(cur);
+        for (auto& e : ie) {
+          if (e.neighbor != root &&
+              check_same_org(orgs, workat_oe, e.neighbor, mem)) {
+            mp[e.neighbor] += 1;
+          }
+        }
+        for (auto& e : oe) {
+          if (e.neighbor != root &&
+              check_same_org(orgs, workat_oe, e.neighbor, mem)) {
+            mp[e.neighbor] += 1;
+          }
+        }
       }
     }
-    for(auto&[a,b]: mp){
-	    users.emplace_back(b,a);
+    for (auto& [a, b] : mp) {
+      users.emplace_back(b, a);
     }
     std::sort(users.begin(), users.end());
+
     size_t idx = users.size();
     while (ans.size() < 50 && idx > 0) {
       auto vid = users[idx - 1].second;
-      if(!vis_set.count(vid)){
-       ans.emplace_back(vid);
+      if (!vis_set.count(vid)) {
+        ans.emplace_back(vid);
       }
       --idx;
     }
-    std::cout <<"user size: " <<users.size() << " ans size: " << ans.size() << "\n";
+    std::cout << "user size: " << users.size() << " ans size: " << ans.size()
+              << "\n";
     for (auto vid : ans) {
       output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
     }
@@ -254,7 +266,6 @@ class Query0 : public AppBase {
 
   bool is_user_in_org_inited_ = false;
   bool is_user_friend_inited_ = false;
-
 };
 
 }  // namespace gs

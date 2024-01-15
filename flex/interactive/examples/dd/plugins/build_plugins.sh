@@ -1,6 +1,6 @@
 ARCH=`uname -m`
-#FLEX_HOME = / usr / local
-FLEX_HOME=/home/graphscope/flex_home/
+FLEX_HOME=/usr/local
+#FLEX_HOME=/home/graphscope/flex_home/
 
 for i in query0 query1 query2 query3
 do

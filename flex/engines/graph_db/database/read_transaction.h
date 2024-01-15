@@ -100,6 +100,8 @@ class AdjListView {
     return nbr_iterator(edges_.end(), edges_.end(), timestamp_);
   }
 
+  const slice_t& slice() const { return edges_; }
+
   int estimated_degree() const { return edges_.size(); }
 
  private:
