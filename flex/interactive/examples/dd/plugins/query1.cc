@@ -83,10 +83,10 @@ class AlumniRecom : public AppBase {
         txn.GetIncomingGraphView<studyAt_edge_type>(
             user_label_id_, ding_edu_org_label_id_, study_at_label_id_);
     auto user_user_friend_oe_view_ =
-        txn.GetOutgoingImmutableEdges<friend_edge_type>(
+        txn.GetOutgoingImmutableGraphView<friend_edge_type>(
             user_label_id_, user_label_id_, friend_label_id_);
     auto user_user_friend_ie_view_ =
-        txn.GetIncomingImmutableEdges<friend_edge_type>(
+        txn.GetIncomingImmutableGraphView<friend_edge_type>(
             user_label_id_, user_label_id_, friend_label_id_);
     auto user_user_intimacy_view =
         txn.GetOutgoingImmutableGraphView<intimacy_edge_type>(
@@ -167,10 +167,10 @@ class AlumniRecom : public AppBase {
     // 2. Iterate over all friends, and get their friends
     std::unordered_map<vid_t, int> common_friends;
     auto user_user_friend_view_oe =
-        txn.GetOutgoingImmutableEdges<friend_edge_type>(
+        txn.GetOutgoingImmutableGraphView<friend_edge_type>(
             user_label_id_, user_label_id_, friend_label_id_);
     auto user_user_friend_view_ie =
-        txn.GetIncomingImmutableEdges<friend_edge_type>(
+        txn.GetIncomingImmutableGraphView<friend_edge_type>(
             user_label_id_, user_label_id_, friend_label_id_);
     auto user_study_at_edu_org_oe_view_ =
         txn.GetOutgoingGraphView<studyAt_edge_type>(
@@ -394,8 +394,8 @@ class AlumniRecom : public AppBase {
 
   void init_user_friend_set(
       vid_t user_vid,
-      const GraphView<friend_edge_type>& user_user_friend_view_oe,
-      const GraphView<friend_edge_type>& user_user_friend_view_ie) {
+      const ImmutableGraphView<friend_edge_type>& user_user_friend_view_oe,
+      const ImmutableGraphView<friend_edge_type>& user_user_friend_view_ie) {
     CHECK(!is_user_friend_inited_);
     for (auto& edge : user_user_friend_view_oe.get_edges(user_vid)) {
       auto dst = edge.get_neighbor();
