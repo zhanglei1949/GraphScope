@@ -359,11 +359,13 @@ class AlumniRecom : public AppBase {
     for (auto edge : user_edu_org_oe_view.get_edges(user_vid)) {
       auto dst = edge.get_neighbor();
       // binary search on edu_org_ids, on each element's first
-
-      return std::binary_search(
-          edu_org_ids_date.begin(), edu_org_ids_date.end(), dst,
-          [](const std::pair<vid_t, int64_t>& a,
-             const std::pair<vid_t, int64_t>& b) { return a.first < b.first; });
+      auto iter = std::lower_bound(edu_org_ids_date.begin(),
+                                   edu_org_ids_date.end(), dst,
+                                   [](const std::pair<vid_t, int64_t>& a,
+                                      vid_t b) { return a.first < b; });
+      if (iter != edu_org_ids_date.end() && iter->first == dst) {
+        return true;
+      }
     }
     return false;
   }
