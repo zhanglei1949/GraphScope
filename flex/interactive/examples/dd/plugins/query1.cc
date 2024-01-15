@@ -263,6 +263,25 @@ class AlumniRecom : public AppBase {
     LOG(INFO) << "get_potential_friends_via_joindate: " << res.size();
   }
 
+  void get_potential_friends_via_city(ReadTransaction& txn, vid_t root,
+                                      int32_t limit,
+                                      std::unordered_set<vid_t>& visited,
+                                      std::vector<vid_t>& res) {
+    // TODO: to be implemented
+  }
+
+  void get_potential_friends_via_profession(ReadTransaction& txn, vid_t root,
+                                            int32_t limit,
+                                            std::unordered_set<vid_t>& visited,
+                                            std::vector<vid_t>& res) {
+    // get the roleName property of root, and
+    // find the users that have the same
+    // roleName
+    // Sample from users, until find limit users, which have the same roleName
+
+    // TODO: to be implemented
+  }
+
   auto get_potential_friends(
       ReadTransaction& txn, vid_t root, int32_t limit,
       const std::vector<std::pair<vid_t, int64_t>>& org_ids_date,
@@ -273,11 +292,10 @@ class AlumniRecom : public AppBase {
     get_potential_friends_via_joindate(txn, root, limit, org_ids_date, visited,
                                        res);
     // 3. Same city
-    // get_potential_friends_via_city(txn, root, limit - res.size(), visited,
-    // res);
+    get_potential_friends_via_city(txn, root, limit - res.size(), visited, res);
     // 4. Same profession
-    // get_potential_friends_via_profession(txn, root, limit - res.size(),
-    // visited, res);
+    get_potential_friends_via_profession(txn, root, limit - res.size(), visited,
+                                         res);
     // res.size() must be <= limit
     return res;
   }
