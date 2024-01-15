@@ -51,6 +51,8 @@ class AlumniRecom : public AppBase {
         friend_label_id_(graph.schema().get_edge_label_id("Friend")),
         work_at_label_id_(graph.schema().get_edge_label_id("WorkAt")),
         study_at_label_id_(graph.schema().get_edge_label_id("StudyAt")),
+	        chat_in_group_label_id_(
+            graph_.schema().get_edge_label_id("ChatInGroup")),
         edu_org_num_(graph.graph().vertex_num(ding_edu_org_label_id_)),
         users_num_(graph.graph().vertex_num(user_label_id_)),
 
@@ -65,9 +67,10 @@ class AlumniRecom : public AppBase {
     valid_edu_org_ids_.clear();
 
     int64_t user_id = input.get_long();
-    int32_t page_id = input.get_int();
-    int32_t limit = input.get_int();
-    limit = limit % 10;
+    //int32_t page_id = input.get_int();
+    int32_t page_id = 0;
+    //int32_t limit = input.get_int();
+    int32_t limit = 50;
     int32_t start_ind = (page_id) *limit;
     int32_t end_ind = (page_id + 1) * limit;
     LOG(INFO) << "user_id: " << user_id << " page_id: " << page_id
@@ -81,8 +84,7 @@ class AlumniRecom : public AppBase {
             user_label_id_, ding_edu_org_label_id_, study_at_label_id_);
     auto user_study_at_edu_org_ie_view_ =
         txn.GetIncomingGraphView<studyAt_edge_type>(
-            user_label_id_, ding_edu_org_label_id_, study_at_label_id_);
-
+            ding_edu_org_label_id_, user_label_id_, study_at_label_id_);
     auto user_user_friend_oe_view_ =
         txn.GetOutgoingImmutableGraphView<friend_edge_type>(
             user_label_id_, user_label_id_, friend_label_id_);
@@ -212,7 +214,7 @@ class AlumniRecom : public AppBase {
     std::unordered_set<vid_t> groups;
     // root -> oe chatInGroup -> groups
     auto group_oes = txn.GetOutgoingImmutableGraphView<grape::EmptyType>(
-        user_label_id_, ding_group_label_id_, chat_in_group_label_id_);
+         user_label_id_,ding_group_label_id_,  chat_in_group_label_id_);
 
     {
       const auto& oe = group_oes.get_edges(vid);
@@ -252,7 +254,7 @@ class AlumniRecom : public AppBase {
       const std::vector<std::pair<vid_t, int64_t>>& org_ids,
       std::unordered_set<vid_t>& visited, std::vector<vid_t>& res) {
     const auto& studyAt_ie = txn.GetIncomingGraphView<studyAt_edge_type>(
-        ding_org_label_id_, user_label_id_, study_at_label_id_);
+        ding_edu_org_label_id_, user_label_id_, study_at_label_id_);
     size_t sum = 0;
     for (auto org_id_date : org_ids) {
       auto ie = studyAt_ie.get_edges(org_id_date.first);
@@ -437,6 +439,7 @@ class AlumniRecom : public AppBase {
         auto data = edge.get_data();
         auto cur_ptr = static_cast<const char*>(data.data);
         auto joinDate = *reinterpret_cast<const int64_t*>(cur_ptr);
+	LOG(INFO) << "edu org id: " << dst << ", date " << joinDate;
         valid_edu_org_ids_.emplace_back(dst, joinDate);
       }
     }

@@ -2,10 +2,10 @@ name: dd_graph
 stored_procedures:
   directory: /home/graphscope/GraphScope/flex/interactive/examples/dd/plugins
   enable_lists:
-    - libquery0.so
+          # - libquery0.so
     - libquery1.so
-    - libquery2.so
-    - libquery3.so
+      #- libquery2.so
+      #- libquery3.so
 schema:
   vertex_types:
     - type_id: 0
