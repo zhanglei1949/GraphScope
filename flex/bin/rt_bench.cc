@@ -44,7 +44,7 @@ class Req {
     std::cout << "warmup count: " << warmup_num_
               << "; benchmark count: " << num_of_reqs_ << "\n";
   }
-  void load(const std::string& file) {
+  void load(const std::string& file,int type) {
     std::cout << "load queries from " << file << "\n";
     std::ifstream fi(file, std::ios::binary);
     int64_t id;
@@ -52,7 +52,7 @@ class Req {
 	    char temp[8];
 	    memcpy(temp,&id,sizeof(int64_t));
 	    std::string s(temp, temp+8);
-	    s += char(1);
+	    s += char(type);
 	    //int64_t val = *static_cast<const int64_t*>(static_cast<const void*>(s.data()));
 	    //std::cout << id << " " << val << "\n";
 	    reqs_.emplace_back(s);
@@ -176,7 +176,9 @@ int main(int argc, char** argv) {
       "num of warmup reqs")("benchmark-num,b",
                             bpo::value<uint32_t>()->default_value(0),
                             "num of benchmark reqs")(
-      "req-file,r", bpo::value<std::string>(), "requests file");
+      "req-file,r", bpo::value<std::string>(), "requests file")
+				    ("type,t",bpo::value<int>()->default_value(1),"query type");
+
 
   google::InitGoogleLogging(argv[0]);
   FLAGS_logtostderr = true;
@@ -210,7 +212,7 @@ int main(int argc, char** argv) {
     return -1;
   }
   data_path = vm["data-path"].as<std::string>();
-
+ 
   setenv("TZ", "Asia/Shanghai", 1);
   tzset();
 
@@ -225,7 +227,8 @@ int main(int argc, char** argv) {
   uint32_t benchmark_num = vm["benchmark-num"].as<uint32_t>();
   LOG(INFO) << "Finished loading graph, elapsed " << t0 << " s";
   std::string req_file = vm["req-file"].as<std::string>();
-  Req::get().load(req_file);
+  int type = vm["type"].as<int>();
+  Req::get().load(req_file,type);
   Req::get().init(warmup_num, benchmark_num);
   hiactor::actor_app app;
 

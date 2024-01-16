@@ -159,7 +159,7 @@ class Query0 : public AppBase {
       if (check_same_org(orgs, workat_oe, v, mem)) {
         ans.emplace_back(v);
         vis_set.emplace(v);
-        if (ans.size() > 50) {
+        if (ans.size() > 500) {
           for (auto vid : ans) {
             output.put_long(
                 graph_.graph().get_oid(user_label_id_, vid).AsInt64());
@@ -169,6 +169,7 @@ class Query0 : public AppBase {
         // break;
       }
     }
+    //std::cout << ans.size() << " ans size\n";
     auto friends_ie = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
         user_label_id_, user_label_id_, friend_label_id_);
     auto friends_oe = txn.GetOutgoingImmutableGraphView<grape::EmptyType>(
@@ -230,15 +231,15 @@ class Query0 : public AppBase {
     std::sort(users.begin(), users.end());
 
     size_t idx = users.size();
-    while (ans.size() < 50 && idx > 0) {
+    while (ans.size() < 500 && idx > 0) {
       auto vid = users[idx - 1].second;
       if (!vis_set.count(vid)) {
         ans.emplace_back(vid);
       }
       --idx;
     }
-    std::cout << "user size: " << users.size() << " ans size: " << ans.size()
-              << "\n";
+    //std::cout << "user size: " << users.size() << " ans size: " << ans.size()
+      //        << "\n";
     for (auto vid : ans) {
       output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
     }

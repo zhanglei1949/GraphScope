@@ -34,25 +34,15 @@ class Query2 : public AppBase {
         ding_edu_org_label_id_(
             graph.schema().get_vertex_label_id("DingEduOrg")),
         ding_group_label_id_(graph.schema().get_vertex_label_id("DingGroup")),
-        subIndustry_label_id_(
-            graph_.schema().get_vertex_label_id("SubIndustry")),
         intimacy_label_id_(graph.schema().get_edge_label_id("Intimacy")),
         study_at_label_id_(graph_.schema().get_edge_label_id("StudyAt")),
-        work_at_label_id_(graph_.schema().get_edge_label_id("WorkAt")),
         friend_label_id_(graph_.schema().get_edge_label_id("Friend")),
-        involved_label_id_(graph_.schema().get_edge_label_id("Involved")),
-
         chat_in_group_label_id_(
             graph_.schema().get_edge_label_id("ChatInGroup")),
         user_subIndustry_col_(
             *(std::dynamic_pointer_cast<gs::StringMapColumn<uint16_t>>(
                 graph.get_vertex_property_column(user_label_id_,
                                                  "subIndustry")))),
-        user_city_col_(
-            *(std::dynamic_pointer_cast<gs::StringMapColumn<uint16_t>>(
-                graph.get_vertex_property_column(user_label_id_, "city")))),
-        user_roleName_col_(*(std::dynamic_pointer_cast<TypedColumn<uint8_t>>(
-            graph.get_vertex_property_column(user_label_id_, "roleName")))),
         edu_org_num_(graph.graph().vertex_num(ding_edu_org_label_id_)),
         org_num_(graph.graph().vertex_num(ding_org_label_id_)),
         users_num_(graph.graph().vertex_num(user_label_id_)),
@@ -74,63 +64,20 @@ class Query2 : public AppBase {
     std::sort(friends.begin(), friends.end());
   }
 
-  bool checkSameOrg(const GraphView<char_array<20>>& work_at,
-                    const GraphView<char_array<16>>& study_at,
-                    std::unordered_set<vid_t>& root_work_at,
-                    std::unordered_set<vid_t>& root_study_at, vid_t v) {
-    if (root_work_at.size()) {
-      const auto& oe = work_at.get_edges(v);
-      for (auto& e : oe) {
-        if (root_work_at.count(e.neighbor)) {
-          return true;
-        }
-      }
-    }
-    if (root_study_at.size()) {
-      const auto& oe = study_at.get_edges(v);
-      for (auto& e : oe) {
-        if (root_study_at.count(e.neighbor)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
   bool Query(Decoder& input, Encoder& output) {
     int64_t oid = input.get_long();
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
     graph_.graph().get_lid(user_label_id_, oid, root);
     auto subIndustry = user_subIndustry_col_.get_view(root);
-    auto subIndustryIdx = user_subIndustry_col_.get_idx(root);
-    if (subIndustry == "") {
-      output.put_int(0);
+    if (subIndustry == " ")
       return true;
-    }
-    const auto& study_at = txn.GetOutgoingGraphView<char_array<16>>(
-        user_label_id_, ding_edu_org_label_id_, study_at_label_id_);
-    const auto& work_at = txn.GetOutgoingGraphView<char_array<20>>(
-        user_label_id_, ding_org_label_id_, work_at_label_id_);
-    std::unordered_set<vid_t> root_work_at, root_study_at;
-    {
-      const auto& work_oe = work_at.get_edges(root);
-      for (auto& e : work_oe) {
-        root_work_at.emplace(e.neighbor);
-      }
-      const auto& study_oe = study_at.get_edges(root);
-      for (auto& e : study_oe) {
-        root_work_at.emplace(e.neighbor);
-      }
-    }
     const auto& intimacy_edges = txn.GetOutgoingImmutableEdges<char_array<4>>(
         user_label_id_, root, user_label_id_, intimacy_label_id_);
     std::vector<vid_t> intimacy_users;
 
     for (auto& e : intimacy_edges) {
-      if (!checkSameOrg(work_at, study_at, root_work_at, root_study_at,
-                        e.neighbor))
-        intimacy_users.emplace_back(e.get_neighbor());
+      intimacy_users.emplace_back(e.get_neighbor());
     }
     std::sort(intimacy_users.begin(), intimacy_users.end());
 
@@ -176,10 +123,10 @@ class Query2 : public AppBase {
     std::vector<vid_t> ans;
     // root -> Intimacy -> Users
     for (auto& v : intimacy_users) {
-      if (subIndustryIdx == user_subIndustry_col_.get_idx(v)) {
+      if (subIndustry == user_subIndustry_col_.get_view(v)) {
         ans.emplace_back(v);
         vis_set.emplace(v);
-        if (ans.size() > 500) {
+        if (ans.size() > 50) {
           for (auto vid : ans) {
             output.put_long(
                 graph_.graph().get_oid(user_label_id_, vid).AsInt64());
@@ -218,7 +165,7 @@ class Query2 : public AppBase {
         auto ie = group_ies.get_edges(g);
         for (auto e : ie) {
           if (e.neighbor != root &&
-              subIndustryIdx == user_subIndustry_col_.get_idx(e.neighbor)) {
+              subIndustry == user_subIndustry_col_.get_view(e.neighbor)) {
             mp[e.neighbor] += 1;
           }
         }
@@ -233,13 +180,13 @@ class Query2 : public AppBase {
         const auto& oe = friends_oe.get_edges(cur);
         for (auto& e : ie) {
           if (e.neighbor != root &&
-              subIndustryIdx == user_subIndustry_col_.get_idx(e.neighbor)) {
+              subIndustry == user_subIndustry_col_.get_view(e.neighbor)) {
             mp[e.neighbor] += 1;
           }
         }
         for (auto& e : oe) {
           if (e.neighbor != root &&
-              subIndustryIdx == user_subIndustry_col_.get_idx(e.neighbor)) {
+              subIndustry == user_subIndustry_col_.get_view(e.neighbor)) {
             mp[e.neighbor] += 1;
           }
         }
@@ -252,48 +199,13 @@ class Query2 : public AppBase {
     size_t idx = users.size();
     while (ans.size() < 500 && idx > 0) {
       auto vid = users[idx - 1].second;
-
       if (!vis_set.count(vid)) {
-        vis_set.emplace(vid);
-        if (!checkSameOrg(work_at, study_at, root_work_at, root_study_at,
-                          vid)) {
-          ans.emplace_back(vid);
-        }
+        ans.emplace_back(vid);
       }
       --idx;
     }
-
-    if (ans.size() < 500) {
-      int limit = 300000;
-      const auto& involved_ie = txn.GetIncomingImmutableEdges<grape::EmptyType>(
-          subIndustry_label_id_, subIndustryIdx, user_label_id_,
-          involved_label_id_);
-      auto root_city_id = user_city_col_.get_idx(root);
-      auto root_roleName_id = user_roleName_col_.get_view(root);
-      if (involved_ie.estimated_degree() > 1) {
-        for (auto& e : involved_ie) {
-          --limit;
-          if (!vis_set.count(e.neighbor)) {
-            auto city_id = user_city_col_.get_idx(e.neighbor);
-            auto roleName_id = user_roleName_col_.get_view(e.neighbor);
-            if (city_id != root_city_id && roleName_id != root_roleName_id&&limit > 0)
-              continue;
-            if (!checkSameOrg(work_at, study_at, root_work_at, root_study_at,
-                              e.neighbor)) {
-              ans.emplace_back(e.neighbor);
-              if (ans.size() >= 500) {
-                break;
-              }
-            }
-          }
-	  if(limit == 0){
-//		  LOG(INFO) << "cur ans size: " << ans.size() << "\n";
-	  }
-        }
-      }
-    }
-    //std::cout << "user size: " << users.size() << " ans size: " << ans.size()
-              //<< "\n";
+    std::cout << "user size: " << users.size() << " ans size: " << ans.size()
+              << "\n";
     for (auto vid : ans) {
       output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
     }
@@ -307,7 +219,6 @@ class Query2 : public AppBase {
   label_t ding_org_label_id_;
   label_t ding_edu_org_label_id_;
   label_t ding_group_label_id_;
-  label_t subIndustry_label_id_;
   label_t workat_label_id_;
 
   label_t friend_label_id_;
@@ -315,11 +226,8 @@ class Query2 : public AppBase {
   label_t intimacy_label_id_;
   label_t work_at_label_id_;
   label_t study_at_label_id_;
-  label_t involved_label_id_;
 
   gs::StringMapColumn<uint16_t>& user_subIndustry_col_;
-  gs::StringMapColumn<uint16_t>& user_city_col_;
-  gs::TypedColumn<uint8_t>& user_roleName_col_;
   size_t edu_org_num_ = 0;
   size_t users_num_ = 0;
   size_t org_num_ = 0;

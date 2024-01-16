@@ -626,6 +626,9 @@ class StringMapColumn : public ColumnBase {
     set_value(idx, AnyConverter<std::string_view>::from_any(value));
   }
 
+  INDEX_T get_idx(size_t idx) const {
+	  return index_col_.get_view(idx);
+  }
   std::string_view get_view(size_t idx) const;
 
   Any get(size_t idx) const override {
