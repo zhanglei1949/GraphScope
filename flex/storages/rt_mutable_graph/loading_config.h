@@ -19,7 +19,9 @@
 #include <boost/functional/hash.hpp>
 
 #include <filesystem>
+#include <iostream>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 #include "arrow/api.h"
@@ -69,6 +71,8 @@ bool parse_bulk_load_config_yaml(const YAML::Node& yaml_node,
                                  LoadingConfig& load_config);
 }  // namespace config_parsing
 
+enum class BulkLoadMethod { kInit = 0 };
+
 // Provide meta info about bulk loading.
 class LoadingConfig {
  public:
@@ -86,7 +90,7 @@ class LoadingConfig {
   LoadingConfig(const Schema& schema);
 
   LoadingConfig(const Schema& schema, const std::string& data_source,
-                const std::string& delimiter, const std::string& method,
+                const std::string& delimiter, const BulkLoadMethod& method,
                 const std::string& format);
 
   // Add source files for vertex label. Each label can have multiple files.
@@ -102,12 +106,12 @@ class LoadingConfig {
 
   void SetScheme(const std::string& data_source);
   void SetDelimiter(const char& delimiter);
-  void SetMethod(const std::string& method);
+  void SetMethod(const BulkLoadMethod& method);
 
   // getters
   const std::string& GetScheme() const;
   const std::string& GetDelimiter() const;
-  const std::string& GetMethod() const;
+  const BulkLoadMethod& GetMethod() const;
   const std::string& GetFormat() const;
   bool GetHasHeaderRow() const;
   const std::string& GetEscapeChar() const;
@@ -143,9 +147,9 @@ class LoadingConfig {
 
  private:
   const Schema& schema_;
-  std::string scheme_;  // "file", "hdfs", "oss", "s3"
-  std::string method_;  // init, append, overwrite
-  std::string format_;  // csv, tsv, json, parquet
+  std::string scheme_;     // "file", "hdfs", "oss", "s3"
+  BulkLoadMethod method_;  // init, append, overwrite
+  std::string format_;     // csv, tsv, json, parquet
 
   // meta_data, stores all the meta info about loading
   std::unordered_map<std::string, std::string> metadata_;
@@ -192,5 +196,20 @@ class LoadingConfig {
 };
 
 }  // namespace gs
+
+namespace std {
+// BulkLoadMethod << operator
+inline ostream& operator<<(ostream& os, const gs::BulkLoadMethod& method) {
+  switch (method) {
+  case gs::BulkLoadMethod::kInit:
+    os << "init";
+    break;
+  default:
+    os << "unknown";
+    break;
+  }
+  return os;
+}
+}  // namespace std
 
 #endif  // STORAGE_RT_MUTABLE_GRAPH_LOADING_CONFIG_H_

@@ -483,11 +483,26 @@ bool parse_bulk_load_config_file(const std::string& config_file,
   return parse_bulk_load_config_yaml(root, schema, load_config);
 }
 
+bool parse_bulk_load_method(const YAML::Node& node, BulkLoadMethod& method) {
+  std::string method_str;
+  if (get_scalar(node, "import_option", method_str)) {
+    if (method_str == "init") {
+      method = BulkLoadMethod::kInit;
+    } else {
+      LOG(ERROR) << "Unknown import_option: " << method_str;
+      return false;
+    }
+  } else {
+    LOG(WARNING) << "import_option is not set, using default init method";
+  }
+  return true;
+}
+
 bool parse_bulk_load_config_yaml(const YAML::Node& root, const Schema& schema,
                                  LoadingConfig& load_config) {
   std::string data_location;
   load_config.scheme_ = "file";  // default data source is file
-  load_config.method_ = "init";
+  load_config.method_ = BulkLoadMethod::kInit;
   load_config.format_ = "csv";
 
   if (root["loading_config"]) {
@@ -497,7 +512,10 @@ bool parse_bulk_load_config_yaml(const YAML::Node& root, const Schema& schema,
       get_scalar(data_source_node, "scheme", load_config.scheme_);
       get_scalar(data_source_node, "location", data_location);
     }
-    get_scalar(loading_config_node, "import_option", load_config.method_);
+
+    if (!parse_bulk_load_method(loading_config_node, load_config.method_)) {
+      return false;
+    }
     auto format_node = loading_config_node["format"];
     // default format is csv
     if (format_node) {
@@ -563,7 +581,7 @@ bool parse_bulk_load_config_yaml(const YAML::Node& root, const Schema& schema,
     LOG(ERROR) << "loading_config is not set";
     return false;
   }
-  if (load_config.method_ != "init") {
+  if (load_config.method_ != BulkLoadMethod::kInit) {
     LOG(ERROR) << "Only support init method now";
     return false;
   }
@@ -637,12 +655,15 @@ Result<LoadingConfig> LoadingConfig::ParseFromYamlNode(
 }
 
 LoadingConfig::LoadingConfig(const Schema& schema)
-    : schema_(schema), scheme_("file"), method_("init"), format_("csv") {}
+    : schema_(schema),
+      scheme_("file"),
+      method_(BulkLoadMethod::kInit),
+      format_("csv") {}
 
 LoadingConfig::LoadingConfig(const Schema& schema,
                              const std::string& data_source,
                              const std::string& delimiter,
-                             const std::string& method,
+                             const BulkLoadMethod& method,
                              const std::string& format)
     : schema_(schema), scheme_(data_source), method_(method), format_(format) {
   metadata_[reader_options::DELIMITER] = delimiter;
@@ -676,7 +697,9 @@ void LoadingConfig::SetScheme(const std::string& scheme) { scheme_ = scheme; }
 void LoadingConfig::SetDelimiter(const char& delimiter) {
   metadata_[reader_options::DELIMITER] = std::string(1, delimiter);
 }
-void LoadingConfig::SetMethod(const std::string& method) { method_ = method; }
+void LoadingConfig::SetMethod(const BulkLoadMethod& method) {
+  method_ = method;
+}
 
 // getters
 const std::string& LoadingConfig::GetScheme() const { return scheme_; }
@@ -692,7 +715,7 @@ bool LoadingConfig::GetHasHeaderRow() const {
 
 const std::string& LoadingConfig::GetFormat() const { return format_; }
 
-const std::string& LoadingConfig::GetMethod() const { return method_; }
+const BulkLoadMethod& LoadingConfig::GetMethod() const { return method_; }
 
 const std::string& LoadingConfig::GetEscapeChar() const {
   return metadata_.at(reader_options::ESCAPE_CHAR);
