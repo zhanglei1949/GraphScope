@@ -2,7 +2,7 @@
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/storages/rt_mutable_graph/types.h"
-
+#include <random>
 namespace gs {
 
 static constexpr int32_t EMPLOYEE_CNT = 100000;
@@ -398,6 +398,9 @@ class AlumniRecom : public AppBase {
     // 1. Same major, skiped since currently empty.
     // 2. for Org joinDate +/-3 years
     std::vector<vid_t> res;
+    if(limit == 0){
+	    return res;
+    }
     //if(org_ids_date.size() == 0){
 //	    return res;
   //  }
@@ -414,6 +417,12 @@ class AlumniRecom : public AppBase {
     const auto& roleName_col = *std::dynamic_pointer_cast<TypedColumn<uint8_t>>(graph_.get_vertex_property_column(user_label_id_,"roleName"));
     auto root_roleName = roleName_col.get_view(root);
     const auto& studyat_ie = txn.GetIncomingGraphView<char_array<16>>(ding_edu_org_label_id_,user_label_id_,study_at_label_id_);
+    std::vector<uint32_t> tmp;
+    std::random_device rd; // Seed with a real random value, if available
+    std::mt19937 eng(rd()); // A Mersenne Twister pseudo-random generator of 32-bit numbers
+    std::uniform_int_distribution<int> dist(0,limit);
+	     // Define the range of numbers you want, here it's 0 through 99
+	     //     std::uniform_int_distribution<int> dist(0, 99);
     for(auto&[a,b]: org_ids_date){
 	    const auto& ie = studyat_ie.get_edges(a);
 	    for(auto& e: ie){
@@ -430,6 +439,16 @@ class AlumniRecom : public AppBase {
 			    if(get_year_diff(b, joinDate) <= 3){
 				    res.emplace_back(v);
 				    visited.emplace(v);
+			    }else{
+				    if(tmp.size() < limit){
+				      tmp.emplace_back(v);
+				    }else{
+					   auto idx =  dist(eng);
+					   if(idx < tmp.size()){
+						   tmp[idx] = v;
+					   }
+				    }
+
 			    }
 		    }
 		    if(res.size() >= limit){
@@ -438,6 +457,14 @@ class AlumniRecom : public AppBase {
 		    }
 
 	    }
+    }
+    {
+    	size_t idx = 0;
+	std::sort(tmp.begin(),tmp.end());
+	size_t len = std::unique(tmp.begin(),tmp.end()) - tmp.begin();
+    	while(res.size() < limit&&idx<len){
+	    	res.emplace_back(tmp[idx++]);
+    	}
     }
     std::cout << "res :OOO " << res.size() << "\n";
     /**
@@ -501,6 +528,7 @@ class AlumniRecom : public AppBase {
     }
     // 如果所有edu_org的邻边加起来超过阈值，我们将通过用户来访问edu_org.
     // 如果所有edu_org的邻边加起来不超过阈值，我们将通过edu_org来访问用户.
+    /**
     size_t org_employee_cnt = 0;
     {
       for (auto org_id : valid_edu_org_ids_set_) {
@@ -520,7 +548,7 @@ class AlumniRecom : public AppBase {
     } else {
       //LOG(INFO) << "org_employee_cnt: " << org_employee_cnt
         //        << " >= " << EMPLOYEE_CNT;
-    }
+    }*/
   }
 
   // Suppose edu_org_ids are sorted asc.
@@ -609,6 +637,7 @@ class AlumniRecom : public AppBase {
     for (auto user : potential_users) {
       res.emplace_back(user, RecomReason(kAlumni));
     }
+    /**
     if (res.size() < end_ind - start_ind) {
       auto user_study_at_edu_org_ie_view_ =
           txn.GetIncomingGraphView<studyAt_edge_type>(
@@ -640,7 +669,7 @@ class AlumniRecom : public AppBase {
         failed_contd_cnt = 0;
       }
     }
-    }
+    }*/
 
     return res;
   }

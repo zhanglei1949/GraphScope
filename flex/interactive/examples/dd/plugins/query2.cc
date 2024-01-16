@@ -2,6 +2,7 @@
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/storages/rt_mutable_graph/types.h"
+#include <random>
 namespace gs {
 
 static constexpr int32_t EMPLOYEE_CNT = 100000;
@@ -268,16 +269,35 @@ class Query2 : public AppBase {
       const auto& involved_ie = txn.GetIncomingImmutableEdges<grape::EmptyType>(
           subIndustry_label_id_, subIndustryIdx, user_label_id_,
           involved_label_id_);
+      auto root_city = user_city_col_.get_view(root);
+      bool exist_city = true;
+      if(root_city == " "){
+	      exist_city = false;
+      }
       auto root_city_id = user_city_col_.get_idx(root);
       auto root_roleName_id = user_roleName_col_.get_view(root);
+       std::random_device rd; // Seed with a real random value, if available
+       std::mt19937 eng(rd()); // A Mersenne Twister pseudo-random generator of 32-bit numbers
+	       // Define the range of numbers you want, here it's 0 through 99
+     std::uniform_int_distribution<int> dist(0, 500);
+      std::vector<uint32_t> tmp;
       if (involved_ie.estimated_degree() > 1) {
         for (auto& e : involved_ie) {
           --limit;
+	  if(limit == 0)break;
           if (!vis_set.count(e.neighbor)) {
             auto city_id = user_city_col_.get_idx(e.neighbor);
             auto roleName_id = user_roleName_col_.get_view(e.neighbor);
-            if (city_id != root_city_id && roleName_id != root_roleName_id&&limit > 0)
-              continue;
+            if ((!exist_city||city_id != root_city_id) && roleName_id != root_roleName_id&&limit > 0){
+		    if(tmp.size() < 500){
+		    	tmp.emplace_back(e.neighbor);
+		    }else{
+			auto idx = dist(eng);
+			if(idx < 500){
+				tmp[idx] = e.neighbor;
+			}
+		    }
+	    }
             if (!checkSameOrg(work_at, study_at, root_work_at, root_study_at,
                               e.neighbor)) {
               ans.emplace_back(e.neighbor);
@@ -291,7 +311,18 @@ class Query2 : public AppBase {
 	  }
         }
       }
+      size_t idx = 0;
+      std::sort(tmp.begin(),tmp.end());
+      size_t len = std::unique(tmp.begin(),tmp.end()) - tmp.begin();
+      while(idx < len && ans.size() < 500){
+	      auto v = tmp[idx++];
+	      if(!checkSameOrg(work_at,study_at,root_work_at,root_study_at,v)){
+		      ans.emplace_back(v);
+	      }
+      }
     }
+ 
+
     //std::cout << "user size: " << users.size() << " ans size: " << ans.size()
               //<< "\n";
     for (auto vid : ans) {
