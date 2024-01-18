@@ -274,7 +274,8 @@ void AbstractArrowFragmentLoader::AddEdgesRecordBatch(
     label_t src_label_i, label_t dst_label_i, label_t edge_label_i,
     const std::vector<std::string>& filenames,
     std::function<std::shared_ptr<IRecordBatchSupplier>(
-        label_t, label_t, label_t, const std::string&, const LoadingConfig&)>
+        label_t, label_t, label_t, const std::string&, const LoadingConfig&,
+        int, int)>
         supplier_creator) {
   auto src_label_name = schema_.get_vertex_label_name(src_label_i);
   auto dst_label_name = schema_.get_vertex_label_name(dst_label_i);

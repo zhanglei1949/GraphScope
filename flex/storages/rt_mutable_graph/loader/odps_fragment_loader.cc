@@ -31,14 +31,17 @@ namespace gs {
 ODPSStreamRecordBatchSupplier::ODPSStreamRecordBatchSupplier(
     label_t label_id, const std::string& file_path,
     const ODPSReadClient& odps_table_reader, const std::string& session_id,
-    int split_count, TableIdentifier table_identifier)
+    int split_count, int32_t cur_index, int32_t num_suppliers,
+    TableIdentifier table_identifier)
     : label_id_(label_id),
       file_path_(file_path),
       odps_read_client_(odps_table_reader),
       session_id_(session_id),
       split_count_(split_count),
+      supplier_id_(cur_index),
+      num_suppliers_(num_suppliers),
       table_identifier_(table_identifier),
-      cur_split_index_(0) {
+      cur_split_index_(supplier_id_) {
   read_rows_req_.table_identifier_ = table_identifier_;
   read_rows_req_.session_id_ = session_id_;
   read_rows_req_.split_index_ = cur_split_index_;
@@ -67,7 +70,7 @@ ODPSStreamRecordBatchSupplier::GetNextBatch() {
         // else {
         VLOG(1) << "Read split " << cur_split_index_ << " finished";
         // move to next split
-        ++cur_split_index_;
+        cur_split_index_ += num_suppliers_;
         if (cur_split_index_ >= split_count_) {
           VLOG(1) << "Finish Read all splits";
           cur_batch_reader_.reset();
@@ -198,8 +201,8 @@ void ODPSFragmentLoader::addVertices(label_t v_label_id,
                 << ", split count: " << split_count;
         if (loading_config.GetIsBatchReader()) {
           auto res = std::make_shared<ODPSStreamRecordBatchSupplier>(
-              label_id, v_file, odps_read_client_, session_id, split_count,
-              table_identifier);
+              label_id, v_file, odps_read_client_, session_id, split_count, 0,
+              1, table_identifier);
           return std::dynamic_pointer_cast<IRecordBatchSupplier>(res);
         } else {
           auto res = std::make_shared<ODPSTableRecordBatchSupplier>(
@@ -266,7 +269,8 @@ void ODPSFragmentLoader::addEdges(label_t src_label_i, label_t dst_label_i,
                                   const std::vector<std::string>& table_paths) {
   auto lambda = [this](label_t src_label_id, label_t dst_label_id,
                        label_t e_label_id, const std::string& table_path,
-                       const LoadingConfig& loading_config) {
+                       const LoadingConfig& loading_config, int cur_id,
+                       int num_suppliers) {
     std::string session_id;
     int split_count;
     TableIdentifier table_identifier;
@@ -303,7 +307,7 @@ void ODPSFragmentLoader::addEdges(label_t src_label_i, label_t dst_label_i,
     if (loading_config.GetIsBatchReader()) {
       auto res = std::make_shared<ODPSStreamRecordBatchSupplier>(
           e_label_id, table_path, odps_read_client_, session_id, split_count,
-          table_identifier);
+          cur_id, num_suppliers, table_identifier);
       return std::dynamic_pointer_cast<IRecordBatchSupplier>(res);
     } else {
       auto res = std::make_shared<ODPSTableRecordBatchSupplier>(

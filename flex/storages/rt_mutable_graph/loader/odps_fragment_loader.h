@@ -43,6 +43,7 @@ class ODPSStreamRecordBatchSupplier : public IRecordBatchSupplier {
   ODPSStreamRecordBatchSupplier(label_t label_id, const std::string& file_path,
                                 const ODPSReadClient& odps_table_reader,
                                 const std::string& session_id, int split_count,
+                                int32_t supplier_id, int32_t num_suppliers,
                                 TableIdentifier table_identifier);
 
   std::shared_ptr<arrow::RecordBatch> GetNextBatch() override;
@@ -57,6 +58,8 @@ class ODPSStreamRecordBatchSupplier : public IRecordBatchSupplier {
 
   int32_t cur_split_index_;
   ReadRowsReq read_rows_req_;
+  int32_t supplier_id_;
+  int32_t num_suppliers_;
   std::shared_ptr<Reader> cur_batch_reader_;
 
   // temporally store the string data from each record batch

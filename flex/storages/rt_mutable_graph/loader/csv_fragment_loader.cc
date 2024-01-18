@@ -264,7 +264,7 @@ void CSVFragmentLoader::addEdges(label_t src_label_i, label_t dst_label_i,
                                  const std::vector<std::string>& filenames) {
   auto lambda = [this](label_t src_label_id, label_t dst_label_id,
                        label_t e_label_id, const std::string& filename,
-                       const LoadingConfig& loading_config) {
+                       const LoadingConfig& loading_config, int, int) {
     arrow::csv::ConvertOptions convert_options;
     arrow::csv::ReadOptions read_options;
     arrow::csv::ParseOptions parse_options;

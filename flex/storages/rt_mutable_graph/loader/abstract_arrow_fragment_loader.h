@@ -611,12 +611,13 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
 
   // Add edges in record batch to output_parsed_edges, output_ie_degrees and
   // output_oe_degrees.
-  void AddEdgesRecordBatch(
-      label_t src_label_id, label_t dst_label_id, label_t edge_label_id,
-      const std::vector<std::string>& input_paths,
-      std::function<std::shared_ptr<IRecordBatchSupplier>(
-          label_t, label_t, label_t, const std::string&, const LoadingConfig&)>
-          supplier_creator);
+  void AddEdgesRecordBatch(label_t src_label_id, label_t dst_label_id,
+                           label_t edge_label_id,
+                           const std::vector<std::string>& input_paths,
+                           std::function<std::shared_ptr<IRecordBatchSupplier>(
+                               label_t, label_t, label_t, const std::string&,
+                               const LoadingConfig&, int, int)>
+                               supplier_creator);
 
  protected:
   template <typename KEY_T>
@@ -720,7 +721,8 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
       label_t src_label_id, label_t dst_label_id, label_t e_label_id,
       const std::vector<std::string>& e_files,
       std::function<std::shared_ptr<IRecordBatchSupplier>(
-          label_t, label_t, label_t, const std::string&, const LoadingConfig&)>
+          label_t, label_t, label_t, const std::string&, const LoadingConfig&,
+          int, int)>
           supplier_creator) {
     auto src_label_name = schema_.get_vertex_label_name(src_label_id);
     auto dst_label_name = schema_.get_vertex_label_name(dst_label_id);
@@ -751,8 +753,9 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
              << " dst indexer size: " << dst_indexer.size();
     std::vector<std::shared_ptr<arrow::Array>> property_str_types;
     for (auto filename : e_files) {
-      auto record_batch_supplier = supplier_creator(
-          src_label_id, dst_label_id, e_label_id, filename, loading_config_);
+      auto record_batch_supplier =
+          supplier_creator(src_label_id, dst_label_id, e_label_id, filename,
+                           loading_config_, 0, 1);
       bool first_batch = true;
       while (true) {
         auto record_batch = record_batch_supplier->GetNextBatch();
@@ -844,7 +847,8 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
       label_t src_label_id, label_t dst_label_id, label_t e_label_id,
       const std::vector<std::string>& e_files,
       std::function<std::shared_ptr<IRecordBatchSupplier>(
-          label_t, label_t, label_t, const std::string&, const LoadingConfig&)>
+          label_t, label_t, label_t, const std::string&, const LoadingConfig&,
+          int, int)>
           supplier_creator) {
     auto src_label_name = schema_.get_vertex_label_name(src_label_id);
     auto dst_label_name = schema_.get_vertex_label_name(dst_label_id);
@@ -934,7 +938,8 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
       const std::vector<std::string>& e_files,
       const std::vector<size_t>& offset_vec,
       std::function<std::shared_ptr<IRecordBatchSupplier>(
-          label_t, label_t, label_t, const std::string&, const LoadingConfig&)>
+          label_t, label_t, label_t, const std::string&, const LoadingConfig&,
+          int cur_id, int num_suppliers)>
           supplier_creator) {
     auto src_label_name = schema_.get_vertex_label_name(src_label_id);
     auto dst_label_name = schema_.get_vertex_label_name(dst_label_id);
@@ -969,37 +974,42 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
       std::cout << "filename: " << filename << "\n";
       work_threads.clear();
       RecordBatchQueue queue;
-      work_threads.emplace_back([&]() {
-        auto record_batch_supplier = supplier_creator(
-            src_label_id, dst_label_id, e_label_id, filename, loading_config_);
-        bool first_batch = true;
-        while (true) {
-          auto begin = std::chrono::system_clock::now();
-          auto record_batch = record_batch_supplier->GetNextBatch();
-          if (!record_batch) {
-            break;
-          }
-          if (first_batch) {
-            auto header = record_batch->schema()->field_names();
-            auto schema_column_names = schema_.get_edge_property_names(
-                src_label_id, dst_label_id, e_label_id);
-            auto schema_column_types = schema_.get_edge_properties(
-                src_label_id, dst_label_id, e_label_id);
-            CHECK(schema_column_names.size() + 2 == header.size())
-                << "schema size: " << schema_column_names.size()
-                << " neq header size: " << header.size();
-          }
-          first_batch = false;
-          auto end = std::chrono::system_clock::now();
-          LOG(INFO) << "get next batch cost: "
+      for (int i = 0; i < 64; ++i) {
+        work_threads.emplace_back(
+            [&](int idx) {
+              auto record_batch_supplier =
+                  supplier_creator(src_label_id, dst_label_id, e_label_id,
+                                   filename, loading_config_, idx, 64);
+              bool first_batch = true;
+              while (true) {
+                auto begin = std::chrono::system_clock::now();
+                auto record_batch = record_batch_supplier->GetNextBatch();
+                if (!record_batch) {
+                  break;
+                }
+                if (first_batch) {
+                  auto header = record_batch->schema()->field_names();
+                  auto schema_column_names = schema_.get_edge_property_names(
+                      src_label_id, dst_label_id, e_label_id);
+                  auto schema_column_types = schema_.get_edge_properties(
+                      src_label_id, dst_label_id, e_label_id);
+                  CHECK(schema_column_names.size() + 2 == header.size())
+                      << "schema size: " << schema_column_names.size()
+                      << " neq header size: " << header.size();
+                }
+                first_batch = false;
+                auto end = std::chrono::system_clock::now();
+                LOG(INFO)
+                    << "get next batch cost: "
                     << std::chrono::duration_cast<std::chrono::milliseconds>(
                            end - begin)
                            .count();
 
-          queue.push(record_batch);
-        }
-      });
-
+                queue.push(record_batch);
+              }
+            },
+            i);
+      }
       for (int i = 0; i < 64; ++i) {
         work_threads.emplace_back(
             [&](int idx) {
