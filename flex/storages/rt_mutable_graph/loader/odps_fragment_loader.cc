@@ -51,40 +51,39 @@ std::shared_ptr<arrow::RecordBatch>
 ODPSStreamRecordBatchSupplier::GetNextBatch() {
   std::shared_ptr<arrow::RecordBatch> record_batch;
   {
-   std::unique_lock<std::mutex> lck(mtx_);
-   if (!cur_batch_reader_ || cur_split_index_ >= split_count_) {
-    return record_batch;
-  }
-  while (true) {
-    if (cur_batch_reader_ && !cur_batch_reader_->Read(record_batch)) {
-      if (cur_batch_reader_->GetStatus() !=
-          apsara::odps::sdk::storage_api::Status::OK) {
-        LOG(ERROR) << "read rows error: "
-                   << cur_batch_reader_->GetErrorMessage() << ", "
-                   << cur_batch_reader_->GetStatus()
-                   << ", split id: " << cur_split_index_;
-      }
-      // Whether or not the status is ok, we always proceed on.
-      // else {
-      VLOG(1) << "Read split " << cur_split_index_ << " finished";
-      // move to next split
-      ++cur_split_index_;
-      if (cur_split_index_ >= split_count_) {
-        VLOG(1) << "Finish Read all splits";
-        cur_batch_reader_.reset();
-        break;
+    if (!cur_batch_reader_ || cur_split_index_ >= split_count_) {
+      return record_batch;
+    }
+    while (true) {
+      if (cur_batch_reader_ && !cur_batch_reader_->Read(record_batch)) {
+        if (cur_batch_reader_->GetStatus() !=
+            apsara::odps::sdk::storage_api::Status::OK) {
+          LOG(ERROR) << "read rows error: "
+                     << cur_batch_reader_->GetErrorMessage() << ", "
+                     << cur_batch_reader_->GetStatus()
+                     << ", split id: " << cur_split_index_;
+        }
+        // Whether or not the status is ok, we always proceed on.
+        // else {
+        VLOG(1) << "Read split " << cur_split_index_ << " finished";
+        // move to next split
+        ++cur_split_index_;
+        if (cur_split_index_ >= split_count_) {
+          VLOG(1) << "Finish Read all splits";
+          cur_batch_reader_.reset();
+          break;
+        } else {
+          VLOG(1) << "Start reading split " << cur_split_index_;
+          read_rows_req_.split_index_ = cur_split_index_;
+          cur_batch_reader_ =
+              odps_read_client_.GetArrowClient()->ReadRows(read_rows_req_);
+        }
+        // }
       } else {
-        VLOG(1) << "Start reading split " << cur_split_index_;
-        read_rows_req_.split_index_ = cur_split_index_;
-        cur_batch_reader_ =
-            odps_read_client_.GetArrowClient()->ReadRows(read_rows_req_);
+        break;
       }
-      // }
-    } else {
-      break;
     }
   }
-}
   if (record_batch) {
     for (auto i = 0; i < record_batch->num_columns(); ++i) {
       if (record_batch->column(i)->type()->Equals(arrow::utf8()) ||

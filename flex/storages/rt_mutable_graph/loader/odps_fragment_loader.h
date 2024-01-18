@@ -54,9 +54,8 @@ class ODPSStreamRecordBatchSupplier : public IRecordBatchSupplier {
   std::string session_id_;
   int split_count_;
   TableIdentifier table_identifier_;
-  std::mutex mtx_;
 
-  std::atomic<int32_t> cur_split_index_;
+  int32_t cur_split_index_;
   ReadRowsReq read_rows_req_;
   std::shared_ptr<Reader> cur_batch_reader_;
 
