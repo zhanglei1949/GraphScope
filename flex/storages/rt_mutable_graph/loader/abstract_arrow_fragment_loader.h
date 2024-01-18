@@ -282,8 +282,8 @@ static void append_src_or_dst(
     bool is_dst, size_t old_size, const std::shared_ptr<arrow::Array> col,
     const LFIndexer<vid_t>& indexer,
     MMapVector<std::tuple<vid_t, vid_t, EDATA_T>>& parsed_edges,
-    std::unordered_map<uint32_t, int>& ie_degree,
-    std::unordered_map<uint32_t, int>& oe_degree) {
+    std::vector<std::atomic<int32_t>>& ie_degree,
+    std::vector<std::atomic<int32_t>>& oe_degree) {
   size_t cur_ind = old_size;
   auto invalid_vid = std::numeric_limits<vid_t>::max();
   if constexpr (std::is_same_v<PK_T, std::string_view>) {
@@ -511,8 +511,8 @@ static void append_edges_for_multiple_props(
     std::vector<std::shared_ptr<arrow::Array>>& edata_cols,
     const std::vector<PropertyType>& edge_props,
     MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>& parsed_edges,
-    std::unordered_map<uint32_t, int>& ie_deg,
-    std::unordered_map<uint32_t, int>& oe_deg,
+    std::vector<std::atomic<int32_t>>& ie_deg,
+    std::vector<std::atomic<int32_t>>& oe_deg,
     const std::vector<size_t>& offset_vec) {
   CHECK(src_col->length() == dst_col->length());
 
@@ -916,11 +916,16 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     auto dst_label_name = schema_.get_vertex_label_name(dst_label_id);
     auto edge_label_name = schema_.get_edge_label_name(e_label_id);
 
-    std::vector<int32_t> ie_degree, oe_degree;
     const auto& src_indexer = basic_fragment_loader_.GetLFIndexer(src_label_id);
     const auto& dst_indexer = basic_fragment_loader_.GetLFIndexer(dst_label_id);
-    ie_degree.resize(dst_indexer.size());
-    oe_degree.resize(src_indexer.size());
+    std::vector<std::atomic<int32_t>> ie_degree(dst_indexer.size()),
+        oe_degree(src_indexer.size());
+    for (auto& d : ie_degree) {
+      d.store(0);
+    }
+    for (auto& d : oe_degree) {
+      d.store(0);
+    }
     LOG(INFO) << "src indexer size: " << src_indexer.size()
               << " dst indexer size: " << dst_indexer.size();
     auto edge_properties =
@@ -938,24 +943,25 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
       std::cout << "filename: " << filename << "\n";
       auto record_batch_supplier = supplier_creator(
           src_label_id, dst_label_id, e_label_id, filename, loading_config_);
-      std::mutex mtx;
-      std::cout << "?>?>?\n";
       for (int i = 0; i < 64; ++i) {
         work_threads.emplace_back(
             [&](int idx) {
               LOG(INFO) << "begin " << idx << "\n";
-	      std::unordered_map<uint32_t, int> ie_deg, oe_deg;
               MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>& parsed_edges =
                   vec[idx];
               bool first_batch = true;
               while (true) {
-	        auto begin = std::chrono::system_clock::now();
+                auto begin = std::chrono::system_clock::now();
                 auto record_batch = record_batch_supplier->GetNextBatch();
-		auto end = std::chrono::system_clock::now();
-		
-		LOG(INFO) << "get next batch cost: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() ;
+                auto end = std::chrono::system_clock::now();
+
+                LOG(INFO)
+                    << "get next batch cost: "
+                    << std::chrono::duration_cast<std::chrono::milliseconds>(
+                           end - begin)
+                           .count();
                 begin = end;
-		if (!record_batch) {
+                if (!record_batch) {
                   break;
                 }
                 if (first_batch) {
@@ -998,61 +1004,38 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                 if (src_col_type->Equals(arrow::int64())) {
                   append_edges_for_multiple_props<int64_t, EDATA_T>(
                       src_col, dst_col, src_indexer, dst_indexer, property_cols,
-                      edge_properties, parsed_edges, ie_deg, oe_deg,
+                      edge_properties, parsed_edges, ie_degree, oe_degree,
                       offset_vec);
                 } else if (src_col_type->Equals(arrow::uint64())) {
                   append_edges_for_multiple_props<uint64_t, EDATA_T>(
                       src_col, dst_col, src_indexer, dst_indexer, property_cols,
-                      edge_properties, parsed_edges, ie_deg, oe_deg,
+                      edge_properties, parsed_edges, ie_degree, oe_degree,
                       offset_vec);
                 } else if (src_col_type->Equals(arrow::int32())) {
                   append_edges_for_multiple_props<int32_t, EDATA_T>(
                       src_col, dst_col, src_indexer, dst_indexer, property_cols,
-                      edge_properties, parsed_edges, ie_deg, oe_deg,
+                      edge_properties, parsed_edges, ie_degree, oe_degree,
                       offset_vec);
                 } else if (src_col_type->Equals(arrow::uint32())) {
                   append_edges_for_multiple_props<uint32_t, EDATA_T>(
                       src_col, dst_col, src_indexer, dst_indexer, property_cols,
-                      edge_properties, parsed_edges, ie_deg, oe_deg,
+                      edge_properties, parsed_edges, ie_degree, oe_degree,
                       offset_vec);
                 } else {
                   // must be string
                   append_edges_for_multiple_props<std::string_view, EDATA_T>(
                       src_col, dst_col, src_indexer, dst_indexer, property_cols,
-                      edge_properties, parsed_edges, ie_deg, oe_deg,
+                      edge_properties, parsed_edges, ie_degree, oe_degree,
                       offset_vec);
                 }
-		end = std::chrono::system_clock::now();
-		LOG(INFO) << "append edges cost: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-		begin = end;
+                end = std::chrono::system_clock::now();
+                LOG(INFO)
+                    << "append edges cost: "
+                    << std::chrono::duration_cast<std::chrono::milliseconds>(
+                           end - begin)
+                           .count();
+                begin = end;
                 first_batch = false;
-		LOG(INFO) << "ie_deg size " << ie_deg.size() << "oe_deg size:" << oe_deg.size();
-			
-                if (ie_deg.size() + oe_deg.size() >   1024 * 1024) {
-                  std::unique_lock<std::mutex> lck(mtx);
-                  for (auto& [key, val] : ie_deg) {
-                    ie_degree[key] += val;
-                  }
-                  for (auto& [key, val] : oe_deg) {
-                    oe_degree[key] += val;
-                  }
-                  ie_deg.clear();
-                  oe_deg.clear();
-                }
-		end = std::chrono::system_clock::now();
-		LOG(INFO) << "update degree cost: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-
-              }
-              {
-                std::unique_lock<std::mutex> lck(mtx);
-                for (auto& [key, val] : ie_deg) {
-                  ie_degree[key] += val;
-                }
-                for (auto& [key, val] : oe_deg) {
-                  oe_degree[key] += val;
-                }
-                ie_deg.clear();
-                oe_deg.clear();
               }
             },
             i);
@@ -1075,9 +1058,17 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
               << src_label_name << " -> " << dst_label_name << " -> "
               << edge_label_name;
 
+    std::vector<int32_t> ie_degree_(ie_degree.size());
+    for (size_t i = 0; i < ie_degree.size(); ++i) {
+      ie_degree_[i] = ie_degree[i].load();
+    }
+    std::vector<int32_t> oe_degree_(oe_degree.size());
+    for (size_t i = 0; i < oe_degree.size(); ++i) {
+      oe_degree_[i] = oe_degree[i].load();
+    }
     basic_fragment_loader_.PutMultiPropEdges(src_label_id, dst_label_id,
-                                             e_label_id, vec, ie_degree,
-                                             oe_degree, offset_vec);
+                                             e_label_id, vec, ie_degree_,
+                                             oe_degree_, offset_vec);
     VLOG(10) << "Finish putting: " << vec.size() << " edges";
   }
 
