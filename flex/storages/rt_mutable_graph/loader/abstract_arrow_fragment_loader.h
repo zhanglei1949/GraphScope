@@ -933,20 +933,29 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     for (auto i = 0; i < 64; ++i) {
       vec.emplace_back(work_dir, "_" + std::to_string(i) + ".tmp");
     }
+    std::cout << "begin: " << e_files.size() << "\n";
     for (auto filename : e_files) {
+      std::cout << "filename: " << filename << "\n";
       auto record_batch_supplier = supplier_creator(
           src_label_id, dst_label_id, e_label_id, filename, loading_config_);
       std::mutex mtx;
+      std::cout << "?>?>?\n";
       for (int i = 0; i < 64; ++i) {
         work_threads.emplace_back(
             [&](int idx) {
-              std::unordered_map<uint32_t, int> ie_deg, oe_deg;
+              LOG(INFO) << "begin " << idx << "\n";
+	      std::unordered_map<uint32_t, int> ie_deg, oe_deg;
               MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>& parsed_edges =
                   vec[idx];
               bool first_batch = true;
               while (true) {
+	        auto begin = std::chrono::system_clock::now();
                 auto record_batch = record_batch_supplier->GetNextBatch();
-                if (!record_batch) {
+		auto end = std::chrono::system_clock::now();
+		
+		LOG(INFO) << "get next batch cost: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() ;
+                begin = end;
+		if (!record_batch) {
                   break;
                 }
                 if (first_batch) {
@@ -1013,8 +1022,13 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                       edge_properties, parsed_edges, ie_deg, oe_deg,
                       offset_vec);
                 }
+		end = std::chrono::system_clock::now();
+		LOG(INFO) << "append edges cost: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+		begin = end;
                 first_batch = false;
-                if (ie_deg.size() + oe_deg.size() > 128 * 1024 * 1024) {
+		LOG(INFO) << "ie_deg size " << ie_deg.size() << "oe_deg size:" << oe_deg.size();
+			
+                if (ie_deg.size() + oe_deg.size() >   1024 * 1024) {
                   std::unique_lock<std::mutex> lck(mtx);
                   for (auto& [key, val] : ie_deg) {
                     ie_degree[key] += val;
@@ -1025,6 +1039,9 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                   ie_deg.clear();
                   oe_deg.clear();
                 }
+		end = std::chrono::system_clock::now();
+		LOG(INFO) << "update degree cost: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+
               }
               {
                 std::unique_lock<std::mutex> lck(mtx);

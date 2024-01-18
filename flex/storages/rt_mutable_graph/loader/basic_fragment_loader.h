@@ -208,7 +208,7 @@ class BasicFragmentLoader {
   template <typename CHAR_ARRAY_T>
   void putMultiPropEdges(
       label_t src_label_id, label_t dst_label_id, label_t edge_label_id,
-      const std::vector<MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>>&
+      std::vector<MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>>&
           edges_vec,
       const std::vector<int32_t>& ie_degree,
       const std::vector<int32_t>& oe_degree) {
@@ -272,6 +272,7 @@ class BasicFragmentLoader {
     for (auto& t : vec) {
       t.join();
     }
+    edges_vec.clear();
     auto end = std::chrono::system_clock::now();
     auto cost =
         std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
@@ -297,7 +298,7 @@ class BasicFragmentLoader {
   template <typename CHAR_ARRAY_T>
   void PutMultiPropEdges(
       label_t src_label_id, label_t dst_label_id, label_t edge_label_id,
-      const std::vector<MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>>&
+      std::vector<MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>>&
           edges,
       const std::vector<int32_t>& ie_degree,
       const std::vector<int32_t>& oe_degree,

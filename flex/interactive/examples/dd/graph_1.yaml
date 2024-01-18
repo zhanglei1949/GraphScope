@@ -1,0 +1,50 @@
+name: dd_graph
+stored_procedures:
+  directory: /home/graphscope/GraphScope/flex/interactive/examples/dd/plugins
+  enable_lists:
+    - libquery0.so
+    - libquery1.so
+    - libquery2.so
+    - libquery3.so
+schema:
+  vertex_types:
+    - type_id: 0
+      type_name: User
+      properties:
+        - property_name: id
+          property_type:
+            primitive_type: DT_SIGNED_INT64
+        - property_name: city # limited number of values.(distinct count 8425)
+          property_type:
+            primitive_type: DT_STRINGMAP
+        - property_name: roleName # limited number of values.(distinct count 11)
+          property_type:
+            primitive_type: DT_UNSIGNED_INT8 
+        - property_name: activeDays
+          property_type:
+            primitive_type: DT_UNSIGNED_INT8
+        - property_name: subIndustry # limited number of values.(distinct count 9368)
+          property_type:
+            primitive_type: DT_STRINGMAP
+      primary_keys:
+        - id
+  edge_types:
+    - type_id: 0           
+      type_name: Intimacy
+      vertex_type_pair_relations:
+        - source_vertex: User
+          destination_vertex: User
+          relation: MANY_TO_MANY
+          x_csr_params:
+            edge_storage_strategy: ONLY_OUT
+            mutability: IMMUTABLE
+      properties:
+        - property_name: intimacy_score
+          property_type:
+            primitive_type: DT_UNSIGNED_INT8
+        - property_name: communication_score
+          property_type:
+            primitive_type: DT_UNSIGNED_INT16
+        # - property_name: profession # limited number of values.(0) kefei反馈当前置为空置，后续确定会有值
+        #   property_type:
+        #     primitive_type: DT_STRINGMAP

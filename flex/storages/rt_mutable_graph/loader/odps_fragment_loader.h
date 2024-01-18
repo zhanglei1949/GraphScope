@@ -23,7 +23,7 @@
 #include <arrow/util/uri.h>
 
 #include <charconv>
-
+#include <mutex>
 #include "arrow/util/value_parsing.h"
 #include "common/configuration.h"
 #include "flex/storages/rt_mutable_graph/loader/abstract_arrow_fragment_loader.h"
@@ -54,6 +54,7 @@ class ODPSStreamRecordBatchSupplier : public IRecordBatchSupplier {
   std::string session_id_;
   int split_count_;
   TableIdentifier table_identifier_;
+  std::mutex mtx_;
 
   std::atomic<int32_t> cur_split_index_;
   ReadRowsReq read_rows_req_;

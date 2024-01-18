@@ -50,11 +50,13 @@ ODPSStreamRecordBatchSupplier::ODPSStreamRecordBatchSupplier(
 std::shared_ptr<arrow::RecordBatch>
 ODPSStreamRecordBatchSupplier::GetNextBatch() {
   std::shared_ptr<arrow::RecordBatch> record_batch;
-  if (!cur_batch_reader_ || cur_split_index_ >= split_count_) {
+  {
+   std::unique_lock<std::mutex> lck(mtx_);
+   if (!cur_batch_reader_ || cur_split_index_ >= split_count_) {
     return record_batch;
   }
   while (true) {
-    if (!cur_batch_reader_->Read(record_batch)) {
+    if (cur_batch_reader_ && !cur_batch_reader_->Read(record_batch)) {
       if (cur_batch_reader_->GetStatus() !=
           apsara::odps::sdk::storage_api::Status::OK) {
         LOG(ERROR) << "read rows error: "
@@ -82,6 +84,7 @@ ODPSStreamRecordBatchSupplier::GetNextBatch() {
       break;
     }
   }
+}
   if (record_batch) {
     for (auto i = 0; i < record_batch->num_columns(); ++i) {
       if (record_batch->column(i)->type()->Equals(arrow::utf8()) ||
