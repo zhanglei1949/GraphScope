@@ -29,9 +29,18 @@ class MMapVector {
     size_ = 0;
     cap_ = 1024;
   }
+
   ~MMapVector() {
     array_.reset();
     unlink((work_dir_ + "/" + file_name_ + ".tmp").c_str());
+  }
+
+  MMapVector(MMapVector&& other) {
+    array_.swap(other.array_);
+    size_ = other.size_;
+    cap_ = other.cap_;
+    file_name_.swap(other.file_name_);
+    work_dir_.swap(other.work_dir_);
   }
 
   void push_back(const EDATA_T& val) {

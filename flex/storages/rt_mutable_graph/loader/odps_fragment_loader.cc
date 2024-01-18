@@ -82,13 +82,13 @@ ODPSStreamRecordBatchSupplier::GetNextBatch() {
       break;
     }
   }
-  if (record_batch){
-  for (auto i = 0; i < record_batch->num_columns(); ++i) {
-    if (record_batch->column(i)->type()->Equals(arrow::utf8()) ||
-        record_batch->column(i)->type()->Equals(arrow::large_utf8())) {
-      string_arrays_.emplace_back(record_batch->column(i));
+  if (record_batch) {
+    for (auto i = 0; i < record_batch->num_columns(); ++i) {
+      if (record_batch->column(i)->type()->Equals(arrow::utf8()) ||
+          record_batch->column(i)->type()->Equals(arrow::large_utf8())) {
+        string_arrays_.emplace_back(record_batch->column(i));
+      }
     }
-  }
   }
 
   return record_batch;
@@ -134,7 +134,9 @@ void ODPSFragmentLoader::init() { odps_read_client_.init(); }
 
 void ODPSFragmentLoader::LoadFragment() {
   init();
-  loadVertices();
+  auto& person = basic_fragment_loader_.GetLFIndexer(0);
+  person.open_in_memory(
+      "/home/graphscope/data/csr-data/snapshots/0/vertex_map_User");
   loadEdges();
 
   basic_fragment_loader_.LoadFragment();
