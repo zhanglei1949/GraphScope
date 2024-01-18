@@ -25,7 +25,9 @@
 
 #include <arrow/api.h>
 #include <arrow/io/api.h>
+#include <condition_variable>
 #include <mutex>
+#include <queue>
 #include "arrow/util/value_parsing.h"
 
 #include "grape/util.h"
@@ -562,6 +564,28 @@ static void append_edges_for_multiple_props(
   edata_col_thread.join();
 }
 
+// A simple queue which stores the record batches, for consuming.
+struct RecordBatchQueue {
+ public:
+  RecordBatchQueue(int32_t max_length = 2048);
+
+  void push(std::shared_ptr<arrow::RecordBatch> record_batch);
+
+  std::shared_ptr<arrow::RecordBatch> pop();
+
+  size_t size() const;
+
+  void finish();
+
+ private:
+  std::queue<std::shared_ptr<arrow::RecordBatch>> queue_;
+  mutable std::mutex mutex_;
+  std::condition_variable full_cv_;
+  std::condition_variable empty_cv_;
+  int32_t max_length_;
+  bool finished_;
+};
+
 // A AbstractArrowFragmentLoader with can load fragment from arrow::table.
 // Can not be used directly, should be inherited.
 class AbstractArrowFragmentLoader : public IFragmentLoader {
@@ -940,10 +964,42 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
       vec.emplace_back(work_dir, "_" + std::to_string(i) + ".tmp");
     }
     std::cout << "begin: " << e_files.size() << "\n";
+
     for (auto filename : e_files) {
       std::cout << "filename: " << filename << "\n";
-      auto record_batch_supplier = supplier_creator(
-          src_label_id, dst_label_id, e_label_id, filename, loading_config_);
+      work_threads.clear();
+      RecordBatchQueue queue;
+      work_threads.emplace_back([&]() {
+        auto record_batch_supplier = supplier_creator(
+            src_label_id, dst_label_id, e_label_id, filename, loading_config_);
+        bool first_batch = true;
+        while (true) {
+          auto begin = std::chrono::system_clock::now();
+          auto record_batch = record_batch_supplier->GetNextBatch();
+          if (!record_batch) {
+            break;
+          }
+          if (first_batch) {
+            auto header = record_batch->schema()->field_names();
+            auto schema_column_names = schema_.get_edge_property_names(
+                src_label_id, dst_label_id, e_label_id);
+            auto schema_column_types = schema_.get_edge_properties(
+                src_label_id, dst_label_id, e_label_id);
+            CHECK(schema_column_names.size() + 2 == header.size())
+                << "schema size: " << schema_column_names.size()
+                << " neq header size: " << header.size();
+          }
+          first_batch = false;
+          auto end = std::chrono::system_clock::now();
+          LOG(INFO) << "get next batch cost: "
+                    << std::chrono::duration_cast<std::chrono::milliseconds>(
+                           end - begin)
+                           .count();
+
+          queue.push(record_batch);
+        }
+      });
+
       for (int i = 0; i < 64; ++i) {
         work_threads.emplace_back(
             [&](int idx) {
@@ -952,108 +1008,68 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                   vec[idx];
               bool first_batch = true;
               while (true) {
-                std::vector<std::shared_ptr<arrow::RecordBatch>> batchs;
-                bool flag = false;
                 auto begin = std::chrono::system_clock::now();
-                {
-                  std::unique_lock<std::mutex>(mtx);
-                  for (int i = 0; i < 32; ++i) {
-                    auto record_batch = record_batch_supplier->GetNextBatch();
-                    if (!record_batch) {
-                      flag = true;
-                      break;
-                    }
-                    batchs.emplace_back(record_batch);
-                  }
+                auto record_batch = queue.pop();
+                // copy the table to csr.
+                auto columns = record_batch->columns();
+                // We assume the src_col and dst_col will always be put at
+                // front.
+                CHECK(columns.size() >= 2);
+                auto src_col = columns[0];
+                auto dst_col = columns[1];
+                auto src_col_type = src_col->type();
+                auto dst_col_type = dst_col->type();
+                CHECK(check_primary_key_type(src_col_type))
+                    << "unsupported src_col type: " << src_col_type->ToString();
+                CHECK(check_primary_key_type(dst_col_type))
+                    << "unsupported dst_col type: " << dst_col_type->ToString();
+                CHECK(src_col_type->Equals(dst_col_type))
+                    << "src_col type: " << src_col_type->ToString()
+                    << " neq dst_col type: " << dst_col_type->ToString();
+
+                std::vector<std::shared_ptr<arrow::Array>> property_cols;
+                for (auto i = 2; i < columns.size(); ++i) {
+                  property_cols.emplace_back(columns[i]);
+                }
+                // CHECK(property_cols.size() <= 1)
+                //     << "Currently only support at most one property on
+                //     edge";
+
+                // add edges to vector
+                CHECK(src_col->length() == dst_col->length());
+                if (src_col_type->Equals(arrow::int64())) {
+                  append_edges_for_multiple_props<int64_t, EDATA_T>(
+                      src_col, dst_col, src_indexer, dst_indexer, property_cols,
+                      edge_properties, parsed_edges, ie_degree, oe_degree,
+                      offset_vec);
+                } else if (src_col_type->Equals(arrow::uint64())) {
+                  append_edges_for_multiple_props<uint64_t, EDATA_T>(
+                      src_col, dst_col, src_indexer, dst_indexer, property_cols,
+                      edge_properties, parsed_edges, ie_degree, oe_degree,
+                      offset_vec);
+                } else if (src_col_type->Equals(arrow::int32())) {
+                  append_edges_for_multiple_props<int32_t, EDATA_T>(
+                      src_col, dst_col, src_indexer, dst_indexer, property_cols,
+                      edge_properties, parsed_edges, ie_degree, oe_degree,
+                      offset_vec);
+                } else if (src_col_type->Equals(arrow::uint32())) {
+                  append_edges_for_multiple_props<uint32_t, EDATA_T>(
+                      src_col, dst_col, src_indexer, dst_indexer, property_cols,
+                      edge_properties, parsed_edges, ie_degree, oe_degree,
+                      offset_vec);
+                } else {
+                  // must be string
+                  append_edges_for_multiple_props<std::string_view, EDATA_T>(
+                      src_col, dst_col, src_indexer, dst_indexer, property_cols,
+                      edge_properties, parsed_edges, ie_degree, oe_degree,
+                      offset_vec);
                 }
                 auto end = std::chrono::system_clock::now();
-
                 LOG(INFO)
-                    << "get next batch cost: "
+                    << "append edges cost: "
                     << std::chrono::duration_cast<std::chrono::milliseconds>(
                            end - begin)
                            .count();
-                for (auto& record_batch : batchs) {
-                  begin = end;
-
-                  if (first_batch) {
-                    auto header = record_batch->schema()->field_names();
-                    auto schema_column_names = schema_.get_edge_property_names(
-                        src_label_id, dst_label_id, e_label_id);
-                    auto schema_column_types = schema_.get_edge_properties(
-                        src_label_id, dst_label_id, e_label_id);
-                    CHECK(schema_column_names.size() + 2 == header.size())
-                        << "schema size: " << schema_column_names.size()
-                        << " neq header size: " << header.size();
-                  }
-                  // copy the table to csr.
-                  auto columns = record_batch->columns();
-                  // We assume the src_col and dst_col will always be put at
-                  // front.
-                  CHECK(columns.size() >= 2);
-                  auto src_col = columns[0];
-                  auto dst_col = columns[1];
-                  auto src_col_type = src_col->type();
-                  auto dst_col_type = dst_col->type();
-                  CHECK(check_primary_key_type(src_col_type))
-                      << "unsupported src_col type: "
-                      << src_col_type->ToString();
-                  CHECK(check_primary_key_type(dst_col_type))
-                      << "unsupported dst_col type: "
-                      << dst_col_type->ToString();
-                  CHECK(src_col_type->Equals(dst_col_type))
-                      << "src_col type: " << src_col_type->ToString()
-                      << " neq dst_col type: " << dst_col_type->ToString();
-
-                  std::vector<std::shared_ptr<arrow::Array>> property_cols;
-                  for (auto i = 2; i < columns.size(); ++i) {
-                    property_cols.emplace_back(columns[i]);
-                  }
-                  // CHECK(property_cols.size() <= 1)
-                  //     << "Currently only support at most one property on
-                  //     edge";
-
-                  // add edges to vector
-                  CHECK(src_col->length() == dst_col->length());
-                  if (src_col_type->Equals(arrow::int64())) {
-                    append_edges_for_multiple_props<int64_t, EDATA_T>(
-                        src_col, dst_col, src_indexer, dst_indexer,
-                        property_cols, edge_properties, parsed_edges, ie_degree,
-                        oe_degree, offset_vec);
-                  } else if (src_col_type->Equals(arrow::uint64())) {
-                    append_edges_for_multiple_props<uint64_t, EDATA_T>(
-                        src_col, dst_col, src_indexer, dst_indexer,
-                        property_cols, edge_properties, parsed_edges, ie_degree,
-                        oe_degree, offset_vec);
-                  } else if (src_col_type->Equals(arrow::int32())) {
-                    append_edges_for_multiple_props<int32_t, EDATA_T>(
-                        src_col, dst_col, src_indexer, dst_indexer,
-                        property_cols, edge_properties, parsed_edges, ie_degree,
-                        oe_degree, offset_vec);
-                  } else if (src_col_type->Equals(arrow::uint32())) {
-                    append_edges_for_multiple_props<uint32_t, EDATA_T>(
-                        src_col, dst_col, src_indexer, dst_indexer,
-                        property_cols, edge_properties, parsed_edges, ie_degree,
-                        oe_degree, offset_vec);
-                  } else {
-                    // must be string
-                    append_edges_for_multiple_props<std::string_view, EDATA_T>(
-                        src_col, dst_col, src_indexer, dst_indexer,
-                        property_cols, edge_properties, parsed_edges, ie_degree,
-                        oe_degree, offset_vec);
-                  }
-                  end = std::chrono::system_clock::now();
-                  LOG(INFO)
-                      << "append edges cost: "
-                      << std::chrono::duration_cast<std::chrono::milliseconds>(
-                             end - begin)
-                             .count();
-                  begin = end;
-                  first_batch = false;
-                }
-                if (flag) {
-                  break;
-                }
               }
             },
             i);
