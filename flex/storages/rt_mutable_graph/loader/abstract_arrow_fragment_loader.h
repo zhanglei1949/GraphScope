@@ -968,23 +968,40 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     for (auto i = 0; i < 64; ++i) {
       vec.emplace_back(work_dir, "_" + std::to_string(i) + ".tmp");
     }
-    std::cout << "begin: " << e_files.size() << "\n";
 
+    std::cout << "begin: " << e_files.size() << "\n";
+    std::atomic<int> finish_reads,block_writes;
+    finish_reads.store(0);
+    block_writes.store(0);
     for (auto filename : e_files) {
       std::cout << "filename: " << filename << "\n";
       work_threads.clear();
       RecordBatchQueue queue;
       for (int i = 0; i < 64; ++i) {
+        work_threads.emplace_back([&](){
+			while(true){
+			//LOG(INFO) << "finish : "<<finish_reads.load() << "size: " << queue.size() << " block_writes " << block_writes.load() ;
+			if(finish_reads.load() == 64&&queue.size() == 0){
+			  //std::this_thread::sleep_for(std::chrono::seconds(5));
+			  queue.finish();
+			  break;
+			}
+			std::this_thread::sleep_for(std::chrono::seconds(5));
+
+			}
+			});
         work_threads.emplace_back(
             [&](int idx) {
               auto record_batch_supplier =
                   supplier_creator(src_label_id, dst_label_id, e_label_id,
                                    filename, loading_config_, idx, 64);
+	      //auto& queue = queues[idx%8];
               bool first_batch = true;
               while (true) {
                 auto begin = std::chrono::system_clock::now();
                 auto record_batch = record_batch_supplier->GetNextBatch();
                 if (!record_batch) {
+		  finish_reads++;
                   break;
                 }
                 if (first_batch) {
@@ -999,11 +1016,11 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                 }
                 first_batch = false;
                 auto end = std::chrono::system_clock::now();
-                LOG(INFO)
+                /**LOG(INFO)
                     << "get next batch cost: "
                     << std::chrono::duration_cast<std::chrono::milliseconds>(
                            end - begin)
-                           .count();
+                           .count();*/
 
                 queue.push(record_batch);
               }
@@ -1014,12 +1031,22 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
         work_threads.emplace_back(
             [&](int idx) {
               LOG(INFO) << "begin " << idx << "\n";
+	      //auto& queue = queues[idx%8];
               MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>& parsed_edges =
                   vec[idx];
               bool first_batch = true;
               while (true) {
                 auto begin = std::chrono::system_clock::now();
+		//block_writes++;
                 auto record_batch = queue.pop();
+		auto end = std::chrono::system_clock::now();
+		//begin = end;
+		//LOG(INFO) << "get batch from queue cost: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count();
+		begin = end;
+		//block_writes--;
+		if(!record_batch){
+			break;
+		}
                 // copy the table to csr.
                 auto columns = record_batch->columns();
                 // We assume the src_col and dst_col will always be put at
@@ -1074,12 +1101,13 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                       edge_properties, parsed_edges, ie_degree, oe_degree,
                       offset_vec);
                 }
-                auto end = std::chrono::system_clock::now();
+                end = std::chrono::system_clock::now();
+		/**
                 LOG(INFO)
                     << "append edges cost: "
                     << std::chrono::duration_cast<std::chrono::milliseconds>(
                            end - begin)
-                           .count();
+                           .count();*/
               }
             },
             i);
@@ -1091,7 +1119,7 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
       auto cost =
           std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
       LOG(INFO) << "cost: " << cost << " seconds\n";
-      std::ofstream out("test.out");
+      std::ofstream out("./test.out");
       out << "cost: " << cost << " seconds\n";
       out.close();
       VLOG(10) << "Finish parsing edge file:" << filename << " for label "

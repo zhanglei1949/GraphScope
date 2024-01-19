@@ -398,4 +398,4 @@ void AbstractArrowFragmentLoader::AddEdgesRecordBatch(
   }
 }
 
-}  // namespace gs
+  } // namespace gs

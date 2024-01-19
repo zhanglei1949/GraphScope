@@ -25,9 +25,9 @@ class MMapVector {
   MMapVector(const std::string& work_dir, const std::string& file_name)
       : work_dir_(work_dir), file_name_(file_name) {
     array_.open(work_dir + "/" + file_name_ + ".tmp", false);
-    array_.resize(1024);
+    array_.resize(4096);
     size_ = 0;
-    cap_ = 1024;
+    cap_ = 4096;
   }
 
   ~MMapVector() {
@@ -62,9 +62,9 @@ class MMapVector {
   }
 
   void resize(size_t size) {
-    if (size > cap_) {
-      array_.resize(size);
-      cap_ = size;
+    while (size > cap_) {
+      cap_ *= 2;
+      array_.resize(cap_);
     }
     size_ = size;
   }

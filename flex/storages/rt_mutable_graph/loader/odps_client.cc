@@ -109,9 +109,11 @@ void ODPSReadClient::CreateReadSession(
     const std::vector<std::string>& selected_partitions) {
   auto resp = createReadSession(table_identifier, selected_cols, partition_cols,
                                 selected_partitions);
-  if (resp.status_ != apsara::odps::sdk::storage_api::Status::OK &&
+  while (resp.status_ != apsara::odps::sdk::storage_api::Status::OK &&
       resp.status_ != apsara::odps::sdk::storage_api::Status::WAIT) {
-    LOG(FATAL) << "CreateReadSession failed" << resp.error_message_;
+    LOG(INFO) << "CreateReadSession failed" <<resp.status_ << " " << resp.error_message_;
+    resp = createReadSession(table_identifier, selected_cols, partition_cols,
+		                                    selected_partitions);
   }
   *session_id = resp.session_id_;
 

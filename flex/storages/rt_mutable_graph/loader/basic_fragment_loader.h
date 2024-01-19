@@ -277,7 +277,7 @@ class BasicFragmentLoader {
     auto cost =
         std::chrono::duration_cast<std::chrono::seconds>(end - begin).count();
     LOG(INFO) << "cost: " << cost << " seconds\n";
-    std::ofstream out("test-1.out");
+    std::ofstream out("./test-1.out");
     out << "cost: " << cost << " seconds\n";
     out.close();
     dual_csr->Dump(

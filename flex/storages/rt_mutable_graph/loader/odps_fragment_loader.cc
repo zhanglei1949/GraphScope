@@ -41,7 +41,8 @@ ODPSStreamRecordBatchSupplier::ODPSStreamRecordBatchSupplier(
       supplier_id_(cur_index),
       num_suppliers_(num_suppliers),
       table_identifier_(table_identifier),
-      cur_split_index_(supplier_id_) {
+      cur_split_index_(cur_index) {
+	      LOG(INFO) << "cur split index" <<cur_index <<" "<<cur_split_index_ <<" " << num_suppliers << "\n";
   read_rows_req_.table_identifier_ = table_identifier_;
   read_rows_req_.session_id_ = session_id_;
   read_rows_req_.split_index_ = cur_split_index_;

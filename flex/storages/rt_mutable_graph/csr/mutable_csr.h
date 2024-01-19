@@ -592,7 +592,7 @@ class SingleMutableCsr : public TypedMutableCsrBase<EDATA_T> {
       nbr_list_.reset();
       nbr_list_.resize(v_cap);
       FILE* fin = fopen((prefix + ".snbr").c_str(), "r");
-      fread(nbr_list_.data(), sizeof(nbr_t), old_size, fin);
+      int n = fread(nbr_list_.data(), sizeof(nbr_t), old_size, fin);
       fclose(fin);
       for (size_t k = old_size; k != v_cap; ++k) {
         nbr_list_[k].timestamp.store(std::numeric_limits<timestamp_t>::max());
