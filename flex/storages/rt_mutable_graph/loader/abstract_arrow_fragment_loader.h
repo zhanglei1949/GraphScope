@@ -763,24 +763,24 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     RecordBatchQueue queue;
     std::atomic<int> finish_reads(0);
     for (auto filename : e_files) {
-      for (int i = 0; i < 64; ++i) {
-        work_threads.emplace_back([&]() {
-          while (true) {
-            if (finish_reads.load() == 64 && queue.size() == 0) {
-              // std::this_thread::sleep_for(std::chrono::seconds(5));
-              queue.finish();
-              break;
-            }
-            std::this_thread::sleep_for(std::chrono::seconds(5));
+      work_threads.emplace_back([&]() {
+        while (true) {
+          if (finish_reads.load() == 64 && queue.size() == 0) {
+            // std::this_thread::sleep_for(std::chrono::seconds(5));
+            queue.finish();
+            break;
           }
-        });
+          std::this_thread::sleep_for(std::chrono::seconds(5));
+        }
+      });
+      for (int i = 0; i < 64; ++i) {
         work_threads.emplace_back(
             [&](int idx) {
               auto record_batch_supplier =
                   supplier_creator(src_label_id, dst_label_id, e_label_id,
-                                   filename, loading_config_, 0, 1);
+                                   filename, loading_config_, idx, 64);
+              bool first_batch = true;
               while (true) {
-                bool first_batch = true;
                 auto record_batch = record_batch_supplier->GetNextBatch();
 
                 if (!record_batch) {
@@ -810,7 +810,7 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
               while (true) {
                 auto& parsed_edges = parsed_edges_vec[idx];
                 auto record_batch = queue.pop();
-                if (record_batch) {
+                if (!record_batch) {
                   break;
                 }
                 // copy the table to csr.
@@ -1011,19 +1011,20 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
       std::cout << "filename: " << filename << "\n";
       work_threads.clear();
       RecordBatchQueue queue;
-      for (int i = 0; i < 64; ++i) {
-        work_threads.emplace_back([&]() {
-          while (true) {
-            // LOG(INFO) << "finish : "<<finish_reads.load() << "size: " <<
-            // queue.size() << " block_writes " << block_writes.load() ;
-            if (finish_reads.load() == 64 && queue.size() == 0) {
-              // std::this_thread::sleep_for(std::chrono::seconds(5));
-              queue.finish();
-              break;
-            }
-            std::this_thread::sleep_for(std::chrono::seconds(5));
+      work_threads.emplace_back([&]() {
+        while (true) {
+          // LOG(INFO) << "finish : "<<finish_reads.load() << "size: " <<
+          // queue.size() << " block_writes " << block_writes.load() ;
+          if (finish_reads.load() == 64 && queue.size() == 0) {
+            // std::this_thread::sleep_for(std::chrono::seconds(5));
+            queue.finish();
+            break;
           }
-        });
+          std::this_thread::sleep_for(std::chrono::seconds(5));
+        }
+      });
+
+      for (int i = 0; i < 64; ++i) {
         work_threads.emplace_back(
             [&](int idx) {
               auto record_batch_supplier =
