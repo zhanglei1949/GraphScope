@@ -42,7 +42,8 @@ ODPSStreamRecordBatchSupplier::ODPSStreamRecordBatchSupplier(
       num_suppliers_(num_suppliers),
       table_identifier_(table_identifier),
       cur_split_index_(cur_index) {
-	      LOG(INFO) << "cur split index" <<cur_index <<" "<<cur_split_index_ <<" " << num_suppliers << "\n";
+  LOG(INFO) << "cur split index" << cur_index << " " << cur_split_index_ << " "
+            << num_suppliers << "\n";
   read_rows_req_.table_identifier_ = table_identifier_;
   read_rows_req_.session_id_ = session_id_;
   read_rows_req_.split_index_ = cur_split_index_;
@@ -143,6 +144,16 @@ void ODPSFragmentLoader::LoadFragment() {
   auto& person = basic_fragment_loader_.GetLFIndexer(0);
   person.open_in_memory(
       "/home/graphscope/data/csr-data/snapshots/0/vertex_map_User");
+  auto& dingOrg = basic_fragment_loader_.GetLFIndexer(1);
+  dingOrg.open_in_memory(
+      "/home/graphscope/data/csr-data/snapshots/0/vertex_map_DingOrg");
+  auto& dingEduOrg = basic_fragment_loader_.GetLFIndexer(2);
+  dingEduOrg.open_in_memory(
+      "/home/graphscope/data/csr-data/snapshots/0/vertex_map_DingEduOrg");
+  auto& dingGroup = basic_fragment_loader_.GetLFIndexer(3);
+  dingGroup.open_in_memory(
+      "/home/graphscope/data/csr-data/snapshots/0/vertex_map_DingGroup");
+
   loadEdges();
 
   basic_fragment_loader_.LoadFragment();

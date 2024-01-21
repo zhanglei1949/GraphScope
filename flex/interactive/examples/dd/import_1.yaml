@@ -11,7 +11,7 @@ loading_config:
 vertex_mappings:
   - type_name: User  # must align with the schema
     inputs:
-      - dd_undata/dim_ding_user_node/ds=20240103
+      - dd_undata/dim_ding_user_node/ds=20240119
     column_mappings:
       - column:
           index: 0    # can be omitted if the index is the same as the property index
@@ -33,52 +33,68 @@ vertex_mappings:
           index: 5
           name: org_industry_sub_id
         property: subIndustry
-        #  - type_name: DingOrg
-        #inputs:
-        # - dd_undata/dim_ding_org_node/ds=20240103
-        #column_mappings:
-        # - column:
-        # index: 0
-        #  name: org_id
-        #property: id
-        # - type_name: DingEduOrg
-        #inputs:
-        # - dd_undata/dim_ding_edu_org_node/ds=20240103
-        #column_mappings:
-        # - column:
-        #  index: 0
-        #  name: org_id
-        #property: id
-        # - type_name: DingGroup
-        #inputs:
-        # - dd_undata/dim_ding_group_node/ds=20240103
-        #column_mappings:
-        # - column:
-        #  index: 0
-        #  name: group_id
-        #property: id
+  - type_name: DingOrg
+    inputs:
+      - dd_undata/dim_ding_org_node/ds=20240119
+    column_mappings:
+      - column:
+          index: 0
+          name: org_id
+        property: id
+  - type_name: DingEduOrg
+    inputs:
+      - dd_undata/dim_ding_edu_org_node/ds=20240119
+    column_mappings:
+      - column:
+          index: 0
+          name: org_id
+        property: id
+  - type_name: DingGroup
+    inputs:
+      - dd_undata/dim_ding_group_node/ds=20240119
+    column_mappings:
+      - column:
+          index: 0
+          name: group_id
+        property: id
 edge_mappings:
-        # - type_triplet:
-        #edge: Friend
-        # source_vertex: User
-        #destination_vertex: User
-        #inputs:
-        #- dd_undata/dim_ding_user_friend_edge/ds=20240103
-        #source_vertex_mappings:
-        # - column:
-        #  index: 0
-        #  name: ding_user_id
-        #property: id
-        #destination_vertex_mappings:
-        #- column:
-        #     index: 1
-        #  name: friend_user_id
-        #property: id
+  - type_triplet:
+      edge: Friend
+      source_vertex: User
+      destination_vertex: User
+    inputs:
+      - dd_undata/dim_ding_user_friend_edge/ds=20240119
+    source_vertex_mappings:
+      - column:
+          index: 0
+          name: ding_user_id
+        property: id
+    destination_vertex_mappings:
+      - column:
+          index: 1
+          name: friend_user_id
+        property: id
         #    column_mappings:
             #      - column:
               #          index: 2
           #          name: gmt_create_mill
 #        property: creationDate
+  - type_triplet:
+      edge: ChatInGroup
+      source_vertex: User
+      destination_vertex: DingGroup
+    inputs:
+      - dd_undata/dim_ding_user_group_edge/ds=20240119
+    source_vertex_mappings:
+      - column:
+          index: 0
+          name: ding_user_id
+        property: id
+    destination_vertex_mappings:
+      - column:
+          index: 1
+          name: group_id
+        property: id
         #column_mappings:
         #      - column:
               #          index: 2
@@ -89,7 +105,7 @@ edge_mappings:
       source_vertex: User
       destination_vertex: User
     inputs:
-      - dd_undata/dim_ding_user_user_edge/ds=20240116
+      - dd_undata/dim_ding_user_user_edge/ds=20240119
     source_vertex_mappings:
       - column:
           index: 0
@@ -109,10 +125,60 @@ edge_mappings:
           index: 3
           name: communication_score_30d
         property: communication_score
+  - type_triplet:
+      edge: WorkAt
+      source_vertex: User
+      destination_vertex: DingOrg
+    inputs:
+      - dd_undata/dim_ding_org_user_edge/ds=20240119
+    source_vertex_mappings:
+      - column:
+          index: 0
+          name: ding_user_id
+        property: id
+    destination_vertex_mappings:
+      - column:
+          index: 1
+          name: org_id
+        property: id
+    column_mappings:
+      - column:
+          index: 2
+          name: gmt_create_mill
+        property: joinDate
+      - column:
+          index: 3
+          name: staff_lst_leave_time_mill
+        property: leaveDate
+      - column:
+          index: 4
+          name: role_name
+        property: roleName
+  - type_triplet:
+      edge: StudyAt
+      source_vertex: User
+      destination_vertex: DingEduOrg
+    inputs:
+      - dd_undata/dim_ding_edu_org_user_edge/ds=20240119
+    source_vertex_mappings:
+      - column:
+          index: 0
+          name: ding_user_id
+        property: id
+    destination_vertex_mappings:
+      - column:
+          index: 1
+          name: org_id
+        property: id
+    column_mappings:
+      - column:
+          index: 2
+          name: gmt_create_mill
+        property: joinDate
+      - column:
+          index: 3
+          name: staff_lst_leave_time_mill
+        property: leaveDate
       # - column:
-      #     index: 4
-      #     name: profession
-      #   property: profession
-
 
 

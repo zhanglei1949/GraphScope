@@ -28,8 +28,49 @@ schema:
             primitive_type: DT_STRINGMAP
       primary_keys:
         - id
+    - type_id: 1
+      type_name: DingOrg
+      properties:
+        - property_name: id
+          property_type:
+            primitive_type: DT_SIGNED_INT64
+      primary_keys:
+        - id
+    - type_id: 2
+      type_name: DingEduOrg
+      properties:
+        - property_name: id
+          property_type:
+            primitive_type: DT_SIGNED_INT64
+      primary_keys:
+        - id
+    - type_id: 3
+      type_name: DingGroup
+      properties:
+        - property_name: id
+          property_type:
+            primitive_type: DT_SIGNED_INT64
+      primary_keys:
+        - id
   edge_types:
-    - type_id: 0           
+    - type_id: 0
+      type_name: Friend
+      vertex_type_pair_relations:
+        - source_vertex: User
+          destination_vertex: User
+          relation: MANY_TO_MANY
+          x_csr_params:
+            mutability: IMMUTABLE
+    - type_id: 1
+      type_name: ChatInGroup
+      vertex_type_pair_relations:
+        - source_vertex: User
+          destination_vertex: DingGroup
+          relation: MANY_TO_MANY
+          x_csr_params:
+          #  edge_storage_strategy: ONLY_OUT
+            mutability: IMMUTABLE
+    - type_id: 2           
       type_name: Intimacy
       vertex_type_pair_relations:
         - source_vertex: User
@@ -45,6 +86,39 @@ schema:
         - property_name: communication_score
           property_type:
             primitive_type: DT_UNSIGNED_INT16
+    - type_id: 3
+      type_name: WorkAt
+      vertex_type_pair_relations:
+        - source_vertex: User
+          destination_vertex: DingOrg
+          relation: MANY_TO_MANY
+          #x_csr_params:
+          # edge_storage_strategy: ONLY_OUT
+      properties:
+        - property_name: joinDate
+          property_type:
+            primitive_type: DT_SIGNED_INT64
+        - property_name: leaveDate
+          property_type:
+            primitive_type: DT_SIGNED_INT64
+        - property_name: roleName
+          property_type:
+            primitive_type: DT_UNSIGNED_INT8 #DT_STRINGMAP # limited number of values.(11)
+    - type_id: 4
+      type_name: StudyAt
+      vertex_type_pair_relations:
+        - source_vertex: User
+          destination_vertex: DingEduOrg
+          relation: MANY_TO_MANY
+          #x_csr_params:
+                  #edge_storage_strategy: ONLY_OUT
+      properties:
+        - property_name: joinDate
+          property_type:
+            primitive_type: DT_SIGNED_INT64
+        - property_name: leaveDate
+          property_type:
+            primitive_type: DT_SIGNED_INT64
         # - property_name: profession # limited number of values.(0) kefei反馈当前置为空置，后续确定会有值
         #   property_type:
         #     primitive_type: DT_STRINGMAP
