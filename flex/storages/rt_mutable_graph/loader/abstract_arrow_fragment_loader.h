@@ -225,8 +225,9 @@ template <typename PK_T, typename EDATA_T>
 static void append_src_or_dst(
     bool is_dst, size_t old_size, const std::shared_ptr<arrow::Array> col,
     const LFIndexer<vid_t>& indexer,
-    std::vector<std::tuple<vid_t, vid_t, EDATA_T>>& parsed_edges,
-    std::vector<int32_t>& ie_degree, std::vector<int32_t>& oe_degree) {
+    MMapVector<std::tuple<vid_t, vid_t, EDATA_T>>& parsed_edges,
+    std::vector<std::atomic<int32_t>>& ie_degree,
+    std::vector<std::atomic<int32_t>>& oe_degree) {
   size_t cur_ind = old_size;
   auto invalid_vid = std::numeric_limits<vid_t>::max();
   if constexpr (std::is_same_v<PK_T, std::string_view>) {
@@ -278,7 +279,7 @@ static void append_src_or_dst(
     }
   }
 }
-
+/**
 template <typename PK_T, typename EDATA_T>
 static void append_src_or_dst(
     bool is_dst, size_t old_size, const std::shared_ptr<arrow::Array> col,
@@ -336,7 +337,7 @@ static void append_src_or_dst(
       }
     }
   }
-}
+}*/
 
 template <typename PK_T, typename EDATA_T>
 static void append_edges(
@@ -345,8 +346,9 @@ static void append_edges(
     const LFIndexer<vid_t>& dst_indexer,
     std::vector<std::shared_ptr<arrow::Array>>& edata_cols,
     const std::vector<PropertyType>& edge_props,
-    std::vector<std::tuple<vid_t, vid_t, EDATA_T>>& parsed_edges,
-    std::vector<int32_t>& ie_degree, std::vector<int32_t>& oe_degree) {
+    MMapVector<std::tuple<vid_t, vid_t, EDATA_T>>& parsed_edges,
+    std::vector<std::atomic<int32_t>>& ie_degree,
+    std::vector<std::atomic<int32_t>>& oe_degree) {
   CHECK(src_col->length() == dst_col->length());
 
   indexer_check_lambda(src_indexer, src_col);
@@ -546,10 +548,6 @@ static void append_edges_for_multiple_props(
     //   }
     // }
 
-    for (auto i = old_size; i < parsed_edges.size(); ++i) {
-      // std::get<2>(parsed_edges[i]).resize(offset_vec.back());
-    }
-
     for (auto i = 0; i < edata_cols.size(); ++i) {
       auto edata_col = edata_cols[i];
       auto type = edata_col->type();
@@ -743,88 +741,137 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     check_edge_invariant(schema_, edge_column_mappings, src_col_ind,
                          dst_col_ind, src_label_id, dst_label_id, e_label_id);
 
-    std::vector<std::tuple<vid_t, vid_t, EDATA_T>> parsed_edges;
-    std::vector<int32_t> ie_degree, oe_degree;
+    std::vector<MMapVector<std::tuple<vid_t, vid_t, EDATA_T>>> parsed_edges_vec;
+    auto work_dir = basic_fragment_loader_.work_dir();
+    parsed_edges_vec.reserve(64);
+    for (auto i = 0; i < 64; ++i) {
+      parsed_edges_vec.emplace_back(
+          work_dir, src_label_name + "_" + dst_label_name + "_" +
+                        edge_label_name + "_" + std::to_string(i) + ".tmp");
+    }
     const auto& src_indexer = basic_fragment_loader_.GetLFIndexer(src_label_id);
     const auto& dst_indexer = basic_fragment_loader_.GetLFIndexer(dst_label_id);
-    ie_degree.resize(dst_indexer.size());
-    oe_degree.resize(src_indexer.size());
+    std::vector<std::atomic<int32_t>> ie_degree(dst_indexer.size()),
+        oe_degree(src_indexer.size());
+    memset(ie_degree.data(), 0x0, ie_degree.size() * sizeof(int32_t));
+    memset(oe_degree.data(), 0x0, oe_degree.size() * sizeof(int32_t));
+
     VLOG(10) << "src indexer size: " << src_indexer.size()
              << " dst indexer size: " << dst_indexer.size();
     std::vector<std::shared_ptr<arrow::Array>> property_str_types;
+    std::vector<std::thread> work_threads;
+    RecordBatchQueue queue;
+    std::atomic<int> finish_reads(0);
     for (auto filename : e_files) {
-      auto record_batch_supplier =
-          supplier_creator(src_label_id, dst_label_id, e_label_id, filename,
-                           loading_config_, 0, 1);
-      bool first_batch = true;
-      while (true) {
-        auto record_batch = record_batch_supplier->GetNextBatch();
-        if (!record_batch) {
-          break;
-        }
-        if (first_batch) {
-          auto header = record_batch->schema()->field_names();
-          auto schema_column_names = schema_.get_edge_property_names(
-              src_label_id, dst_label_id, e_label_id);
-          auto schema_column_types = schema_.get_edge_properties(
-              src_label_id, dst_label_id, e_label_id);
-          CHECK(schema_column_names.size() + 2 == header.size())
-              << "schema size: " << schema_column_names.size()
-              << " neq header size: " << header.size();
-        }
-        // copy the table to csr.
-        auto columns = record_batch->columns();
-        // We assume the src_col and dst_col will always be put at front.
-        CHECK(columns.size() >= 2);
-        auto src_col = columns[0];
-        auto dst_col = columns[1];
-        auto src_col_type = src_col->type();
-        auto dst_col_type = dst_col->type();
-        CHECK(check_primary_key_type(src_col_type))
-            << "unsupported src_col type: " << src_col_type->ToString();
-        CHECK(check_primary_key_type(dst_col_type))
-            << "unsupported dst_col type: " << dst_col_type->ToString();
-        CHECK(src_col_type->Equals(dst_col_type))
-            << "src_col type: " << src_col_type->ToString()
-            << " neq dst_col type: " << dst_col_type->ToString();
-
-        std::vector<std::shared_ptr<arrow::Array>> property_cols;
-        for (auto i = 2; i < columns.size(); ++i) {
-          if (columns[i]->type()->Equals(arrow::large_utf8()) ||
-              columns[i]->type()->Equals(arrow::utf8())) {
-            property_str_types.emplace_back(columns[i]);
+      for (int i = 0; i < 64; ++i) {
+        work_threads.emplace_back([&]() {
+          while (true) {
+            if (finish_reads.load() == 64 && queue.size() == 0) {
+              // std::this_thread::sleep_for(std::chrono::seconds(5));
+              queue.finish();
+              break;
+            }
+            std::this_thread::sleep_for(std::chrono::seconds(5));
           }
-          property_cols.emplace_back(columns[i]);
-        }
-        // CHECK(property_cols.size() <= 1)
-        //     << "Currently only support at most one property on edge";
-        auto edge_properties =
-            schema_.get_edge_properties(src_label_id, dst_label_id, e_label_id);
-        // add edges to vector
-        CHECK(src_col->length() == dst_col->length());
-        if (src_col_type->Equals(arrow::int64())) {
-          append_edges<int64_t, EDATA_T>(
-              src_col, dst_col, src_indexer, dst_indexer, property_cols,
-              edge_properties, parsed_edges, ie_degree, oe_degree);
-        } else if (src_col_type->Equals(arrow::uint64())) {
-          append_edges<uint64_t, EDATA_T>(
-              src_col, dst_col, src_indexer, dst_indexer, property_cols,
-              edge_properties, parsed_edges, ie_degree, oe_degree);
-        } else if (src_col_type->Equals(arrow::int32())) {
-          append_edges<int32_t, EDATA_T>(
-              src_col, dst_col, src_indexer, dst_indexer, property_cols,
-              edge_properties, parsed_edges, ie_degree, oe_degree);
-        } else if (src_col_type->Equals(arrow::uint32())) {
-          append_edges<uint32_t, EDATA_T>(
-              src_col, dst_col, src_indexer, dst_indexer, property_cols,
-              edge_properties, parsed_edges, ie_degree, oe_degree);
-        } else {
-          // must be string
-          append_edges<std::string_view, EDATA_T>(
-              src_col, dst_col, src_indexer, dst_indexer, property_cols,
-              edge_properties, parsed_edges, ie_degree, oe_degree);
-        }
-        first_batch = false;
+        });
+        work_threads.emplace_back(
+            [&](int idx) {
+              auto record_batch_supplier =
+                  supplier_creator(src_label_id, dst_label_id, e_label_id,
+                                   filename, loading_config_, 0, 1);
+              while (true) {
+                bool first_batch = true;
+                auto record_batch = record_batch_supplier->GetNextBatch();
+
+                if (!record_batch) {
+                  finish_reads++;
+                  break;
+                }
+
+                if (first_batch) {
+                  auto header = record_batch->schema()->field_names();
+                  auto schema_column_names = schema_.get_edge_property_names(
+                      src_label_id, dst_label_id, e_label_id);
+                  auto schema_column_types = schema_.get_edge_properties(
+                      src_label_id, dst_label_id, e_label_id);
+                  CHECK(schema_column_names.size() + 2 == header.size())
+                      << "schema size: " << schema_column_names.size()
+                      << " neq header size: " << header.size();
+                  first_batch = false;
+                }
+                queue.push(record_batch);
+              }
+            },
+            i);
+      }
+      for (int i = 0; i < 64; ++i) {
+        work_threads.emplace_back(
+            [&](int idx) {
+              while (true) {
+                auto& parsed_edges = parsed_edges_vec[idx];
+                auto record_batch = queue.pop();
+                if (record_batch) {
+                  break;
+                }
+                // copy the table to csr.
+                auto columns = record_batch->columns();
+                // We assume the src_col and dst_col will always be put at
+                // front.
+                CHECK(columns.size() >= 2);
+                auto src_col = columns[0];
+                auto dst_col = columns[1];
+                auto src_col_type = src_col->type();
+                auto dst_col_type = dst_col->type();
+                CHECK(check_primary_key_type(src_col_type))
+                    << "unsupported src_col type: " << src_col_type->ToString();
+                CHECK(check_primary_key_type(dst_col_type))
+                    << "unsupported dst_col type: " << dst_col_type->ToString();
+                CHECK(src_col_type->Equals(dst_col_type))
+                    << "src_col type: " << src_col_type->ToString()
+                    << " neq dst_col type: " << dst_col_type->ToString();
+
+                std::vector<std::shared_ptr<arrow::Array>> property_cols;
+                for (auto i = 2; i < columns.size(); ++i) {
+                  if (columns[i]->type()->Equals(arrow::large_utf8()) ||
+                      columns[i]->type()->Equals(arrow::utf8())) {
+                    property_str_types.emplace_back(columns[i]);
+                  }
+                  property_cols.emplace_back(columns[i]);
+                }
+                // CHECK(property_cols.size() <= 1)
+                //     << "Currently only support at most one property on edge";
+                auto edge_properties = schema_.get_edge_properties(
+                    src_label_id, dst_label_id, e_label_id);
+                // add edges to vector
+                CHECK(src_col->length() == dst_col->length());
+                if (src_col_type->Equals(arrow::int64())) {
+                  append_edges<int64_t, EDATA_T>(
+                      src_col, dst_col, src_indexer, dst_indexer, property_cols,
+                      edge_properties, parsed_edges, ie_degree, oe_degree);
+                } else if (src_col_type->Equals(arrow::uint64())) {
+                  append_edges<uint64_t, EDATA_T>(
+                      src_col, dst_col, src_indexer, dst_indexer, property_cols,
+                      edge_properties, parsed_edges, ie_degree, oe_degree);
+                } else if (src_col_type->Equals(arrow::int32())) {
+                  append_edges<int32_t, EDATA_T>(
+                      src_col, dst_col, src_indexer, dst_indexer, property_cols,
+                      edge_properties, parsed_edges, ie_degree, oe_degree);
+                } else if (src_col_type->Equals(arrow::uint32())) {
+                  append_edges<uint32_t, EDATA_T>(
+                      src_col, dst_col, src_indexer, dst_indexer, property_cols,
+                      edge_properties, parsed_edges, ie_degree, oe_degree);
+                } else {
+                  // must be string
+                  append_edges<std::string_view, EDATA_T>(
+                      src_col, dst_col, src_indexer, dst_indexer, property_cols,
+                      edge_properties, parsed_edges, ie_degree, oe_degree);
+                }
+              }
+            },
+            i);
+      }
+      for (auto& t : work_threads) {
+        t.join();
       }
       VLOG(10) << "Finish parsing edge file:" << filename << " for label "
                << src_label_name << " -> " << dst_label_name << " -> "
@@ -833,11 +880,19 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     VLOG(10) << "Finish parsing edge file:" << e_files.size() << " for label "
              << src_label_name << " -> " << dst_label_name << " -> "
              << edge_label_name;
-
+    std::vector<int> ie_deg(ie_degree.size()), oe_deg(oe_degree.size());
+    for (size_t idx = 0; idx < ie_degree.size(); ++idx) {
+      ie_deg[idx] = ie_degree[idx].load();
+    }
+    ie_degree.clear();
+    for (size_t idx = 0; idx < oe_degree.size(); ++idx) {
+      oe_deg[idx] = oe_degree[idx].load();
+    }
+    oe_degree.clear();
     basic_fragment_loader_.PutEdges(src_label_id, dst_label_id, e_label_id,
-                                    parsed_edges, ie_degree, oe_degree);
+                                    parsed_edges_vec, ie_deg, oe_deg);
     property_str_types.clear();
-    VLOG(10) << "Finish putting: " << parsed_edges.size() << " edges";
+    VLOG(10) << "Finish putting: " << parsed_edges_vec.size() << " edges";
   }
 
   template <typename EDATA_T,
@@ -887,54 +942,35 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     // Since edge contains multiple properties, we need spaces to store
     // them.
     if (cur_offset <= 4) {
-      MMapVector<std::tuple<vid_t, vid_t, char_array<4>>> parsed_edges(
-          work_dir,
-          src_label_name + "_" + dst_label_name + "_" + edge_label_name);
       collect_edge_properties<EDATA_T, char_array<4>>(
-          src_label_id, dst_label_id, e_label_id, parsed_edges, e_files,
-          offset_vec, supplier_creator);
+          src_label_id, dst_label_id, e_label_id, e_files, offset_vec,
+          supplier_creator);
     } else if (cur_offset <= 8) {
-      MMapVector<std::tuple<vid_t, vid_t, char_array<8>>> parsed_edges(
-          work_dir,
-          src_label_name + "_" + dst_label_name + "_" + edge_label_name);
       collect_edge_properties<EDATA_T, char_array<8>>(
-          src_label_id, dst_label_id, e_label_id, parsed_edges, e_files,
-          offset_vec, supplier_creator);
+          src_label_id, dst_label_id, e_label_id, e_files, offset_vec,
+          supplier_creator);
     } else if (cur_offset <= 12) {
-      MMapVector<std::tuple<vid_t, vid_t, char_array<12>>> parsed_edges(
-          work_dir,
-          src_label_name + "_" + dst_label_name + "_" + edge_label_name);
       collect_edge_properties<EDATA_T, char_array<12>>(
-          src_label_id, dst_label_id, e_label_id, parsed_edges, e_files,
-          offset_vec, supplier_creator);
+          src_label_id, dst_label_id, e_label_id, e_files, offset_vec,
+          supplier_creator);
     } else if (cur_offset <= 16) {
-      MMapVector<std::tuple<vid_t, vid_t, char_array<16>>> parsed_edges(
-          work_dir,
-          src_label_name + "_" + dst_label_name + "_" + edge_label_name);
       collect_edge_properties<EDATA_T, char_array<16>>(
-          src_label_id, dst_label_id, e_label_id, parsed_edges, e_files,
-          offset_vec, supplier_creator);
+          src_label_id, dst_label_id, e_label_id, e_files, offset_vec,
+          supplier_creator);
     } else if (cur_offset <= 20) {
-      MMapVector<std::tuple<vid_t, vid_t, char_array<20>>> parsed_edges(
-          work_dir,
-          src_label_name + "_" + dst_label_name + "_" + edge_label_name);
       collect_edge_properties<EDATA_T, char_array<20>>(
-          src_label_id, dst_label_id, e_label_id, parsed_edges, e_files,
-          offset_vec, supplier_creator);
+          src_label_id, dst_label_id, e_label_id, e_files, offset_vec,
+          supplier_creator);
     } else if (cur_offset <= 24) {
-      MMapVector<std::tuple<vid_t, vid_t, char_array<24>>> parsed_edges(
-          work_dir,
-          src_label_name + "_" + dst_label_name + "_" + edge_label_name);
       collect_edge_properties<EDATA_T, char_array<24>>(
-          src_label_id, dst_label_id, e_label_id, parsed_edges, e_files,
-          offset_vec, supplier_creator);
+          src_label_id, dst_label_id, e_label_id, e_files, offset_vec,
+          supplier_creator);
     }
   }
 
   template <typename EDATA_T, typename CHAR_ARRAY_T>
   void collect_edge_properties(
       label_t src_label_id, label_t dst_label_id, label_t e_label_id,
-      MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>&,
       const std::vector<std::string>& e_files,
       const std::vector<size_t>& offset_vec,
       std::function<std::shared_ptr<IRecordBatchSupplier>(
@@ -949,12 +985,8 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     const auto& dst_indexer = basic_fragment_loader_.GetLFIndexer(dst_label_id);
     std::vector<std::atomic<int32_t>> ie_degree(dst_indexer.size()),
         oe_degree(src_indexer.size());
-    for (auto& d : ie_degree) {
-      d.store(0);
-    }
-    for (auto& d : oe_degree) {
-      d.store(0);
-    }
+    memset(ie_degree.data(), 0x0, ie_degree.size() * sizeof(int32_t));
+    memset(oe_degree.data(), 0x0, oe_degree.size() * sizeof(int32_t));
     LOG(INFO) << "src indexer size: " << src_indexer.size()
               << " dst indexer size: " << dst_indexer.size();
     auto edge_properties =
@@ -966,11 +998,13 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     std::vector<MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>> vec;
     vec.reserve(64);
     for (auto i = 0; i < 64; ++i) {
-      vec.emplace_back(work_dir, "_" + std::to_string(i) + ".tmp");
+      vec.emplace_back(work_dir, src_label_name + "_" + dst_label_name + "_" +
+                                     edge_label_name + "_" + std::to_string(i) +
+                                     ".tmp");
     }
 
     std::cout << "begin: " << e_files.size() << "\n";
-    std::atomic<int> finish_reads,block_writes;
+    std::atomic<int> finish_reads, block_writes;
     finish_reads.store(0);
     block_writes.store(0);
     for (auto filename : e_files) {
@@ -978,30 +1012,30 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
       work_threads.clear();
       RecordBatchQueue queue;
       for (int i = 0; i < 64; ++i) {
-        work_threads.emplace_back([&](){
-			while(true){
-			//LOG(INFO) << "finish : "<<finish_reads.load() << "size: " << queue.size() << " block_writes " << block_writes.load() ;
-			if(finish_reads.load() == 64&&queue.size() == 0){
-			  //std::this_thread::sleep_for(std::chrono::seconds(5));
-			  queue.finish();
-			  break;
-			}
-			std::this_thread::sleep_for(std::chrono::seconds(5));
-
-			}
-			});
+        work_threads.emplace_back([&]() {
+          while (true) {
+            // LOG(INFO) << "finish : "<<finish_reads.load() << "size: " <<
+            // queue.size() << " block_writes " << block_writes.load() ;
+            if (finish_reads.load() == 64 && queue.size() == 0) {
+              // std::this_thread::sleep_for(std::chrono::seconds(5));
+              queue.finish();
+              break;
+            }
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+          }
+        });
         work_threads.emplace_back(
             [&](int idx) {
               auto record_batch_supplier =
                   supplier_creator(src_label_id, dst_label_id, e_label_id,
                                    filename, loading_config_, idx, 64);
-	      //auto& queue = queues[idx%8];
+              // auto& queue = queues[idx%8];
               bool first_batch = true;
               while (true) {
                 auto begin = std::chrono::system_clock::now();
                 auto record_batch = record_batch_supplier->GetNextBatch();
                 if (!record_batch) {
-		  finish_reads++;
+                  finish_reads++;
                   break;
                 }
                 if (first_batch) {
@@ -1031,22 +1065,23 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
         work_threads.emplace_back(
             [&](int idx) {
               LOG(INFO) << "begin " << idx << "\n";
-	      //auto& queue = queues[idx%8];
+              // auto& queue = queues[idx%8];
               MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>& parsed_edges =
                   vec[idx];
               bool first_batch = true;
               while (true) {
                 auto begin = std::chrono::system_clock::now();
-		//block_writes++;
+                // block_writes++;
                 auto record_batch = queue.pop();
-		auto end = std::chrono::system_clock::now();
-		//begin = end;
-		//LOG(INFO) << "get batch from queue cost: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count();
-		begin = end;
-		//block_writes--;
-		if(!record_batch){
-			break;
-		}
+                auto end = std::chrono::system_clock::now();
+                // begin = end;
+                // LOG(INFO) << "get batch from queue cost: " <<
+                // std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count();
+                begin = end;
+                // block_writes--;
+                if (!record_batch) {
+                  break;
+                }
                 // copy the table to csr.
                 auto columns = record_batch->columns();
                 // We assume the src_col and dst_col will always be put at
@@ -1102,7 +1137,7 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                       offset_vec);
                 }
                 end = std::chrono::system_clock::now();
-		/**
+                /**
                 LOG(INFO)
                     << "append edges cost: "
                     << std::chrono::duration_cast<std::chrono::milliseconds>(

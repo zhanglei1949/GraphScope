@@ -118,11 +118,12 @@ class BasicFragmentLoader {
   }
 
   template <typename EDATA_T>
-  void PutEdges(label_t src_label_id, label_t dst_label_id,
-                label_t edge_label_id,
-                const std::vector<std::tuple<vid_t, vid_t, EDATA_T>>& edges,
-                const std::vector<int32_t>& ie_degree,
-                const std::vector<int32_t>& oe_degree) {
+  void PutEdges(
+      label_t src_label_id, label_t dst_label_id, label_t edge_label_id,
+      const std::vector<MMapVector<std::tuple<vid_t, vid_t, EDATA_T>>>&
+          edges_vec,
+      const std::vector<int32_t>& ie_degree,
+      const std::vector<int32_t>& oe_degree) {
     size_t index = src_label_id * vertex_label_num_ * edge_label_num_ +
                    dst_label_id * edge_label_num_ + edge_label_id;
     auto& src_indexer = lf_indexers_[src_label_id];
@@ -154,15 +155,26 @@ class BasicFragmentLoader {
           ie_prefix(src_label_name, dst_label_name, edge_label_name),
           edata_prefix(src_label_name, dst_label_name, edge_label_name),
           tmp_dir(work_dir_), oe_degree, ie_degree);
-      for (auto& edge : edges) {
-        if (std::get<1>(edge) == INVALID_VID ||
-            std::get<0>(edge) == INVALID_VID) {
-          VLOG(10) << "Skip invalid edge:" << std::get<0>(edge) << "->"
-                   << std::get<1>(edge);
-          continue;
-        }
-        dual_csr->BatchPutEdge(std::get<0>(edge), std::get<1>(edge),
-                               std::get<2>(edge));
+      std::vector<std::thread> vec;
+      for (size_t i = 0; i < edges_vec.size(); ++i) {
+        vec.emplace_back(
+            [&](int idx) {
+              auto& edges = edges_vec[idx];
+              for (auto& edge : edges) {
+                if (std::get<1>(edge) == INVALID_VID ||
+                    std::get<0>(edge) == INVALID_VID) {
+                  VLOG(10) << "Skip invalid edge:" << std::get<0>(edge) << "->"
+                           << std::get<1>(edge);
+                  continue;
+                }
+                dual_csr->BatchPutEdge(std::get<0>(edge), std::get<1>(edge),
+                                       std::get<2>(edge));
+              }
+            },
+            i);
+      }
+      for (auto& t : vec) {
+        t.join();
       }
     } else {
       bool mutability = schema_.get_edge_mutability(
@@ -180,15 +192,26 @@ class BasicFragmentLoader {
           ie_prefix(src_label_name, dst_label_name, edge_label_name),
           edata_prefix(src_label_name, dst_label_name, edge_label_name),
           tmp_dir(work_dir_), oe_degree, ie_degree);
-      for (auto& edge : edges) {
-        if (std::get<1>(edge) == INVALID_VID ||
-            std::get<0>(edge) == INVALID_VID) {
-          VLOG(10) << "Skip invalid edge:" << std::get<0>(edge) << "->"
-                   << std::get<1>(edge);
-          continue;
-        }
-        dual_csr->BatchPutEdge(std::get<0>(edge), std::get<1>(edge),
-                               std::get<2>(edge));
+      std::vector<std::thread> vec;
+      for (size_t i = 0; i < edges_vec.size(); ++i) {
+        vec.emplace_back(
+            [&](int idx) {
+              auto& edges = edges_vec[idx];
+              for (auto& edge : edges) {
+                if (std::get<1>(edge) == INVALID_VID ||
+                    std::get<0>(edge) == INVALID_VID) {
+                  VLOG(10) << "Skip invalid edge:" << std::get<0>(edge) << "->"
+                           << std::get<1>(edge);
+                  continue;
+                }
+                dual_csr->BatchPutEdge(std::get<0>(edge), std::get<1>(edge),
+                                       std::get<2>(edge));
+              }
+            },
+            i);
+      }
+      for (auto& t : vec) {
+        t.join();
       }
       dual_csr->Dump(
           oe_prefix(src_label_name, dst_label_name, edge_label_name),
@@ -202,7 +225,7 @@ class BasicFragmentLoader {
           edata_prefix(src_label_name, dst_label_name, edge_label_name),
           tmp_dir(work_dir_));
     }
-    VLOG(10) << "Finish adding edge batch of size: " << edges.size();
+    VLOG(10) << "Finish adding edge batch of size: " << edges_vec.size();
   }
 
   template <typename CHAR_ARRAY_T>
@@ -250,7 +273,7 @@ class BasicFragmentLoader {
               << " and edge_properties size: " << edge_properties.size();
     auto begin = std::chrono::system_clock::now();
     std::vector<std::thread> vec;
-    for (int i = 0; i < 64; ++i) {
+    for (int i = 0; i < edges_vec.size(); ++i) {
       vec.emplace_back(
           [&](int idx) {
             auto& edges = edges_vec[idx];
@@ -298,8 +321,7 @@ class BasicFragmentLoader {
   template <typename CHAR_ARRAY_T>
   void PutMultiPropEdges(
       label_t src_label_id, label_t dst_label_id, label_t edge_label_id,
-      std::vector<MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>>&
-          edges,
+      std::vector<MMapVector<std::tuple<vid_t, vid_t, CHAR_ARRAY_T>>>& edges,
       const std::vector<int32_t>& ie_degree,
       const std::vector<int32_t>& oe_degree,
       const std::vector<size_t>& offset_vec) {
