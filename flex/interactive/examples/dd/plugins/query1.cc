@@ -35,6 +35,7 @@ struct RecomReason {
 };
 
 // Recommend alumni for the input user.
+// 校友推荐
 class AlumniRecom : public AppBase {
  public:
   using intimacy_edge_type = char_array<4>;

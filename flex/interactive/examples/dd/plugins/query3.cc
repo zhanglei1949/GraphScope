@@ -24,7 +24,6 @@ struct RecomReason {
   int32_t org_id;  // 同事或者同学的组织id
 };
 
-// Recommend alumni for the input user.
 class Query3 : public AppBase {
  public:
   Query3(GraphDBSession& graph)

@@ -25,6 +25,7 @@ struct RecomReason {
 };
 
 // Recommend alumni for the input user.
+// 同事推荐
 class Query0 : public AppBase {
  public:
   Query0(GraphDBSession& graph)
