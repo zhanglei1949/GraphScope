@@ -1,8 +1,8 @@
 
+#include <random>
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/storages/rt_mutable_graph/types.h"
-#include <random>
 namespace gs {
 
 static constexpr int32_t EMPLOYEE_CNT = 100000;
@@ -21,7 +21,7 @@ enum RecomReasonType {
 int64_t get_year_diff(int64_t a, int64_t b) {
   // a and b are seconds
   int64_t sec_per_year = 365;
-  sec_per_year = sec_per_year * 24 * 3600 ;
+  sec_per_year = sec_per_year * 24 * 3600;
   return std::abs(a - b) / sec_per_year;
 }
 
@@ -52,7 +52,7 @@ class AlumniRecom : public AppBase {
         friend_label_id_(graph.schema().get_edge_label_id("Friend")),
         work_at_label_id_(graph.schema().get_edge_label_id("WorkAt")),
         study_at_label_id_(graph.schema().get_edge_label_id("StudyAt")),
-	        chat_in_group_label_id_(
+        chat_in_group_label_id_(
             graph_.schema().get_edge_label_id("ChatInGroup")),
         edu_org_num_(graph.graph().vertex_num(ding_edu_org_label_id_)),
         users_num_(graph.graph().vertex_num(user_label_id_)),
@@ -69,15 +69,14 @@ class AlumniRecom : public AppBase {
     valid_edu_org_ids_set_.clear();
 
     int64_t user_id = input.get_long();
-    //int32_t page_id = input.get_int();
-    int32_t page_id = 0;
-    //int32_t limit = input.get_int();
-    int32_t limit = 500;
-    int32_t start_ind = (page_id) *limit;
-    int32_t end_ind = (page_id + 1) * limit;
-  //  LOG(INFO) << "user_id: " << user_id << " page_id: " << page_id
-    //          << " limit: " << limit << " start_ind: " << start_ind
-      //        << " end_ind: " << end_ind;
+    int32_t page_id = input.get_int();
+    // int32_t page_id = 0;
+    // int32_t limit = input.get_int();
+    int32_t page_size = 50;
+    int32_t start_ind = (page_id) *page_size;
+    int32_t end_ind = (page_id + 1) * page_size;
+    LOG(INFO) << "user_id: " << user_id << " page_id: " << page_id;
+
     auto txn = graph_.GetReadTransaction();
     std::unordered_set<vid_t> visited;
 
@@ -104,19 +103,20 @@ class AlumniRecom : public AppBase {
     }
 
     // Init basic ds.
-    
+
     init_user_studyAt_edu_org(vid, user_study_at_edu_org_oe_view_,
                               user_study_at_edu_org_ie_view_);
-    if(valid_edu_org_ids_.size() == 0){
-	    return true;
+    if (valid_edu_org_ids_.size() == 0) {
+      return true;
     }
-    init_user_friend_set(vid,user_user_friend_oe_view_, user_user_friend_ie_view_);
-    //LOG(INFO) << "Valid Edu org ids size: " << valid_edu_org_ids_.size();
+    init_user_friend_set(vid, user_user_friend_oe_view_,
+                         user_user_friend_ie_view_);
+    // LOG(INFO) << "Valid Edu org ids size: " << valid_edu_org_ids_.size();
     // sort edu_org_ids asc
-    //std::sort(
-      //  valid_edu_org_ids_.begin(), valid_edu_org_ids_.end(),
-        //[](const std::pair<vid_t, int64_t>& a,
-          // const std::pair<vid_t, int64_t>& b) { return a.first < b.first; });
+    // std::sort(
+    //  valid_edu_org_ids_.begin(), valid_edu_org_ids_.end(),
+    //[](const std::pair<vid_t, int64_t>& a,
+    // const std::pair<vid_t, int64_t>& b) { return a.first < b.first; });
 
     std::vector<std::pair<vid_t, uint16_t>> intimacy_users;
     //首先通过亲密度边，拿到所有有亲密度的User
@@ -125,14 +125,15 @@ class AlumniRecom : public AppBase {
                            user_study_at_edu_org_oe_view_, intimacy_users,
                            visited);
 
-   // VLOG(10) << "intimacy_users size: " << intimacy_users.size();
+    // VLOG(10) << "intimacy_users size: " << intimacy_users.size();
     if (start_ind > intimacy_users.size()) {
       // intimacy_users.size () < start_ind < end_ind
       start_ind = start_ind - intimacy_users.size();
       end_ind = end_ind - intimacy_users.size();
       std::vector<std::pair<vid_t, RecomReason>> res =
           try_without_intimacy(txn, vid, start_ind, end_ind, visited);
-      serialize(res, output, limit);
+      LOG(INFO) << "query oid: " << user_id << "res size: " << res.size();
+      serialize(res, output);
       txn.Commit();
       return true;
     } else if (end_ind > intimacy_users.size()) {
@@ -148,7 +149,10 @@ class AlumniRecom : public AppBase {
       for (int32_t i = start_ind; i < intimacy_users.size(); ++i) {
         first_part.emplace_back(intimacy_users[i]);
       }
-      serialize(first_part, second_part, output, limit);
+      LOG(INFO) << "query oid: " << user_id
+                << "first_part size: " << first_part.size()
+                << " second_part size: " << second_part.size();
+      serialize(first_part, second_part, output);
       txn.Commit();
       return true;
     } else {
@@ -157,7 +161,9 @@ class AlumniRecom : public AppBase {
       for (int32_t i = start_ind; i < end_ind; ++i) {
         first_part.emplace_back(intimacy_users[i]);
       }
-      serialize(first_part, output, limit);
+      LOG(INFO) << "query oid: " << user_id
+                << "first_part size: " << first_part.size();
+      serialize(first_part, output);
       txn.Commit();
       return true;
     }
@@ -211,12 +217,12 @@ class AlumniRecom : public AppBase {
         }
       }
     }
-   // LOG(INFO) << "common friend size: " << common_friends.size();
+    // LOG(INFO) << "common friend size: " << common_friends.size();
     // Get for common chat group
     std::unordered_set<vid_t> groups;
     // root -> oe chatInGroup -> groups
     auto group_oes = txn.GetOutgoingImmutableGraphView<grape::EmptyType>(
-         user_label_id_,ding_group_label_id_,  chat_in_group_label_id_);
+        user_label_id_, ding_group_label_id_, chat_in_group_label_id_);
 
     {
       const auto& oe = group_oes.get_edges(vid);
@@ -301,7 +307,7 @@ class AlumniRecom : public AppBase {
       ++cnt;
       sample_cont_failed_cnt = 0;
     }
-    //LOG(INFO) << "get_potential_friends_via_joindate: " << cnt;
+    // LOG(INFO) << "get_potential_friends_via_joindate: " << cnt;
   }
 
   void get_potential_friends_via_city(ReadTransaction& txn, vid_t root,
@@ -319,7 +325,7 @@ class AlumniRecom : public AppBase {
         std::dynamic_pointer_cast<gs::StringMapColumn<uint16_t>>(column_base);
     CHECK(city_column != nullptr);
     auto data = city_column->get_view(root);
-    //LOG(INFO) << "root 's city: " << data;
+    // LOG(INFO) << "root 's city: " << data;
     if (data.empty()) {
       return;
     }
@@ -347,7 +353,7 @@ class AlumniRecom : public AppBase {
       sample_cont_failed_cnt = 0;
       ++cnt;
     }
-    //LOG(INFO) << "get_potential_friends_via_city: " << cnt;
+    // LOG(INFO) << "get_potential_friends_via_city: " << cnt;
   }
 
   void get_potential_friends_via_profession(ReadTransaction& txn, vid_t root,
@@ -366,7 +372,7 @@ class AlumniRecom : public AppBase {
         std::dynamic_pointer_cast<gs::TypedColumn<uint8_t>>(column_base);
     CHECK(city_column != nullptr);
     auto data = city_column->get_view(root);
-   // LOG(INFO) << "root 's profession: " << std::to_string(data);
+    // LOG(INFO) << "root 's profession: " << std::to_string(data);
     if (data == 0) {
       return;
     }
@@ -389,7 +395,7 @@ class AlumniRecom : public AppBase {
       sample_cont_failed_cnt = 0;
       ++cnt;
     }
-    //LOG(INFO) << " get_potential_friends_via_profession: " << cnt;
+    // LOG(INFO) << " get_potential_friends_via_profession: " << cnt;
   }
 
   auto get_potential_friends(
@@ -399,73 +405,76 @@ class AlumniRecom : public AppBase {
     // 1. Same major, skiped since currently empty.
     // 2. for Org joinDate +/-3 years
     std::vector<vid_t> res;
-    if(limit == 0){
-	    return res;
+    if (limit == 0) {
+      return res;
     }
-    //if(org_ids_date.size() == 0){
-//	    return res;
-  //  }
+    // if(org_ids_date.size() == 0){
+    //	    return res;
+    //  }
     const auto& city_col =
-	    *std::dynamic_pointer_cast<gs::StringMapColumn<uint16_t>>(graph_.get_vertex_property_column(user_label_id_,"city"));
+        *std::dynamic_pointer_cast<gs::StringMapColumn<uint16_t>>(
+            graph_.get_vertex_property_column(user_label_id_, "city"));
     auto root_city = city_col.get_view(root);
     bool exist_city = true;
     uint16_t root_city_id;
-    if(root_city == " "){
-	    exist_city = false;
-    }else{
-	    root_city_id = city_col.get_idx(root);
+    if (root_city == " ") {
+      exist_city = false;
+    } else {
+      root_city_id = city_col.get_idx(root);
     }
-    const auto& roleName_col = *std::dynamic_pointer_cast<TypedColumn<uint8_t>>(graph_.get_vertex_property_column(user_label_id_,"roleName"));
+    const auto& roleName_col = *std::dynamic_pointer_cast<TypedColumn<uint8_t>>(
+        graph_.get_vertex_property_column(user_label_id_, "roleName"));
     auto root_roleName = roleName_col.get_view(root);
-    const auto& studyat_ie = txn.GetIncomingGraphView<char_array<16>>(ding_edu_org_label_id_,user_label_id_,study_at_label_id_);
+    const auto& studyat_ie = txn.GetIncomingGraphView<char_array<16>>(
+        ding_edu_org_label_id_, user_label_id_, study_at_label_id_);
     std::vector<uint32_t> tmp;
-    std::random_device rd; // Seed with a real random value, if available
-    std::mt19937 eng(rd()); // A Mersenne Twister pseudo-random generator of 32-bit numbers
-    std::uniform_int_distribution<int> dist(0,limit);
-	     // Define the range of numbers you want, here it's 0 through 99
-	     //     std::uniform_int_distribution<int> dist(0, 99);
-    for(auto&[a,b]: org_ids_date){
-	    const auto& ie = studyat_ie.get_edges(a);
-	    for(auto& e: ie){
-		    auto v = e.neighbor;
-		    if (visited.count(v)) continue;
-		    if (exist_city && city_col.get_idx(v) == root_city_id){
-			    res.emplace_back(v);
-			    visited.emplace(v);
-		    } else if(root_roleName == roleName_col.get_view(v)){
-			    res.emplace_back(v);
-			    visited.emplace(v);
-		    }else {
-			    int64_t joinDate = *(reinterpret_cast<const int64_t*>(e.data.data));
-			    if(get_year_diff(b, joinDate) <= 3){
-				    res.emplace_back(v);
-				    visited.emplace(v);
-			    }else{
-				    if(tmp.size() < limit){
-				      tmp.emplace_back(v);
-				    }else{
-					   auto idx =  dist(eng);
-					   if(idx < tmp.size()){
-						   tmp[idx] = v;
-					   }
-				    }
-
-			    }
-		    }
-		    if(res.size() >= limit){
-			    std::cout << "res: " << res.size() << "\n";
-			    return res;
-		    }
-
-	    }
+    std::random_device rd;  // Seed with a real random value, if available
+    std::mt19937 eng(
+        rd());  // A Mersenne Twister pseudo-random generator of 32-bit numbers
+    std::uniform_int_distribution<int> dist(0, limit);
+    // Define the range of numbers you want, here it's 0 through 99
+    //     std::uniform_int_distribution<int> dist(0, 99);
+    for (auto& [a, b] : org_ids_date) {
+      const auto& ie = studyat_ie.get_edges(a);
+      for (auto& e : ie) {
+        auto v = e.neighbor;
+        if (visited.count(v))
+          continue;
+        if (exist_city && city_col.get_idx(v) == root_city_id) {
+          res.emplace_back(v);
+          visited.emplace(v);
+        } else if (root_roleName == roleName_col.get_view(v)) {
+          res.emplace_back(v);
+          visited.emplace(v);
+        } else {
+          int64_t joinDate = *(reinterpret_cast<const int64_t*>(e.data.data));
+          if (get_year_diff(b, joinDate) <= 3) {
+            res.emplace_back(v);
+            visited.emplace(v);
+          } else {
+            if (tmp.size() < limit) {
+              tmp.emplace_back(v);
+            } else {
+              auto idx = dist(eng);
+              if (idx < tmp.size()) {
+                tmp[idx] = v;
+              }
+            }
+          }
+        }
+        if (res.size() >= limit) {
+          std::cout << "res: " << res.size() << "\n";
+          return res;
+        }
+      }
     }
     {
-    	size_t idx = 0;
-	std::sort(tmp.begin(),tmp.end());
-	size_t len = std::unique(tmp.begin(),tmp.end()) - tmp.begin();
-    	while(res.size() < limit&&idx<len){
-	    	res.emplace_back(tmp[idx++]);
-    	}
+      size_t idx = 0;
+      std::sort(tmp.begin(), tmp.end());
+      size_t len = std::unique(tmp.begin(), tmp.end()) - tmp.begin();
+      while (res.size() < limit && idx < len) {
+        res.emplace_back(tmp[idx++]);
+      }
     }
     std::cout << "res :OOO " << res.size() << "\n";
     /**
@@ -496,7 +505,8 @@ class AlumniRecom : public AppBase {
       if (visited.count(dst) > 0) {
         continue;
       }
-      //VLOG(1) << "same org: " << user_studied_at(dst, user_edu_org_oe_view) << ", friend:  " << is_friend(dst);
+      // VLOG(1) << "same org: " << user_studied_at(dst, user_edu_org_oe_view)
+      // << ", friend:  " << is_friend(dst);
       if (user_studied_at(dst, user_edu_org_oe_view) && !is_friend(dst)) {
         auto fc = edge.get_data();
         // the first it a uint8_t, the second is a uint16_t
@@ -507,8 +517,8 @@ class AlumniRecom : public AppBase {
         cnt += 1;
       }
     }
-    //LOG(INFO) << "Select " << cnt << " users from intimacy view, out of : "
-      //        << edges.estimated_degree();
+    // LOG(INFO) << "Select " << cnt << " users from intimacy view, out of : "
+    //        << edges.estimated_degree();
   }
 
   void init_user_studyAt_edu_org(
@@ -582,7 +592,7 @@ class AlumniRecom : public AppBase {
       users_are_friends_.insert(dst);
     }
     is_user_friend_inited_ = true;
-//    LOG(INFO) << "user_friend_set size: " << users_are_friends_.size();
+    //    LOG(INFO) << "user_friend_set size: " << users_are_friends_.size();
   }
 
   inline bool is_friend(vid_t user_vid) const {
@@ -625,7 +635,7 @@ class AlumniRecom : public AppBase {
     } else if (tmp.size() <= start_ind) {
       // do nothing
     }
-    //LOG(INFO) << "common_friend_users size: " << common_friend_users.size();
+    // LOG(INFO) << "common_friend_users size: " << common_friend_users.size();
 
     int32_t expect_potential_users_num =
         std::max(end_ind - start_ind - (int32_t) common_friend_users.size(), 0);
@@ -676,9 +686,7 @@ class AlumniRecom : public AppBase {
   }
 
   void serialize(const std::vector<std::pair<vid_t, uint16_t>>& intimacy_users,
-                 Encoder& output, int32_t limit) {
-    //CHECK(intimacy_users.size() <= limit);
-	 
+                 Encoder& output) {
     output.put_int(intimacy_users.size());
     for (auto& pair : intimacy_users) {
       output.put_long(pair.first);
@@ -688,8 +696,7 @@ class AlumniRecom : public AppBase {
   }
 
   void serialize(const std::vector<std::pair<vid_t, RecomReason>>& res,
-                 Encoder& output, int32_t limit) {
-    //CHECK(res.size() <= limit);
+                 Encoder& output) {
     output.put_int(res.size());
     for (auto& pair : res) {
       output.put_long(pair.first);
@@ -701,9 +708,8 @@ class AlumniRecom : public AppBase {
 
   void serialize(const std::vector<std::pair<vid_t, uint16_t>>& intimacy_users,
                  const std::vector<std::pair<vid_t, RecomReason>>& res,
-                 Encoder& output, int32_t limit) {
+                 Encoder& output) {
     auto total_size = res.size() + intimacy_users.size();
-    //CHECK(total_size <= limit);
     output.put_int(total_size);
     for (auto pair : intimacy_users) {
       output.put_long(pair.first);

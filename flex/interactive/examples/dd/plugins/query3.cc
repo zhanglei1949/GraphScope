@@ -61,6 +61,11 @@ class Query3 : public AppBase {
 
   bool Query(Decoder& input, Encoder& output) {
     int64_t oid = input.get_long();
+    int32_t page_id = input.get_int();
+    int32_t page_size = 50;
+    int32_t start_ind = page_id * page_size;
+    int32_t end_ind = start_ind + page_size;
+    LOG(INFO) << "query3: " << oid;
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
     graph_.graph().get_lid(user_label_id_, oid, root);
@@ -116,17 +121,30 @@ class Query3 : public AppBase {
     std::vector<vid_t> ans;
     // root -> Intimacy -> Users
     for (auto& v : intimacy_users) {
+      if (vis_set.count(v)) {
+        continue;
+      }
       ans.emplace_back(v);
       vis_set.emplace(v);
-      if (ans.size() > 500) {
-        for (auto vid : ans) {
-          output.put_long(
-              graph_.graph().get_oid(user_label_id_, vid).AsInt64());
-        }
-
-        return true;
+      if (ans.size() >= end_ind) {
+        break;
+        // for (auto vid : ans) {
+        //   output.put_long(
+        //       graph_.graph().get_oid(user_label_id_, vid).AsInt64());
+        // }
+        // return true;
       }
     }
+
+    if (ans.size() >= end_ind) {
+      // output result in range [start_ind, end_ind)
+      for (auto i = start_ind; i < end_ind; ++i) {
+        auto vid = ans[i];
+        output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
+      }
+      return true;
+    }
+
     auto friends_ie = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
         user_label_id_, user_label_id_, friend_label_id_);
     auto friends_oe = txn.GetOutgoingImmutableGraphView<grape::EmptyType>(
@@ -183,17 +201,18 @@ class Query3 : public AppBase {
       users.emplace_back(b, a);
     }
     std::sort(users.begin(), users.end());
-    size_t idx = users.size();
-    while (ans.size() < 500 && idx > 0) {
+    int32_t idx = users.size();
+    while (ans.size() < end_ind && idx > 0) {
       auto vid = users[idx - 1].second;
       if (!vis_set.count(vid)) {
         ans.emplace_back(vid);
       }
       --idx;
     }
-   // std::cout << "user size: " << users.size() << " ans size: " << ans.size()
-     //         << "\n";
-    for (auto vid : ans) {
+    // output result in range [start_ind, end_ind)
+    int32_t output_size = std::min(end_ind, static_cast<int32_t>(ans.size()));
+    for (auto i = start_ind; i < output_size; ++i) {
+      auto vid = ans[i];
       output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
     }
 

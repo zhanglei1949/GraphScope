@@ -1,8 +1,8 @@
 #include <queue>
+#include <random>
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/storages/rt_mutable_graph/types.h"
-#include <random>
 namespace gs {
 
 static constexpr int32_t EMPLOYEE_CNT = 100000;
@@ -101,6 +101,11 @@ class Query2 : public AppBase {
 
   bool Query(Decoder& input, Encoder& output) {
     int64_t oid = input.get_long();
+    int32_t page_id = input.get_int();
+    int32_t page_size = 50;
+    int32_t start_ind = page_id * page_size;
+    int32_t end_ind = start_ind + page_size;
+    LOG(INFO) << "query2: " << oid << " " << page_id;
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
     graph_.graph().get_lid(user_label_id_, oid, root);
@@ -178,20 +183,33 @@ class Query2 : public AppBase {
     std::vector<vid_t> ans;
     // root -> Intimacy -> Users
     for (auto& v : intimacy_users) {
-      if (subIndustryIdx == user_subIndustry_col_.get_idx(v)) {
+      if (subIndustryIdx == user_subIndustry_col_.get_idx(v) &&
+          vis_set.count(v) == 0) {
         ans.emplace_back(v);
         vis_set.emplace(v);
-        if (ans.size() > 500) {
-          for (auto vid : ans) {
-            output.put_long(
-                graph_.graph().get_oid(user_label_id_, vid).AsInt64());
-          }
-
-          return true;
+        if (ans.size() >= end_ind) {
+          break;
+          // for (auto vid : ans) {
+          //   output.put_long(
+          //       graph_.graph().get_oid(user_label_id_, vid).AsInt64());
+          // }
+          // return true;
         }
         // break;
       }
     }
+    if (ans.size() >= end_ind) {
+      // put values in range [start_ind, end_ind), from end_ind - 1 to start_ind
+      // in reverse order
+      int32_t idx = end_ind - 1;
+      while (idx >= start_ind) {
+        output.put_long(
+            graph_.graph().get_oid(user_label_id_, ans[idx]).AsInt64());
+        --idx;
+      }
+      return true;
+    }
+
     auto friends_ie = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
         user_label_id_, user_label_id_, friend_label_id_);
     auto friends_oe = txn.GetOutgoingImmutableGraphView<grape::EmptyType>(
@@ -251,10 +269,9 @@ class Query2 : public AppBase {
       users.emplace_back(b, a);
     }
     std::sort(users.begin(), users.end());
-    size_t idx = users.size();
-    while (ans.size() < 500 && idx > 0) {
+    int32_t idx = users.size();
+    while (ans.size() < end_ind && idx > 0) {
       auto vid = users[idx - 1].second;
-
       if (!vis_set.count(vid)) {
         vis_set.emplace(vid);
         if (!checkSameOrg(work_at, study_at, root_work_at, root_study_at,
@@ -265,69 +282,89 @@ class Query2 : public AppBase {
       --idx;
     }
 
-    if (ans.size() < 500) {
+    if (ans.size() >= end_ind) {
+      // put values in range [start_ind, end_ind), from end_ind - 1 to start_ind
+      // in reverse order
+      int32_t idx = end_ind - 1;
+      while (idx >= start_ind) {
+        output.put_long(
+            graph_.graph().get_oid(user_label_id_, ans[idx]).AsInt64());
+        --idx;
+      }
+      return true;
+    }
+
+    if (ans.size() < end_ind) {
       int limit = 300000;
       const auto& involved_ie = txn.GetIncomingImmutableEdges<grape::EmptyType>(
           subIndustry_label_id_, subIndustryIdx, user_label_id_,
           involved_label_id_);
       auto root_city = user_city_col_.get_view(root);
       bool exist_city = true;
-      if(root_city == " "){
-	      exist_city = false;
+      if (root_city == " ") {
+        exist_city = false;
       }
       auto root_city_id = user_city_col_.get_idx(root);
       auto root_roleName_id = user_roleName_col_.get_view(root);
-       std::random_device rd; // Seed with a real random value, if available
-       std::mt19937 eng(rd()); // A Mersenne Twister pseudo-random generator of 32-bit numbers
-	       // Define the range of numbers you want, here it's 0 through 99
-     std::uniform_int_distribution<int> dist(0, 500);
+      std::random_device rd;   // Seed with a real random value, if available
+      std::mt19937 eng(rd());  // A Mersenne Twister pseudo-random generator of
+                               // 32-bit numbers Define the range of numbers you
+                               // want, here it's 0 through 99
+      std::uniform_int_distribution<int> dist(0, end_ind);
       std::vector<uint32_t> tmp;
       if (involved_ie.estimated_degree() > 1) {
         for (auto& e : involved_ie) {
           --limit;
-	  if(limit == 0)break;
+          if (limit == 0)
+            break;
           if (!vis_set.count(e.neighbor)) {
             auto city_id = user_city_col_.get_idx(e.neighbor);
             auto roleName_id = user_roleName_col_.get_view(e.neighbor);
-            if ((!exist_city||city_id != root_city_id) && roleName_id != root_roleName_id&&limit > 0){
-		    if(tmp.size() < 500){
-		    	tmp.emplace_back(e.neighbor);
-		    }else{
-			auto idx = dist(eng);
-			if(idx < 500){
-				tmp[idx] = e.neighbor;
-			}
-		    }
-	    }
+            if ((!exist_city || city_id != root_city_id) &&
+                roleName_id != root_roleName_id && limit > 0) {
+              if (tmp.size() < end_ind) {
+                tmp.emplace_back(e.neighbor);
+              } else {
+                auto idx = dist(eng);
+                if (idx < end_ind) {
+                  tmp[idx] = e.neighbor;
+                }
+              }
+            }
             if (!checkSameOrg(work_at, study_at, root_work_at, root_study_at,
                               e.neighbor)) {
               ans.emplace_back(e.neighbor);
-              if (ans.size() >= 500) {
+              if (ans.size() >= end_ind) {
                 break;
               }
             }
           }
-	  if(limit == 0){
-//		  LOG(INFO) << "cur ans size: " << ans.size() << "\n";
-	  }
+          if (limit == 0) {
+            //		  LOG(INFO) << "cur ans size: " << ans.size() << "\n";
+          }
         }
       }
       size_t idx = 0;
-      std::sort(tmp.begin(),tmp.end());
-      size_t len = std::unique(tmp.begin(),tmp.end()) - tmp.begin();
-      while(idx < len && ans.size() < 500){
-	      auto v = tmp[idx++];
-	      if(!checkSameOrg(work_at,study_at,root_work_at,root_study_at,v)){
-		      ans.emplace_back(v);
-	      }
+      std::sort(tmp.begin(), tmp.end());
+      size_t len = std::unique(tmp.begin(), tmp.end()) - tmp.begin();
+      while (idx < len && ans.size() < end_ind) {
+        auto v = tmp[idx++];
+        if (!checkSameOrg(work_at, study_at, root_work_at, root_study_at, v)) {
+          ans.emplace_back(v);
+        }
       }
     }
- 
 
-    //std::cout << "user size: " << users.size() << " ans size: " << ans.size()
-              //<< "\n";
-    for (auto vid : ans) {
-      output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
+    // std::cout << "user size: " << users.size() << " ans size: " << ans.size()
+    //<< "\n";
+    // for (auto vid : ans) {
+    //   output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
+    // }
+
+    // output [start_ind, end_ind)
+    idx = std::min(end_ind, static_cast<int32_t>(ans.size()));
+    for (int32_t i = start_ind; i < idx; ++i) {
+      output.put_long(graph_.graph().get_oid(user_label_id_, ans[i]).AsInt64());
     }
 
     return true;
