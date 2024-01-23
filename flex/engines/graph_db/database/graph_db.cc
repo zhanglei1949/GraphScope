@@ -260,6 +260,7 @@ void GraphDB::initApps(
   for (auto& path_and_index : plugins) {
     auto path = path_and_index.second.first;
     auto index = path_and_index.second.second;
+    LOG(INFO) << "Load procedure [" << (int32_t) index << "] from path : [" << path << "]";
     if (registerApp(path, index)) {
       ++valid_plugins;
     }

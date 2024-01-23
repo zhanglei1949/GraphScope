@@ -99,7 +99,8 @@ class AlumniRecom : public AppBase {
     vid_t vid;
     if (!txn.GetVertexIndex(user_label_id_, Any::From(user_id), vid)) {
       LOG(ERROR) << "Vertex not found: " << user_id;
-      return false;
+      output.put_int(0);
+      return true;
     }
 
     // Init basic ds.
@@ -107,11 +108,13 @@ class AlumniRecom : public AppBase {
     init_user_studyAt_edu_org(vid, user_study_at_edu_org_oe_view_,
                               user_study_at_edu_org_ie_view_);
     if (valid_edu_org_ids_.size() == 0) {
+      LOG(INFO) << "No valid edu orgs";
+      output.put_int(0);
       return true;
     }
     init_user_friend_set(vid, user_user_friend_oe_view_,
                          user_user_friend_ie_view_);
-    // LOG(INFO) << "Valid Edu org ids size: " << valid_edu_org_ids_.size();
+    LOG(INFO) << "Valid Edu org ids size: " << valid_edu_org_ids_.size();
     // sort edu_org_ids asc
     // std::sort(
     //  valid_edu_org_ids_.begin(), valid_edu_org_ids_.end(),
@@ -125,7 +128,7 @@ class AlumniRecom : public AppBase {
                            user_study_at_edu_org_oe_view_, intimacy_users,
                            visited);
 
-    // VLOG(10) << "intimacy_users size: " << intimacy_users.size();
+    LOG(INFO) << "intimacy_users size: " << intimacy_users.size();
     if (start_ind > intimacy_users.size()) {
       // intimacy_users.size () < start_ind < end_ind
       start_ind = start_ind - intimacy_users.size();

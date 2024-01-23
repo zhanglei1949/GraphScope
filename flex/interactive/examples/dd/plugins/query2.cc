@@ -202,6 +202,7 @@ class Query2 : public AppBase {
       // put values in range [start_ind, end_ind), from end_ind - 1 to start_ind
       // in reverse order
       int32_t idx = end_ind - 1;
+      output.put_int(end_ind - start_ind);
       while (idx >= start_ind) {
         output.put_long(
             graph_.graph().get_oid(user_label_id_, ans[idx]).AsInt64());
@@ -286,6 +287,7 @@ class Query2 : public AppBase {
       // put values in range [start_ind, end_ind), from end_ind - 1 to start_ind
       // in reverse order
       int32_t idx = end_ind - 1;
+      output.put_int(end_ind - start_ind);
       while (idx >= start_ind) {
         output.put_long(
             graph_.graph().get_oid(user_label_id_, ans[idx]).AsInt64());
@@ -363,6 +365,7 @@ class Query2 : public AppBase {
 
     // output [start_ind, end_ind)
     idx = std::min(end_ind, static_cast<int32_t>(ans.size()));
+    output.put_int(std::max(0, idx - start_ind));
     for (int32_t i = start_ind; i < idx; ++i) {
       output.put_long(graph_.graph().get_oid(user_label_id_, ans[i]).AsInt64());
     }

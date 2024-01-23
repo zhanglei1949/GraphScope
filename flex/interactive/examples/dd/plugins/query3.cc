@@ -68,7 +68,11 @@ class Query3 : public AppBase {
     LOG(INFO) << "query3: " << oid;
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
-    graph_.graph().get_lid(user_label_id_, oid, root);
+    if (!graph_.graph().get_lid(user_label_id_, oid, root)){
+        LOG(ERROR) << "oid: " << oid << " not found";
+	output.put_int(0);
+	return true;
+    }
 
     const auto& intimacy_edges = txn.GetOutgoingImmutableEdges<char_array<4>>(
         user_label_id_, root, user_label_id_, intimacy_label_id_);
@@ -138,6 +142,7 @@ class Query3 : public AppBase {
 
     if (ans.size() >= end_ind) {
       // output result in range [start_ind, end_ind)
+      output.put_int(end_ind - start_ind);
       for (auto i = start_ind; i < end_ind; ++i) {
         auto vid = ans[i];
         output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
@@ -211,6 +216,7 @@ class Query3 : public AppBase {
     }
     // output result in range [start_ind, end_ind)
     int32_t output_size = std::min(end_ind, static_cast<int32_t>(ans.size()));
+    output.put_int(std::max(0, output_size - start_ind));
     for (auto i = start_ind; i < output_size; ++i) {
       auto vid = ans[i];
       output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());

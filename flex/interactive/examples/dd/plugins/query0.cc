@@ -91,6 +91,7 @@ class Query0 : public AppBase {
     auto txn = graph_.GetReadTransaction();
     if (!graph_.graph().get_lid(user_label_id_, oid, root)) {
       LOG(ERROR) << "user " << oid << " not found";
+      output.put_int(0);
       return true;
     }
     const auto& workat_edges = txn.GetOutgoingEdges<char_array<20>>(
@@ -107,6 +108,7 @@ class Query0 : public AppBase {
       sum += d;
     }
     if (sum == 0) {
+      output.put_int(0);
       return true;
     }
 
@@ -184,6 +186,7 @@ class Query0 : public AppBase {
       // write oids in range [start_ind, end_ind)
       LOG(INFO) << "intimacy users are enough: " << ans.size();
       int32_t idx = end_ind - 1;
+      output.put_int(end_ind - start_ind);
       while (idx >= start_ind) {
         auto vid = ans[idx];
         output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
@@ -254,7 +257,7 @@ class Query0 : public AppBase {
     std::sort(users.begin(), users.end());
     if (users.size() > 0) {
       int32_t idx = users.size() - 1;
-      while (idx >= 0) {
+      while (ans.size() < end_ind) {
         auto vid = users[idx].second;
         if (!vis_set.count(vid)) {
           ans.emplace_back(vid);
@@ -265,6 +268,7 @@ class Query0 : public AppBase {
     LOG(INFO) << "input oid: " << root << ", ans size " << ans.size();
     // output range in [start_ind, end_ind)
     int32_t idx = std::min(end_ind - 1, static_cast<int32_t>(ans.size() - 1));
+    output.put_int(std::max(0, idx - start_ind + 1));
     while (idx >= start_ind) {
       auto vid = ans[idx];
       output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
