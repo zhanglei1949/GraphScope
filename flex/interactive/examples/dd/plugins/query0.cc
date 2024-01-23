@@ -89,7 +89,10 @@ class Query0 : public AppBase {
               << start_ind << " " << end_ind;
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
-    graph_.graph().get_lid(user_label_id_, oid, root);
+    if (!graph_.graph().get_lid(user_label_id_, oid, root)) {
+      LOG(ERROR) << "user " << oid << " not found";
+      return true;
+    }
     const auto& workat_edges = txn.GetOutgoingEdges<char_array<20>>(
         user_label_id_, root, ding_org_label_id_, workat_label_id_);
     const auto& workat_ie = txn.GetIncomingGraphView<char_array<20>>(
@@ -179,6 +182,7 @@ class Query0 : public AppBase {
     }
     if (ans.size() >= end_ind) {
       // write oids in range [start_ind, end_ind)
+      LOG(INFO) << "intimacy users are enough: " << ans.size();
       int32_t idx = end_ind - 1;
       while (idx >= start_ind) {
         auto vid = ans[idx];
@@ -187,6 +191,7 @@ class Query0 : public AppBase {
       }
       return true;
     }
+    LOG(INFO) << "try to recommend via common friends and common group";
     // std::cout << ans.size() << " ans size\n";
     auto friends_ie = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
         user_label_id_, user_label_id_, friend_label_id_);
