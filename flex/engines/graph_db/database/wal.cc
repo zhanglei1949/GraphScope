@@ -92,7 +92,7 @@ static constexpr size_t MAX_WALS_NUM = 134217728;
 WalsParser::WalsParser(const std::vector<std::string>& paths)
     : insert_wal_list_(NULL), insert_wal_list_size_(0) {
   for (auto path : paths) {
-    LOG(INFO) << "Start to ingest WALs from file: " << path;
+    VLOG(10) << "Start to ingest WALs from file: " << path;
     size_t file_size = std::filesystem::file_size(path);
     if (file_size == 0) {
       continue;
