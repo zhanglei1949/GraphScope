@@ -8,13 +8,12 @@ namespace gs {
 
 enum RecomReasonType {
   kExColleague = 0,    // 前同事
-  kCurColleague = 1,   // 当前同事
-  kCommonFriend = 2,   // 共同好友
-  kCommonGroup = 3,    // 共同群
-  kCommunication = 4,  // 最近沟通
-  kActiveUser = 5,     // 活跃用户
-  kAlumni = 6,         // 校友
-  kDefault = 7         // 默认
+  kCommonFriend = 1,   // 共同好友
+  kCommonGroup = 2,    // 共同群
+  kCommunication = 3,  // 最近沟通
+  kActiveUser = 4,     // 活跃用户
+  kAlumni = 5,         // 校友
+  kDefault = 6         // 默认
 };
 
 struct RecomReason {
@@ -29,12 +28,6 @@ struct RecomReason {
   static RecomReason Active() {
     RecomReason reason;
     reason.type = kActiveUser;
-    return reason;
-  }
-
-  static RecomReason Colleague() {
-    RecomReason reason;
-    reason.type = kCurColleague;
     return reason;
   }
 
@@ -90,7 +83,6 @@ struct RecomReason {
 
   RecomReasonType type;
   std::vector<vid_t> common_group_or_friend;
-  int32_t org_id;  // 同事或者同学的组织id
 };
 
 void get_friends(
@@ -121,7 +113,11 @@ void serialize_result(GraphDBSession& graph, Encoder& output,
   for (auto i = 0; i < return_vec.size(); ++i) {
     output.put_long(
         graph.graph().get_oid(user_label_id, return_vec[i]).AsInt64());
-    output.put_string(return_reasons[i].ToJsonString());
+    auto str = return_reasons[i].ToJsonString();
+    LOG(INFO) << "Putting: "
+              << graph.graph().get_oid(user_label_id, return_vec[i]).AsInt64()
+              << ", reason: " << str;
+    output.put_string(str);
   }
 }
 
