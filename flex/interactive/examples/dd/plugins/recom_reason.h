@@ -118,6 +118,7 @@ void serialize_result(GraphDBSession& graph, Encoder& output,
                       const std::vector<vid_t>& return_vec,
                       const std::vector<RecomReason>& return_reasons) {
   CHECK(return_vec.size() == return_reasons.size());
+  output.put_int(return_vec.size());
   for (auto i = 0; i < return_vec.size(); ++i) {
     output.put_long(
         graph.graph().get_oid(user_label_id, return_vec[i]).AsInt64());
