@@ -1,31 +1,12 @@
 #include <queue>
+#include <random>
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/storages/rt_mutable_graph/types.h"
+#include "recom_reason.h"
 namespace gs {
 
-static constexpr int32_t EMPLOYEE_CNT = 100000;
-
-enum RecomReasonType {
-  kClassMateAndColleague = 0,  // 同学兼同事
-  kExColleague = 1,            // 前同事
-  kCommonFriend = 2,           // 共同好友
-  kCommonGroup = 3,            // 共同群
-  kCommunication = 4,          // 最近沟通
-  kActiveUser = 5,             // 活跃用户
-  kDefault = 6                 // 默认
-};
-
-struct RecomReason {
-  RecomReason() : type(kDefault) {}
-  RecomReasonType type;
-  int32_t num_common_group_or_friend;
-  std::vector<vid_t> common_group_or_friend;
-  int32_t org_id;  // 同事或者同学的组织id
-};
-
 // Recommend alumni for the input user.
-// 同事推荐
 class Query0 : public AppBase {
  public:
   Query0(GraphDBSession& graph)
@@ -43,23 +24,7 @@ class Query0 : public AppBase {
         edu_org_num_(graph.graph().vertex_num(ding_edu_org_label_id_)),
         org_num_(graph.graph().vertex_num(ding_org_label_id_)),
         users_num_(graph.graph().vertex_num(user_label_id_)),
-        is_user_in_org_inited_(false),
-        is_user_friend_inited_(false) {}
-
-  void get_friends(vid_t root, gs::ImmutableGraphView<grape::EmptyType>& oes,
-                   gs::ImmutableGraphView<grape::EmptyType>& ies,
-                   std::vector<vid_t>& friends) {
-    const auto& oe = oes.get_edges(root);
-    friends.clear();
-    for (auto& e : oe) {
-      friends.emplace_back(e.neighbor);
-    }
-    const auto& ie = ies.get_edges(root);
-    for (auto& e : ie) {
-      friends.emplace_back(e.neighbor);
-    }
-    std::sort(friends.begin(), friends.end());
-  }
+        mt_(random_device_()) {}
 
   bool check_same_org(const std::unordered_set<uint32_t>& st,
                       const GraphView<char_array<20>>& view, uint32_t root,
@@ -78,22 +43,11 @@ class Query0 : public AppBase {
     return mem[root];
   }
   bool Query(Decoder& input, Encoder& output) {
+    static constexpr int RETURN_LIMIT = 20;
     int64_t oid = input.get_long();
-    int32_t page_id = input.get_int();
-    int32_t page_size = 50;
-    // // page_id is no more that 10
-    page_id = page_id % 10;
-    int32_t end_ind = (page_id + 1) * page_size;
-    int32_t start_ind = page_id * page_size;
-    LOG(INFO) << "Query for user " << oid << " page_id " << page_id << " "
-              << start_ind << " " << end_ind;
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
-    if (!graph_.graph().get_lid(user_label_id_, oid, root)) {
-      LOG(ERROR) << "user " << oid << " not found";
-      output.put_int(0);
-      return true;
-    }
+    graph_.graph().get_lid(user_label_id_, oid, root);
     const auto& workat_edges = txn.GetOutgoingEdges<char_array<20>>(
         user_label_id_, root, ding_org_label_id_, workat_label_id_);
     const auto& workat_ie = txn.GetIncomingGraphView<char_array<20>>(
@@ -102,13 +56,13 @@ class Query0 : public AppBase {
     size_t sum = 0;
     for (auto& e : workat_edges) {
       int d = workat_ie.get_edges(e.neighbor).estimated_degree();
-      if (d <= 1)
+      if (d <= 1) {
         continue;
+      }
       orgs.emplace(e.get_neighbor());  // org
       sum += d;
     }
     if (sum == 0) {
-      output.put_int(0);
       return true;
     }
 
@@ -120,6 +74,11 @@ class Query0 : public AppBase {
       intimacy_users.emplace_back(e.get_neighbor());
     }
     std::sort(intimacy_users.begin(), intimacy_users.end());
+    {
+      auto len = std::unique(intimacy_users.begin(), intimacy_users.end()) -
+                 intimacy_users.begin();
+      intimacy_users.resize(len);
+    }
 
     const auto& friend_edges_oe =
         txn.GetOutgoingImmutableEdges<grape::EmptyType>(
@@ -130,72 +89,44 @@ class Query0 : public AppBase {
     std::vector<vid_t> friends;
     std::unordered_set<vid_t> vis_set;
     vis_set.emplace(root);
-    // 1-hop friends
-    for (auto& e : friend_edges_oe) {
-      friends.emplace_back(e.get_neighbor());
-      vis_set.emplace(e.get_neighbor());
-    }
-    for (auto& e : friend_edges_ie) {
-      friends.emplace_back(e.get_neighbor());
-      vis_set.emplace(e.get_neighbor());
-    }
-    std::sort(friends.begin(), friends.end());
-    size_t friend_num =
-        std::unique(friends.begin(), friends.end()) - friends.begin();
-    friends.resize(friend_num);
-    {
-      auto len = std::unique(intimacy_users.begin(), intimacy_users.end()) -
-                 intimacy_users.begin();
-      intimacy_users.resize(len);
-      int j = 0;
-      int k = 0;
-      for (auto i = 0; i < intimacy_users.size(); ++i) {
-        while (j < friends.size() && friends[j] < intimacy_users[i])
-          ++j;
-        if (j < friends.size() && friends[j] == intimacy_users[i]) {
-        } else {
-          intimacy_users[k++] = intimacy_users[i];
-        }
-      }
-      intimacy_users.resize(k);
-    }
+    get_friends(friends, vis_set, friend_edges_oe, friend_edges_ie);
 
     auto workat_oe = txn.GetOutgoingGraphView<char_array<20>>(
         user_label_id_, ding_org_label_id_, workat_label_id_);
     std::unordered_map<uint32_t, bool> mem;
-    std::vector<vid_t> ans;
+    std::vector<vid_t> intimacy_users_tmp;
     // root -> Intimacy -> Users
     for (auto& v : intimacy_users) {
-      if (vis_set.count(v)) {
-        continue;
+      if (!vis_set.count(v) && check_same_org(orgs, workat_oe, v, mem)) {
+        intimacy_users_tmp.emplace_back(v);
       }
-      if (check_same_org(orgs, workat_oe, v, mem)) {
-        ans.emplace_back(v);
-        vis_set.emplace(v);
-        if (ans.size() >= end_ind) {
-          break;
-          // for (auto vid : ans) {
-          //   output.put_long(
-          //       graph_.graph().get_oid(user_label_id_, vid).AsInt64());
-          // }
-          // return true;
+    }
+    std::vector<vid_t> return_vec;
+    std::vector<RecomReason> returns_reasons;
+    if (intimacy_users_tmp.size() <= RETURN_LIMIT / 5) {
+      //@TODO 推荐理由
+      for (auto user : intimacy_users_tmp) {
+        return_vec.emplace_back(user);
+        returns_reasons.emplace_back(RecomReason::Colleague());
+        vis_set.emplace(user);
+      }
+    } else {
+      // random pick
+      std::uniform_int_distribution<int> dist(0, intimacy_users_tmp.size() - 1);
+      std::unordered_set<int> st;
+      for (int i = 0; i < RETURN_LIMIT / 5; ++i) {
+        int ind = dist(mt_);
+        while (st.count(ind)) {
+          ++ind;
+          ind %= intimacy_users_tmp.size();
         }
+        st.emplace(ind);
+        return_vec.emplace_back(intimacy_users_tmp[ind]);
+        returns_reasons.emplace_back(RecomReason::Colleague());
+        vis_set.emplace(intimacy_users_tmp[ind]);
       }
     }
-    if (ans.size() >= end_ind) {
-      // write oids in range [start_ind, end_ind)
-      LOG(INFO) << "intimacy users are enough: " << ans.size();
-      int32_t idx = end_ind - 1;
-      output.put_int(end_ind - start_ind);
-      while (idx >= start_ind) {
-        auto vid = ans[idx];
-        output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
-        --idx;
-      }
-      return true;
-    }
-    LOG(INFO) << "try to recommend via common friends and common group";
-    // std::cout << ans.size() << " ans size\n";
+
     auto friends_ie = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
         user_label_id_, user_label_id_, friend_label_id_);
     auto friends_oe = txn.GetOutgoingImmutableGraphView<grape::EmptyType>(
@@ -211,8 +142,9 @@ class Query0 : public AppBase {
         groups.emplace(e.get_neighbor());
       }
     }
-    // friends num + groups num,vid_t
-    std::unordered_map<uint32_t, int> mp;
+    std::unordered_map<vid_t, std::vector<vid_t>> common_group_users;
+    std::vector<vid_t> common_users_vec;
+    std::vector<std::tuple<bool, vid_t, vid_t>> common_users_reason_tmp;
     {
       // groups -> ie chatInGroup -> users
       auto group_ies = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
@@ -223,14 +155,31 @@ class Query0 : public AppBase {
           continue;
         auto ie = group_ies.get_edges(g);
         for (auto e : ie) {
-          if (e.neighbor != root &&
+          if (!vis_set.count(e.neighbor) &&
               check_same_org(orgs, workat_oe, e.neighbor, mem)) {
-            mp[e.neighbor] += 1;
+            if (common_group_users[e.neighbor].size() < 2) {
+              common_group_users[e.neighbor].emplace_back(g);
+            }
+            // common_group_users[e.neighbor] += 1;
+            // if (common_group_users[e.neighbor] == 1) {
+            //   common_users_vec.emplace_back(e.neighbor);
+            // }
           }
         }
       }
     }
-    std::vector<std::pair<int, vid_t>> users;
+
+    for (auto& pair : common_group_users) {
+      common_users_vec.emplace_back(pair.first);
+      auto& value = pair.second;
+      if (value.size() == 1) {
+        common_users_reason_tmp.emplace_back(true, value[0], INVALID_VID);
+      } else if (value.size() >= 2) {
+        common_users_reason_tmp.emplace_back(true, value[0], value[1]);
+      }
+    }
+
+    std::unordered_map<vid_t, std::vector<vid_t>> common_friend_users;
     // 2-hop friends
     if (friends.size()) {
       for (size_t i = 0; i < friends.size(); ++i) {
@@ -238,43 +187,80 @@ class Query0 : public AppBase {
         const auto& ie = friends_ie.get_edges(cur);
         const auto& oe = friends_oe.get_edges(cur);
         for (auto& e : ie) {
-          if (e.neighbor != root &&
+          if (!vis_set.count(e.neighbor) &&
               check_same_org(orgs, workat_oe, e.neighbor, mem)) {
-            mp[e.neighbor] += 1;
+            // common_friend_users[e.neighbor] += 1;
+            if (common_friend_users[e.neighbor].size() < 2 &&
+                common_group_users.count(e.neighbor) == 0) {
+              // common_users_vec.emplace_back(e.neighbor);
+              common_friend_users[e.neighbor].emplace_back(cur);
+            }
           }
         }
         for (auto& e : oe) {
-          if (e.neighbor != root &&
+          if (!vis_set.count(e.neighbor) &&
               check_same_org(orgs, workat_oe, e.neighbor, mem)) {
-            mp[e.neighbor] += 1;
+            // common_friend_users[e.neighbor] += 1;
+            if (common_friend_users[e.neighbor].size() < 2 &&
+                common_group_users.count(e.neighbor) == 0) {
+              // common_users_vec.emplace_back(e.neighbor);
+              common_friend_users[e.neighbor].emplace_back(cur);
+            }
           }
         }
       }
     }
-    for (auto& [a, b] : mp) {
-      users.emplace_back(b, a);
-    }
-    std::sort(users.begin(), users.end());
-    if (users.size() > 0) {
-      int32_t idx = users.size() - 1;
-      while (ans.size() < end_ind) {
-        auto vid = users[idx].second;
-        if (!vis_set.count(vid)) {
-          ans.emplace_back(vid);
-        }
-        --idx;
+
+    for (auto& pair : common_friend_users) {
+      common_users_vec.emplace_back(pair.first);
+      auto& value = pair.second;
+      if (value.size() == 1) {
+        common_users_reason_tmp.emplace_back(false, value[0], INVALID_VID);
+      } else if (value.size() >= 2) {
+        common_users_reason_tmp.emplace_back(false, value[0], value[1]);
       }
     }
-    LOG(INFO) << "input oid: " << root << ", ans size " << ans.size();
-    // output range in [start_ind, end_ind)
-    int32_t idx = std::min(end_ind - 1, static_cast<int32_t>(ans.size() - 1));
-    output.put_int(std::max(0, idx - start_ind + 1));
-    while (idx >= start_ind) {
-      auto vid = ans[idx];
-      output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
-      --idx;
-    }
 
+    int res = RETURN_LIMIT - return_vec.size();
+
+    // less than 20 users
+    CHECK(common_users_vec.size() == common_users_reason_tmp.size());
+    if (common_users_vec.size() <= res) {
+      std::shuffle(common_users_vec.begin(), common_users_vec.end(), mt_);
+      for (auto i = 0; i < common_users_vec.size(); ++i) {
+        return_vec.emplace_back(common_users_vec[i]);
+        auto& value = common_users_reason_tmp[i];
+        if (std::get<0>(value)) {
+          returns_reasons.emplace_back(
+              RecomReason::CommonGroup(std::get<1>(value), std::get<2>(value)));
+        } else {
+          returns_reasons.emplace_back(RecomReason::CommonFriend(
+              std::get<1>(value), std::get<2>(value)));
+        }
+      }
+    } else {
+      std::uniform_int_distribution<int> dist(0, common_users_vec.size() - 1);
+      std::unordered_set<int> st;
+      for (int i = 0; i < res; ++i) {
+        int ind = dist(mt_);
+        while (st.count(ind)) {
+          ind++;
+          ind %= common_users_vec.size();
+        }
+        st.emplace(ind);
+        return_vec.emplace_back(common_users_vec[ind]);
+        auto& value = common_users_reason_tmp[ind];
+        if (std::get<0>(value)) {
+          returns_reasons.emplace_back(
+              RecomReason::CommonGroup(std::get<1>(value), std::get<2>(value)));
+        } else {
+          returns_reasons.emplace_back(RecomReason::CommonFriend(
+              std::get<1>(value), std::get<2>(value)));
+        }
+      }
+    }
+    serialize_result(graph_, output, user_label_id_, return_vec,
+                     returns_reasons);
     return true;
   }
 
@@ -294,9 +280,8 @@ class Query0 : public AppBase {
   size_t edu_org_num_ = 0;
   size_t users_num_ = 0;
   size_t org_num_ = 0;
-
-  bool is_user_in_org_inited_ = false;
-  bool is_user_friend_inited_ = false;
+  std::random_device random_device_;
+  std::mt19937 mt_;
 };
 
 }  // namespace gs

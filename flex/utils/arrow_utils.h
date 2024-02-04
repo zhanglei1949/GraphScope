@@ -32,7 +32,8 @@ class LDBCTimeStampParser : public arrow::TimestampParser {
   ~LDBCTimeStampParser() override {}
 
   bool operator()(const char* s, size_t length, arrow::TimeUnit::type out_unit,
-                  int64_t* out) const override {
+                  int64_t* out,
+                  bool* out_zone_offset_present = NULLPTR) const override {
     using seconds_type = std::chrono::duration<arrow::TimestampType::c_type>;
 
     // We allow the following formats for all units:
@@ -153,7 +154,8 @@ class LDBCLongDateParser : public arrow::TimestampParser {
   ~LDBCLongDateParser() override {}
 
   bool operator()(const char* s, size_t length, arrow::TimeUnit::type out_unit,
-                  int64_t* out) const override {
+                  int64_t* out,
+                  bool* out_zone_offset_present = NULLPTR) const override {
     using seconds_type = std::chrono::duration<arrow::TimestampType::c_type>;
 
     uint64_t seconds;

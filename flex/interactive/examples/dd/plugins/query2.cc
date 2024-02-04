@@ -3,32 +3,13 @@
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/storages/rt_mutable_graph/types.h"
+#include "recom_reason.h"
 namespace gs {
 
-static constexpr int32_t EMPLOYEE_CNT = 100000;
-
-enum RecomReasonType {
-  kClassMateAndColleague = 0,  // 同学兼同事
-  kExColleague = 1,            // 前同事
-  kCommonFriend = 2,           // 共同好友
-  kCommonGroup = 3,            // 共同群
-  kCommunication = 4,          // 最近沟通
-  kActiveUser = 5,             // 活跃用户
-  kDefault = 6                 // 默认
-};
-
-struct RecomReason {
-  RecomReason() : type(kDefault) {}
-  RecomReasonType type;
-  int32_t num_common_group_or_friend;
-  std::vector<vid_t> common_group_or_friend;
-  int32_t org_id;  // 同事或者同学的组织id
-};
-
 // Recommend alumni for the input user.
-// 同行推荐
 class Query2 : public AppBase {
  public:
+  static constexpr int ACTIVE_DAYS_THRESHOLD = 20;
   Query2(GraphDBSession& graph)
       : graph_(graph),
         user_label_id_(graph.schema().get_vertex_label_id("User")),
@@ -55,31 +36,17 @@ class Query2 : public AppBase {
                 graph.get_vertex_property_column(user_label_id_, "city")))),
         user_roleName_col_(*(std::dynamic_pointer_cast<TypedColumn<uint8_t>>(
             graph.get_vertex_property_column(user_label_id_, "roleName")))),
+        user_active_days_col_(*(std::dynamic_pointer_cast<TypedColumn<uint8_t>>(
+            graph.get_vertex_property_column(user_label_id_, "activeDays")))),
         edu_org_num_(graph.graph().vertex_num(ding_edu_org_label_id_)),
         org_num_(graph.graph().vertex_num(ding_org_label_id_)),
         users_num_(graph.graph().vertex_num(user_label_id_)),
-        is_user_in_org_inited_(false),
-        is_user_friend_inited_(false) {}
+        mt_(random_device_()) {}
 
-  void get_friends(vid_t root, gs::ImmutableGraphView<grape::EmptyType>& oes,
-                   gs::ImmutableGraphView<grape::EmptyType>& ies,
-                   std::vector<vid_t>& friends) {
-    const auto& oe = oes.get_edges(root);
-    friends.clear();
-    for (auto& e : oe) {
-      friends.emplace_back(e.neighbor);
-    }
-    const auto& ie = ies.get_edges(root);
-    for (auto& e : ie) {
-      friends.emplace_back(e.neighbor);
-    }
-    std::sort(friends.begin(), friends.end());
-  }
-
-  bool checkSameOrg(const GraphView<char_array<20>>& work_at,
-                    const GraphView<char_array<16>>& study_at,
-                    std::unordered_set<vid_t>& root_work_at,
-                    std::unordered_set<vid_t>& root_study_at, vid_t v) {
+  bool check_same_org(const GraphView<char_array<20>>& work_at,
+                      const GraphView<char_array<16>>& study_at,
+                      std::unordered_set<vid_t>& root_work_at,
+                      std::unordered_set<vid_t>& root_study_at, vid_t v) {
     if (root_work_at.size()) {
       const auto& oe = work_at.get_edges(v);
       for (auto& e : oe) {
@@ -100,19 +67,14 @@ class Query2 : public AppBase {
   }
 
   bool Query(Decoder& input, Encoder& output) {
+    static constexpr int RETURN_LIMIT = 20;
     int64_t oid = input.get_long();
-    int32_t page_id = input.get_int();
-    int32_t page_size = 50;
-    int32_t start_ind = page_id * page_size;
-    int32_t end_ind = start_ind + page_size;
-    LOG(INFO) << "query2: " << oid << " " << page_id;
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
     graph_.graph().get_lid(user_label_id_, oid, root);
     auto subIndustry = user_subIndustry_col_.get_view(root);
     auto subIndustryIdx = user_subIndustry_col_.get_idx(root);
     if (subIndustry == "") {
-      output.put_int(0);
       return true;
     }
     const auto& study_at = txn.GetOutgoingGraphView<char_array<16>>(
@@ -127,7 +89,7 @@ class Query2 : public AppBase {
       }
       const auto& study_oe = study_at.get_edges(root);
       for (auto& e : study_oe) {
-        root_work_at.emplace(e.neighbor);
+        root_study_at.emplace(e.neighbor);
       }
     }
     const auto& intimacy_edges = txn.GetOutgoingImmutableEdges<char_array<4>>(
@@ -135,11 +97,10 @@ class Query2 : public AppBase {
     std::vector<vid_t> intimacy_users;
 
     for (auto& e : intimacy_edges) {
-      if (!checkSameOrg(work_at, study_at, root_work_at, root_study_at,
-                        e.neighbor))
+      if (!check_same_org(work_at, study_at, root_work_at, root_study_at,
+                          e.neighbor))
         intimacy_users.emplace_back(e.get_neighbor());
     }
-    std::sort(intimacy_users.begin(), intimacy_users.end());
 
     const auto& friend_edges_oe =
         txn.GetOutgoingImmutableEdges<grape::EmptyType>(
@@ -150,26 +111,17 @@ class Query2 : public AppBase {
     std::vector<vid_t> friends;
     std::unordered_set<vid_t> vis_set;
     vis_set.emplace(root);
-    // 1-hop friends
-    for (auto& e : friend_edges_oe) {
-      friends.emplace_back(e.get_neighbor());
-      vis_set.emplace(e.get_neighbor());
-    }
-    for (auto& e : friend_edges_ie) {
-      friends.emplace_back(e.get_neighbor());
-      vis_set.emplace(e.get_neighbor());
-    }
-    std::sort(friends.begin(), friends.end());
-    size_t friend_num =
-        std::unique(friends.begin(), friends.end()) - friends.begin();
-    friends.resize(friend_num);
+    get_friends(friends, vis_set, friend_edges_oe, friend_edges_ie);
     {
+      std::sort(intimacy_users.begin(), intimacy_users.end());
       auto len = std::unique(intimacy_users.begin(), intimacy_users.end()) -
                  intimacy_users.begin();
       intimacy_users.resize(len);
       int j = 0;
       int k = 0;
       for (auto i = 0; i < intimacy_users.size(); ++i) {
+        if (intimacy_users[i] == root)
+          continue;
         while (j < friends.size() && friends[j] < intimacy_users[i])
           ++j;
         if (j < friends.size() && friends[j] == intimacy_users[i]) {
@@ -180,35 +132,39 @@ class Query2 : public AppBase {
       intimacy_users.resize(k);
     }
 
-    std::vector<vid_t> ans;
+    std::vector<vid_t> intimacy_users_tmp;
     // root -> Intimacy -> Users
     for (auto& v : intimacy_users) {
       if (subIndustryIdx == user_subIndustry_col_.get_idx(v) &&
-          vis_set.count(v) == 0) {
-        ans.emplace_back(v);
+          user_active_days_col_.get_view(v) > ACTIVE_DAYS_THRESHOLD) {
+        intimacy_users_tmp.emplace_back(v);
         vis_set.emplace(v);
-        if (ans.size() >= end_ind) {
-          break;
-          // for (auto vid : ans) {
-          //   output.put_long(
-          //       graph_.graph().get_oid(user_label_id_, vid).AsInt64());
-          // }
-          // return true;
-        }
-        // break;
       }
     }
-    if (ans.size() >= end_ind) {
-      // put values in range [start_ind, end_ind), from end_ind - 1 to start_ind
-      // in reverse order
-      int32_t idx = end_ind - 1;
-      output.put_int(end_ind - start_ind);
-      while (idx >= start_ind) {
-        output.put_long(
-            graph_.graph().get_oid(user_label_id_, ans[idx]).AsInt64());
-        --idx;
+    std::vector<vid_t> return_vec;
+    std::vector<RecomReason> return_reasons;
+    if (intimacy_users_tmp.size() <= RETURN_LIMIT / 5) {
+      //@TODO 推荐理由
+      for (auto user : intimacy_users_tmp) {
+        return_vec.emplace_back(user);
+        return_reasons.emplace_back(RecomReason::Active());
+        vis_set.emplace(user);
       }
-      return true;
+    } else {
+      // random pick
+      std::uniform_int_distribution<int> dist(0, intimacy_users_tmp.size() - 1);
+      std::unordered_set<int> st;
+      for (int i = 0; i < RETURN_LIMIT / 5; ++i) {
+        int ind = dist(mt_);
+        while (st.count(ind)) {
+          ++ind;
+          ind %= intimacy_users_tmp.size();
+        }
+        st.emplace(ind);
+        return_vec.emplace_back(intimacy_users_tmp[ind]);
+        return_reasons.emplace_back(RecomReason::Active());
+        vis_set.emplace(intimacy_users_tmp[ind]);
+      }
     }
 
     auto friends_ie = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
@@ -227,7 +183,10 @@ class Query2 : public AppBase {
       }
     }
     // friends num + groups num,vid_t
-    std::unordered_map<uint32_t, int> mp;
+    std::unordered_map<vid_t, std::vector<vid_t>> common_group_users;
+    std::vector<vid_t> common_users_vec;
+    std::vector<std::tuple<bool, vid_t, vid_t>> common_users_reason_tmp;
+
     {
       // groups -> ie chatInGroup -> users
       auto group_ies = txn.GetIncomingImmutableGraphView<grape::EmptyType>(
@@ -238,14 +197,27 @@ class Query2 : public AppBase {
           continue;
         auto ie = group_ies.get_edges(g);
         for (auto e : ie) {
-          if (e.neighbor != root &&
+          if (!vis_set.count(e.neighbor) &&
               subIndustryIdx == user_subIndustry_col_.get_idx(e.neighbor)) {
-            mp[e.neighbor] += 1;
+            if (common_group_users[e.neighbor].size() < 2) {
+              // common_users_vec.emplace_back(e.neighbor);
+              common_group_users[e.neighbor].emplace_back(g);
+            }
           }
         }
       }
     }
-    std::vector<std::pair<int, vid_t>> users;
+    for (auto& pair : common_group_users) {
+      common_users_vec.emplace_back(pair.first);
+      auto& value = pair.second;
+      if (value.size() == 1) {
+        common_users_reason_tmp.emplace_back(true, value[0], INVALID_VID);
+      } else if (value.size() >= 2) {
+        common_users_reason_tmp.emplace_back(true, value[0], value[1]);
+      }
+    }
+
+    std::unordered_map<vid_t, std::vector<vid_t>> common_friend_users;
     // 2-hop friends
     if (friends.size()) {
       for (size_t i = 0; i < friends.size(); ++i) {
@@ -253,122 +225,129 @@ class Query2 : public AppBase {
         const auto& ie = friends_ie.get_edges(cur);
         const auto& oe = friends_oe.get_edges(cur);
         for (auto& e : ie) {
-          if (e.neighbor != root &&
+          if (!vis_set.count(e.neighbor) &&
               subIndustryIdx == user_subIndustry_col_.get_idx(e.neighbor)) {
-            mp[e.neighbor] += 1;
+            // common_friend_users[e.neighbor] += 1;
+            if (common_friend_users[e.neighbor].size() < 2 &&
+                common_group_users.count(e.neighbor) == 0) {
+              // common_users_vec.emplace_back(e.neighbor);
+              common_friend_users[e.neighbor].emplace_back(cur);
+            }
           }
         }
         for (auto& e : oe) {
-          if (e.neighbor != root &&
+          if (!vis_set.count(e.neighbor) &&
               subIndustryIdx == user_subIndustry_col_.get_idx(e.neighbor)) {
-            mp[e.neighbor] += 1;
+            // common_friend_users[e.neighbor] += 1;
+            if (common_friend_users[e.neighbor].size() < 2 &&
+                common_group_users.count(e.neighbor) == 0) {
+              // common_users_vec.emplace_back(e.neighbor);
+              common_friend_users[e.neighbor].emplace_back(cur);
+            }
           }
         }
       }
     }
-    for (auto& [a, b] : mp) {
-      users.emplace_back(b, a);
+
+    for (auto& pair : common_friend_users) {
+      common_users_vec.emplace_back(pair.first);
+      auto& value = pair.second;
+      if (value.size() == 1) {
+        common_users_reason_tmp.emplace_back(false, value[0], INVALID_VID);
+      } else if (value.size() >= 2) {
+        common_users_reason_tmp.emplace_back(false, value[0], value[1]);
+      }
     }
-    std::sort(users.begin(), users.end());
-    int32_t idx = users.size();
-    while (ans.size() < end_ind && idx > 0) {
-      auto vid = users[idx - 1].second;
+
+    int res = RETURN_LIMIT * 3 / 5;
+    std::shuffle(common_users_vec.begin(), common_users_vec.end(), mt_);
+    int idx = common_users_vec.size();
+    while (return_vec.size() < res && idx > 0) {
+      auto vid = common_users_vec[idx - 1];
+      auto& value = common_users_reason_tmp[idx - 1];
+
       if (!vis_set.count(vid)) {
         vis_set.emplace(vid);
-        if (!checkSameOrg(work_at, study_at, root_work_at, root_study_at,
-                          vid)) {
-          ans.emplace_back(vid);
+        if (!check_same_org(work_at, study_at, root_work_at, root_study_at,
+                            vid)) {
+          return_vec.emplace_back(vid);
+          if (std::get<0>(value)) {
+            return_reasons.emplace_back(RecomReason::CommonGroup(
+                std::get<1>(value), std::get<2>(value)));
+          } else {
+            return_reasons.emplace_back(RecomReason::CommonFriend(
+                std::get<1>(value), std::get<2>(value)));
+          }
         }
-      }
-      --idx;
-    }
-
-    if (ans.size() >= end_ind) {
-      // put values in range [start_ind, end_ind), from end_ind - 1 to start_ind
-      // in reverse order
-      int32_t idx = end_ind - 1;
-      output.put_int(end_ind - start_ind);
-      while (idx >= start_ind) {
-        output.put_long(
-            graph_.graph().get_oid(user_label_id_, ans[idx]).AsInt64());
         --idx;
       }
-      return true;
     }
 
-    if (ans.size() < end_ind) {
-      int limit = 300000;
-      const auto& involved_ie = txn.GetIncomingImmutableEdges<grape::EmptyType>(
-          subIndustry_label_id_, subIndustryIdx, user_label_id_,
-          involved_label_id_);
-      auto root_city = user_city_col_.get_view(root);
-      bool exist_city = true;
-      if (root_city == " ") {
-        exist_city = false;
-      }
-      auto root_city_id = user_city_col_.get_idx(root);
-      auto root_roleName_id = user_roleName_col_.get_view(root);
-      std::random_device rd;   // Seed with a real random value, if available
-      std::mt19937 eng(rd());  // A Mersenne Twister pseudo-random generator of
-                               // 32-bit numbers Define the range of numbers you
-                               // want, here it's 0 through 99
-      std::uniform_int_distribution<int> dist(0, end_ind);
-      std::vector<uint32_t> tmp;
-      if (involved_ie.estimated_degree() > 1) {
-        for (auto& e : involved_ie) {
-          --limit;
-          if (limit == 0)
-            break;
-          if (!vis_set.count(e.neighbor)) {
-            auto city_id = user_city_col_.get_idx(e.neighbor);
-            auto roleName_id = user_roleName_col_.get_view(e.neighbor);
-            if ((!exist_city || city_id != root_city_id) &&
-                roleName_id != root_roleName_id && limit > 0) {
-              if (tmp.size() < end_ind) {
-                tmp.emplace_back(e.neighbor);
-              } else {
-                auto idx = dist(eng);
-                if (idx < end_ind) {
-                  tmp[idx] = e.neighbor;
-                }
+    int loop_limit = 300000;
+    res = RETURN_LIMIT - return_vec.size();
+    const auto& involved_ie = txn.GetIncomingImmutableEdges<grape::EmptyType>(
+        subIndustry_label_id_, subIndustryIdx, user_label_id_,
+        involved_label_id_);
+    auto root_city = user_city_col_.get_view(root);
+    bool exist_city = true;
+    if (root_city == " ") {
+      exist_city = false;
+    }
+    auto root_city_id = user_city_col_.get_idx(root);
+    auto root_roleName_id = user_roleName_col_.get_view(root);
+
+    std::vector<uint32_t> tmp;
+    std::vector<vid_t> cand;
+    size_t idx1 = 0, idx2 = 0;
+    if (involved_ie.estimated_degree() > 1) {
+      for (auto& e : involved_ie) {
+        loop_limit--;
+        if (loop_limit == 0) {
+          break;
+        }
+        if (!vis_set.count(e.neighbor) &&
+            !check_same_org(work_at, study_at, root_work_at, root_study_at,
+                            e.neighbor)) {
+          auto city_id = user_city_col_.get_idx(e.neighbor);
+          auto roleName_id = user_roleName_col_.get_view(e.neighbor);
+          if ((!exist_city || city_id != root_city_id) &&
+              roleName_id != root_roleName_id) {
+            if (tmp.size() < res) {
+              tmp.emplace_back(e.neighbor);
+            } else {
+              std::uniform_int_distribution<int> dist(0, idx1);
+              auto ind = dist(mt_);
+              if (ind < res) {
+                tmp[ind] = e.neighbor;
               }
             }
-            if (!checkSameOrg(work_at, study_at, root_work_at, root_study_at,
-                              e.neighbor)) {
-              ans.emplace_back(e.neighbor);
-              if (ans.size() >= end_ind) {
-                break;
+            idx1++;
+          } else {
+            if (cand.size() < res) {
+              cand.emplace_back(e.neighbor);
+            } else {
+              std::uniform_int_distribution<int> dist(0, idx2);
+              auto ind = dist(mt_);
+              if (ind < res) {
+                cand[ind] = e.neighbor;
               }
             }
-          }
-          if (limit == 0) {
-            //		  LOG(INFO) << "cur ans size: " << ans.size() << "\n";
+            idx2++;
           }
         }
       }
-      size_t idx = 0;
-      std::sort(tmp.begin(), tmp.end());
-      size_t len = std::unique(tmp.begin(), tmp.end()) - tmp.begin();
-      while (idx < len && ans.size() < end_ind) {
-        auto v = tmp[idx++];
-        if (!checkSameOrg(work_at, study_at, root_work_at, root_study_at, v)) {
-          ans.emplace_back(v);
-        }
-      }
     }
-
-    // std::cout << "user size: " << users.size() << " ans size: " << ans.size()
-    //<< "\n";
-    // for (auto vid : ans) {
-    //   output.put_long(graph_.graph().get_oid(user_label_id_, vid).AsInt64());
-    // }
-
-    // output [start_ind, end_ind)
-    idx = std::min(end_ind, static_cast<int32_t>(ans.size()));
-    output.put_int(std::max(0, idx - start_ind));
-    for (int32_t i = start_ind; i < idx; ++i) {
-      output.put_long(graph_.graph().get_oid(user_label_id_, ans[i]).AsInt64());
+    for (auto v : cand) {
+      return_vec.emplace_back(v);
+      return_reasons.emplace_back(RecomReason::Default());
     }
+    for (int i = 0; i < tmp.size() && return_vec.size() < RETURN_LIMIT; i++) {
+      return_vec.emplace_back(tmp[i]);
+      return_reasons.emplace_back(RecomReason::Default());
+    }
+    CHECK(return_vec.size() <= RETURN_LIMIT);
+    serialize_result(graph_, output, user_label_id_, return_vec,
+                     return_reasons);
 
     return true;
   }
@@ -391,13 +370,13 @@ class Query2 : public AppBase {
 
   gs::StringMapColumn<uint16_t>& user_subIndustry_col_;
   gs::StringMapColumn<uint16_t>& user_city_col_;
+  gs::TypedColumn<uint8_t>& user_active_days_col_;
   gs::TypedColumn<uint8_t>& user_roleName_col_;
   size_t edu_org_num_ = 0;
   size_t users_num_ = 0;
   size_t org_num_ = 0;
-
-  bool is_user_in_org_inited_ = false;
-  bool is_user_friend_inited_ = false;
+  std::random_device random_device_;
+  std::mt19937 mt_;
 };
 
 }  // namespace gs
