@@ -62,7 +62,7 @@ struct RecomReason {
   }
 
   std::string ToJsonString() const {
-    std::string json_str = "{\"type\":" + std::to_string(type);
+    std::string json_str = "[{\"type\":" + std::to_string(type);
     if (type == kCommonFriend || type == kCommonGroup) {
       json_str += ",\"resourceList\":[";
       for (size_t i = 0; i < common_group_or_friend.size(); ++i) {
@@ -76,8 +76,8 @@ struct RecomReason {
       json_str +=
           ",\"resourceNum\":" + std::to_string(common_group_or_friend.size());
     }
-    json_str += "}";
-    VLOG(10) << "recom reason json: " << json_str;
+    json_str += "}]";
+//    VLOG(10) << "recom reason json: " << json_str;
     return json_str;
   }
 

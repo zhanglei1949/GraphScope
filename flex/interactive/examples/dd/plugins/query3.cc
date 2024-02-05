@@ -29,6 +29,7 @@ class Query3 : public AppBase {
   bool Query(Decoder& input, Encoder& output) {
     static constexpr int RETURN_LIMIT = 20;
     int64_t oid = input.get_long();
+    LOG(INFO) << "query3:" << oid;
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
     graph_.graph().get_lid(user_label_id_, oid, root);
@@ -75,6 +76,7 @@ class Query3 : public AppBase {
     std::vector<vid_t> return_vec;
     std::vector<RecomReason> return_reasons;
     // root -> Intimacy -> Users
+    LOG(INFO) << "intimacy:" << intimacy_users.size();
 
     if (intimacy_users.size() <= RETURN_LIMIT / 5) {
       //@TODO 推荐理由
@@ -138,11 +140,12 @@ class Query3 : public AppBase {
     }
 
     for (auto& pair : common_group_users) {
-      common_users_vec.emplace_back(pair.first);
       auto& value = pair.second;
       if (value.size() == 1) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reason_tmp.emplace_back(true, value[0], INVALID_VID);
       } else if (value.size() >= 2) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reason_tmp.emplace_back(true, value[0], value[1]);
       }
     }
@@ -177,11 +180,12 @@ class Query3 : public AppBase {
     }
 
     for (auto& pair : common_friend_users) {
-      common_users_vec.emplace_back(pair.first);
       auto& value = pair.second;
       if (value.size() == 1) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reason_tmp.emplace_back(false, value[0], INVALID_VID);
       } else if (value.size() >= 2) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reason_tmp.emplace_back(false, value[0], value[1]);
       }
     }

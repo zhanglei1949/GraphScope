@@ -69,12 +69,14 @@ class Query2 : public AppBase {
   bool Query(Decoder& input, Encoder& output) {
     static constexpr int RETURN_LIMIT = 20;
     int64_t oid = input.get_long();
+    LOG(INFO) << "Queyr2: " << oid; 
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
     graph_.graph().get_lid(user_label_id_, oid, root);
     auto subIndustry = user_subIndustry_col_.get_view(root);
     auto subIndustryIdx = user_subIndustry_col_.get_idx(root);
     if (subIndustry == "") {
+      output.put_int(0);
       return true;
     }
     const auto& study_at = txn.GetOutgoingGraphView<char_array<16>>(
@@ -141,6 +143,7 @@ class Query2 : public AppBase {
         vis_set.emplace(v);
       }
     }
+    LOG(INFO) << "intimacy: " << intimacy_users_tmp.size();
     std::vector<vid_t> return_vec;
     std::vector<RecomReason> return_reasons;
     if (intimacy_users_tmp.size() <= RETURN_LIMIT / 5) {
@@ -208,11 +211,12 @@ class Query2 : public AppBase {
       }
     }
     for (auto& pair : common_group_users) {
-      common_users_vec.emplace_back(pair.first);
       auto& value = pair.second;
       if (value.size() == 1) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reason_tmp.emplace_back(true, value[0], INVALID_VID);
       } else if (value.size() >= 2) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reason_tmp.emplace_back(true, value[0], value[1]);
       }
     }
@@ -250,11 +254,12 @@ class Query2 : public AppBase {
     }
 
     for (auto& pair : common_friend_users) {
-      common_users_vec.emplace_back(pair.first);
       auto& value = pair.second;
       if (value.size() == 1) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reason_tmp.emplace_back(false, value[0], INVALID_VID);
       } else if (value.size() >= 2) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reason_tmp.emplace_back(false, value[0], value[1]);
       }
     }
@@ -300,6 +305,7 @@ class Query2 : public AppBase {
     std::vector<vid_t> cand;
     size_t idx1 = 0, idx2 = 0;
     if (involved_ie.estimated_degree() > 1) {
+      LOG(INFO) << "try loop";
       for (auto& e : involved_ie) {
         loop_limit--;
         if (loop_limit == 0) {

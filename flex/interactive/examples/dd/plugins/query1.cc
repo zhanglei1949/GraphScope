@@ -58,20 +58,21 @@ class Query1 : public AppBase {
 
   int64_t get_year_diff(int64_t a, int64_t b) {
     // a and b are seconds
-    static int64_t sec_per_year = 365;
-    sec_per_year = sec_per_year * 24 * 3600;
+    static int64_t sec_per_year = 365L * 24 * 3600;
     return std::abs(a - b) / sec_per_year;
   }
 
   bool Query(Decoder& input, Encoder& output) {
     static constexpr int RETURN_LIMIT = 20;
     int64_t oid = input.get_long();
+    LOG(INFO) << "Query1: " << oid;
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
     graph_.graph().get_lid(user_label_id_, oid, root);
     auto subIndustry = user_subIndustry_col_.get_view(root);
     auto subIndustryIdx = user_subIndustry_col_.get_idx(root);
     if (subIndustry == "") {
+      output.put_int(0);
       return true;
     }
     const auto& study_at = txn.GetOutgoingGraphView<char_array<16>>(
@@ -85,6 +86,7 @@ class Query1 : public AppBase {
             *reinterpret_cast<const int64_t*>(e.data.data);
       }
     }
+    LOG(INFO) << "get study at";
     const auto& intimacy_edges = txn.GetOutgoingImmutableEdges<char_array<4>>(
         user_label_id_, root, user_label_id_, intimacy_label_id_);
     std::vector<vid_t> intimacy_users;
@@ -124,6 +126,7 @@ class Query1 : public AppBase {
       }
       intimacy_users.resize(k);
     }
+    LOG(INFO) << "intimacy users: " <<intimacy_users.size();
 
     std::vector<vid_t> return_vec;
     std::vector<RecomReason> return_reasons;
@@ -193,10 +196,11 @@ class Query1 : public AppBase {
 
     for (auto& pair : common_group_users) {
       auto& value = pair.second;
-      common_users_vec.emplace_back(pair.first);
       if (value.size() == 1) {
         common_users_reasons_tmp.emplace_back(true, value[0], INVALID_VID);
-      } else {
+        common_users_vec.emplace_back(pair.first);
+      } else if (value.size() >= 2) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reasons_tmp.emplace_back(true, value[0], value[1]);
       }
     }
@@ -234,11 +238,12 @@ class Query1 : public AppBase {
     }
 
     for (auto& pair : common_friend_users) {
-      common_users_vec.emplace_back(pair.first);
       auto& value = pair.second;
       if (value.size() == 1) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reasons_tmp.emplace_back(false, value[0], INVALID_VID);
       } else if (value.size() >= 2) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reasons_tmp.emplace_back(false, value[0], value[1]);
       }
     }
@@ -264,6 +269,7 @@ class Query1 : public AppBase {
       }
       --idx;
     }
+    LOG(INFO) << "try city";
 
     res = RETURN_LIMIT - return_vec.size();
     const auto& city_col =
@@ -335,6 +341,7 @@ class Query1 : public AppBase {
     }
     for (auto v : cand) {
       return_vec.emplace_back(v);
+      return_reasons.emplace_back(RecomReason::Default());
     }
     for (size_t i = 0; i < tmp.size() && return_vec.size() < RETURN_LIMIT;
          ++i) {

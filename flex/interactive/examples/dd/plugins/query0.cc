@@ -45,6 +45,7 @@ class Query0 : public AppBase {
   bool Query(Decoder& input, Encoder& output) {
     static constexpr int RETURN_LIMIT = 20;
     int64_t oid = input.get_long();
+    LOG(INFO) << "Query0: " << oid;
     gs::vid_t root;
     auto txn = graph_.GetReadTransaction();
     graph_.graph().get_lid(user_label_id_, oid, root);
@@ -63,6 +64,7 @@ class Query0 : public AppBase {
       sum += d;
     }
     if (sum == 0) {
+      output.put_int(0);
       return true;
     }
 
@@ -107,7 +109,7 @@ class Query0 : public AppBase {
       //@TODO 推荐理由
       for (auto user : intimacy_users_tmp) {
         return_vec.emplace_back(user);
-        returns_reasons.emplace_back(RecomReason::Colleague());
+        returns_reasons.emplace_back(RecomReason::Default());
         vis_set.emplace(user);
       }
     } else {
@@ -122,7 +124,7 @@ class Query0 : public AppBase {
         }
         st.emplace(ind);
         return_vec.emplace_back(intimacy_users_tmp[ind]);
-        returns_reasons.emplace_back(RecomReason::Colleague());
+        returns_reasons.emplace_back(RecomReason::Default());
         vis_set.emplace(intimacy_users_tmp[ind]);
       }
     }
@@ -170,14 +172,17 @@ class Query0 : public AppBase {
     }
 
     for (auto& pair : common_group_users) {
-      common_users_vec.emplace_back(pair.first);
       auto& value = pair.second;
       if (value.size() == 1) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reason_tmp.emplace_back(true, value[0], INVALID_VID);
       } else if (value.size() >= 2) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reason_tmp.emplace_back(true, value[0], value[1]);
       }
     }
+
+    LOG(INFO) << "common group user count:" << common_users_vec.size(); 
 
     std::unordered_map<vid_t, std::vector<vid_t>> common_friend_users;
     // 2-hop friends
@@ -210,19 +215,22 @@ class Query0 : public AppBase {
         }
       }
     }
+    LOG(INFO) << "common friend user count:" << common_friend_users.size(); 
 
     for (auto& pair : common_friend_users) {
-      common_users_vec.emplace_back(pair.first);
       auto& value = pair.second;
       if (value.size() == 1) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reason_tmp.emplace_back(false, value[0], INVALID_VID);
       } else if (value.size() >= 2) {
+        common_users_vec.emplace_back(pair.first);
         common_users_reason_tmp.emplace_back(false, value[0], value[1]);
       }
     }
 
     int res = RETURN_LIMIT - return_vec.size();
 
+    LOG(INFO) << "select: " << res;
     // less than 20 users
     CHECK(common_users_vec.size() == common_users_reason_tmp.size());
     if (common_users_vec.size() <= res) {
@@ -259,6 +267,7 @@ class Query0 : public AppBase {
         }
       }
     }
+    LOG(INFO) << "before output";
     serialize_result(graph_, output, user_label_id_, return_vec,
                      returns_reasons);
     return true;
