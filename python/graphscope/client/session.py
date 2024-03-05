@@ -939,12 +939,12 @@ class Session(object):
 
             # Launch analytical engine right after session connected.
             # This may be changed to on demand launching in the future
-            if not self._engine_config and not self._pod_name_list:
-                (
-                    self._engine_config,
-                    pod_name_list,
-                ) = self._grpc_client.create_analytical_instance()
-                self._pod_name_list = list(pod_name_list)
+            # if not self._engine_config and not self._pod_name_list:
+            #     (
+            #         self._engine_config,
+            #         pod_name_list,
+            #     ) = self._grpc_client.create_analytical_instance()
+            #     self._pod_name_list = list(pod_name_list)
         except Exception:
             self.close()
             raise

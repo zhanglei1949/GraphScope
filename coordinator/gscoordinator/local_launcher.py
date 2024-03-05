@@ -461,11 +461,11 @@ class LocalLauncher(AbstractLauncher):
         logger.info("Etcd is ready, endpoint is %s", self._etcd_endpoint)
 
     def launch_vineyard(self):
-        if self.vineyard_socket is not None:
-            logger.info("Found existing vineyard socket: %s", self.vineyard_socket)
-            return
+        if self.vineyard_socket is None:
+            self._vineyard_socket = os.path.join(get_tempdir(), f"vineyard.sock.{ts}")
+            # logger.info("Found existing vineyard socket: %s", self.vineyard_socket)
+            # return
         ts = get_timestamp()
-        self._vineyard_socket = os.path.join(get_tempdir(), f"vineyard.sock.{ts}")
         if not is_free_port(self._vineyard_rpc_port):
             logger.warning(
                 "Vineyard rpc port %d is occupied, try to use another one.",

@@ -444,6 +444,10 @@ class Config(Serializable):
             self.session.reconnect = value
         elif key == "vineyard_shared_mem":
             pass
+        elif key == "hosts":
+            self.hosts_launcher.hosts = value
+        elif key == "vineyard_sock":
+            self.vineyard.socket = value
         else:
             raise ValueError("Key not recognized: " + key)
 
