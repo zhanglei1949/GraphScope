@@ -75,12 +75,12 @@ class GSSparkSession(sparkContext: SparkContext) extends SparkSession(sparkConte
     new GSClientWrapper(sparkContext, userSocketPath, sharedMemSize)
 
   def getSocketPath: String = {
-    if (userSocketPath.equals("")) {
-      log.info(s"Update socket path from GraphScope: ${interpreter.startedSocket}")
-      interpreter.startedSocket
-    } else {
-      userSocketPath
-    }
+    //if (userSocketPath.equals("")) {
+    //log.info(s"Update socket path from GraphScope: ${interpreter.startedSocket}")
+    interpreter.startedSocket
+    //} else {
+    //  userSocketPath
+    //}
   }
 
   override def stop(): Unit = {
