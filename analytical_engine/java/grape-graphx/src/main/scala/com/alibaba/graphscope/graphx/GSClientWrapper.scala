@@ -68,7 +68,10 @@ class GSClientWrapper(
 
   pythonInterpreter.getMatched("GraphScope coordinator service connected")
   log.info("Successfully start gs session")
-  val startedSocket: String     = getStartedSocket(pythonInterpreter)
+  var startedSocket : String = socketPath
+  if (startedSocket == null || startedSocket.isEmpty()) {
+    startedSocket = getStartedSocket(pythonInterpreter)
+  }
   val v6dClient: VineyardClient = createVineyardClient(startedSocket)
   log.info(s"sess start vineyard on ${startedSocket}")
   sc.getConf.set("spark.gs.vineyard.sock", startedSocket)
