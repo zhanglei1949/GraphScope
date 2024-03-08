@@ -470,7 +470,7 @@ class GraphXRawDataBuilder : public vineyard::ObjectBuilder {
         GraphXRawData<oid_t, vid_t, vdata_t, edata_t>>(this->Seal(client));
   }
 
-  std::shared_ptr<vineyard::Object> _Seal(vineyard::Client& client) override {
+  vineyard::Status _Seal(vineyard::Client& client, std::shared_ptr<vineyard::Object>& object) override {
     // ensure the builder hasn't been sealed yet.
     ENSURE_NOT_SEALED(this);
     VINEYARD_CHECK_OK(this->Build(client));
@@ -503,7 +503,8 @@ class GraphXRawDataBuilder : public vineyard::ObjectBuilder {
     VINEYARD_CHECK_OK(client.CreateMetaData(raw_data->meta_, raw_data->id_));
     // mark the builder as sealed
     this->set_sealed(true);
-    return std::static_pointer_cast<vineyard::Object>(raw_data);
+    object = std::static_pointer_cast<vineyard::Object>(raw_data);
+    return vineyard::Status::OK();
   }
 
   vineyard::Status Build(vineyard::Client& client) override {
@@ -574,7 +575,7 @@ class GraphXRawDataBuilder<OID_T, VID_T, VD_T, std::string>
         GraphXRawData<oid_t, vid_t, vdata_t, edata_t>>(this->Seal(client));
   }
 
-  std::shared_ptr<vineyard::Object> _Seal(vineyard::Client& client) override {
+  vineyard::Status _Seal(vineyard::Client& client, std::shared_ptr<vineyard::Object>& object) override {
     // ensure the builder hasn't been sealed yet.
     ENSURE_NOT_SEALED(this);
     VINEYARD_CHECK_OK(this->Build(client));
@@ -607,7 +608,8 @@ class GraphXRawDataBuilder<OID_T, VID_T, VD_T, std::string>
     VINEYARD_CHECK_OK(client.CreateMetaData(raw_data->meta_, raw_data->id_));
     // mark the builder as sealed
     this->set_sealed(true);
-    return std::static_pointer_cast<vineyard::Object>(raw_data);
+    object = std::static_pointer_cast<vineyard::Object>(raw_data);
+    return vineyard::Status::OK();
   }
 
   vineyard::Status Build(vineyard::Client& client) override {
@@ -678,7 +680,7 @@ class GraphXRawDataBuilder<OID_T, VID_T, std::string, ED_T>
         GraphXRawData<oid_t, vid_t, vdata_t, edata_t>>(this->Seal(client));
   }
 
-  std::shared_ptr<vineyard::Object> _Seal(vineyard::Client& client) override {
+vineyard::Status _Seal(vineyard::Client& client, std::shared_ptr<vineyard::Object>& object) override {
     // ensure the builder hasn't been sealed yet.
     ENSURE_NOT_SEALED(this);
     VINEYARD_CHECK_OK(this->Build(client));
@@ -711,7 +713,8 @@ class GraphXRawDataBuilder<OID_T, VID_T, std::string, ED_T>
     VINEYARD_CHECK_OK(client.CreateMetaData(raw_data->meta_, raw_data->id_));
     // mark the builder as sealed
     this->set_sealed(true);
-    return std::static_pointer_cast<vineyard::Object>(raw_data);
+    object = std::static_pointer_cast<vineyard::Object>(raw_data);
+    return vineyard::Status::OK();
   }
 
   vineyard::Status Build(vineyard::Client& client) override {
@@ -784,7 +787,7 @@ class GraphXRawDataBuilder<OID_T, VID_T, std::string, std::string>
         GraphXRawData<oid_t, vid_t, vdata_t, edata_t>>(this->Seal(client));
   }
 
-  std::shared_ptr<vineyard::Object> _Seal(vineyard::Client& client) override {
+  vineyard::Status _Seal(vineyard::Client& client, std::shared_ptr<vineyard::Object>& object) override {
     // ensure the builder hasn't been sealed yet.
     ENSURE_NOT_SEALED(this);
     VINEYARD_CHECK_OK(this->Build(client));
@@ -817,7 +820,8 @@ class GraphXRawDataBuilder<OID_T, VID_T, std::string, std::string>
     VINEYARD_CHECK_OK(client.CreateMetaData(raw_data->meta_, raw_data->id_));
     // mark the builder as sealed
     this->set_sealed(true);
-    return std::static_pointer_cast<vineyard::Object>(raw_data);
+    object = std::static_pointer_cast<vineyard::Object>(raw_data);
+    return vineyard::Status::OK();
   }
 
   vineyard::Status Build(vineyard::Client& client) override {
