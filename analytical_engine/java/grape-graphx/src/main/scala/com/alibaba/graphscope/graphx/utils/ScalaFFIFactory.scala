@@ -72,22 +72,22 @@ object ScalaFFIFactory extends Logging {
     synchronized {
       if (clz.equals(classOf[java.lang.Long]) || clz.equals(classOf[Long])) {
         val factory = FFITypeFactory
-          .getFactory(classOf[BaseArrowArrayBuilder[Long]], "gs::ArrowArrayBuilder<int64_t>")
+          .getFactory(classOf[BaseArrowArrayBuilder[Long]], "gs::BaseArrowArrayBuilder<int64_t>")
           .asInstanceOf[BaseArrowArrayBuilder.Factory[Long]]
         factory.create().asInstanceOf[BaseArrowArrayBuilder[T]]
       } else if (clz.equals(classOf[java.lang.Double]) || clz.equals(classOf[Double])) {
         val factory = FFITypeFactory
-          .getFactory(classOf[BaseArrowArrayBuilder[Double]], "gs::ArrowArrayBuilder<double>")
+          .getFactory(classOf[BaseArrowArrayBuilder[Double]], "gs::BaseArrowArrayBuilder<double>")
           .asInstanceOf[BaseArrowArrayBuilder.Factory[Double]]
         factory.create().asInstanceOf[BaseArrowArrayBuilder[T]]
       } else if (clz.equals(classOf[Integer]) || clz.equals(classOf[Int])) {
         val factory = FFITypeFactory
-          .getFactory(classOf[BaseArrowArrayBuilder[Integer]], "gs::ArrowArrayBuilder<int32_t>")
+          .getFactory(classOf[BaseArrowArrayBuilder[Integer]], "gs::BaseArrowArrayBuilder<int32_t>")
           .asInstanceOf[BaseArrowArrayBuilder.Factory[Integer]]
         factory.create().asInstanceOf[BaseArrowArrayBuilder[T]]
       } else {
         val factory = FFITypeFactory
-          .getFactory(classOf[BaseArrowArrayBuilder[StringView]], "gs::ArrowArrayBuilder<std::string>")
+          .getFactory(classOf[BaseArrowArrayBuilder[StringView]], "gs::BaseArrowArrayBuilder<std::string>")
           .asInstanceOf[BaseArrowArrayBuilder.Factory[StringView]]
         factory.create().asInstanceOf[BaseArrowArrayBuilder[T]]
       }

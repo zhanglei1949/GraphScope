@@ -156,6 +156,9 @@ struct ConvertToArrowType<vineyard::arrow_string_view> {
 template <typename T>
 using ArrowArrayBuilder = typename ConvertToArrowType<T>::BuilderType;
 
+template<typename T>
+using BaseArrowArrayBuilder = typename ConvertToArrowType<T>::BuilderType;
+
 template <typename T>
 using ArrowArray = typename ConvertToArrowType<T>::ArrayType;
 
