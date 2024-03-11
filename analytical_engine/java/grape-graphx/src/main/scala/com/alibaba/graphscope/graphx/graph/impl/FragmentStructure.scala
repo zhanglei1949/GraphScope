@@ -605,10 +605,15 @@ class FragmentStructure(
     }
 
     val edgeDataArrayBuilder: BaseArrowArrayBuilder[_] = {
-      val res = ScalaFFIFactory.newBaseArrowArrayBuilder[ED] //create ffiByteString for non-primitive ed
+      var res = ScalaFFIFactory.newBaseArrowArrayBuilder[ED] //create ffiByteString for non-primitive ed
       if (GrapeUtils.isPrimitive[ED]) {
         val tmp = GrapeUtils.edgeDataStore2ArrowArrayBuilder(edgeDataStore)
-        res.setAddress(tmp.getAddress)
+        if (tmp == null) {
+          res = null
+        }
+        else {
+          res.setAddress(tmp.getAddress)
+        }
       } else {
         val stringEDArrayBuilder = GrapeUtils.edgeDataStore2ArrowStringArrayBuilder(edgeDataStore)
         res.setAddress(stringEDArrayBuilder.getAddress)
