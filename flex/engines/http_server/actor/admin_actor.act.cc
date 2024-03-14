@@ -697,6 +697,32 @@ seastar::future<admin_query_result> admin_actor::create_procedure(
                   "Fail to create procedure: " + std::string(e.what()))));
         }
       });
+  auto lock_res = lock_guard.TryLock();
+  if (!lock_res.ok() || !lock_res.value()) {
+    LOG(ERROR) << "Fail to lock graph plugin dir: " << graph_id;
+    return seastar::make_ready_future<admin_query_result>(
+        gs::Result<seastar::sstring>(
+            gs::StatusCode::AlreadyLocked,
+            "Fail to acquire lock for graph plugin dir: " + graph_id +
+                ", try again later"));
+  }
+
+  // Use a transaction to ensure the transactional
+  CreatePluginTransaction transaction(metadata_store_, graph_id, parameter);
+
+  return transaction.Run().then_wrapped([](auto&& f) {
+    try {
+      auto res = f.get();
+      return seastar::make_ready_future<admin_query_result>(
+          gs::Result<seastar::sstring>(std::move(res)));
+    } catch (std::exception& e) {
+      LOG(ERROR) << "Fail to create procedure: " << e.what();
+      return seastar::make_ready_future<admin_query_result>(
+          gs::Result<seastar::sstring>(
+              gs::StatusCode::InternalError,
+              "Fail to create procedure: " + std::string(e.what())));
+    }
+  });
 }
 
 // Delete a procedure by graph name and procedure name

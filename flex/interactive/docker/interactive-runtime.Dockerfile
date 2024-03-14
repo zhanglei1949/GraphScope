@@ -114,7 +114,8 @@ COPY --from=builder /usr/lib/$ARCH-linux-gnu/libre2*.so* /usr/lib/$ARCH-linux-gn
 COPY --from=builder /usr/include/glog /usr/include/glog
 COPY --from=builder /usr/include/gflags /usr/include/gflags
 COPY --from=builder /usr/lib/$ARCH-linux-gnu/libprotobuf* /usr/lib/$ARCH-linux-gnu/
-COPY --from=builder /usr/lib/$ARCH-linux-gnu/libfmt*.so* /usr/lib/$ARCH-linux-gnu/
+# copy sqlite3
+COPY --from=builder /usr/lib/$ARCH-linux-gnu/libsqlite3*.so* /usr/lib/$ARCH-linux-gnu/
 
 COPY --from=builder /usr/lib/$ARCH-linux-gnu/openmpi/include/ /opt/flex/include
 COPY --from=builder /usr/include/boost /usr/include/boost

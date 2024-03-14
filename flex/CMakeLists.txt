@@ -14,6 +14,7 @@ option(BUILD_HQPS "Whether to build HighQPS Engine" ON)
 option(BUILD_TEST "Whether to build test" ON)
 option(BUILD_DOC "Whether to build doc" OFF)
 option(BUILD_ODPS_FRAGMENT_LOADER "Whether to build odps fragment loader" OFF)
+option(BUILD_SQLITE_META_STORE "Whether to build sqlite meta store" ON)
 option(USE_PTHASH "Whether to use pthash" OFF)
 
 #print options
@@ -158,6 +159,12 @@ if (BUILD_DOC)
     endif(DOXYGEN_FOUND)
 endif()
 
+# find sqlite3-------------------------------------------------------------------
+if (BUILD_SQLITE_META_STORE)
+    find_package(SQLite3 REQUIRED)
+    include_directories(SYSTEM ${SQLITE3_INCLUDE_DIRS})
+    add_definitions(-DBUILD_SQLITE_META_STORE)
+endif ()
 
 # Check whether ${CMAKE_SOURCE_DIR}/third_party/single_include/nlohmann/json.hpp exists
 if (NOT EXISTS ${CMAKE_SOURCE_DIR}/third_party/nlohmann-json/single_include/nlohmann/json.hpp)

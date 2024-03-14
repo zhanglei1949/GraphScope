@@ -17,7 +17,7 @@ ENV LC_ALL en_US.UTF-8
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-RUN apt-get update && apt-get install -y protobuf-compiler libprotobuf-dev maven git vim curl \
+RUN apt-get update && apt-get install -y protobuf-compiler libprotobuf-dev maven git vim curl sqlite3 libsqlite3-dev \
     wget python3 make libc-ares-dev doxygen python3-pip net-tools curl default-jdk nlohmann-json3-dev \
     libgoogle-glog-dev libopenmpi-dev libboost-all-dev libyaml-cpp-dev libcrypto++-dev openssl libcurl4-openssl-dev && \
     apt-get clean -y && rm -rf /var/lib/apt/lists/*

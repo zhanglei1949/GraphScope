@@ -22,6 +22,8 @@ std::shared_ptr<IGraphMetaStore> MetadataStoreFactory::Create(
   case MetadataStoreType::kLocalFile:
     return std::make_shared<DefaultGraphMetaStore>(
         std::make_unique<LocalFileMetadataStore>(path));
+  case MetadataStoreType::kSQLite:
+    return std::make_shared<SqliteMetadataStore>();
   default:
     LOG(FATAL) << "Unsupported metadata store type: " << static_cast<int>(type);
   }

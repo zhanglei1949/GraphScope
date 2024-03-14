@@ -17,14 +17,16 @@
 #define FLEX_STORAGES_METADATA_METADATA_STORE_FACTORY_H_
 
 #include <string>
-#include "flex/storages/metadata/local_file_metadata_store.h"
 #include "flex/storages/metadata/default_graph_meta_store.h"
 #include "flex/storages/metadata/graph_meta_store.h"
+#include "flex/storages/metadata/local_file_metadata_store.h"
+#include "flex/storages/metadata/sqlite_metadata_store.h"
 
 namespace gs {
 
 enum class MetadataStoreType {
   kLocalFile,
+  kSQLite,
 };
 /**
  * @brief LoaderFactory is a factory class to create IFragmentLoader.
