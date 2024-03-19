@@ -496,11 +496,12 @@ class QueryGenerator {
       }
 
       case physical::PhysicalOpr::Operator::kApply: {
-        auto& meta_data = meta_datas[0];
+        // auto& meta_data = meta_datas[0];
+        physical::PhysicalOpr::MetaData dummy_meta_data;
         LOG(INFO) << "Found a apply operator";
         auto& apply_op = opr.apply();
         std::string call_apply_code =
-            BuildApplyOp<LabelT>(ctx_, apply_op, meta_data);
+            BuildApplyOp<LabelT>(ctx_, apply_op, dummy_meta_data);
         ss << call_apply_code << std::endl;
         break;
       }

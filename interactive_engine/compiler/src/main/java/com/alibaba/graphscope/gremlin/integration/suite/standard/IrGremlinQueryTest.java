@@ -1086,6 +1086,7 @@ public abstract class IrGremlinQueryTest extends AbstractGremlinProcessTest {
 
         @Override
         public Traversal<Vertex, Long> get_g_V_dedup_a_b_by_out_count_count() {
+            //g.V().as("a").out().as("b").dedup("a", "b").by(out().count()).count()
             return g.V().as("a").out().as("b").dedup("a", "b").by(out().count()).count();
         }
 

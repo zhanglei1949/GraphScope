@@ -5,7 +5,7 @@ directories:
     logs: logs
     conf: conf
 log_level: INFO
-default_graph: ldbc
+default_graph: modern_graph
 compute_engine:
   type: hiactor
   workers:
@@ -31,6 +31,7 @@ compiler:
       port: 8182
   query_timeout: 40000
   gremlin_script_language_name: antlr_gremlin_calcite
+  physical_opt_config: proto
 http_service:
   default_listen_address: localhost
   admin_port: 7777

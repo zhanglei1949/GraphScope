@@ -212,7 +212,16 @@ public class YamlConfigs extends Configs {
                         (Configs configs) -> configs.get("compiler.calcite_default_charset"))
                 .put(
                         "gremlin.script.language.name",
-                        (Configs configs) -> configs.get("compiler.gremlin_script_language_name"));
+                        (Configs configs) -> configs.get("compiler.gremlin_script_language_name"))
+                .put(
+                        "physical.opt.config",
+                        (Configs configs) -> {
+                            if (configs.get("compiler.physical_opt_config") != null) {
+                                return configs.get("compiler.physical_opt_config");
+                            } else {
+                                return "proto"; //Default use proto
+                            }
+                        });
         valueGetterMap = mapBuilder.build();
     }
 
