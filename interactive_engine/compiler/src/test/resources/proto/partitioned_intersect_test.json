@@ -47,7 +47,7 @@
               "propId": {
                 "name": "creationDate"
               },
-              "type": "DATE32"
+              "type": "INT64"
             }, {
               "propId": {
                 "name": "locationIP"
@@ -64,6 +64,14 @@
       },
       "alias": 1
     }]
+  }, {
+    "opr": {
+      "repartition": {
+        "toAnother": {
+          "shuffleKey": 1
+        }
+      }
+    }
   }, {
     "opr": {
       "edge": {
@@ -103,6 +111,14 @@
         "subPlans": [{
           "plan": [{
             "opr": {
+              "repartition": {
+                "toAnother": {
+                  "shuffleKey": 0
+                }
+              }
+            }
+          }, {
+            "opr": {
               "edge": {
                 "vTag": 0,
                 "params": {
@@ -121,13 +137,19 @@
                   "graphDataType": [{
                     "label": {
                       "label": 1,
-                      "srcLabel": 2,
+                      "srcLabel": 4,
                       "dstLabel": 7
                     }
                   }, {
                     "label": {
                       "label": 1,
                       "srcLabel": 3,
+                      "dstLabel": 7
+                    }
+                  }, {
+                    "label": {
+                      "label": 1,
+                      "srcLabel": 2,
                       "dstLabel": 7
                     }
                   }]
@@ -138,6 +160,14 @@
           }]
         }, {
           "plan": [{
+            "opr": {
+              "repartition": {
+                "toAnother": {
+                  "shuffleKey": 1
+                }
+              }
+            }
+          }, {
             "opr": {
               "edge": {
                 "vTag": 1,
@@ -213,7 +243,7 @@
                     "propId": {
                       "name": "creationDate"
                     },
-                    "type": "DATE32"
+                    "type": "INT64"
                   }, {
                     "propId": {
                       "name": "locationIP"
