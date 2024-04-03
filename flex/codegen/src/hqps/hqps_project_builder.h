@@ -206,6 +206,7 @@ std::pair<std::string, codegen::DataType> get_prop_name_type_from_variable(
     return std::make_pair("label", codegen::DataType::kLabelId);
   } else {
     LOG(FATAL) << "Unknown property type" << property.DebugString();
+    return std::make_pair("", codegen::DataType::kEmpty);
   }
 }
 
