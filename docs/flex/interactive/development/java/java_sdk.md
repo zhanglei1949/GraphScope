@@ -50,7 +50,7 @@ mvn clean package
 
 Then manually install the following JARs:
 
-* `target/interactive-sdk-0.3.jar`
+* `target/interactive-0.3.jar`
 * `target/lib/*.jar`
 
 ## Getting Started
