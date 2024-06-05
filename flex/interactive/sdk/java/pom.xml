@@ -47,11 +47,19 @@
 
     <distributionManagement>
         <snapshotRepository>
+<<<<<<< HEAD
             <id>ossrh-snapshot</id>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
         <repository>
             <id>ossrh-release</id>
+=======
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+>>>>>>> 99942ff58 (release interactive-java-sdk)
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
