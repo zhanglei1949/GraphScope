@@ -44,6 +44,13 @@ public class Driver {
         return new Driver(uri);
     }
 
+    /**
+     * Initiating a driver with the admin service uri.
+     * The uri should be in the format of "host:port" or "http://host:port"
+     * Interactive engine provide both cypher bolt endpoint, gremlin endpoint and query engine endpoint.
+     * Those endpoints will be parsed from the response of `curl http://host:port/v1/service/status`
+     * @param uri the uri of the admin service
+     */
     private Driver(String uri) {
         // Parse uri
         String[] parts = uri.split(":");
@@ -57,11 +64,6 @@ public class Driver {
         } else {
             this.host = host;
         }
-    }
-
-    private Driver(String host, int port) {
-        this.host = host;
-        this.port = port;
     }
 
     /**
