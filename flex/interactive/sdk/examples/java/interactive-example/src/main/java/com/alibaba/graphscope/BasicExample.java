@@ -114,7 +114,6 @@ public class BasicExample {
 
     public static String bulkLoading(Session session, String graphId) {
         SchemaMapping schemaMapping = new SchemaMapping();
-        schemaMapping.setGraph(graphId);
         {
             SchemaMappingLoadingConfig loadingConfig = new SchemaMappingLoadingConfig();
             loadingConfig.setImportOption(SchemaMappingLoadingConfig.ImportOptionEnum.INIT);
