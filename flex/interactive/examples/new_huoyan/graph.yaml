@@ -11,7 +11,7 @@ schema:
     - type_id: 0
       type_name: company
       x_csr_params:
-        max_vertex_num: 500000000
+        max_vertex_num: 1200000000
       properties:
         - property_id: 0
           property_name: vertex_id
@@ -44,7 +44,7 @@ schema:
     - type_id: 1
       type_name: person
       x_csr_params:
-        max_vertex_num: 500000000
+        max_vertex_num: 1200000000
       properties:
         - property_id: 0
           property_name: vertex_id
@@ -79,7 +79,7 @@ schema:
           property_type:
             string:
               var_char:
-                max_length: 64
+                max_length: 16
     - type_id: 1
       type_name: personInvest
       vertex_type_pair_relations:
@@ -100,4 +100,4 @@ schema:
           property_type:
             string:
               var_char:
-                max_length: 64
+                max_length: 16
