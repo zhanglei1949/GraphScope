@@ -211,7 +211,6 @@ struct ResultsCreator {
           node_json["properties"] =
               get_vertex_properties_from_encoded_vid(txn, path.vids[i]);
           path_json["nodes"].push_back(node_json);
-          VLOG(10) << "node_json: " << node_json.dump();
 
           if (i < path.rel_types.size()) {
             nlohmann::json rel_json;
@@ -235,13 +234,12 @@ struct ResultsCreator {
               rel_json["properties"] = get_edge_properties(
                   path.weights[i], path.rel_types[i], path.rel_infos[i]);
             }
-            VLOG(10) << "rel json: " << rel_json.dump();
             path_json["relations"].push_back(rel_json);
           }
         }
         // json["paths"].push_back(path_json);
         paths.push_back(path_json);
-        VLOG(10) << "path_json: " << path_json.dump();
+        // VLOG(10) << "path_json: " << path_json.dump();
       }
       end_node_json["paths"] = paths;
       json.push_back(end_node_json);
@@ -328,10 +326,10 @@ class HuoYan : public WriteAppBase {
       }
       cur_path.emplace_back(encoded_vid);
       CHECK(data.size() == 3) << "Expect 3 but got: " << data.size();
-      VLOG(10) << data[0].AsDouble() << "," << edge_rel_type << ","
-               << data[2].AsStringView();
+      // VLOG(10) << data[0].AsDouble() << "," << edge_rel_type << ","
+      //          << data[2].AsStringView();
       cur_weight.emplace_back(data[0].AsDouble());
-      cur_rel_type.emplace_back();
+      cur_rel_type.emplace_back(edge_rel_type);
       cur_rel_info.emplace_back(data[2].AsStringView());
 
       if (is_simple(cur_path)) {
@@ -341,8 +339,8 @@ class HuoYan : public WriteAppBase {
         next_rel_infos.emplace_back(cur_rel_info);
 
         next_directions.emplace_back(cur_direction);
-        if ((dst_label_id == comp_label_id_ && valid_comp_vids_[dst]) ||
-            dst_label_id == person_label_id_) {
+        if ((dst_label_id == comp_label_id_ && valid_comp_vids_[dst])) {
+          // dst_label_id == person_label_id_
           // final_results.emplace_back(path);
           ++result_size;
           // output.put_int(cur_rel_type.size());
@@ -385,7 +383,9 @@ class HuoYan : public WriteAppBase {
         }
       }
       cur_path.pop_back();
+      cur_weight.pop_back();
       cur_rel_type.pop_back();
+      cur_rel_info.pop_back();
     }
     cur_direction.pop_back();
 
