@@ -9,10 +9,10 @@ namespace gs {
 // TODO: make sure the max vid is less than 2^30
 inline vid_t encode_vid(label_t v_label, vid_t vid) {
   // vid_t is uint32_t, use the first 4 bits to store label id
-  return ((vid_t) v_label << 30) | vid;
+  return ((vid_t) v_label << 31) | vid;
 }
 
-inline label_t decode_label(vid_t encoded_vid) { return encoded_vid >> 30; }
+inline label_t decode_label(vid_t encoded_vid) { return encoded_vid >> 31; }
 
 inline vid_t decode_vid(vid_t encoded_vid) { return encoded_vid & 0x3FFFFFFF; }
 
@@ -301,12 +301,12 @@ class HuoYan : public WriteAppBase {
                    std::vector<std::vector<double>>& cur_weights,
                    std::vector<std::vector<int32_t>>& cur_rel_types,
                    std::vector<std::vector<std::string_view>>& cur_rel_infos,
-                   std::vector<std::vector<Direction>> cur_directions,
+                   std::vector<std::vector<Direction>>& cur_directions,
                    std::vector<std::vector<vid_t>>& next_paths,
                    std::vector<std::vector<double>>& next_weights,
                    std::vector<std::vector<int32_t>>& next_rel_types,
                    std::vector<std::vector<std::string_view>>& next_rel_infos,
-                   std::vector<std::vector<Direction>> next_directions,
+                   std::vector<std::vector<Direction>>& next_directions,
                    size_t& result_size, int result_limit, Encoder& output,
                    double& cur_time_left, Direction direction) {
     auto& cur_path = cur_paths[cur_ind];
@@ -640,8 +640,8 @@ class HuoYan : public WriteAppBase {
       //       << ", next_paths: " << next_paths.size();
       cur_paths.swap(next_paths);
       cur_rel_types.swap(next_rel_types);
-      cur_weights.swap(cur_weights);
-      cur_rel_infos.swap(cur_rel_infos);
+      cur_weights.swap(next_weights);
+      cur_rel_infos.swap(next_rel_infos);
       cur_directions.swap(next_directions);
       next_paths.clear();
       next_rel_types.clear();
