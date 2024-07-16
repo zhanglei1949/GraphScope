@@ -1,5 +1,5 @@
 ARG ARCH=x86_64
-FROM registry.cn-hongkong.aliyuncs.com/graphscope/interactive-base:v0.0.4 AS builder
+FROM registry.cn-hongkong.aliyuncs.com/graphscope/graphscope-dev:v0.23.0 AS builder
 
 ARG ARCH
 ARG ENABLE_COORDINATOR="false"
@@ -90,11 +90,13 @@ COPY --from=builder /opt/flex /opt/flex
 RUN mkdir -p /opt/flex/share/modern_graph/ && mkdir -p /opt/flex/share/graph_algo/
 COPY --from=builder /home/graphscope/GraphScope/flex/interactive/examples/modern_graph/* /opt/flex/share/modern_graph/
 COPY --from=builder /home/graphscope/GraphScope/flex/interactive/examples/graph_algo/* /opt/flex/share/graph_algo/
-COPy --from=builder /home/graphscope/GraphScope/flex/tests/interactive/graph_algo_test.yaml /opt/flex/share/graph_algo/import.yaml
+COPY --from=builder /home/graphscope/GraphScope/flex/tests/interactive/graph_algo_test.yaml /opt/flex/share/graph_algo/graph.yaml
 COPY --from=builder /home/graphscope/GraphScope/flex/tests/hqps/engine_config_test.yaml /opt/flex/share/engine_config.yaml
 COPY --from=builder /home/graphscope/GraphScope/flex/interactive/docker/entrypoint.sh /opt/flex/bin/entrypoint.sh
 COPY --from=builder /home/graphscope/GraphScope/flex/interactive/docker/prepare_stored_procedure.py /opt/flex/bin/prepare_stored_procedure.py
 COPY --from=builder /home/graphscope/GraphScope/flex/third_party/nlohmann-json/single_include/* /opt/flex/include/
+RUN sed -i 's/name: graph_algo/name: gs_interactive_default_graph/g' /opt/flex/share/graph_algo/graph.yaml
+RUN sed -i 's/name: modern_graph/name: gs_interactive_default_graph/g' /opt/flex/share/modern_graph/graph.yaml
 
 # remove bin/run_app
 RUN rm -rf /opt/flex/bin/run_app

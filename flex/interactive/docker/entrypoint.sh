@@ -16,7 +16,7 @@
 set -e
 
 DEFAULT_GRAPH_NAME=gs_interactive_default_graph
-DEFAULT_GRAPH="modern_graph"
+DEFAULT_GRAPH="graph_algo"
 BULK_LOADER_BINARY_PATH=/opt/flex/bin/bulk_loader
 INTERACTIVE_SERVER_BIN=/opt/flex/bin/interactive_server
 
@@ -64,7 +64,6 @@ function prepare_workspace() {
     builtin_graph_schema_path="${builtin_graph_dir}/graph.yaml"
     builtin_graph_data_path="${builtin_graph_dir}/indices"
     cp /opt/flex/share/${DEFAULT_GRAPH}/graph.yaml  ${builtin_graph_schema_path}
-    sed -i "s/name:.*/name: ${DEFAULT_GRAPH_NAME}/" ${builtin_graph_schema_path}
     cp /opt/flex/share/${DEFAULT_GRAPH}/import.yaml ${builtin_graph_import_path}
     export FLEX_DATA_DIR=/opt/flex/share/${DEFAULT_GRAPH}/
     builtin_graph_loader_cmd="${BULK_LOADER_BINARY_PATH} -g ${builtin_graph_schema_path} -d ${builtin_graph_data_path} -l ${builtin_graph_import_path}"
@@ -92,7 +91,7 @@ function launch_service() {
 }
 
 function register_stored_procedures() {
-  cmd="python3 /opt/graphscope/bin/register_stored_procedures.py"
+  cmd="python3 /opt/flex/bin/prepare_stored_procedure.py"
   echo "Registering stored procedures with command: $cmd"
   eval $cmd
   sleep 5
@@ -136,6 +135,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     -g | --default-graph)
+      shift
       DEFAULT_GRAPH=$1
       shift
       ;;
@@ -158,5 +158,14 @@ fi
 
 prepare_workspace $WORKSPACE
 launch_service $WORKSPACE
+sleep 15
+# check whether port 7777 is open
+url="http://localhost:7777/v1/service/status"
+while true; do
+    if curl -s -o /dev/null -w "%{http_code}" $url | grep -q 200; then
+        break
+    fi
+    sleep 5
+done
 register_stored_procedures
 launch_coordinator
