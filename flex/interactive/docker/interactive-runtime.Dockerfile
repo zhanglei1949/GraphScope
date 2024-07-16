@@ -87,14 +87,14 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 COPY --from=builder /opt/flex /opt/flex
 
 # copy the builtin graph, modern_graph
-RUN mkdir -p /opt/flex/share/gs_interactive_default_graph/
-COPY --from=builder /home/graphscope/GraphScope/flex/interactive/examples/modern_graph/* /opt/flex/share/gs_interactive_default_graph/
+RUN mkdir -p /opt/flex/share/modern_graph/ && mkdir -p /opt/flex/share/graph_algo/
+COPY --from=builder /home/graphscope/GraphScope/flex/interactive/examples/modern_graph/* /opt/flex/share/modern_graph/
+COPY --from=builder /home/graphscope/GraphScope/flex/interactive/examples/graph_algo/* /opt/flex/share/graph_algo/
+COPy --from=builder /home/graphscope/GraphScope/flex/tests/interactive/graph_algo_test.yaml /opt/flex/share/graph_algo/import.yaml
 COPY --from=builder /home/graphscope/GraphScope/flex/tests/hqps/engine_config_test.yaml /opt/flex/share/engine_config.yaml
 COPY --from=builder /home/graphscope/GraphScope/flex/interactive/docker/entrypoint.sh /opt/flex/bin/entrypoint.sh
+COPY --from=builder /home/graphscope/GraphScope/flex/interactive/docker/prepare_stored_procedure.py /opt/flex/bin/prepare_stored_procedure.py
 COPY --from=builder /home/graphscope/GraphScope/flex/third_party/nlohmann-json/single_include/* /opt/flex/include/
-RUN sed -i 's/name: modern_graph/name: gs_interactive_default_graph/g' /opt/flex/share/gs_interactive_default_graph/graph.yaml
-# change the default graph name.
-RUN sed -i 's/default_graph: modern_graph/default_graph: gs_interactive_default_graph/g' /opt/flex/share/engine_config.yaml
 
 # remove bin/run_app
 RUN rm -rf /opt/flex/bin/run_app
@@ -163,5 +163,7 @@ RUN chown -R graphscope:graphscope /opt/flex
 ENV HOME=/home/graphscope
 USER graphscope
 WORKDIR /home/graphscope
+
+ENV INTERACTIVE_ADMIN_ENDPOINT=http://localhost:7777
 
 ENTRYPOINT ["/opt/flex/bin/entrypoint.sh"]

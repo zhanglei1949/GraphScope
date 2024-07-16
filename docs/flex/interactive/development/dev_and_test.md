@@ -103,7 +103,7 @@ cd ${GITHUB_WORKSPACE}/flex/build/
 # Create interactive workspace
 mkdir -p ${TMP_INTERACTIVE_WORKSPACE}
 SCHEMA_FILE=${GITHUB_WORKSPACE}/flex/interactive/examples/modern_graph/graph.yaml
-BULK_LOAD_FILE=${GITHUB_WORKSPACE}/flex/interactive/examples/modern_graph/bulk_load.yaml
+BULK_LOAD_FILE=${GITHUB_WORKSPACE}/flex/interactive/examples/modern_graph/import.yaml
 
 # Create a directory to put modern_graph's schema.yaml and graph data
 mkdir -p ${TMP_INTERACTIVE_WORKSPACE}/data/modern_graph/

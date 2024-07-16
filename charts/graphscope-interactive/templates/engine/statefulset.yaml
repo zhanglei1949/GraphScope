@@ -76,13 +76,13 @@ spec:
               # TODO.
               builtin_graph_schema_path="${INTERACTIVE_WORKSPACE}/data/${DEFAULT_GRAPH_NAME}/graph.yaml"
               builtin_graph_data_path="${INTERACTIVE_WORKSPACE}/data/${DEFAULT_GRAPH_NAME}/indices/"
-              builtin_graph_import_path="${INTERACTIVE_WORKSPACE}/data/${DEFAULT_GRAPH_NAME}/bulk_load.yaml"
+              builtin_graph_import_path="${INTERACTIVE_WORKSPACE}/data/${DEFAULT_GRAPH_NAME}/import.yaml"
               # if builtin_graph_data_path exists, skip
               if [ ! -d ${builtin_graph_data_path} ]; then
                 mkdir -p ${INTERACTIVE_WORKSPACE}/data/${DEFAULT_GRAPH_NAME}
                 echo "Loading builtin graph: ${DEFAULT_GRAPH_NAME} with command: $builtin_graph_loader_cmd"
                 cp /opt/flex/share/gs_interactive_default_graph/graph.yaml ${builtin_graph_schema_path}
-                cp /opt/flex/share/gs_interactive_default_graph/bulk_load.yaml ${builtin_graph_import_path}
+                cp /opt/flex/share/gs_interactive_default_graph/import.yaml ${builtin_graph_import_path}
                 export FLEX_DATA_DIR=/opt/flex/share/gs_interactive_default_graph/
 
                 builtin_graph_loader_cmd="${BULK_LOADER_BINARY_PATH} -g ${builtin_graph_schema_path} -d ${builtin_graph_data_path} -l ${builtin_graph_import_path}"

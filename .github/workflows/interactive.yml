@@ -93,7 +93,7 @@ jobs:
         git clone -b master --single-branch --depth=1 https://github.com/GraphScope/gstest.git ${GS_TEST_DIR}
         mkdir -p ${INTERACTIVE_WORKSPACE}/data/ldbc
         GRAPH_SCHEMA_YAML=${GS_TEST_DIR}/flex/ldbc-sf01-long-date/audit_graph_schema.yaml
-        BUILD_LOAD_FILE=${GS_TEST_DIR}/flex/ldbc-sf01-long-date/audit_bulk_load.yaml
+        BUILD_LOAD_FILE=${GS_TEST_DIR}/flex/ldbc-sf01-long-date/audit_import.yaml
         cp ${GRAPH_SCHEMA_YAML} ${INTERACTIVE_WORKSPACE}/data/ldbc/graph.yaml
         cp ${BUILD_LOAD_FILE} ${INTERACTIVE_WORKSPACE}/data/ldbc/import.yaml
         mkdir -p ${INTERACTIVE_WORKSPACE}/data/movies
@@ -114,7 +114,7 @@ jobs:
         export FLEX_DATA_DIR=../interactive/examples/graph_algo
         GLOG_v=10 ./bin/bulk_loader -g ${INTERACTIVE_WORKSPACE}/data/graph_algo/graph.yaml -l ${INTERACTIVE_WORKSPACE}/data/graph_algo/import.yaml -d ${INTERACTIVE_WORKSPACE}/data/graph_algo/indices/
         export FLEX_DATA_DIR=../interactive/examples/modern_graph
-        GLOG_v=10 ./bin/bulk_loader -g ${INTERACTIVE_WORKSPACE}/data/modern_graph/graph.yaml -l ../interactive/examples/modern_graph/bulk_load.yaml -d ${INTERACTIVE_WORKSPACE}/data/modern_graph/indices/
+        GLOG_v=10 ./bin/bulk_loader -g ${INTERACTIVE_WORKSPACE}/data/modern_graph/graph.yaml -l ../interactive/examples/modern_graph/import.yaml -d ${INTERACTIVE_WORKSPACE}/data/modern_graph/indices/
 
     - name: Test HQPS admin http service
       env: 
@@ -126,7 +126,7 @@ jobs:
         rm -rf ${TMP_INTERACTIVE_WORKSPACE}
         cd ${GITHUB_WORKSPACE}/flex/build/
         SCHEMA_FILE=${GITHUB_WORKSPACE}/flex/interactive/examples/modern_graph/graph.yaml
-        BULK_LOAD_FILE=${GITHUB_WORKSPACE}/flex/interactive/examples/modern_graph/bulk_load.yaml
+        BULK_LOAD_FILE=${GITHUB_WORKSPACE}/flex/interactive/examples/modern_graph/import.yaml
         mkdir -p ${TMP_INTERACTIVE_WORKSPACE}/data/modern_graph/
         cp ${SCHEMA_FILE} ${TMP_INTERACTIVE_WORKSPACE}/data/modern_graph/graph.yaml
         GLOG_v=10 ./bin/bulk_loader -g ${SCHEMA_FILE} -l ${BULK_LOAD_FILE} -d ${TMP_INTERACTIVE_WORKSPACE}/data/modern_graph/indices/
@@ -154,7 +154,7 @@ jobs:
         rm -rf ${TMP_INTERACTIVE_WORKSPACE}     
         cd ${GITHUB_WORKSPACE}/flex/build/
         SCHEMA_FILE=${GITHUB_WORKSPACE}/flex/interactive/examples/modern_graph/graph.yaml
-        BULK_LOAD_FILE=${GITHUB_WORKSPACE}/flex/interactive/examples/modern_graph/bulk_load.yaml
+        BULK_LOAD_FILE=${GITHUB_WORKSPACE}/flex/interactive/examples/modern_graph/import.yaml
         mkdir -p ${TMP_INTERACTIVE_WORKSPACE}/data/modern_graph/
         cp ${SCHEMA_FILE} ${TMP_INTERACTIVE_WORKSPACE}/data/modern_graph/graph.yaml
         GLOG_v=10 ./bin/bulk_loader -g ${SCHEMA_FILE} -l ${BULK_LOAD_FILE} -d ${TMP_INTERACTIVE_WORKSPACE}/data/modern_graph/indices/
@@ -171,7 +171,7 @@ jobs:
         cd ${GITHUB_WORKSPACE}/flex/build
         export FLEX_DATA_DIR=${GS_TEST_DIR}/flex/ldbc-sf01-long-date
         ./bin/bulk_loader -g ${GS_TEST_DIR}/flex/ldbc-sf01-long-date/audit_graph_schema.yaml \
-        -l ${GS_TEST_DIR}/flex/ldbc-sf01-long-date/audit_bulk_load.yaml -d /tmp/csr-data-dir/
+        -l ${GS_TEST_DIR}/flex/ldbc-sf01-long-date/audit_import.yaml -d /tmp/csr-data-dir/
         rm -r /tmp/csr-data-dir/runtime/* 
         rm -r /tmp/csr-data-dir/wal
         ./tests/hqps/query_test ${GS_TEST_DIR}/flex/ldbc-sf01-long-date/audit_graph_schema.yaml \
@@ -253,7 +253,7 @@ jobs:
         rm -rf ${TMP_INTERACTIVE_WORKSPACE}
         cd ${GITHUB_WORKSPACE}/flex/build/
         SCHEMA_FILE=${GITHUB_WORKSPACE}/flex/interactive/examples/modern_graph/graph.yaml
-        BULK_LOAD_FILE=${GITHUB_WORKSPACE}/flex/interactive/examples/modern_graph/bulk_load.yaml
+        BULK_LOAD_FILE=${GITHUB_WORKSPACE}/flex/interactive/examples/modern_graph/import.yaml
         mkdir -p ${TMP_INTERACTIVE_WORKSPACE}/data/modern_graph/
         cp ${SCHEMA_FILE} ${TMP_INTERACTIVE_WORKSPACE}/data/modern_graph/graph.yaml
         GLOG_v=10 ./bin/bulk_loader -g ${SCHEMA_FILE} -l ${BULK_LOAD_FILE} -d ${TMP_INTERACTIVE_WORKSPACE}/data/modern_graph/indices/
@@ -459,7 +459,7 @@ jobs:
         mkdir build && cd build
         cmake .. && sudo make -j$(nproc)
         export FLEX_DATA_DIR=../../../../interactive/examples/modern_graph/
-        ${GITHUB_WORKSPACE}/flex/build/bin/bulk_loader -g ../../../../interactive/examples/modern_graph/graph.yaml -l ../../../../interactive/examples/modern_graph/bulk_load.yaml -d ./data/
+        ${GITHUB_WORKSPACE}/flex/build/bin/bulk_loader -g ../../../../interactive/examples/modern_graph/graph.yaml -l ../../../../interactive/examples/modern_graph/import.yaml -d ./data/
         rm -r ./data/wal
         rm -r ./data/runtime/*
         ./run_grin_test 'flex://schema_file=../../../../interactive/examples/modern_graph/graph.yaml&data_dir=./data/'
@@ -477,7 +477,7 @@ jobs:
         rm -rf /tmp/csr-data-dir/
         cd ${GITHUB_WORKSPACE}/flex/build/
         SCHEMA_FILE=../tests/rt_mutable_graph/modern_graph_string_pk.yaml 
-        BULK_LOAD_FILE=../interactive/examples/modern_graph/bulk_load.yaml
+        BULK_LOAD_FILE=../interactive/examples/modern_graph/import.yaml
         GLOG_v=10 ./bin/bulk_loader  -g ${SCHEMA_FILE} -l ${BULK_LOAD_FILE} -d /tmp/csr-data-dir/
 
     - name: Test String edge property on modern graph
@@ -487,7 +487,7 @@ jobs:
         rm -rf /tmp/csr-data-dir/
         cd ${GITHUB_WORKSPACE}/flex/build/
         SCHEMA_FILE=../tests/rt_mutable_graph/modern_graph_string_edge.yaml 
-        BULK_LOAD_FILE=../interactive/examples/modern_graph/bulk_load.yaml
+        BULK_LOAD_FILE=../interactive/examples/modern_graph/import.yaml
         GLOG_v=10 ./bin/bulk_loader  -g ${SCHEMA_FILE} -l ${BULK_LOAD_FILE} -d /tmp/csr-data-dir/
         GLOG_v=10 ./tests/rt_mutable_graph/string_edge_property_test ${SCHEMA_FILE} /tmp/csr-data-dir/
     
@@ -499,7 +499,7 @@ jobs:
         rm -rf /tmp/csr-data-dir/
         cd ${GITHUB_WORKSPACE}/flex/build/
         SCHEMA_FILE=../tests/rt_mutable_graph/modern_graph_string_edge.yaml 
-        BULK_LOAD_FILE=../interactive/examples/modern_graph/bulk_load.yaml
+        BULK_LOAD_FILE=../interactive/examples/modern_graph/import.yaml
         GLOG_v=10 ./bin/bulk_loader  -g ${SCHEMA_FILE} -l ${BULK_LOAD_FILE} -d /tmp/csr-data-dir/
         GLOG_v=10 ./tests/rt_mutable_graph/test_update_transaction ${SCHEMA_FILE} /tmp/csr-data-dir/
 
@@ -521,7 +521,7 @@ jobs:
         rm -rf /tmp/csr-data-dir/
         cd ${GITHUB_WORKSPACE}/flex/build/
         SCHEMA_FILE=../tests/rt_mutable_graph/modern_graph_unified_schema.yaml
-        BULK_LOAD_FILE=../interactive/examples/modern_graph/bulk_load.yaml
+        BULK_LOAD_FILE=../interactive/examples/modern_graph/import.yaml
         GLOG_v=10 ./bin/bulk_loader  -g ${SCHEMA_FILE} -l ${BULK_LOAD_FILE} -d /tmp/csr-data-dir/
 
     - name: Test build empty graph
@@ -542,7 +542,7 @@ jobs:
         rm -rf /tmp/csr-data-dir/
         cd ${GITHUB_WORKSPACE}/flex/build/
         SCHEMA_FILE=../interactive/examples/modern_graph/graph.yaml
-        BULK_LOAD_FILE=../interactive/examples/modern_graph/bulk_load.yaml
+        BULK_LOAD_FILE=../interactive/examples/modern_graph/import.yaml
         GLOG_v=10 ./bin/bulk_loader  -g ${SCHEMA_FILE} -l ${BULK_LOAD_FILE} -d /tmp/csr-data-dir/
 
     - name: Test Graph Loading on type_test graph
@@ -568,7 +568,7 @@ jobs:
 
         cd ${GITHUB_WORKSPACE}/flex/build/
         SCHEMA_FILE=${FLEX_DATA_DIR}/audit_graph_schema.yaml
-        BULK_LOAD_FILE=${FLEX_DATA_DIR}/audit_bulk_load.yaml
+        BULK_LOAD_FILE=${FLEX_DATA_DIR}/audit_import.yaml
         GLOG_v=10 ./bin/bulk_loader -g ${SCHEMA_FILE} -l ${BULK_LOAD_FILE} -d /tmp/csr-data-dir/ -p 2
 
     - name: Test graph load on movie graph

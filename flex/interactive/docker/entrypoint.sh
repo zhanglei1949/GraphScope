@@ -16,6 +16,7 @@
 set -e
 
 DEFAULT_GRAPH_NAME=gs_interactive_default_graph
+DEFAULT_GRAPH="modern_graph"
 BULK_LOADER_BINARY_PATH=/opt/flex/bin/bulk_loader
 INTERACTIVE_SERVER_BIN=/opt/flex/bin/interactive_server
 
@@ -62,9 +63,10 @@ function prepare_workspace() {
     builtin_graph_import_path="${builtin_graph_dir}/import.yaml"
     builtin_graph_schema_path="${builtin_graph_dir}/graph.yaml"
     builtin_graph_data_path="${builtin_graph_dir}/indices"
-    cp /opt/flex/share/${DEFAULT_GRAPH_NAME}/graph.yaml  ${builtin_graph_schema_path}
-    cp /opt/flex/share/${DEFAULT_GRAPH_NAME}/bulk_load.yaml ${builtin_graph_import_path}
-    export FLEX_DATA_DIR=/opt/flex/share/gs_interactive_default_graph/
+    cp /opt/flex/share/${DEFAULT_GRAPH}/graph.yaml  ${builtin_graph_schema_path}
+    sed -i "s/name:.*/name: ${DEFAULT_GRAPH_NAME}/" ${builtin_graph_schema_path}
+    cp /opt/flex/share/${DEFAULT_GRAPH}/import.yaml ${builtin_graph_import_path}
+    export FLEX_DATA_DIR=/opt/flex/share/${DEFAULT_GRAPH}/
     builtin_graph_loader_cmd="${BULK_LOADER_BINARY_PATH} -g ${builtin_graph_schema_path} -d ${builtin_graph_data_path} -l ${builtin_graph_import_path}"
     echo "Loading builtin graph: ${DEFAULT_GRAPH_NAME} with command: $builtin_graph_loader_cmd"
     eval $builtin_graph_loader_cmd || (echo "Failed to load builtin graph: ${DEFAULT_GRAPH_NAME}" && exit 1)
@@ -87,6 +89,13 @@ function launch_service() {
     echo "Starting the service with command: $start_cmd"
     if $ENABLE_COORDINATOR; then start_cmd="${start_cmd} &"; fi
     eval $start_cmd
+}
+
+function register_stored_procedures() {
+  cmd="python3 /opt/graphscope/bin/register_stored_procedures.py"
+  echo "Registering stored procedures with command: $cmd"
+  eval $cmd
+  sleep 5
 }
 
 function launch_coordinator() {
@@ -126,6 +135,10 @@ while [[ $# -gt 0 ]]; do
       ENABLE_COORDINATOR=true
       shift
       ;;
+    -g | --default-graph)
+      DEFAULT_GRAPH=$1
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -138,7 +151,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [ ! -d "/opt/flex/share/${DEFAULT_GRAPH}" ]; then
+    echo "Invalid default graph: ${DEFAULT_GRAPH}, please check the graph name"
+    exit 1
+fi
 
 prepare_workspace $WORKSPACE
 launch_service $WORKSPACE
+register_stored_procedures
 launch_coordinator
