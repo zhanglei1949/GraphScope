@@ -39,7 +39,7 @@ if __name__ == "__main__":
     driver = Driver()
     with driver.session() as sess:
         create_procedure(sess, "1", "count_papers", "count the number of papers", "MATCH (p:Paper) RETURN COUNT(p) AS cnt;")
-        create_procedure(sess, "1", "count_topics", "count the number of topics" , "MATCH (t: Topic) RETURN t.topic AS topic;")
+        create_procedure(sess, "1", "get_topics", "count the number of topics" , "MATCH (t: Topic) RETURN t.topic AS topic;")
         create_procedure(sess, "1", "get_topic_papers_hist", "get the topic and the number of papers working on the topic",
                          "MATCH (p:Paper)-[:WorkOn]->(:Task)-[:Belong]->(t:Topic) WITH DISTINCT t, COUNT(p) AS paperCount RETURN t.topic AS topic, paperCount ORDER BY paperCount DESC;")
         create_procedure(sess, "1", "get_challenges", "count the number of challenges", "MATCH (c: Challenge) RETURN c.challenge AS challenge;")
