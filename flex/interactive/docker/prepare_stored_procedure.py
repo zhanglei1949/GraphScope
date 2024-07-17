@@ -43,8 +43,8 @@ if __name__ == "__main__":
         create_procedure(sess, "1", "get_topic_papers_hist", "get the topic and the number of papers working on the topic",
                          "MATCH (p:Paper)-[:WorkOn]->(:Task)-[:Belong]->(t:Topic) WITH DISTINCT t, COUNT(p) AS paperCount RETURN t.topic AS topic, paperCount ORDER BY paperCount DESC;")
         create_procedure(sess, "1", "get_challenges", "count the number of challenges", "MATCH (c: Challenge) RETURN c.challenge AS challenge;")
-        create_procedure(sess, "1", "get_solutions_of_challenge", "get all solutions of a challenge", "MATCH (s: Solution)-[:ApplyOn]->(c: Challenge) WHERE c.challenge = $challenge RETURN c.challenge AS challenge, s.solution AS solution;")
-        create_procedure(sess, "1", "get_challenge_paper_hist_of_topic", "get the challenges and the number of papers working on the topic", """
+        create_procedure(sess, "1", "get_solutions_of_challenge", "get all solutions of a challenge, [where available challenges are Parallelism, Load Balance, Communication Overhead, Bandwidth]", "MATCH (s: Solution)-[:ApplyOn]->(c: Challenge) WHERE c.challenge = $challenge RETURN c.challenge AS challenge, s.solution AS solution;")
+        create_procedure(sess, "1", "get_challenge_paper_hist_of_topic", "get the challenges and the number of papers working on the given topic, where available topics are [Centrality, Community Detection, Similarity, Cohesive Subgraph, Traversal, Pattern Matching, Covering] ", """
                          MATCH (t:Topic)<-[:Belong]-(ta:Task),
                             (ta)<-[:WorkOn]-(p:Paper)-[:Use]->(s:Solution),
                             (s)-[:ApplyOn]->(ch:Challenge)
