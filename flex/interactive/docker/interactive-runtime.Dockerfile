@@ -1,10 +1,8 @@
 ARG ARCH=x86_64
-FROM registry.cn-hongkong.aliyuncs.com/graphscope/graphscope-dev:v0.23.0 AS builder
+FROM registry.cn-hongkong.aliyuncs.com/graphscope/interactive-base:v0.0.4 AS builder
 
 ARG ARCH
 ARG ENABLE_COORDINATOR="false"
-
-COPY --chown=graphscope:graphscope . /home/graphscope/GraphScope
 
 # change bash as default
 SHELL ["/bin/bash", "-c"]
@@ -29,6 +27,8 @@ cmake . -DCMAKE_INSTALL_PREFIX=/opt/flex -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_
 -DWITH_OTLP_HTTP=ON -DWITH_OTLP_GRPC=OFF \
 -DWITH_ABSEIL=OFF -DWITH_PROMETHEUS=OFF \
 -DBUILD_TESTING=OFF -DWITH_EXAMPLES=OFF && make -j  && make install && rm -rf /tmp/opentelemetry-cpp
+
+COPY --chown=graphscope:graphscope . /home/graphscope/GraphScope
 
 # install flex
 RUN . ${HOME}/.cargo/env  && cd ${HOME}/GraphScope/flex && \
@@ -62,7 +62,7 @@ ARG ENABLE_COORDINATOR="false"
 ENV DEBIAN_FRONTEND=noninteractive
 
 # g++ + jre 500MB
-RUN apt-get update && apt-get -y install sudo locales g++ cmake openjdk-11-jre-headless tzdata && \
+RUN apt-get update && apt-get -y install sudo locales g++ cmake openjdk-11-jre-headless tzdata curl && \
     locale-gen en_US.UTF-8 && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # shanghai zoneinfo

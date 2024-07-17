@@ -13,7 +13,7 @@ ARCH := $(shell uname -m)
 VERSION ?= latest
 
 BUILD_PROGRESS     ?= auto
-ENABLE_COORDINATOR ?= false
+ENABLE_COORDINATOR ?= true
 
 .PHONY: all interactive-base interactive-runtime
 
@@ -31,7 +31,7 @@ interactive-runtime:
 		--target final_image \
 		--build-arg ARCH=$(ARCH) \
 		--build-arg ENABLE_COORDINATOR=${ENABLE_COORDINATOR} \
-		--no-cache -t registry.cn-hongkong.aliyuncs.com/graphscope/interactive:${SHORT_SHA}-${ARCH} .
+		-t registry.cn-hongkong.aliyuncs.com/graphscope/interactive:${SHORT_SHA}-${ARCH} .
 
 hqps-server-base:
 	docker build \
