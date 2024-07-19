@@ -14,13 +14,24 @@ inline vid_t encode_vid(label_t v_label, vid_t vid) {
 
 inline label_t decode_label(vid_t encoded_vid) { return encoded_vid >> 31; }
 
-inline vid_t decode_vid(vid_t encoded_vid) { return encoded_vid & 0x3FFFFFFF; }
+inline vid_t decode_vid(vid_t encoded_vid) { return encoded_vid & 0x7FFFFFFF; }
 
 inline int64_t get_oid_from_encoded_vid(ReadTransaction& txn,
                                         vid_t encoded_vid) {
   auto label = decode_label(encoded_vid);
   auto vid = decode_vid(encoded_vid);
+  CHECK(encode_vid(label,vid) == encoded_vid) << "vid: " << encoded_vid << ", label " << (int32_t) label << ", local id " << vid; 
   return txn.GetVertexId(label, vid).AsInt64();
+}
+
+inline std::string status_to_str(int64_t status_code) {
+   if (status_code == 1){
+      return "在营";
+   }
+   else if (status_code == 0) {
+      return "注销";
+   }
+   else return std::to_string(status_code);
 }
 
 inline std::string rel_type_to_string(int64_t rel_type) {
@@ -57,6 +68,10 @@ struct Path {
 struct Results {
   uint32_t start_node_id;
   std::unordered_map<uint32_t, std::vector<Path>> path_to_end_node;
+
+  void clear() {
+    path_to_end_node.clear();
+  }
 };
 
 struct ResultsCreator {
@@ -98,7 +113,7 @@ struct ResultsCreator {
     nlohmann::json properties;
     if (label == comp_label_id_) {
       properties["label"] = "company";
-      properties["status"] = typed_comp_status_col_->get_view(vid);
+      properties["status"] = status_to_str(typed_comp_status_col_->get_view(vid));
       properties["credit_code"] = typed_comp_credit_code_col_->get_view(vid);
       properties["license_number"] =
           typed_comp_license_number_col_->get_view(vid);
@@ -168,15 +183,15 @@ struct ResultsCreator {
     return true;
   }
 
-  inline std::string build_edge_id(uint32_t encoded_start_id,
-                                   uint32_t end_vid) const {
+  inline std::string build_edge_id(int64_t encoded_start_id,
+                                   int64_t end_vid) const {
     return std::to_string(encoded_start_id) + "->" + std::to_string(end_vid);
   }
 
   inline nlohmann::json get_edge_properties(
       double weight, int64_t rel_type, const std::string_view& rel_info) const {
     nlohmann::json properties;
-    properties["type"] = rel_type_to_string(rel_type);
+    properties["label"] = rel_type_to_string(rel_type);
     properties["weight"] = weight;
     properties["rel_info"] = rel_info;
     return properties;
@@ -191,13 +206,13 @@ struct ResultsCreator {
       nlohmann::json end_node_json;
       end_node_json["endNodeName"] = end_node_name;
       end_node_json["startNodeName"] = start_node_name;
-      uint32_t prev_oid;
+      int64_t prev_oid;
       std::string prev_name;
       nlohmann::json paths = nlohmann::json::array();
       LOG(INFO) << "paths vec size:" << paths_vec.size();
       for (const auto& path : paths_vec) {
         nlohmann::json path_json = nlohmann::json::object();
-        path_json["relations"] = nlohmann::json::array();
+        path_json["relationShips"] = nlohmann::json::array();
         path_json["nodes"] = nlohmann::json::array();
         for (size_t i = 0; i < path.vids.size(); i++) {
           nlohmann::json node_json;
@@ -234,7 +249,7 @@ struct ResultsCreator {
               rel_json["properties"] = get_edge_properties(
                   path.weights[i], path.rel_types[i], path.rel_infos[i]);
             }
-            path_json["relations"].push_back(rel_json);
+            path_json["relationShips"].push_back(rel_json);
           }
         }
         // json["paths"].push_back(path_json);
@@ -245,6 +260,10 @@ struct ResultsCreator {
       json.push_back(end_node_json);
     }
     return json.dump();
+  }
+
+  void clear() {
+    results_.clear();
   }
 
   label_t comp_label_id_;
@@ -332,6 +351,7 @@ class HuoYan : public WriteAppBase {
       cur_rel_type.emplace_back(edge_rel_type);
       cur_rel_info.emplace_back(data[2].AsStringView());
 
+      //LOG(INFO) << "path is ? simple: " <<gs::to_string(cur_path) << "," << (int) is_simple(cur_path);
       if (is_simple(cur_path)) {
         next_paths.emplace_back(cur_path);
         next_weights.emplace_back(cur_weight);
@@ -339,6 +359,7 @@ class HuoYan : public WriteAppBase {
         next_rel_infos.emplace_back(cur_rel_info);
 
         next_directions.emplace_back(cur_direction);
+	//LOG(INFO) << "label" << (int) dst_label_id << ",dst in valid comp: " << (int) valid_comp_vids_[dst];
         if ((dst_label_id == comp_label_id_ && valid_comp_vids_[dst])) {
           // dst_label_id == person_label_id_
           // final_results.emplace_back(path);
@@ -377,6 +398,7 @@ class HuoYan : public WriteAppBase {
             txn.Commit();
             for (auto& vid : vid_vec) {
               valid_comp_vids_[vid] = false;
+	      results_creator_->clear();
             }
             return true;
           }
@@ -410,10 +432,9 @@ class HuoYan : public WriteAppBase {
     invest_label_id_ = graph.schema().get_edge_label_id("invest");
     person_invest_label_id_ = graph.schema().get_edge_label_id("personInvest");
     size_t num = graph.graph().vertex_num(comp_label_id_);
-
+    valid_comp_vids_.resize(num, false);
     LOG(INFO) << "company num:" << num;
     LOG(INFO) << "person num: " << graph.graph().vertex_num(person_label_id_);
-    valid_comp_vids_.resize(num, false);
     auto comp_name_col =
         graph.get_vertex_property_column(comp_label_id_, "vertex_name");
     auto comp_status_col =
@@ -486,13 +507,17 @@ class HuoYan : public WriteAppBase {
     }
     ////////////Initialization///////////////////////////
 
+    for (size_t i = 0; i < valid_comp_vids_.size(); ++i){
+	valid_comp_vids_[i] = false;
+    }
+    results_creator_->clear();
     double cur_time_left = timeout_sec;
 
     auto txn = graph.GetReadTransaction();
     int32_t hop_limit = input.get_int();
     int32_t result_limit = input.get_int();
-    LOG(INFO) << "result limit: " << result_limit << "\n";
     int32_t rel_type_num = input.get_int();
+    LOG(INFO) << "result limit: " << result_limit << " rel type num: " << rel_type_num;
     // valid rel type ids
     std::vector<bool> valid_rel_type_ids(REL_TYPE_MAX, false);
     for (int i = 0; i < rel_type_num; ++i) {
@@ -567,14 +592,12 @@ class HuoYan : public WriteAppBase {
     std::vector<std::vector<std::string_view>> next_rel_infos;
     std::vector<std::vector<Direction>> next_directions;
     // init cur_paths
-    for (auto& vid : vid_vec) {
-      cur_paths.emplace_back(
-          std::vector<vid_t>{encode_vid(comp_label_id_, start_vid)});
-      cur_rel_types.emplace_back(std::vector<int32_t>{});
-      cur_weights.emplace_back(std::vector<double>{});
-      cur_rel_infos.emplace_back(std::vector<std::string_view>{});
-      cur_directions.emplace_back(std::vector<Direction>{});
-    }
+    cur_paths.emplace_back(
+        std::vector<vid_t>{encode_vid(comp_label_id_, start_vid)});
+    cur_rel_types.emplace_back(std::vector<int32_t>{});
+    cur_weights.emplace_back(std::vector<double>{});
+    cur_rel_infos.emplace_back(std::vector<std::string_view>{});
+    cur_directions.emplace_back(std::vector<Direction>{});
     // size_t begin_loc = output.skip_int();
     size_t result_size = 0;
     for (auto i = 1; i <= hop_limit; ++i) {
@@ -655,6 +678,7 @@ class HuoYan : public WriteAppBase {
     txn.Commit();
     for (auto& vid : vid_vec) {
       valid_comp_vids_[vid] = false;
+      results_creator_->clear();
     }
 
     return true;
