@@ -295,7 +295,7 @@ struct ResultsCreator {
 
 class HuoYan : public WriteAppBase {
  public:
-  static constexpr double timeout_sec = 15;
+  static constexpr double timeout_sec = 60;
   static constexpr int32_t REL_TYPE_MAX = 8;  // 1 ~ 7
   HuoYan() : is_initialized_(false) {}
   ~HuoYan() {}
