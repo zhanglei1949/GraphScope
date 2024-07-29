@@ -25,11 +25,14 @@ import com.alibaba.graphscope.interactive.client.common.Result;
 import com.alibaba.graphscope.interactive.client.common.Status;
 import com.alibaba.graphscope.interactive.models.*;
 import com.google.protobuf.InvalidProtocolBufferException;
+import okhttp3.ConnectionPool;
+import okhttp3.OkHttpClient;
 
 import java.io.Closeable;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /***
  * A default implementation of the GraphScope interactive session interface.
@@ -38,6 +41,9 @@ import java.util.List;
 public class DefaultSession implements Session {
     private static final int DEFAULT_READ_TIMEOUT = 60000;
     private static final int DEFAULT_WRITE_TIMEOUT = 60000;
+    private static final long DEFAULT_CONNECTION_TIMEOUT = 5000000;
+    private static final int DEFAULT_MAX_IDLE_CONNECTIONS = 128;
+    private static final long DEFAULT_KEEP_ALIVE_DURATION = 5000;
     private static String JSON_FORMAT_STRING = "json";
     private static String PROTO_FORMAT_STRING = "proto";
     private static String ENCODER_FORMAT_STRING = "encoder";
@@ -82,7 +88,8 @@ public class DefaultSession implements Session {
         // Replace the port with the query port, http:://host:port -> http:://host:queryPort
         String queryUri = uri.replaceFirst(":[0-9]+", ":" + queryPort);
         System.out.println("Query URI: " + queryUri);
-        queryClient = new ApiClient();
+        OkHttpClient httpClient = createHttpClient();
+        queryClient = new ApiClient(httpClient);
         queryClient.setBasePath(queryUri);
         queryClient.setReadTimeout(DEFAULT_READ_TIMEOUT);
         queryClient.setWriteTimeout(DEFAULT_WRITE_TIMEOUT);
@@ -800,5 +807,18 @@ public class DefaultSession implements Session {
             e.printStackTrace();
             return Result.fromException(e);
         }
+    }
+
+    private OkHttpClient createHttpClient() {
+        return new OkHttpClient.Builder()
+                .readTimeout(DEFAULT_READ_TIMEOUT, TimeUnit.MILLISECONDS)
+                .writeTimeout(DEFAULT_WRITE_TIMEOUT, TimeUnit.MILLISECONDS)
+                .connectTimeout(DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS)
+                .connectionPool(
+                        new ConnectionPool(
+                                DEFAULT_MAX_IDLE_CONNECTIONS,
+                                DEFAULT_KEEP_ALIVE_DURATION,
+                                TimeUnit.MILLISECONDS))
+                .build();
     }
 }
