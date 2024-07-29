@@ -174,11 +174,11 @@ struct ResultsCreator {
     path.rel_types = rel_types;
     path.rel_infos = rel_infos;
     path.directions = directions;
-    LOG(INFO) << "emplace path: " << gs::to_string(path.vids) << ", "
-              << gs::to_string(path.weights) << ", "
-              << gs::to_string(path.rel_types) << ", "
-              << gs::to_string(path.rel_infos) << ", "
-              << gs::to_string(path.directions);
+   //LOG(INFO) << "emplace path: " << gs::to_string(path.vids) << ", "
+   //           << gs::to_string(path.weights) << ", "
+   //           << gs::to_string(path.rel_types) << ", "
+   //           << gs::to_string(path.rel_infos) << ", "
+   //           << gs::to_string(path.directions);
     results_.path_to_end_node[end_node_id].push_back(path);
     return true;
   }
@@ -368,7 +368,7 @@ class HuoYan : public WriteAppBase {
           if (cur_path.size() != cur_rel_type.size() + 1) {
             throw std::runtime_error("Error Internal state");
           }
-          VLOG(10) << "put path of size: " << cur_rel_type.size();
+          //VLOG(10) << "put path of size: " << cur_rel_type.size();
           if (!results_creator_->add_result(cur_path, cur_weight, cur_rel_type,
                                             cur_rel_info, cur_direction)) {
             LOG(ERROR) << "Failed to add result";
@@ -394,6 +394,7 @@ class HuoYan : public WriteAppBase {
 
           if (result_size >= result_limit) {
             // output.put_int_at(begin_loc, result_size);
+            LOG(INFO) << "result limit exced: " << result_size;
             output.put_string(results_creator_->get_result_as_json_string(txn));
             txn.Commit();
             for (auto& vid : vid_vec) {
@@ -673,13 +674,13 @@ class HuoYan : public WriteAppBase {
       next_directions.clear();
     }
 
-    LOG(INFO) << "result size: " << result_size;
     output.put_string(results_creator_->get_result_as_json_string(txn));
     txn.Commit();
     for (auto& vid : vid_vec) {
       valid_comp_vids_[vid] = false;
       results_creator_->clear();
     }
+    LOG(INFO) << "result size: " << result_size;
 
     return true;
   }
