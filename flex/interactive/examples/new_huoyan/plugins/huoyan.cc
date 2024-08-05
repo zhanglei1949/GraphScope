@@ -223,73 +223,84 @@ struct ResultsCreator {
   std::string get_result_as_json_string(ReadTransaction& txn) const {
     double start_time = grape::GetCurrentTime();
     nlohmann::json json = nlohmann::json::array();
+
+    // Get the start node name once
     auto start_node_name =
         get_vertex_name_from_encoded_vid(results_.start_node_id);
+
+    // Reserve space for the outer JSON array if possible
+    //json.reserve(results_.path_to_end_node.size());
+
     for (const auto& [end_node_id, paths_vec] : results_.path_to_end_node) {
-      auto end_node_name = get_vertex_name_from_encoded_vid(end_node_id);
+      auto end_node_name =
+          get_vertex_name_from_encoded_vid(end_node_id);
       nlohmann::json end_node_json;
       end_node_json["endNodeName"] = end_node_name;
       end_node_json["startNodeName"] = start_node_name;
-      int64_t prev_oid;
-      std::string prev_name;
+
       nlohmann::json paths = nlohmann::json::array();
+      //paths.reserve(paths_vec.size());  // Reserve space for paths
+
       LOG(INFO) << "paths vec size:" << paths_vec.size();
+
       for (const auto& path : paths_vec) {
-        nlohmann::json path_json = nlohmann::json::object();
+        nlohmann::json path_json;
         path_json["relationShips"] = nlohmann::json::array();
         path_json["nodes"] = nlohmann::json::array();
-        for (size_t i = 0; i < path.vids.size(); i++) {
-          nlohmann::json node_json;
-          prev_oid = node_json["id"] =
-              get_oid_from_encoded_vid(txn, path.vids[i]);
-          prev_name = node_json["name"] =
-              get_vertex_name_from_encoded_vid(path.vids[i]);
+//        path_json["relationShips"].reserve(
+//            path.rel_types.size());  // Reserve space for relationships
 
+        // Pre-fetch the OIDs and names for the path nodes
+        std::vector<int64_t> oids(path.vids.size());
+        std::vector<std::string> names(path.vids.size());
+        for (size_t i = 0; i < path.vids.size(); ++i) {
+          oids[i] = get_oid_from_encoded_vid(txn, path.vids[i]);
+          names[i] = get_vertex_name_from_encoded_vid(path.vids[i]);
+        }
+
+        for (size_t i = 0; i < path.vids.size(); ++i) {
+          nlohmann::json node_json;
+          node_json["id"] = oids[i];
+          node_json["name"] = names[i];
           node_json["label"] =
               get_vertex_label_str_from_encoded_vid(path.vids[i]);
           node_json["properties"] =
               get_vertex_properties_from_encoded_vid(txn, path.vids[i]);
           path_json["nodes"].push_back(node_json);
 
+          // Handle relationships
           if (i < path.rel_types.size()) {
             nlohmann::json rel_json;
             rel_json["type"] = rel_type_to_string(path.rel_types[i]);
             rel_json["name"] = rel_json["type"];
-            auto& dir = path.directions[i];
+            const auto& dir = path.directions[i];
             if (dir == Direction::Out) {
-              rel_json["startNode"] = prev_name;
-              rel_json["id"] = build_edge_id(
-                  prev_oid, get_oid_from_encoded_vid(txn, path.vids[i + 1]));
-              rel_json["endNode"] =
-                  get_vertex_name_from_encoded_vid(path.vids[i + 1]);
-              rel_json["properties"] = get_edge_properties(
-                  path.weights[i], path.rel_types[i], path.rel_infos[i]);
+              rel_json["startNode"] = names[i];
+              rel_json["id"] = build_edge_id(oids[i], oids[i + 1]);
+              rel_json["endNode"] = names[i + 1];
             } else {
-              rel_json["startNode"] =
-                  get_vertex_name_from_encoded_vid(path.vids[i + 1]);
-              rel_json["id"] = build_edge_id(
-                  get_oid_from_encoded_vid(txn, path.vids[i + 1]), prev_oid);
-              rel_json["endNode"] = prev_name;
-              rel_json["properties"] = get_edge_properties(
-                  path.weights[i], path.rel_types[i], path.rel_infos[i]);
+              rel_json["startNode"] = names[i + 1];
+              rel_json["id"] = build_edge_id(oids[i + 1], oids[i]);
+              rel_json["endNode"] = names[i];
             }
+            rel_json["properties"] = get_edge_properties(
+                path.weights[i], path.rel_types[i], path.rel_infos[i]);
             path_json["relationShips"].push_back(rel_json);
           }
         }
-        // json["paths"].push_back(path_json);
         paths.push_back(path_json);
-        // VLOG(10) << "path_json: " << path_json.dump();
       }
       end_node_json["paths"] = paths;
       json.push_back(end_node_json);
     }
+
     double end_time = grape::GetCurrentTime();
-    auto ret = json.dump();
-    LOG(INFO) << "[Dump to json]" << hiactor::local_shard_id()
+    auto ret = json.dump(-1);
+    LOG(INFO) << "[Dump to json]" 
               << " json dump time: " << end_time - start_time;
     return ret;
   }
-
+  
   void clear() { results_.clear(); }
 
   label_t comp_label_id_;
@@ -534,7 +545,7 @@ class HuoYan : public WriteAppBase {
     double start_time = grape::GetCurrentTime();
     auto res = QueryImpl(graph, input, output);
     double end_time = grape::GetCurrentTime();
-    LOG(INFO) << "Query on shard: " << hiactor::local_shard_id()
+    LOG(INFO) << "Query on shard: " 
               << " time: " << end_time - start_time;
     return res;
   }
