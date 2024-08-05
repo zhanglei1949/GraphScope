@@ -95,12 +95,11 @@ enum class AddResultRet {
 struct ResultsCreator {
   ResultsCreator(
       label_t comp_label_id, label_t person_label_id,
-      std::shared_ptr<TypedColumn<std::string_view>> typed_comp_named_col,
-      std::shared_ptr<TypedColumn<int64_t>> typed_comp_status_col,
-      std::shared_ptr<TypedColumn<std::string_view>> typed_comp_credit_code_col,
-      std::shared_ptr<TypedColumn<std::string_view>>
-          typed_comp_license_number_col,
-      std::shared_ptr<TypedColumn<std::string_view>> typed_person_named_col)
+      const TypedColumn<std::string_view>& typed_comp_named_col,
+      const TypedColumn<int64_t>& typed_comp_status_col,
+      const TypedColumn<std::string_view>& typed_comp_credit_code_col,
+      const TypedColumn<std::string_view>& typed_comp_license_number_col,
+      const TypedColumn<std::string_view>& typed_person_named_col)
       : comp_label_id_(comp_label_id),
         person_label_id_(person_label_id),
         typed_comp_named_col_(typed_comp_named_col),
@@ -132,13 +131,13 @@ struct ResultsCreator {
     if (label == comp_label_id_) {
       properties["label"] = "company";
       properties["status"] =
-          status_to_str(typed_comp_status_col_->get_view(vid));
-      properties["credit_code"] = typed_comp_credit_code_col_->get_view(vid);
+          status_to_str(typed_comp_status_col_.get_view(vid));
+      properties["credit_code"] = typed_comp_credit_code_col_.get_view(vid);
       properties["license_number"] =
-          typed_comp_license_number_col_->get_view(vid);
+          typed_comp_license_number_col_.get_view(vid);
     } else if (label == person_label_id_) {
       properties["label"] = "oc_person";
-      auto person_name = typed_person_named_col_->get_view(vid);
+      auto person_name = typed_person_named_col_.get_view(vid);
       properties["status"] = "";
       properties["credit_code"] = "";
       properties["license_number"] = "";
@@ -153,10 +152,10 @@ struct ResultsCreator {
     auto label = decode_label(encoded_vid);
     auto vid = decode_vid(encoded_vid);
     if (label == comp_label_id_) {
-      auto comp_name = typed_comp_named_col_->get_view(vid);
+      auto comp_name = typed_comp_named_col_.get_view(vid);
       return comp_name;
     } else if (label == person_label_id_) {
-      auto person_name = typed_person_named_col_->get_view(vid);
+      auto person_name = typed_person_named_col_.get_view(vid);
       return person_name;
     } else {
       throw std::runtime_error("Invalid label");
@@ -223,6 +222,7 @@ struct ResultsCreator {
   }
 
   std::string get_result_as_json_string(ReadTransaction& txn) const {
+    double start_time = grape::GetCurrentTime();
     nlohmann::json json = nlohmann::json::array();
     auto start_node_name =
         get_vertex_name_from_encoded_vid(results_.start_node_id);
@@ -284,18 +284,21 @@ struct ResultsCreator {
       end_node_json["paths"] = paths;
       json.push_back(end_node_json);
     }
-    return json.dump();
+    double end_time = grape::GetCurrentTime();
+    auto ret = json.dump();
+    LOG(INFO) << "json dump time: " << end_time - start_time;
+    return ret;
   }
 
   void clear() { results_.clear(); }
 
   label_t comp_label_id_;
   label_t person_label_id_;
-  std::shared_ptr<TypedColumn<std::string_view>> typed_comp_named_col_;
-  std::shared_ptr<TypedColumn<int64_t>> typed_comp_status_col_;
-  std::shared_ptr<TypedColumn<std::string_view>> typed_comp_credit_code_col_;
-  std::shared_ptr<TypedColumn<std::string_view>> typed_comp_license_number_col_;
-  std::shared_ptr<TypedColumn<std::string_view>> typed_person_named_col_;
+  const TypedColumn<std::string_view>& typed_comp_named_col_;
+  const TypedColumn<int64_t>& typed_comp_status_col_;
+  const TypedColumn<std::string_view>& typed_comp_credit_code_col_;
+  const TypedColumn<std::string_view>& typed_comp_license_number_col_;
+  const TypedColumn<std::string_view>& typed_person_named_col_;
 
   Results results_;  // The results of the query.
 };
@@ -501,24 +504,19 @@ class HuoYan : public WriteAppBase {
       return false;
     }
     typed_comp_named_col_ =
-        std::dynamic_pointer_cast<TypedColumn<std::string_view>>(comp_name_col);
+        *(std::dynamic_pointer_cast<TypedColumn<std::string_view>>(
+            comp_name_col));
     typed_comp_status_col_ =
-        std::dynamic_pointer_cast<TypedColumn<int64_t>>(comp_status_col);
+        *(std::dynamic_pointer_cast<TypedColumn<int64_t>>(comp_status_col));
     typed_comp_credit_code_col_ =
-        std::dynamic_pointer_cast<TypedColumn<std::string_view>>(
-            comp_credit_code_col);
+        *(std::dynamic_pointer_cast<TypedColumn<std::string_view>>(
+            comp_credit_code_col));
     typed_comp_license_number_col_ =
-        std::dynamic_pointer_cast<TypedColumn<std::string_view>>(
-            comp_license_number_col);
+        *(std::dynamic_pointer_cast<TypedColumn<std::string_view>>(
+            comp_license_number_col));
     typed_person_named_col_ =
-        std::dynamic_pointer_cast<TypedColumn<std::string_view>>(
-            person_name_col);
-    if (!typed_comp_named_col_) {
-      LOG(ERROR) << "column vertex_name is not string type for company";
-    }
-    if (!typed_person_named_col_) {
-      LOG(ERROR) << "column vertex_name is not string type for person";
-    }
+        *(std::dynamic_pointer_cast<TypedColumn<std::string_view>>(
+            person_name_col));
     results_creator_ = std::make_shared<ResultsCreator>(
         comp_label_id_, person_label_id_, typed_comp_named_col_,
         typed_comp_status_col_, typed_comp_credit_code_col_,
@@ -734,11 +732,11 @@ class HuoYan : public WriteAppBase {
   std::unordered_set<vid_t> vis_;
   std::vector<bool> valid_comp_vids_;
 
-  std::shared_ptr<TypedColumn<std::string_view>> typed_comp_named_col_;
-  std::shared_ptr<TypedColumn<int64_t>> typed_comp_status_col_;
-  std::shared_ptr<TypedColumn<std::string_view>> typed_comp_credit_code_col_;
-  std::shared_ptr<TypedColumn<std::string_view>> typed_comp_license_number_col_;
-  std::shared_ptr<TypedColumn<std::string_view>> typed_person_named_col_;
+  const TypedColumn<std::string_view>& typed_comp_named_col_;
+  const TypedColumn<int64_t>& typed_comp_status_col_;
+  const TypedColumn<std::string_view>& typed_comp_credit_code_col_;
+  const TypedColumn<std::string_view>& typed_comp_license_number_col_;
+  const TypedColumn<std::string_view>& typed_person_named_col_;
 
   std::shared_ptr<ResultsCreator> results_creator_;
 };
