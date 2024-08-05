@@ -1,8 +1,22 @@
 // #include "flex/engines/graph_db/app/app_base.h"
+
 #include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/engines/hqps_db/app/interactive_app_base.h"
 #include "grape/util.h"
+
+#define USE_RAPID_JSON
+
+#ifdef USE_RAPID_JSON
+#define RAPIDJSON_HAS_CXX11 1
+#define RAPIDJSON_HAS_STDSTRING 1
+#define RAPIDJSON_HAS_CXX11_RVALUE_REFS 1
+#define RAPIDJSON_HAS_CXX11_RANGE_FOR 1
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+#else
 #include "nlohmann/json.hpp"
+#endif
 
 namespace gs {
 
@@ -121,6 +135,43 @@ struct ResultsCreator {
     }
   }
 
+#ifdef USE_RAPID_JSON
+  inline rapidjson::Value get_vertex_properties_from_encoded_vid(
+      ReadTransaction& txn, vid_t encoded_vid,
+      rapidjson::Document::AllocatorType& allocator) const {
+    auto label = decode_label(encoded_vid);
+    auto vid = decode_vid(encoded_vid);
+    auto oid = get_oid_from_encoded_vid(txn, encoded_vid);
+    // nlohmann::json properties;
+    rapidjson::Value properties(rapidjson::kObjectType);
+    if (label == comp_label_id_) {
+      properties.AddMember("label", "company", allocator);
+      properties.AddMember("status",
+                           status_to_str(typed_comp_status_col_->get_view(vid)),
+                           allocator);
+      properties.AddMember(
+          "credit_code",
+          std::string(typed_comp_credit_code_col_->get_view(vid)), allocator);
+      properties.AddMember(
+          "license_number",
+          std::string(typed_comp_license_number_col_->get_view(vid)),
+          allocator);
+    } else if (label == person_label_id_) {
+      // properties["label"] = "oc_person";
+      // auto person_name = typed_person_named_col_->get_view(vid);
+      // properties["status"] = "";
+      // properties["credit_code"] = "";
+      // properties["license_number"] = "";
+      properties.AddMember("label", "oc_person", allocator);
+      properties.AddMember("status", "", allocator);
+      properties.AddMember("credit_code", "", allocator);
+      properties.AddMember("license_number", "", allocator);
+    } else {
+      throw std::runtime_error("Invalid label");
+    }
+    return properties;
+  }
+#else
   inline nlohmann::json get_vertex_properties_from_encoded_vid(
       ReadTransaction& txn, vid_t encoded_vid) const {
     auto label = decode_label(encoded_vid);
@@ -145,17 +196,17 @@ struct ResultsCreator {
     }
     return properties;
   }
+#endif
 
-  inline std::string_view get_vertex_name_from_encoded_vid(
-      vid_t encoded_vid) const {
+  inline std::string get_vertex_name_from_encoded_vid(vid_t encoded_vid) const {
     auto label = decode_label(encoded_vid);
     auto vid = decode_vid(encoded_vid);
     if (label == comp_label_id_) {
       auto comp_name = typed_comp_named_col_->get_view(vid);
-      return comp_name;
+      return std::string(comp_name);
     } else if (label == person_label_id_) {
       auto person_name = typed_person_named_col_->get_view(vid);
-      return person_name;
+      return std::string(person_name);
     } else {
       throw std::runtime_error("Invalid label");
     }
@@ -211,6 +262,21 @@ struct ResultsCreator {
     return std::to_string(encoded_start_id) + "->" + std::to_string(end_vid);
   }
 
+#ifdef USE_RAPID_JSON
+  inline rapidjson::Value get_edge_properties(
+      double weight, int64_t rel_type, const std::string_view& rel_info,
+      rapidjson::Document::AllocatorType& allocator) const {
+    // nlohmann::json properties;
+    rapidjson::Value properties(rapidjson::kObjectType);
+    // properties["label"] = rel_type_to_string(rel_type);
+    // properties["weight"] = weight;
+    // properties["rel_info"] = rel_info;
+    properties.AddMember("label", rel_type_to_string(rel_type), allocator);
+    properties.AddMember("weight", weight, allocator);
+    properties.AddMember("rel_info", std::string(rel_info), allocator);
+    return properties;
+  }
+#else
   inline nlohmann::json get_edge_properties(
       double weight, int64_t rel_type, const std::string_view& rel_info) const {
     nlohmann::json properties;
@@ -219,7 +285,132 @@ struct ResultsCreator {
     properties["rel_info"] = rel_info;
     return properties;
   }
+#endif
 
+#ifdef USE_RAPID_JSON
+  std::string get_result_as_json_string(ReadTransaction& txn) const {
+    double start_time = grape::GetCurrentTime();
+    rapidjson::Document json;
+    auto& allocator = json.GetAllocator();
+    json.SetArray();
+
+    // Get the start node name once
+    auto start_node_name =
+        get_vertex_name_from_encoded_vid(results_.start_node_id);
+
+    // Reserve space for the outer JSON array if possible
+    // json.reserve(results_.path_to_end_node.size());
+
+    for (const auto& [end_node_id, paths_vec] : results_.path_to_end_node) {
+      auto end_node_name = get_vertex_name_from_encoded_vid(end_node_id);
+      // nlohmann::json end_node_json;
+      rapidjson::Value end_node_json(rapidjson::kObjectType);
+      end_node_json.AddMember("endNodeName", end_node_name, allocator);
+      end_node_json.AddMember("startNodeName", start_node_name, allocator);
+
+      // end_node_json["endNodeName"] = end_node_name;
+      // end_node_json["startNodeName"] = start_node_name;
+
+      // nlohmann::json paths = nlohmann::json::array();
+      rapidjson::Value paths(rapidjson::kArrayType);
+
+      LOG(INFO) << "paths vec size:" << paths_vec.size();
+
+      for (const auto& path : paths_vec) {
+        // nlohmann::json path_json;
+        rapidjson::Value path_json(rapidjson::kObjectType);
+        // path_json["relationShips"] = nlohmann::json::array();
+        // path_json["nodes"] = nlohmann::json::array();
+        rapidjson::Value rel_ships(rapidjson::kArrayType);
+        rapidjson::Value nodes(rapidjson::kArrayType);
+
+        // Pre-fetch the OIDs and names for the path nodes
+        std::vector<int64_t> oids(path.vids.size());
+        std::vector<std::string> names(path.vids.size());
+        for (size_t i = 0; i < path.vids.size(); ++i) {
+          oids[i] = get_oid_from_encoded_vid(txn, path.vids[i]);
+          names[i] = get_vertex_name_from_encoded_vid(path.vids[i]);
+        }
+
+        for (size_t i = 0; i < path.vids.size(); ++i) {
+          // nlohmann::json node_json;
+          rapidjson::Value node_json(rapidjson::kObjectType);
+          // node_json["id"] = oids[i];
+          // node_json["name"] = names[i];
+          // node_json["label"] =
+          //     get_vertex_label_str_from_encoded_vid(path.vids[i]);
+          // node_json["properties"] = get_vertex_properties_from_encoded_vid(
+          //     txn, path.vids[i], document.GetAllocator());
+          // path_json["nodes"].push_back(node_json);
+          node_json.AddMember("id", oids[i], allocator);
+          node_json.AddMember("name", names[i], allocator);
+          node_json.AddMember(
+              "label", get_vertex_label_str_from_encoded_vid(path.vids[i]),
+              allocator);
+
+          node_json.AddMember("properties",
+                              get_vertex_properties_from_encoded_vid(
+                                  txn, path.vids[i], allocator),
+                              allocator);
+          nodes.PushBack(node_json, allocator);
+
+          // Handle relationships
+          if (i < path.rel_types.size()) {
+            // nlohmann::json rel_json;
+            rapidjson::Value rel_json(rapidjson::kObjectType);
+            // rel_json["type"] = rel_type_to_string(path.rel_types[i]);
+            // rel_json["name"] = rel_json["type"];
+            rel_json.AddMember("type", rel_type_to_string(path.rel_types[i]),
+                               allocator);
+            rel_json.AddMember("name", rel_type_to_string(path.rel_types[i]),
+                               allocator);
+            const auto& dir = path.directions[i];
+            if (dir == Direction::Out) {
+              // rel_json["startNode"] = names[i];
+              // rel_json["id"] = build_edge_id(oids[i], oids[i + 1]);
+              // rel_json["endNode"] = names[i + 1];
+              rel_json.AddMember("startNode", names[i], allocator);
+              rel_json.AddMember("id", build_edge_id(oids[i], oids[i + 1]),
+                                 allocator);
+              rel_json.AddMember("endNode", names[i + 1], allocator);
+            } else {
+              // rel_json["startNode"] = names[i + 1];
+              // rel_json["id"] = build_edge_id(oids[i + 1], oids[i]);
+              // rel_json["endNode"] = names[i];
+              rel_json.AddMember("startNode", names[i + 1], allocator);
+              rel_json.AddMember("id", build_edge_id(oids[i + 1], oids[i]),
+                                 allocator);
+              rel_json.AddMember("endNode", names[i], allocator);
+            }
+            // rel_json["properties"] = get_edge_properties(
+            //     path.weights[i], path.rel_types[i], path.rel_infos[i]);
+            // path_json["relationShips"].push_back(rel_json);
+            rel_json.AddMember(
+                "properties",
+                get_edge_properties(path.weights[i], path.rel_types[i],
+                                    path.rel_infos[i], allocator),
+                allocator);
+            rel_ships.PushBack(rel_json, allocator);
+          }
+        }
+        path_json.AddMember("nodes", nodes, allocator);
+        path_json.AddMember("relationShips", rel_ships, allocator);
+        paths.PushBack(path_json, allocator);
+      }
+      end_node_json.AddMember("paths", paths, allocator);
+      json.PushBack(end_node_json, allocator);
+    }
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    json.Accept(writer);
+    auto ret = buffer.GetString();
+    double end_time = grape::GetCurrentTime();
+    LOG(INFO) << "[Dump to json]"
+              << " json dump time: " << end_time - start_time;
+    return ret;
+  }
+#else
   std::string get_result_as_json_string(ReadTransaction& txn) const {
     double start_time = grape::GetCurrentTime();
     nlohmann::json json = nlohmann::json::array();
@@ -229,17 +420,15 @@ struct ResultsCreator {
         get_vertex_name_from_encoded_vid(results_.start_node_id);
 
     // Reserve space for the outer JSON array if possible
-    //json.reserve(results_.path_to_end_node.size());
+    // json.reserve(results_.path_to_end_node.size());
 
     for (const auto& [end_node_id, paths_vec] : results_.path_to_end_node) {
-      auto end_node_name =
-          get_vertex_name_from_encoded_vid(end_node_id);
+      auto end_node_name = get_vertex_name_from_encoded_vid(end_node_id);
       nlohmann::json end_node_json;
       end_node_json["endNodeName"] = end_node_name;
       end_node_json["startNodeName"] = start_node_name;
 
       nlohmann::json paths = nlohmann::json::array();
-      //paths.reserve(paths_vec.size());  // Reserve space for paths
 
       LOG(INFO) << "paths vec size:" << paths_vec.size();
 
@@ -247,8 +436,6 @@ struct ResultsCreator {
         nlohmann::json path_json;
         path_json["relationShips"] = nlohmann::json::array();
         path_json["nodes"] = nlohmann::json::array();
-//        path_json["relationShips"].reserve(
-//            path.rel_types.size());  // Reserve space for relationships
 
         // Pre-fetch the OIDs and names for the path nodes
         std::vector<int64_t> oids(path.vids.size());
@@ -296,11 +483,12 @@ struct ResultsCreator {
 
     double end_time = grape::GetCurrentTime();
     auto ret = json.dump(-1);
-    LOG(INFO) << "[Dump to json]" 
+    LOG(INFO) << "[Dump to json]"
               << " json dump time: " << end_time - start_time;
     return ret;
   }
-  
+#endif
+
   void clear() { results_.clear(); }
 
   label_t comp_label_id_;
@@ -545,7 +733,7 @@ class HuoYan : public WriteAppBase {
     double start_time = grape::GetCurrentTime();
     auto res = QueryImpl(graph, input, output);
     double end_time = grape::GetCurrentTime();
-    LOG(INFO) << "Query on shard: " 
+    LOG(INFO) << "Query on shard: "
               << " time: " << end_time - start_time;
     return res;
   }
