@@ -386,6 +386,54 @@ import com.alibaba.fastffi.FFIGenBatch;
                         @CXXTemplate(
                                 cxx = {"int64_t", "uint64_t", "std::string", "std::string"},
                                 java = {"Long", "Long", STRING_VIEW, STRING_VIEW}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "int64_t", "int64_t"},
+                                java = {"Integer", "Integer", "Long", "Long"}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "int64_t", "int32_t"},
+                                java = {"Integer", "Integer", "Long", "Integer"}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "int64_t", "double"},
+                                java = {"Integer", "Integer", "Long", "Double"}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "int64_t", "std::string"},
+                                java = {"Integer", "Integer", "Long", STRING_VIEW}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "int32_t", "int64_t"},
+                                java = {"Integer", "Integer", "Integer", "Long"}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "int32_t", "int32_t"},
+                                java = {"Integer", "Integer", "Integer", "Integer"}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "int32_t", "double"},
+                                java = {"Integer", "Integer", "Integer", "Double"}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "int32_t", "std::string"},
+                                java = {"Integer", "Integer", "Integer", STRING_VIEW}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "double", "int64_t"},
+                                java = {"Integer", "Integer", "Double", "Long"}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "double", "int32_t"},
+                                java = {"Integer", "Integer", "Double", "Integer"}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "double", "double"},
+                                java = {"Integer", "Integer", "Double", "Double"}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "double", "std::string"},
+                                java = {"Integer", "Integer", "Double", STRING_VIEW}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "std::string", "int64_t"},
+                                java = {"Integer", "Integer", STRING_VIEW, "Long"}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "std::string", "int32_t"},
+                                java = {"Integer", "Integer", STRING_VIEW, "Integer"}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "std::string", "double"},
+                                java = {"Integer", "Integer", STRING_VIEW, "Double"}),
+                        @CXXTemplate(
+                                cxx = {"int32_t", "uint32_t", "std::string", "std::string"},
+                                java = {"Integer", "Integer", STRING_VIEW, STRING_VIEW}),
                     }),
             @FFIGen(type = "com.alibaba.graphscope.fragment.getter.ArrowFragmentGroupGetter"),
             @FFIGen(
@@ -1204,6 +1252,294 @@ import com.alibaba.fastffi.FFIGenBatch;
                                             + ">",
                                     STD_STRING
                                 }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,int64_t,int64_t>",
+                                            "int64_t"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + LONG
+                                                    + ","
+                                                    + LONG
+                                                    + ">",
+                                            "Long"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,int64_t,int64_t>",
+                                            "double"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + LONG
+                                                    + ","
+                                                    + LONG
+                                                    + ">",
+                                            "Double"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,int64_t,int64_t>",
+                                            "int32_t"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + LONG
+                                                    + ","
+                                                    + LONG
+                                                    + ">",
+                                            "Integer"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,int64_t,int32_t>",
+                                            "int32_t"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + LONG
+                                                    + ","
+                                                    + INTEGER
+                                                    + ">",
+                                            "Integer"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,int64_t,double>",
+                                            "int32_t"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + LONG
+                                                    + ","
+                                                    + DOUBLE
+                                                    + ">",
+                                            "Integer"
+                                    }),
+                            // vd int32_t
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,int32_t,int64_t>",
+                                            "int32_t"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + LONG
+                                                    + ">",
+                                            "Integer"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,int32_t,int32_t>",
+                                            "int32_t"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ">",
+                                            "Integer"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,int32_t,double>",
+                                            "int32_t"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + DOUBLE
+                                                    + ">",
+                                            "Integer"
+                                    }),
+                            // vd double
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,double,int64_t>",
+                                            "int32_t"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + DOUBLE
+                                                    + ","
+                                                    + LONG
+                                                    + ">",
+                                            "Integer"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,double,int64_t>",
+                                            "int64_t"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + DOUBLE
+                                                    + ","
+                                                    + LONG
+                                                    + ">",
+                                            "Long"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,double,int32_t>",
+                                            "int32_t"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + DOUBLE
+                                                    + ","
+                                                    + INTEGER
+                                                    + ">",
+                                            "Integer"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,double,double>",
+                                            "int32_t"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + DOUBLE
+                                                    + ","
+                                                    + DOUBLE
+                                                    + ">",
+                                            "Integer"
+                                    }),
+                            // vd std string
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,std::string,std::string>",
+                                            "int32_t"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + STRING
+                                                    + ","
+                                                    + STRING
+                                                    + ">",
+                                            "Integer"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,std::string,int64_t>",
+                                            "std::string"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + STRING
+                                                    + ","
+                                                    + LONG
+                                                    + ">",
+                                            STD_STRING
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t, uint32_t,std::string,std::string>",
+                                            "std::string"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<"
+                                                    + INTEGER
+                                                    + ","
+                                                    + INTEGER
+                                                    + ","
+                                                    + STRING_VIEW
+                                                    + ","
+                                                    + STRING_VIEW
+                                                    + ">",
+                                            STD_STRING
+                                    }),
                     }),
             @FFIGen(
                     type = "com.alibaba.graphscope.parallel.DefaultMessageManager",
