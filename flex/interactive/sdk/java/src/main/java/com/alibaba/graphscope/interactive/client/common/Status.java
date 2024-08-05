@@ -22,7 +22,7 @@ import com.alibaba.graphscope.interactive.ApiResponse;
  * Mapping http status code to our status code, along with a message
  */
 public class Status {
-    enum StatusCode {
+    public enum StatusCode {
         kOk, // 200
         kBadRequest, // 400
         kForbidden, // 403
@@ -46,6 +46,10 @@ public class Status {
 
     public String getMessage() {
         return message;
+    }
+
+    public StatusCode getCode() {
+        return code;
     }
 
     public Status(StatusCode code, String message) {
