@@ -93,13 +93,12 @@ enum class AddResultRet {
 };
 
 struct ResultsCreator {
-  ResultsCreator(
-      label_t comp_label_id, label_t person_label_id,
-      TypedColumn<std::string_view>* typed_comp_named_col,
-      TypedColumn<int64_t>* typed_comp_status_col,
-      TypedColumn<std::string_view>* typed_comp_credit_code_col,
-      TypedColumn<std::string_view>* typed_comp_license_number_col,
-      TypedColumn<std::string_view>* typed_person_named_col)
+  ResultsCreator(label_t comp_label_id, label_t person_label_id,
+                 TypedColumn<std::string_view>* typed_comp_named_col,
+                 TypedColumn<int64_t>* typed_comp_status_col,
+                 TypedColumn<std::string_view>* typed_comp_credit_code_col,
+                 TypedColumn<std::string_view>* typed_comp_license_number_col,
+                 TypedColumn<std::string_view>* typed_person_named_col)
       : comp_label_id_(comp_label_id),
         person_label_id_(person_label_id),
         typed_comp_named_col_(typed_comp_named_col),
@@ -286,7 +285,8 @@ struct ResultsCreator {
     }
     double end_time = grape::GetCurrentTime();
     auto ret = json.dump();
-    LOG(INFO) << "json dump time: " << end_time - start_time;
+    LOG(INFO) << "[Dump to json]" << hiactor::local_shard_id()
+              << " json dump time: " << end_time - start_time;
     return ret;
   }
 
@@ -504,19 +504,23 @@ class HuoYan : public WriteAppBase {
       return false;
     }
     typed_comp_named_col_ =
-        (std::dynamic_pointer_cast<TypedColumn<std::string_view>>(
-            comp_name_col).get());
+        (std::dynamic_pointer_cast<TypedColumn<std::string_view>>(comp_name_col)
+             .get());
     typed_comp_status_col_ =
-        (std::dynamic_pointer_cast<TypedColumn<int64_t>>(comp_status_col).get());
+        (std::dynamic_pointer_cast<TypedColumn<int64_t>>(comp_status_col)
+             .get());
     typed_comp_credit_code_col_ =
         (std::dynamic_pointer_cast<TypedColumn<std::string_view>>(
-            comp_credit_code_col).get());
+             comp_credit_code_col)
+             .get());
     typed_comp_license_number_col_ =
         (std::dynamic_pointer_cast<TypedColumn<std::string_view>>(
-            comp_license_number_col).get());
+             comp_license_number_col)
+             .get());
     typed_person_named_col_ =
         (std::dynamic_pointer_cast<TypedColumn<std::string_view>>(
-            person_name_col).get());
+             person_name_col)
+             .get());
     results_creator_ = std::make_shared<ResultsCreator>(
         comp_label_id_, person_label_id_, typed_comp_named_col_,
         typed_comp_status_col_, typed_comp_credit_code_col_,
@@ -527,6 +531,14 @@ class HuoYan : public WriteAppBase {
 
 #define DEBUG
   bool Query(GraphDBSession& graph, Decoder& input, Encoder& output) {
+    double start_time = grape::GetCurrentTime();
+    auto res = QueryImpl(graph, input, output);
+    double end_time = grape::GetCurrentTime();
+    LOG(INFO) << "Query on shard: " << hiactor::local_shard_id()
+              << " time: " << end_time - start_time;
+    return res;
+  }
+  bool QueryImpl(GraphDBSession& graph, Decoder& input, Encoder& output) {
     //////////Initialization////////////////////////////
     if (!is_initialized_.load()) {
       if (!initialize(graph)) {
