@@ -18,13 +18,14 @@ import java.util.concurrent.Executors;
 
 public class IntVidContext extends VertexDataContext<IFragment<Integer, Integer, Double, Long>, Long>
         implements ParallelContextBase<Integer, Integer, Double, Long> {
+    //存储一组点上的属性
     public class PathStorage extends FileObjectStorage{
         //这里我们使用一个List<Long>来存储一个点的path
         private List<List<Long>> dummy;
         private long beginVertex;
         private long endVertex;
         public PathStorage(String path, long beginVertex, long endVertex){
-            super(path);
+            super(path, false);
             this.dummy = new ArrayList<>();
             for (long i = beginVertex; i <= endVertex; ++i){
                 //每个点的path都是一个空的List
@@ -85,24 +86,92 @@ public class IntVidContext extends VertexDataContext<IFragment<Integer, Integer,
             clearInMemory();
         }
     }
-    public class Msg{
-        public Msg(){
 
+    // 保存[beginVertex,endVertex)上的消息
+    public class MessageStorage extends FileObjectStorage{
+        private List<List<Long>> receivedMessages;
+        private long beginVertex;
+        private long endVertex;
+        public MessageStorage(String path, long beginVertex, long endVertex){
+            super(path, true);
+            this.receivedMessages = new ArrayList<>();
+            for (long i = beginVertex; i <= endVertex; ++i){
+                //每个点的path都是一个空的List
+                receivedMessages.add(new ArrayList<>());
+            }
+        }
+
+        @Override
+        public void loadObjects(ObjectInputStream in) {
+            clearInMemory();
+            try {
+                int length = in.readInt();
+                for (int i = 0; i < length; ++i){
+                    int size = in.readInt();
+                    List<Long> l = new ArrayList<>();
+                    for (int j = 0; j < size; ++j){
+                        l.add(in.readLong());
+                    }
+                    receivedMessages.add(l);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void dumpObjects(ObjectOutputStream out) {
+            try {
+                out.writeInt(receivedMessages.size());
+                for (List<Long> l : receivedMessages){
+                    out.writeInt(l.size());
+                    for (long i : l){
+                        out.writeLong(i);
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            clearInMemory();
+        }
+
+        @Override
+        public void clearInMemory() {
+            for (List<Long> l : receivedMessages){
+                l.clear();
+            }
         }
     }
+
     private static Logger logger = LoggerFactory.getLogger(IntVidContext.class);
     private int batchNum = 3; // split the superstep into 3 mini-supersteps
-    private int batchNumToModule = 4;
     public int maxSuperStep = 5;
     private int curSuperStep = 0;
     public int threadNum = 1;
+    private int ivnum;
     public ExecutorService executor;
 
     private List<PathStorage> pathStorages; // 长度为batchNum
-    public List<List<Msg>> tmpMessageStore; // 保存在每个Batch里收到的消息，并且在最后一个batch中进行处理，清空。
+    public List<MessageStorage> messageStorages; // 长度为batchNum
 
     public List<PathStorage> getPathStorages(){
         return pathStorages;
+    }
+
+    public List<MessageStorage> getMessageStorages(){
+        return messageStorages;
+    }
+
+    public void clearPathStorages(){
+        for (PathStorage ps : pathStorages){
+            ps.clearInMemory();
+        }
+    }
+
+    public void clearMessageStorages(){
+        for (MessageStorage ms : messageStorages){
+            ms.clearInMemory();
+        }
     }
     /**
      * Called by grape framework, before any PEval. You can initiating data structures need during
@@ -119,6 +188,7 @@ public class IntVidContext extends VertexDataContext<IFragment<Integer, Integer,
     public void Init(IFragment<Integer, Integer, Double, Long> frag, ParallelMessageManager messageManager, JSONObject jsonObject) {
         createFFIContext(frag, Long.class, false);
         logger.info("Initiating IntVidContext");
+        ivnum = (int) frag.getInnerVerticesNum();
         if (jsonObject.containsKey("batchNum")) {
             batchNum = jsonObject.getInteger("batchNum");
         }
@@ -129,14 +199,15 @@ public class IntVidContext extends VertexDataContext<IFragment<Integer, Integer,
             threadNum = jsonObject.getInteger("threadNum");
         }
         logger.info("miniSuperStep: " + batchNum);
-        batchNumToModule = batchNum + 1; // In the last super step, we iterate over all received messages, and update the value of the vertex.
         pathStorages = new ArrayList<>();
+        messageStorages =  new ArrayList<>();
         long verticesPerBatch = (frag.getInnerVerticesNum() + 1) / batchNum;
         for (int i = 0; i < batchNum; ++i){
             long beingVertex = i * verticesPerBatch;
             long endVertex = Math.min((i + 1) * verticesPerBatch, frag.getInnerVerticesNum());
             // [beginVertex, endVertex)
-            pathStorages.add(new PathStorage(getPath(frag.fid(), beingVertex, endVertex), beingVertex, endVertex));
+            pathStorages.add(new PathStorage(getPath( "vertex_atr",frag.fid(), beingVertex, endVertex), beingVertex, endVertex));
+            messageStorages.add(new MessageStorage(getPath("received_path", frag.fid(),  beingVertex, endVertex), beingVertex, endVertex));
         }
         executor = Executors.newFixedThreadPool(threadNum);
     }
@@ -153,15 +224,6 @@ public class IntVidContext extends VertexDataContext<IFragment<Integer, Integer,
 
     }
 
-    //返回在BFS模型下真正的超步数
-    public int getBSPCurSuperStep(){
-        return curSuperStep / batchNumToModule;
-    }
-
-    // 返回当前超步中的batchId
-    public int getCurBatchId() {
-        return curSuperStep % batchNumToModule;
-    }
 
     // 返回每个超步中的batch size
     public int getBatchNum() {
@@ -172,8 +234,16 @@ public class IntVidContext extends VertexDataContext<IFragment<Integer, Integer,
         curSuperStep++;
     }
 
-    private String getPath(int fid, long beginVertex, long endVertex){
-        return "path_storage_" + fid + "_" + beginVertex + "_" + endVertex;
+    public int getSuperStep(){
+        return curSuperStep;
+    }
+
+    private String getPath(String prefix, int fid,  long beginVertex, long endVertex){
+        return prefix + "_" + fid + "_" + beginVertex + "_" + endVertex;
+    }
+
+    public int getBatchIdFromVertexId(long vertexId){
+        return (int)(vertexId / ((ivnum + 1) / batchNum));
     }
 
 

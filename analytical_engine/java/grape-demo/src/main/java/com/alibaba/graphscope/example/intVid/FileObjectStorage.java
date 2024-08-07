@@ -11,8 +11,10 @@ import java.io.ObjectOutputStream;
 public abstract class FileObjectStorage implements IObjectStorage{
     private String path;
     private static Logger logger = LoggerFactory.getLogger(FileObjectStorage.class);
-    public FileObjectStorage(String path) {
+    private boolean append;
+    public FileObjectStorage(String path, boolean append) {
         this.path = path;
+        this.append = append;
     }
 
     public abstract void loadObjects(ObjectInputStream in);
@@ -39,7 +41,7 @@ public abstract class FileObjectStorage implements IObjectStorage{
         try {
             // the old content will be cleared.
             ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream
-                    (path));
+                    (path,append));
             logger.info("dump objects to file: " + path);
             dumpObjects(out);
             out.close();
