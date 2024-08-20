@@ -160,7 +160,7 @@ public interface ParallelPropertyMessageManager extends MessageManagerBase {
      * @param consumer    consumer.
      */
     default <OID_T, VID_T, MSG_T> void parallelProcess(
-            ArrowFragment<OID_T> frag,
+            ArrowFragment<OID_T,VID_T> frag,
             int threadNum,
             ExecutorService executor,
             Supplier<MSG_T> msgSupplier,

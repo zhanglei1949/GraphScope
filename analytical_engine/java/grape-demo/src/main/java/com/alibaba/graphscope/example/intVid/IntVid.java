@@ -7,12 +7,14 @@ import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.parallel.MessageInBuffer;
 import com.alibaba.graphscope.parallel.ParallelMessageManager;
 import com.alibaba.graphscope.parallel.message.LongMsg;
+import com.alibaba.graphscope.parallel.message.MsgBase;
 import com.alibaba.graphscope.stdcxx.FFIByteVector;
 import com.alibaba.graphscope.stdcxx.FFIByteVectorFactory;
 import com.alibaba.graphscope.utils.FFITypeFactoryhelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -147,6 +149,10 @@ public class IntVid implements ParallelAppBase<Integer, Integer, Double, Long, I
         // 收到的消息有可能去往本frag里面任意一点。
         //替换自己的实现。
         LongMsg msg = FFITypeFactoryhelper.newLongMsg();
+        List<List<Long>> messages = new ArrayList<>();
+        for (int i = 0; i < ctx.getBatchNum(); ++i) {
+            messages.add(new ArrayList<>());
+        }
         while (messageInBuffer.getPureMessage(msg)) {
             //获取msg的内容，指向的vertex id，以及消息内容
             //根据指向的veretx_id,获取batch_id，append到messageStore里
@@ -155,8 +161,19 @@ public class IntVid implements ParallelAppBase<Integer, Integer, Double, Long, I
             long innerVertexId = graph.getInnerVertexId(vertex);
             int batchId = ctx.getBatchIdFromVertexId(innerVertexId);
 
-            IntVidContext.MessageStorage messageStorage = ctx.getMessageStorages().get(batchId);
             //.....
+//            messages.get(batchId).add(msg);
+        }
+
+        // 将messages存储到ctx里
+        for (int i = 0; i < ctx.getBatchNum(); ++i){
+            IntVidContext.MessageStorage messageStorage =  ctx.getMessageStorages().get(i);
+            messageStorage.load();
+            // 将messages[i] 里的数据append  到messageStorage
+//            messageStorage.append(vertexInnerVid,  messages.get(i));
+
+            messageStorage.dump();
+            messageStorage.clearInMemory();
         }
     }
 

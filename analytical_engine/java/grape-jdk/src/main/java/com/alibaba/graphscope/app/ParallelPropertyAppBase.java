@@ -26,14 +26,14 @@ import com.alibaba.graphscope.parallel.ParallelPropertyMessageManager;
  * @param <OID_T> original id type.
  * @param <C> context type, we use default context base.
  */
-public interface ParallelPropertyAppBase<OID_T, C extends PropertyParallelContextBase<OID_T>> {
+public interface ParallelPropertyAppBase<OID_T,VID_T, C extends PropertyParallelContextBase<OID_T,VID_T>> {
     void PEval(
-            ArrowFragment<OID_T> fragment,
-            PropertyParallelContextBase<OID_T> context,
+            ArrowFragment<OID_T,VID_T> fragment,
+            PropertyParallelContextBase<OID_T,VID_T> context,
             ParallelPropertyMessageManager messageManager);
 
     void IncEval(
-            ArrowFragment<OID_T> graph,
-            PropertyParallelContextBase<OID_T> context,
+            ArrowFragment<OID_T,VID_T> graph,
+            PropertyParallelContextBase<OID_T,VID_T> context,
             ParallelPropertyMessageManager messageManager);
 }

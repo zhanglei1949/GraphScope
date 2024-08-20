@@ -172,7 +172,10 @@ import com.alibaba.fastffi.FFIGenBatch;
                     }),
             @FFIGen(
                     type = "com.alibaba.graphscope.fragment.ArrowFragment",
-                    templates = {@CXXTemplate(cxx = "int64_t", java = "Long")},
+                    templates = {
+                            @CXXTemplate(cxx = {"int64_t", "uint64_t"}, java = {"Long", "Long"}),
+                            @CXXTemplate(cxx = {"int32_t", "uint32_t"},  java = {"Integer", "Integer"}),
+                    },
                     functionTemplates = {
                         @FFIFunGen(
                                 name = "edgeDataColumn",
@@ -196,10 +199,15 @@ import com.alibaba.fastffi.FFIGenBatch;
                     type = "com.alibaba.graphscope.column.DoubleColumn",
                     templates = {
                         @CXXTemplate(
-                                cxx = {ARROW_FRAGMENT + "<int64_t>"},
+                                cxx = {ARROW_FRAGMENT + "<int64_t,uint64_t>"},
                                 java = {
-                                    "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long>"
+                                    "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long, java.lang.Long>"
                                 }),
+                            @CXXTemplate(
+                                    cxx = {ARROW_FRAGMENT + "<int32_t,uint32_t>"},
+                                    java = {
+                                            "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Integer, java.lang.Integer>"
+                                    }),
                         @CXXTemplate(
                                 cxx = {
                                     CPP_ARROW_PROJECTED_FRAGMENT
@@ -218,15 +226,43 @@ import com.alibaba.fastffi.FFIGenBatch;
                                     JAVA_ARROW_PROJECTED_FRAGMENT
                                             + "<java.lang.Long,java.lang.Long,java.lang.Double,java.lang.Long>"
                                 }),
+                        @CXXTemplate(
+                                    cxx = {ARROW_FRAGMENT + "<int32_t,uint32_t>"},
+                                    java = {
+                                            "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Integer, java.lang.Integer>"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t,uint32_t,int64_t,int64_t>"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<java.lang.Integer,java.lang.Integer,java.lang.Long,java.lang.Long>"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t,uint32_t,double,int64_t>"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<java.lang.Integer,java.lang.Integer,java.lang.Double,java.lang.Long>"
+                                    }),
                     }),
             @FFIGen(
                     type = "com.alibaba.graphscope.column.LongColumn",
                     templates = {
                         @CXXTemplate(
-                                cxx = {ARROW_FRAGMENT + "<int64_t>"},
+                                cxx = {ARROW_FRAGMENT + "<int64_t,uint64_t>"},
                                 java = {
-                                    "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long>"
+                                    "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long, java.lang.Long>"
                                 }),
+                            @CXXTemplate(
+                                    cxx = {ARROW_FRAGMENT + "<int32_t,uint32_t>"},
+                                    java = {
+                                            "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Integer, java.lang.Integer>"
+                                    }),
                         @CXXTemplate(
                                 cxx = {
                                     CPP_ARROW_PROJECTED_FRAGMENT
@@ -245,15 +281,43 @@ import com.alibaba.fastffi.FFIGenBatch;
                                     JAVA_ARROW_PROJECTED_FRAGMENT
                                             + "<java.lang.Long,java.lang.Long,java.lang.Double,java.lang.Long>"
                                 }),
+                            @CXXTemplate(
+                                    cxx = {ARROW_FRAGMENT + "<int32_t, uint32_t>"},
+                                    java = {
+                                            "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Integer, java.lang.Integer>"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t,uint32_t,int64_t,int64_t>"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<java.lang.Integer,java.lang.Integer,java.lang.Long,java.lang.Long>"
+                                    }),
+                            @CXXTemplate(
+                                    cxx = {
+                                            CPP_ARROW_PROJECTED_FRAGMENT
+                                                    + "<int32_t,uint32_t,double,int64_t>"
+                                    },
+                                    java = {
+                                            JAVA_ARROW_PROJECTED_FRAGMENT
+                                                    + "<java.lang.Integer,java.lang.Integer,java.lang.Double,java.lang.Long>"
+                                    }),
                     }),
             @FFIGen(
                     type = "com.alibaba.graphscope.column.IntColumn",
                     templates = {
                         @CXXTemplate(
-                                cxx = {ARROW_FRAGMENT + "<int64_t>"},
+                                cxx = {ARROW_FRAGMENT + "<int64_t,uint64_t>"},
                                 java = {
-                                    "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long>"
+                                    "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long,java.lang.Long>"
                                 }),
+                            @CXXTemplate(
+                                    cxx = {ARROW_FRAGMENT + "<int32_t,uint32_t>"},
+                                    java = {
+                                            "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Integer,java.lang.Integer>"
+                                    }),
                         @CXXTemplate(
                                 cxx = {
                                     CPP_ARROW_PROJECTED_FRAGMENT
@@ -271,6 +335,29 @@ import com.alibaba.fastffi.FFIGenBatch;
                                 java = {
                                     JAVA_ARROW_PROJECTED_FRAGMENT
                                             + "<java.lang.Long,java.lang.Long,java.lang.Double,java.lang.Long>"
+                                }),
+                        @CXXTemplate(
+                                cxx = {ARROW_FRAGMENT + "<int32_t,uint32_t>"},
+                                java = {
+                                        "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Integer, java.lang.Integer>"
+                                }),
+                        @CXXTemplate(
+                                cxx = {
+                                        CPP_ARROW_PROJECTED_FRAGMENT
+                                                + "<int32_t,uint32_t,int64_t,int64_t>"
+                                },
+                                java = {
+                                        JAVA_ARROW_PROJECTED_FRAGMENT
+                                                + "<java.lang.Integer,java.lang.Integer,java.lang.Long,java.lang.Long>"
+                                }),
+                        @CXXTemplate(
+                            cxx = {
+                                        CPP_ARROW_PROJECTED_FRAGMENT
+                                                + "<int32_t,uint32_t,double,int64_t>"
+                                },
+                                java = {
+                                        JAVA_ARROW_PROJECTED_FRAGMENT
+                                                + "<java.lang.Integer,java.lang.Integer,java.lang.Double,java.lang.Long>"
                                 }),
                     }),
             @FFIGen(type = "com.alibaba.graphscope.fragment.ArrowFragmentGroup"),
@@ -318,6 +405,18 @@ import com.alibaba.fastffi.FFIGenBatch;
                         @CXXTemplate(
                                 cxx = {"uint64_t", "std::string"},
                                 java = {"Long", STRING_VIEW}),
+                            @CXXTemplate(
+                                    cxx = {"uint32_t", "double"},
+                                    java = {"Integer", "Double"}),
+                            @CXXTemplate(
+                                    cxx = {"uint32_t", "int32_t"},
+                                    java = {"Integer", "Integer"}),
+                            @CXXTemplate(
+                                    cxx = {"uint32_t", "int64_t"},
+                                    java = {"Integer", "Long"}),
+                            @CXXTemplate(
+                                    cxx = {"uint32_t", "std::string"},
+                                    java = {"Integer", STRING_VIEW}),
                     }),
             @FFIGen(
                     type = "com.alibaba.graphscope.ds.ProjectedAdjList",
@@ -334,6 +433,18 @@ import com.alibaba.fastffi.FFIGenBatch;
                         @CXXTemplate(
                                 cxx = {"uint64_t", "std::string"},
                                 java = {"Long", STRING_VIEW}),
+                        @CXXTemplate(
+                                cxx = {"uint32_t", "double"},
+                                java = {"Integer", "Double"}),
+                        @CXXTemplate(
+                                cxx = {"uint32_t", "int64_t"},
+                                java = {"Integer", "Long"}),
+                        @CXXTemplate(
+                                cxx = {"uint32_t", "int32_t"},
+                                java = {"Integer", "Integer"}),
+                        @CXXTemplate(
+                                cxx = {"uint32_t", "std::string"},
+                                java = {"Integer", STRING_VIEW}),
                     }),
             @FFIGen(
                     type = JAVA_ARROW_PROJECTED_FRAGMENT,
@@ -545,21 +656,37 @@ import com.alibaba.fastffi.FFIGenBatch;
                     type = "com.alibaba.graphscope.stdcxx.StdSharedPtr",
                     templates = {
                         @CXXTemplate(
-                                cxx = "gs::ArrowFragmentDefault<int64_t>",
+                                cxx = "vineyard::ArrowFragment<int64_t,uint64_t>",
                                 java =
-                                        "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long>"),
+                                        "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long,java.lang.Long>"),
                         @CXXTemplate(
-                                cxx = "gs::DoubleColumn<gs::ArrowFragmentDefault<int64_t>>",
+                                cxx = "vineyard::ArrowFragment<int32_t,uint32_t>",
                                 java =
-                                        "com.alibaba.graphscope.column.DoubleColumn<com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long>>"),
+                                        "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Integer,java.lang.Integer>"),
                         @CXXTemplate(
-                                cxx = "gs::IntColumn<gs::ArrowFragmentDefault<int64_t>>",
+                                cxx = "gs::DoubleColumn<vineyard::ArrowFragment<int64_t,uint64_t>>",
                                 java =
-                                        "com.alibaba.graphscope.column.IntColumn<com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long>>"),
+                                        "com.alibaba.graphscope.column.DoubleColumn<com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long,java.lang.Long>>"),
                         @CXXTemplate(
-                                cxx = "gs::LongColumn<gs::ArrowFragmentDefault<int64_t>>",
+                                cxx = "gs::IntColumn<vineyard::ArrowFragment<int64_t,uint64_t>>",
                                 java =
-                                        "com.alibaba.graphscope.column.LongColumn<com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long>>"),
+                                        "com.alibaba.graphscope.column.IntColumn<com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long,java.lang.Long>>"),
+                        @CXXTemplate(
+                                cxx = "gs::LongColumn<vineyard::ArrowFragment<int64_t,uint64_t>>",
+                                java =
+                                        "com.alibaba.graphscope.column.LongColumn<com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long,java.lang.Long>>"),
+                            @CXXTemplate(
+                                    cxx = "gs::DoubleColumn<vineyard::ArrowFragment<int32_t,uint32_t>>",
+                                    java =
+                                            "com.alibaba.graphscope.column.DoubleColumn<com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Integer,java.lang.Integer>>"),
+                            @CXXTemplate(
+                                    cxx = "gs::IntColumn<vineyard::ArrowFragment<int32_t,uint32_t>>",
+                                    java =
+                                            "com.alibaba.graphscope.column.IntColumn<com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Integer,java.lang.Integer>>"),
+                            @CXXTemplate(
+                                    cxx = "gs::LongColumn<vineyard::ArrowFragment<int32_t,uint32_t>>",
+                                    java =
+                                            "com.alibaba.graphscope.column.LongColumn<com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Integer,java.lang.Integer>>"),
                         @CXXTemplate(
                                 cxx =
                                         "gs::DoubleColumn<gs::ArrowProjectedFragment<int64_t,uint64_t,int64_t,int64_t>>",
@@ -949,15 +1076,15 @@ import com.alibaba.fastffi.FFIGenBatch;
                     type = "com.alibaba.graphscope.context.ffi.FFILabeledVertexDataContext",
                     templates = {
                         @CXXTemplate(
-                                cxx = {ARROW_FRAGMENT + "<int64_t>", "double"},
+                                cxx = {ARROW_FRAGMENT + "<int64_t,uint64_t>", "double"},
                                 java = {
-                                    "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long>",
+                                    "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long, java.lang.Long>",
                                     "Double"
                                 }),
                         @CXXTemplate(
-                                cxx = {ARROW_FRAGMENT + "<int64_t>", "int64_t"},
+                                cxx = {ARROW_FRAGMENT + "<int64_t, uint64_t>", "int64_t"},
                                 java = {
-                                    "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long>",
+                                    "com.alibaba.graphscope.fragment.ArrowFragment<java.lang.Long, java.lang.Long>",
                                     "Long"
                                 }),
                     }),

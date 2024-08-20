@@ -30,11 +30,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
-public abstract class LabeledVertexDataContext<OID_T, DATA_T> {
+public abstract class LabeledVertexDataContext<OID_T,VID_T, DATA_T> {
     private static Logger logger =
             LoggerFactory.getLogger(LabeledVertexDataContext.class.getName());
     private long ffiContextAddress;
-    private FFILabeledVertexDataContext<ArrowFragment<OID_T>, DATA_T> ffiLabeledVertexDataContext;
+    private FFILabeledVertexDataContext<ArrowFragment<OID_T,VID_T>, DATA_T> ffiLabeledVertexDataContext;
     private FFILabeledVertexDataContext.Factory factory;
 
     /**
@@ -45,7 +45,7 @@ public abstract class LabeledVertexDataContext<OID_T, DATA_T> {
      * @param dataClass class object for data.
      */
     protected void createFFIContext(
-            ArrowFragment<OID_T> fragment, Class<?> oidClass, Class<?> dataClass) {
+            ArrowFragment<OID_T,VID_T> fragment, Class<?> oidClass, Class<?> dataClass) {
         String fragmentTemplateStr = FFITypeFactoryhelper.getForeignName(fragment);
         String contextName =
                 FFITypeFactoryhelper.makeParameterize(

@@ -47,18 +47,18 @@ import com.alibaba.graphscope.utils.CppHeaderName;
 @CXXHead(CppHeaderName.CORE_JAVA_TYPE_ALIAS_H)
 @CXXHead(system = "stdint.h")
 @FFITypeAlias(CppClassName.ARROW_FRAGMENT)
-public interface ArrowFragment<OID_T> extends FFIPointer {
+public interface ArrowFragment<OID_T,VID_T> extends FFIPointer {
     int fid();
 
     int fnum();
 
     @FFINameAlias("vertex_label")
     int vertexLabel(
-            @FFIConst @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+            @FFIConst @CXXReference Vertex<VID_T> vertex);
 
     @FFINameAlias("vertex_offset")
     long vertexOffset(
-            @FFIConst @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+            @FFIConst @CXXReference Vertex<VID_T> vertex);
 
     @FFINameAlias("vertex_label_num")
     int vertexLabelNum();
@@ -136,7 +136,7 @@ public interface ArrowFragment<OID_T> extends FFIPointer {
      */
     @FFINameAlias("GetId")
     @CXXValue
-    OID_T getOid(@FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+    OID_T getOid( @CXXReference Vertex<VID_T> vertex);
 
     /**
      * Get vertex's lid with oid provided, set int vertex.
@@ -150,19 +150,19 @@ public interface ArrowFragment<OID_T> extends FFIPointer {
     boolean getVertex(
             int labelId,
             OID_T oid,
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+             @CXXReference Vertex<VID_T> vertex);
 
     @FFINameAlias("GetFragId")
     int getFragId(
-            @FFIConst @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+            @FFIConst  @CXXReference Vertex<VID_T> vertex);
 
     @FFINameAlias("IsInnerVertex")
     boolean isInnerVertex(
-            @FFIConst @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+            @FFIConst  @CXXReference Vertex<VID_T> vertex);
 
     @FFINameAlias("IsOuterVertex")
     boolean isOuterVertex(
-            @FFIConst @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+            @FFIConst  @CXXReference Vertex<VID_T> vertex);
 
     /**
      * Get the outgoing edges.
@@ -173,73 +173,69 @@ public interface ArrowFragment<OID_T> extends FFIPointer {
      */
     @FFINameAlias("GetOutgoingAdjList")
     @CXXValue
-    @FFITypeAlias(CppClassName.PROPERTY_ADJ_LIST + "<uint64_t>")
-    PropertyAdjList<Long> getOutgoingAdjList(
-            @FFIConst @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex,
+    PropertyAdjList<VID_T> getOutgoingAdjList(
+            @FFIConst  @CXXReference Vertex<VID_T> vertex,
             int edgeLabelId);
 
     @FFINameAlias("GetIncomingAdjList")
     @CXXValue
-    @FFITypeAlias(CppClassName.PROPERTY_ADJ_LIST + "<uint64_t>")
-    PropertyAdjList<Long> getIncomingAdjList(
-            @FFIConst @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex,
+    PropertyAdjList<VID_T> getIncomingAdjList(
+            @FFIConst  @CXXReference Vertex<VID_T> vertex,
             int edgeLabelId);
 
     @FFINameAlias("GetOutgoingRawAdjList")
     @CXXValue
-    @FFITypeAlias(CppClassName.PROPERTY_RAW_ADJ_LIST + "<uint64_t>")
-    PropertyRawAdjList<Long> getOutgoingRawAdjList(
-            @FFIConst @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex,
+    PropertyRawAdjList<VID_T> getOutgoingRawAdjList(
+            @FFIConst  @CXXReference Vertex<VID_T> vertex,
             int edgeLabelId);
 
     @FFINameAlias("GetIncomingRawAdjList")
     @CXXValue
-    @FFITypeAlias(CppClassName.PROPERTY_RAW_ADJ_LIST + "<uint64_t>")
-    PropertyRawAdjList<Long> getIncomingRawAdjList(
-            @FFIConst @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex,
+    PropertyRawAdjList<VID_T> getIncomingRawAdjList(
+            @FFIConst  @CXXReference Vertex<VID_T> vertex,
             int edgeLabelId);
 
     @FFINameAlias("GetData<uint64_t>")
     long getLongData(
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex,
+             @CXXReference Vertex<VID_T> vertex,
             int propertyId);
 
     @FFINameAlias("GetData<uint32_t>")
     int getIntData(
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex,
+             @CXXReference Vertex<VID_T> vertex,
             int propertyId);
 
     @FFINameAlias("GetData<double>")
     double getDoubleData(
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex,
+             @CXXReference Vertex<VID_T> vertex,
             int propertyId);
 
     @FFINameAlias("HasChild")
     boolean hasChild(
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex,
+             @CXXReference Vertex<VID_T> vertex,
             int edgeLabelId);
 
     @FFINameAlias("HasParent")
     boolean hasParent(
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex,
+             @CXXReference Vertex<VID_T> vertex,
             int edgeLabelId);
 
     @FFINameAlias("GetLocalOutDegree")
     int getLocalOutDegree(
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex,
+             @CXXReference Vertex<VID_T> vertex,
             int edgeLabelId);
 
     @FFINameAlias("GetLocalInDegree")
     int getLocalInDegree(
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex,
+             @CXXReference Vertex<VID_T> vertex,
             int edgeLabelId);
 
     @FFINameAlias("Gid2Vertex")
     boolean gid2Vertex(
-            Long gid, @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+            Long gid,  @CXXReference Vertex<VID_T> vertex);
 
     @FFINameAlias("Vertex2Gid")
-    Long vertex2Gid(@CXXReference @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") Vertex<Long> vertex);
+    Long vertex2Gid(@CXXReference  Vertex<VID_T> vertex);
 
     /**
      * Try to get oid's corresponding vertex, if not inner vertex, return false.
@@ -253,21 +249,21 @@ public interface ArrowFragment<OID_T> extends FFIPointer {
     boolean getInnerVertex(
             int vertexLabelId,
             OID_T oid,
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+             @CXXReference Vertex<VID_T> vertex);
 
     @FFINameAlias("GetOuterVertex")
     boolean getOuterVertex(
             int vertexLabelId,
             OID_T oid,
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+             @CXXReference Vertex<VID_T> vertex);
 
     @FFINameAlias("GetInnerVertexId")
     OID_T getInnerVertexOid(
-            @CXXReference @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") Vertex<Long> vertex);
+            @CXXReference  Vertex<VID_T> vertex);
 
     @FFINameAlias("GetOuterVertexId")
     OID_T getOuterVertexOid(
-            @CXXReference @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") Vertex<Long> vertex);
+            @CXXReference  Vertex<VID_T> vertex);
 
     @FFINameAlias("Gid2Oid")
     OID_T gid2Oid(Long gid);
@@ -280,23 +276,23 @@ public interface ArrowFragment<OID_T> extends FFIPointer {
     boolean oid2Gid(
             int vertexLabelId,
             OID_T oid,
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> gid);
+             @CXXReference Vertex<VID_T> gid);
 
     @FFINameAlias("InnerVertexGid2Vertex")
     boolean innerVertexGid2Vertex(
-            Long gid, @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+            Long gid,  @CXXReference Vertex<VID_T> vertex);
 
     @FFINameAlias("OuterVertexGid2Vertex")
     boolean outerVertexGid2Vertex(
-            Long gid, @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+            Long gid,  @CXXReference Vertex<VID_T> vertex);
 
     @FFINameAlias("GetOuterVertexGid")
     Long getOuterVertexGid(
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+             @CXXReference Vertex<VID_T> vertex);
 
     @FFINameAlias("GetInnerVertexGid")
     Long getInnerVertexGid(
-            @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") @CXXReference Vertex<Long> vertex);
+             @CXXReference Vertex<VID_T> vertex);
 
     @FFINameAlias("directed")
     boolean directed();

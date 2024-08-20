@@ -43,7 +43,7 @@ public interface ArrowProjectedFragmentMapper<OID_T, VID_T, NEW_V_T, NEW_E_T> ex
     @FFINameAlias("Map")
     @CXXValue
     StdSharedPtr<ArrowProjectedFragment<OID_T, VID_T, NEW_V_T, NEW_E_T>> map(
-            @CXXReference StdSharedPtr<ArrowFragment<OID_T>> oldFrag,
+            @CXXReference StdSharedPtr<ArrowFragment<OID_T,VID_T>> oldFrag,
             int vLabelId,
             int eLabel,
             @CXXReference BaseArrowArrayBuilder<NEW_V_T> vdBuilder,
@@ -54,7 +54,7 @@ public interface ArrowProjectedFragmentMapper<OID_T, VID_T, NEW_V_T, NEW_E_T> ex
     @FFINameAlias("Map")
     @CXXValue
     StdSharedPtr<ArrowProjectedFragment<OID_T, VID_T, NEW_V_T, NEW_E_T>> map(
-            @CXXReference StdSharedPtr<ArrowFragment<OID_T>> oldFrag,
+            @CXXReference StdSharedPtr<ArrowFragment<OID_T,VID_T>> oldFrag,
             int vLabe,
             int oldEPropId,
             @CXXReference BaseArrowArrayBuilder<NEW_V_T> vdBuilder,

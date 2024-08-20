@@ -31,11 +31,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
-public abstract class LabeledVertexPropertyContext<OID_T> {
+public abstract class LabeledVertexPropertyContext<OID_T,VID_T> {
     private static Logger logger =
             LoggerFactory.getLogger(LabeledVertexPropertyContext.class.getName());
     private long ffiContextAddress;
-    private FFILabeledVertexPropertyContext<ArrowFragment<OID_T>> ffiLabeledVertexPropertyContext;
+    private FFILabeledVertexPropertyContext<ArrowFragment<OID_T,VID_T>> ffiLabeledVertexPropertyContext;
     private FFILabeledVertexPropertyContext.Factory factory;
 
     /**
@@ -43,7 +43,7 @@ public abstract class LabeledVertexPropertyContext<OID_T> {
      *
      * @param fragment querying fragment
      */
-    protected void createFFIContext(ArrowFragment<OID_T> fragment) {
+    protected void createFFIContext(ArrowFragment<OID_T,VID_T> fragment) {
         String fragmentTemplateStr = FFITypeFactoryhelper.getForeignName(fragment);
         String contextName =
                 FFITypeFactoryhelper.makeParameterize(
@@ -65,7 +65,7 @@ public abstract class LabeledVertexPropertyContext<OID_T> {
         return -1;
     }
 
-    public DoubleColumn<ArrowFragment<OID_T>> getDoubleColumn(int labelId, long index) {
+    public DoubleColumn<ArrowFragment<OID_T,VID_T>> getDoubleColumn(int labelId, long index) {
         if (Objects.nonNull(ffiLabeledVertexPropertyContext)) {
             return ffiLabeledVertexPropertyContext.getDoubleColumn(labelId, index).get();
         }
@@ -73,7 +73,7 @@ public abstract class LabeledVertexPropertyContext<OID_T> {
         return null;
     }
 
-    public DoubleColumn<ArrowFragment<OID_T>> getDoubleColumn(int labelId, String name) {
+    public DoubleColumn<ArrowFragment<OID_T,VID_T>> getDoubleColumn(int labelId, String name) {
         if (Objects.nonNull(ffiLabeledVertexPropertyContext)) {
             FFIByteString byteString = FFITypeFactory.newByteString();
             byteString.copyFrom(name);
@@ -83,7 +83,7 @@ public abstract class LabeledVertexPropertyContext<OID_T> {
         return null;
     }
 
-    public IntColumn<ArrowFragment<OID_T>> getIntColumn(int labelId, long index) {
+    public IntColumn<ArrowFragment<OID_T,VID_T>> getIntColumn(int labelId, long index) {
         if (Objects.nonNull(ffiLabeledVertexPropertyContext)) {
             return ffiLabeledVertexPropertyContext.getIntColumn(labelId, index).get();
         }
@@ -91,7 +91,7 @@ public abstract class LabeledVertexPropertyContext<OID_T> {
         return null;
     }
 
-    public IntColumn<ArrowFragment<OID_T>> getIntColumn(int labelId, String name) {
+    public IntColumn<ArrowFragment<OID_T,VID_T>> getIntColumn(int labelId, String name) {
         if (Objects.nonNull(ffiLabeledVertexPropertyContext)) {
             FFIByteString byteString = FFITypeFactory.newByteString();
             byteString.copyFrom(name);
@@ -101,7 +101,7 @@ public abstract class LabeledVertexPropertyContext<OID_T> {
         return null;
     }
 
-    public LongColumn<ArrowFragment<OID_T>> getLongColumn(int labelId, long index) {
+    public LongColumn<ArrowFragment<OID_T,VID_T>> getLongColumn(int labelId, long index) {
         if (Objects.nonNull(ffiLabeledVertexPropertyContext)) {
             return ffiLabeledVertexPropertyContext.getLongColumn(labelId, index).get();
         }
@@ -109,7 +109,7 @@ public abstract class LabeledVertexPropertyContext<OID_T> {
         return null;
     }
 
-    public LongColumn<ArrowFragment<OID_T>> getLongColumn(int labelId, String name) {
+    public LongColumn<ArrowFragment<OID_T,VID_T>> getLongColumn(int labelId, String name) {
         if (Objects.nonNull(ffiLabeledVertexPropertyContext)) {
             FFIByteString byteString = FFITypeFactory.newByteString();
             byteString.copyFrom(name);

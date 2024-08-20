@@ -20,14 +20,14 @@ import com.alibaba.graphscope.context.PropertyDefaultContextBase;
 import com.alibaba.graphscope.fragment.ArrowFragment;
 import com.alibaba.graphscope.parallel.PropertyMessageManager;
 
-public interface DefaultPropertyAppBase<OID_T, C extends PropertyDefaultContextBase<OID_T>> {
+public interface DefaultPropertyAppBase<OID_T, VID_T, C extends PropertyDefaultContextBase<OID_T,VID_T>> {
     void PEval(
-            ArrowFragment<OID_T> fragment,
-            PropertyDefaultContextBase<OID_T> context,
+            ArrowFragment<OID_T,VID_T> fragment,
+            PropertyDefaultContextBase<OID_T,VID_T> context,
             PropertyMessageManager messageManager);
 
     void IncEval(
-            ArrowFragment<OID_T> graph,
-            PropertyDefaultContextBase<OID_T> context,
+            ArrowFragment<OID_T,VID_T> graph,
+            PropertyDefaultContextBase<OID_T,VID_T> context,
             PropertyMessageManager messageManager);
 }

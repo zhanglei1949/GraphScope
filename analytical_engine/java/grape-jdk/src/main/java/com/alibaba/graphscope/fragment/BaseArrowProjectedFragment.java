@@ -45,7 +45,7 @@ public interface BaseArrowProjectedFragment<OID_T, VID_T, VDATA_T, EDATA_T>
 
     @FFINameAlias("get_arrow_fragment")
     @CXXValue
-    StdSharedPtr<ArrowFragment<OID_T>> getArrowFragment();
+    StdSharedPtr<ArrowFragment<OID_T,VID_T>> getArrowFragment();
 
     @FFINameAlias("vertex_label")
     int vertexLabel();

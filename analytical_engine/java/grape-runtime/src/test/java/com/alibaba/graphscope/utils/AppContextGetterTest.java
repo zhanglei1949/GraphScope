@@ -55,30 +55,30 @@ public class AppContextGetterTest {
         logger.info("Vertex<Long>: " + FFITypeFactoryhelper.getForeignName(prev));
     }
 
-    public static class SampleContext extends LabeledVertexDataContext<Long, Double>
-            implements PropertyDefaultContextBase<Long> {
+    public static class SampleContext extends LabeledVertexDataContext<Long,Long, Double>
+            implements PropertyDefaultContextBase<Long, Long> {
 
         public SampleContext() {}
 
         @Override
         public void Init(
-                ArrowFragment<Long> fragment,
+                ArrowFragment<Long,Long> fragment,
                 PropertyMessageManager messageManager,
                 JSONObject jsonObject) {}
     }
 
-    public static class SamplePropertyApp implements DefaultPropertyAppBase<Long, SampleContext> {
+    public static class SamplePropertyApp implements DefaultPropertyAppBase<Long,Long, SampleContext> {
 
         @Override
         public void PEval(
-                ArrowFragment<Long> fragment,
-                PropertyDefaultContextBase<Long> context,
+                ArrowFragment<Long,Long> fragment,
+                PropertyDefaultContextBase<Long, Long> context,
                 PropertyMessageManager messageManager) {}
 
         @Override
         public void IncEval(
-                ArrowFragment<Long> graph,
-                PropertyDefaultContextBase<Long> context,
+                ArrowFragment<Long, Long> graph,
+                PropertyDefaultContextBase<Long, Long> context,
                 PropertyMessageManager messageManager) {}
     }
 }

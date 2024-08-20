@@ -101,6 +101,10 @@ public class IntVidContext extends VertexDataContext<IFragment<Integer, Integer,
             }
         }
 
+        void addMessage(long vid, long message){
+            receivedMessages.get((int)(vid - beginVertex)).add(message);
+        }
+
         @Override
         public void loadObjects(ObjectInputStream in) {
             clearInMemory();

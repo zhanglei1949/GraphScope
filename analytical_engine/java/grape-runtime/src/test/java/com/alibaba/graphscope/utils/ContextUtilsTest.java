@@ -41,12 +41,12 @@ public class ContextUtilsTest {
                         .equals("VertexDataContext"));
     }
 
-    public static class SampleContext extends LabeledVertexDataContext<Long, Double>
-            implements PropertyDefaultContextBase<Long> {
+    public static class SampleContext extends LabeledVertexDataContext<Long, Long, Double>
+            implements PropertyDefaultContextBase<Long, Long> {
 
         @Override
         public void Init(
-                ArrowFragment<Long> fragment,
+                ArrowFragment<Long, Long> fragment,
                 PropertyMessageManager messageManager,
                 JSONObject jsonObject) {}
     }
