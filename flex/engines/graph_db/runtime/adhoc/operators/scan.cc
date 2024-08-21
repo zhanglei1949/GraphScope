@@ -185,7 +185,7 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
       if (scan_oid) {
         return Scan::filter_oids(
             txn, scan_params,
-            [&expr, &txn, oids](label_t label, vid_t vid) {
+            [&expr, oids](label_t label, vid_t vid) {
               return expr->eval_vertex(label, vid, 0).as_bool();
             },
             oids);
@@ -206,8 +206,8 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
 
       if (scan_oid) {
         return Scan::filter_oids(
-            txn, scan_params,
-            [&txn, oids](label_t label, vid_t vid) { return true; }, oids);
+            txn, scan_params, [](label_t label, vid_t vid) { return true; },
+            oids);
       } else {
         return Scan::filter_gids(
             txn, scan_params, [](label_t, vid_t) { return true; }, oids);
