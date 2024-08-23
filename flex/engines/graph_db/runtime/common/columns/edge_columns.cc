@@ -65,6 +65,40 @@ std::shared_ptr<IContextColumn> SDSLEdgeColumn::shuffle(
   return builder.finish();
 }
 
+std::shared_ptr<IContextColumn> SDSLEdgeColumn::optional_shuffle(
+    const std::vector<size_t>& offsets) const {
+  CHECK(prop_type_ != PropertyType::kRecordView);
+  OptionalSDSLEdgeColumnBuilder builder(dir_, label_, prop_type_);
+  size_t new_row_num = offsets.size();
+  builder.reserve(new_row_num);
+
+  if (prop_type_ == PropertyType::kEmpty) {
+    for (auto off : offsets) {
+      if (off == std::numeric_limits<size_t>::max()) {
+        builder.push_back_null();
+      } else {
+        const auto& e = edges_[off];
+        builder.push_back_endpoints(e.first, e.second);
+      }
+    }
+  } else {
+    auto& ret_props = *builder.prop_col_;
+    ret_props.resize(new_row_num);
+    for (size_t idx = 0; idx < new_row_num; ++idx) {
+      size_t off = offsets[idx];
+      if (off == std::numeric_limits<size_t>::max()) {
+        builder.push_back_null();
+      } else {
+        const auto& e = edges_[off];
+        builder.push_back_endpoints(e.first, e.second);
+        ret_props.set_any(idx, prop_col_->get(off));
+      }
+    }
+  }
+
+  return builder.finish();
+}
+
 std::shared_ptr<IContextColumn> SDSLEdgeColumnBuilder::finish() {
   auto ret =
       std::make_shared<SDSLEdgeColumn>(dir_, label_, prop_type_, sub_types_);

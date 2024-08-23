@@ -96,6 +96,9 @@ class SLVertexColumn : public IVertexColumn {
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
 
+  std::shared_ptr<IContextColumn> optional_shuffle(
+      const std::vector<size_t>& offset) const override;
+
   std::shared_ptr<IContextColumnBuilder> builder() const override {
     auto ptr = std::make_shared<SLVertexColumnBuilder>(label_);
     return std::dynamic_pointer_cast<IContextColumnBuilder>(ptr);

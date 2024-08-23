@@ -127,6 +127,9 @@ class SDSLEdgeColumn : public IEdgeColumn {
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
 
+  std::shared_ptr<IContextColumn> optional_shuffle(
+      const std::vector<size_t>& offsets) const override;
+
   std::shared_ptr<IContextColumn> dup() const override;
 
   template <typename FUNC_T>
@@ -307,6 +310,7 @@ class OptionalSDSLEdgeColumnBuilder : public IOptionalContextColumnBuilder {
   std::shared_ptr<IContextColumn> finish() override;
 
  private:
+  friend class SDSLEdgeColumn;
   friend class OptionalSDSLEdgeColumn;
   Direction dir_;
   LabelTriplet label_;

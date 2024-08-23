@@ -192,6 +192,12 @@ class IContextColumn {
     return nullptr;
   }
 
+  virtual std::shared_ptr<IContextColumn> optional_shuffle(
+      const std::vector<size_t>& offsets) const {
+    LOG(FATAL) << "not implemented for " << this->column_info();
+    return nullptr;
+  }
+
   virtual std::shared_ptr<IContextColumn> union_col(
       std::shared_ptr<IContextColumn> other) const {
     LOG(FATAL) << "not implemented for " << this->column_info();

@@ -28,6 +28,20 @@ std::shared_ptr<IContextColumn> SLVertexColumn::shuffle(
   return builder.finish();
 }
 
+std::shared_ptr<IContextColumn> SLVertexColumn::optional_shuffle(
+    const std::vector<size_t>& offsets) const {
+  OptionalSLVertexColumnBuilder builder(label_);
+  builder.reserve(offsets.size());
+  for (auto offset : offsets) {
+    if (offset == std::numeric_limits<size_t>::max()) {
+      builder.push_back_null();
+    } else {
+      builder.push_back_opt(vertices_[offset]);
+    }
+  }
+  return builder.finish();
+}
+
 void SLVertexColumn::generate_dedup_offset(std::vector<size_t>& offsets) const {
   offsets.clear();
 #if 0

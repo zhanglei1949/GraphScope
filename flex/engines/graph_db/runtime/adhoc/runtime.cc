@@ -179,8 +179,10 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
                                    op_name + "-left");
       auto ctx2 = runtime_eval_impl(op.right_plan(), std::move(ret_dup), txn,
                                     params, op_name + "-right");
+      double tj = -grape::GetCurrentTime();
       ret = eval_join(op, std::move(ctx), std::move(ctx2));
-
+      tj += grape::GetCurrentTime();
+      op_cost[op_name + "-impl"] += tj;
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kIntersect: {
       auto op = opr.opr().intersect();

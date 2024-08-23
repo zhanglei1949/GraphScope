@@ -554,7 +554,9 @@ Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
 
     // exclude null values
     if (func_num == 1 && functions[0].aggregate != AggrKind::kCount &&
-        functions[0].aggregate != AggrKind::kCountDistinct) {
+        functions[0].aggregate != AggrKind::kCountDistinct &&
+        functions[0].aggregate != AggrKind::kToList &&
+        functions[0].aggregate != AggrKind::kToSet) {
       std::vector<size_t> tmp;
       std::vector<std::vector<size_t>> tmp_to_aggregate;
       for (size_t i = 0; i < to_aggregate.size(); ++i) {

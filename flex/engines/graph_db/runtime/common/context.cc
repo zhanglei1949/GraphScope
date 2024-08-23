@@ -147,6 +147,36 @@ void Context::reshuffle(const std::vector<size_t>& offsets) {
   std::swap(new_idx_columns, idx_columns);
 }
 
+void Context::optional_reshuffle(const std::vector<size_t>& offsets) {
+  bool head_shuffled = false;
+  std::vector<std::shared_ptr<IContextColumn>> new_cols;
+
+  for (auto col : columns) {
+    if (col == nullptr) {
+      new_cols.push_back(nullptr);
+
+      continue;
+    }
+    if (col == head) {
+      head = col->optional_shuffle(offsets);
+      new_cols.push_back(head);
+      head_shuffled = true;
+    } else {
+      new_cols.push_back(col->optional_shuffle(offsets));
+    }
+  }
+  if (!head_shuffled && head != nullptr) {
+    head = head->optional_shuffle(offsets);
+  }
+  std::swap(new_cols, columns);
+  std::vector<std::shared_ptr<ValueColumn<size_t>>> new_idx_columns;
+  for (auto& idx_col : idx_columns) {
+    new_idx_columns.emplace_back(std::dynamic_pointer_cast<ValueColumn<size_t>>(
+        idx_col->optional_shuffle(offsets)));
+  }
+  std::swap(new_idx_columns, idx_columns);
+}
+
 std::shared_ptr<IContextColumn> Context::get(int alias) {
   if (alias == -1) {
     return head;
@@ -163,6 +193,22 @@ const std::shared_ptr<IContextColumn> Context::get(int alias) const {
   assert(static_cast<size_t>(alias) < columns.size());
   // return nullptr if the column is not set
   return columns[alias];
+}
+
+void Context::remove(int alias) {
+  if (alias == -1) {
+    for (auto& col : columns) {
+      if (col == head) {
+        col = nullptr;
+      }
+    }
+    head = nullptr;
+  } else if (static_cast<size_t>(alias) < columns.size() && alias >= 0) {
+    if (head == columns[alias]) {
+      head = nullptr;
+    }
+    columns[alias] = nullptr;
+  }
 }
 
 size_t Context::row_num() const {

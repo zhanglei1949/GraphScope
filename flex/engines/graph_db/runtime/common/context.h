@@ -46,10 +46,13 @@ class Context {
                                const std::set<int>& keep_cols);
 
   void reshuffle(const std::vector<size_t>& offsets);
+  void optional_reshuffle(const std::vector<size_t>& offsets);
 
   std::shared_ptr<IContextColumn> get(int alias);
 
   const std::shared_ptr<IContextColumn> get(int alias) const;
+
+  void remove(int alias);
 
   size_t row_num() const;
 
