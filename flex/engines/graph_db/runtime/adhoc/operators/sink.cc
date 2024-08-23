@@ -41,6 +41,31 @@ void eval_sink(const Context& ctx, const ReadTransaction& txn,
   output.put_bytes(res.data(), res.size());
 }
 
+void eval_sink_beta(const Context& ctx, const ReadTransaction& txn,
+                    Encoder& output) {
+  size_t row_num = ctx.row_num();
+  results::CollectiveResults results;
+  for (size_t i = 0; i < row_num; ++i) {
+    auto result = results.add_results();
+    std::stringstream ss;
+    for (size_t j : ctx.tag_ids) {
+      auto col = ctx.get(j);
+      if (col == nullptr) {
+        continue;
+      }
+      auto column = result->mutable_record()->add_columns();
+      auto val = col->get_elem(i);
+      ss << val.to_string() << "|";
+      val.sink(txn, j, column);
+    }
+    std::cout << ss.str() << std::endl;
+  }
+  std::cout << "========================================================="
+            << std::endl;
+  auto res = results.SerializeAsString();
+  output.put_bytes(res.data(), res.size());
+}
+
 }  // namespace runtime
 
 }  // namespace gs

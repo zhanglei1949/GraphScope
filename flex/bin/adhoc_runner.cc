@@ -160,39 +160,39 @@ int main(int argc, char** argv) {
     auto& m = map[i % params_num];
     auto ctx = gs::runtime::runtime_eval(pb, txn, m);
     gs::Encoder output(outputs[i]);
-    gs::runtime::eval_sink(ctx, txn, output);
+    gs::runtime::eval_sink_beta(ctx, txn, output);
   }
   t1 += grape::GetCurrentTime();
 
-  double t2 = -grape::GetCurrentTime();
-  for (int i = 0; i < query_num; ++i) {
-    auto& m = map[i % params_num];
-    auto ctx = gs::runtime::runtime_eval(pb, txn, m);
-    outputs[i].clear();
-    gs::Encoder output(outputs[i]);
-    gs::runtime::eval_sink(ctx, txn, output);
-  }
-  t2 += grape::GetCurrentTime();
+  // double t2 = -grape::GetCurrentTime();
+  // for (int i = 0; i < query_num; ++i) {
+  //   auto& m = map[i % params_num];
+  //   auto ctx = gs::runtime::runtime_eval(pb, txn, m);
+  //   outputs[i].clear();
+  //   gs::Encoder output(outputs[i]);
+  //   gs::runtime::eval_sink(ctx, txn, output);
+  // }
+  // t2 += grape::GetCurrentTime();
 
-  double t3 = -grape::GetCurrentTime();
-  for (int i = 0; i < query_num; ++i) {
-    auto& m = map[i % params_num];
-    auto ctx = gs::runtime::runtime_eval(pb, txn, m);
-    outputs[i].clear();
-    gs::Encoder output(outputs[i]);
-    gs::runtime::eval_sink(ctx, txn, output);
-  }
-  t3 += grape::GetCurrentTime();
+  // double t3 = -grape::GetCurrentTime();
+  // for (int i = 0; i < query_num; ++i) {
+  //   auto& m = map[i % params_num];
+  //   auto ctx = gs::runtime::runtime_eval(pb, txn, m);
+  //   outputs[i].clear();
+  //   gs::Encoder output(outputs[i]);
+  //   gs::runtime::eval_sink(ctx, txn, output);
+  // }
+  // t3 += grape::GetCurrentTime();
 
   LOG(INFO) << "Finished run " << query_num << " queries, elapsed " << t1
             << " s, avg " << t1 / static_cast<double>(query_num) * 1000000
             << " us";
-  LOG(INFO) << "Finished run " << query_num << " queries, elapsed " << t2
-            << " s, avg " << t2 / static_cast<double>(query_num) * 1000000
-            << " us";
-  LOG(INFO) << "Finished run " << query_num << " queries, elapsed " << t3
-            << " s, avg " << t3 / static_cast<double>(query_num) * 1000000
-            << " us";
+  // LOG(INFO) << "Finished run " << query_num << " queries, elapsed " << t2
+  //           << " s, avg " << t2 / static_cast<double>(query_num) * 1000000
+  //           << " us";
+  // LOG(INFO) << "Finished run " << query_num << " queries, elapsed " << t3
+  //           << " s, avg " << t3 / static_cast<double>(query_num) * 1000000
+  //           << " us";
 
   if (!output_path.empty()) {
     FILE* fout = fopen(output_path.c_str(), "a");

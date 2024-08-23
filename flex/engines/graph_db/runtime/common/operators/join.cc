@@ -110,20 +110,19 @@ Context Join::join(Context&& ctx, Context&& ctx2, const JoinParams& params) {
     return ret;
   } else if (params.join_type == JoinKind::kLeftOuterJoin) {
     size_t right_size = ctx2.row_num();
-    auto right_col = ctx2.get(params.right_columns[0]);
-    //    CHECK(right_col->column_type() == ContextColumnType::kVertex);
-
     std::map<std::string, std::vector<vid_t>> right_map;
-    for (size_t r_i = 0; r_i < right_size; r_i++) {
-      std::vector<char> bytes;
-      Encoder encoder(bytes);
-      for (size_t i = 0; i < params.right_columns.size(); i++) {
-        auto val = ctx2.get(params.right_columns[i])->get_elem(r_i);
-        val.encode_sig(val.type(), encoder);
-        encoder.put_byte('#');
+    if (ctx.row_num() > 0) {
+      for (size_t r_i = 0; r_i < right_size; r_i++) {
+        std::vector<char> bytes;
+        Encoder encoder(bytes);
+        for (size_t i = 0; i < params.right_columns.size(); i++) {
+          auto val = ctx2.get(params.right_columns[i])->get_elem(r_i);
+          val.encode_sig(val.type(), encoder);
+          encoder.put_byte('#');
+        }
+        std::string cur(bytes.begin(), bytes.end());
+        right_map[cur].emplace_back(r_i);
       }
-      std::string cur(bytes.begin(), bytes.end());
-      right_map[cur].emplace_back(r_i);
     }
 
     std::vector<std::shared_ptr<IOptionalContextColumnBuilder>> builders;
@@ -174,7 +173,6 @@ Context Join::join(Context&& ctx, Context&& ctx2, const JoinParams& params) {
         ctx.set(i, nullptr);
       }
     }
-
     return ctx;
   }
   LOG(FATAL) << "Unsupported join type";

@@ -23,10 +23,6 @@ class OpCost {
  public:
   OpCost() {}
   ~OpCost() {
-    double total = 0;
-    for (auto& pair : table) {
-      total += pair.second;
-    }
     LOG(INFO) << "op elapsed time: ";
     for (auto& pair : table) {
       LOG(INFO) << "\t" << pair.first << ": " << pair.second << " ("
@@ -39,7 +35,10 @@ class OpCost {
     return instance;
   }
 
+  void add_total(double t) { total += t; }
+
   std::map<std::string, double> table;
+  double total = 0;
 };
 
 static std::string get_opr_name(const physical::PhysicalOpr& opr) {
@@ -74,6 +73,12 @@ static std::string get_opr_name(const physical::PhysicalOpr& opr) {
   case physical::PhysicalOpr_Operator::OpKindCase::kPath: {
     return "path";
   }
+  case physical::PhysicalOpr_Operator::OpKindCase::kJoin: {
+    return "join";
+  }
+  case physical::PhysicalOpr_Operator::OpKindCase::kRoot: {
+    return "root";
+  }
   default:
     return "unknown - " +
            std::to_string(static_cast<int>(opr.opr().op_kind_case()));
@@ -82,7 +87,8 @@ static std::string get_opr_name(const physical::PhysicalOpr& opr) {
 
 Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
                           const ReadTransaction& txn,
-                          const std::map<std::string, std::string>& params) {
+                          const std::map<std::string, std::string>& params,
+                          const std::string& prefix = "") {
   Context ret = ctx;
 
   auto& op_cost = OpCost::get().table;
@@ -93,24 +99,19 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
     const physical::PhysicalOpr& opr = plan.plan(i);
     double t = -grape::GetCurrentTime();
     assert(opr.has_opr());
+    std::string op_name =
+        prefix + "|" + std::to_string(i) + ":" + get_opr_name(opr);
     switch (opr.opr().op_kind_case()) {
-      LOG(INFO) << "eval: " << get_opr_name(opr);
     case physical::PhysicalOpr_Operator::OpKindCase::kScan: {
       ret = eval_scan(opr.opr().scan(), txn, params);
-      t += grape::GetCurrentTime();
-      op_cost["scan"] += t;
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kEdge: {
       CHECK_EQ(opr.meta_data_size(), 1);
       ret = eval_edge_expand(opr.opr().edge(), txn, std::move(ret), params,
                              opr.meta_data(0));
-      t += grape::GetCurrentTime();
-      op_cost["edge_expand"] += t;
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kVertex: {
       ret = eval_get_v(opr.opr().vertex(), txn, std::move(ret), params);
-      t += grape::GetCurrentTime();
-      op_cost["get_v"] += t;
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kProject: {
       std::vector<common::IrDataType> data_types;
@@ -125,28 +126,18 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
       }
       ret = eval_project(opr.opr().project(), txn, std::move(ret), params,
                          data_types);
-      t += grape::GetCurrentTime();
-      op_cost["project"] += t;
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kOrderBy: {
       ret = eval_order_by(opr.opr().order_by(), txn, std::move(ret));
-      t += grape::GetCurrentTime();
-      op_cost["order_by"] += t;
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kGroupBy: {
       ret = eval_group_by(opr.opr().group_by(), txn, std::move(ret));
-      t += grape::GetCurrentTime();
-      op_cost["group_by"] += t;
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kDedup: {
       ret = eval_dedup(opr.opr().dedup(), txn, std::move(ret));
-      t += grape::GetCurrentTime();
-      op_cost["dedup"] += t;
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kSelect: {
       ret = eval_select(opr.opr().select(), txn, std::move(ret), params);
-      t += grape::GetCurrentTime();
-      op_cost["select"] += t;
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kPath: {
       if ((i + 1) < opr_num) {
@@ -174,8 +165,6 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
       } else {
         LOG(FATAL) << "not support";
       }
-      t += grape::GetCurrentTime();
-      op_cost["path_expand"] += t;
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kSink: {
       terminate = true;
@@ -186,9 +175,10 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
     case physical::PhysicalOpr_Operator::OpKindCase::kJoin: {
       auto op = opr.opr().join();
       auto ret_dup = ret.dup();
-      auto ctx = runtime_eval_impl(op.left_plan(), std::move(ret), txn, params);
-      auto ctx2 =
-          runtime_eval_impl(op.right_plan(), std::move(ret_dup), txn, params);
+      auto ctx = runtime_eval_impl(op.left_plan(), std::move(ret), txn, params,
+                                   op_name + "-left");
+      auto ctx2 = runtime_eval_impl(op.right_plan(), std::move(ret_dup), txn,
+                                    params, op_name + "-right");
       ret = eval_join(op, std::move(ctx), std::move(ctx2));
 
     } break;
@@ -200,11 +190,15 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
       for (size_t i = 0; i < num; ++i) {
         if (i + 1 < num) {
           auto ret_dup = ret.dup();
-          ctxs.push_back(runtime_eval_impl(op.sub_plans(i), std::move(ret_dup),
-                                           txn, params));
+          ctxs.push_back(runtime_eval_impl(
+              op.sub_plans(i), std::move(ret_dup), txn, params,
+              op_name + "-sub[" + std::to_string(i) + "/" +
+                  std ::to_string(num) + "]"));
         } else {
           ctxs.push_back(
-              runtime_eval_impl(op.sub_plans(i), std::move(ret), txn, params));
+              runtime_eval_impl(op.sub_plans(i), std::move(ret), txn, params,
+                                op_name + "-sub[" + std::to_string(i) + "/" +
+                                    std ::to_string(num) + "]"));
         }
       }
       ret = eval_intersect(txn, op, std::move(ctxs));
@@ -218,6 +212,10 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
                  << opr.DebugString();
       break;
     }
+    t += grape::GetCurrentTime();
+    op_cost[op_name] += t;
+    // LOG(INFO) << "after op - " << op_name;
+    // ret.desc();
     if (terminate) {
       break;
     }
@@ -228,7 +226,11 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
 Context runtime_eval(const physical::PhysicalPlan& plan,
                      const ReadTransaction& txn,
                      const std::map<std::string, std::string>& params) {
-  return runtime_eval_impl(plan, Context(), txn, params);
+  double t = -grape::GetCurrentTime();
+  auto ret = runtime_eval_impl(plan, Context(), txn, params);
+  t += grape::GetCurrentTime();
+  OpCost::get().add_total(t);
+  return ret;
 }
 
 }  // namespace runtime
