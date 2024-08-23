@@ -359,6 +359,8 @@ class BDSLEdgeColumn : public IEdgeColumn {
   }
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
+  std::shared_ptr<IContextColumn> optional_shuffle(
+      const std::vector<size_t>& offsets) const override;
 
   std::shared_ptr<IContextColumn> dup() const override;
 
@@ -882,6 +884,7 @@ class OptionalBDSLEdgeColumnBuilder : public IOptionalContextColumnBuilder {
   std::shared_ptr<IContextColumn> finish() override;
 
  private:
+  friend class BDSLEdgeColumn;
   friend class OptionalBDSLEdgeColumn;
   LabelTriplet label_;
   std::vector<std::tuple<vid_t, vid_t, bool>> edges_;

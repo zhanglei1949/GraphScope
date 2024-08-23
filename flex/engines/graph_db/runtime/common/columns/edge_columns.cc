@@ -138,6 +138,29 @@ std::shared_ptr<IContextColumn> BDSLEdgeColumn::shuffle(
   return builder.finish();
 }
 
+std::shared_ptr<IContextColumn> BDSLEdgeColumn::optional_shuffle(
+    const std::vector<size_t>& offsets) const {
+  OptionalBDSLEdgeColumnBuilder builder(label_, prop_type_);
+  size_t new_row_num = offsets.size();
+  builder.reserve(new_row_num);
+
+  auto& ret_props = *builder.prop_col_;
+  ret_props.resize(new_row_num);
+  for (size_t idx = 0; idx < new_row_num; ++idx) {
+    size_t off = offsets[idx];
+    if (off == std::numeric_limits<size_t>::max()) {
+      builder.push_back_null();
+    } else {
+      const auto& e = edges_[off];
+      builder.push_back_endpoints(std::get<0>(e), std::get<1>(e),
+                                  std::get<2>(e));
+      ret_props.set_any(idx, prop_col_->get(off));
+    }
+  }
+
+  return builder.finish();
+}
+
 std::shared_ptr<IContextColumn> BDSLEdgeColumnBuilder::finish() {
   auto ret = std::make_shared<BDSLEdgeColumn>(label_, prop_type_);
   ret->edges_.swap(edges_);
