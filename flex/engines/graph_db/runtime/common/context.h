@@ -56,6 +56,8 @@ class Context {
 
   size_t row_num() const;
 
+  bool exist(int alias) const;
+
   void desc(const std::string& info = "") const;
 
   void show(const ReadTransaction& txn) const;

@@ -19,28 +19,6 @@ namespace gs {
 
 namespace runtime {
 
-class OpCost {
- public:
-  OpCost() {}
-  ~OpCost() {
-    LOG(INFO) << "op elapsed time: ";
-    for (auto& pair : table) {
-      LOG(INFO) << "\t" << pair.first << ": " << pair.second << " ("
-                << pair.second / total * 100.0 << "%)";
-    }
-  }
-
-  static OpCost& get() {
-    static OpCost instance;
-    return instance;
-  }
-
-  void add_total(double t) { total += t; }
-
-  std::map<std::string, double> table;
-  double total = 0;
-};
-
 static std::string get_opr_name(const physical::PhysicalOpr& opr) {
   switch (opr.opr().op_kind_case()) {
   case physical::PhysicalOpr_Operator::OpKindCase::kScan: {
@@ -124,8 +102,25 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
           data_types.push_back(opr.meta_data(i).type());
         }
       }
-      ret = eval_project(opr.opr().project(), txn, std::move(ret), params,
-                         data_types);
+      if ((i + 1) < opr_num) {
+        const physical::PhysicalOpr& next_opr = plan.plan(i + 1);
+        if (next_opr.opr().has_order_by() &&
+            project_order_by_fusable(opr.opr().project(),
+                                     next_opr.opr().order_by(), ret,
+                                     data_types)) {
+          ret = eval_project_order_by(opr.opr().project(),
+                                      next_opr.opr().order_by(), txn,
+                                      std::move(ret), params, data_types);
+          op_name += "_order_by";
+          ++i;
+        } else {
+          ret = eval_project(opr.opr().project(), txn, std::move(ret), params,
+                             data_types);
+        }
+      } else {
+        ret = eval_project(opr.opr().project(), txn, std::move(ret), params,
+                           data_types);
+      }
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kOrderBy: {
       ret = eval_order_by(opr.opr().order_by(), txn, std::move(ret));

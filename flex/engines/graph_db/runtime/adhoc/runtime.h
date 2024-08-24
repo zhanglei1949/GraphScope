@@ -22,6 +22,28 @@ namespace gs {
 
 namespace runtime {
 
+class OpCost {
+ public:
+  OpCost() {}
+  ~OpCost() {
+    LOG(INFO) << "op elapsed time: ";
+    for (auto& pair : table) {
+      LOG(INFO) << "\t" << pair.first << ": " << pair.second << " ("
+                << pair.second / total * 100.0 << "%)";
+    }
+  }
+
+  static OpCost& get() {
+    static OpCost instance;
+    return instance;
+  }
+
+  void add_total(double t) { total += t; }
+
+  std::map<std::string, double> table;
+  double total = 0;
+};
+
 Context runtime_eval(const physical::PhysicalPlan& plan,
                      const ReadTransaction& txn,
                      const std::map<std::string, std::string>& params);

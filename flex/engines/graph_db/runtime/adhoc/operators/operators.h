@@ -48,10 +48,20 @@ Context eval_path_expand_p(const physical::PathExpand& opr,
                            const physical::PhysicalOpr_MetaData& meta,
                            int alias);
 
+bool project_order_by_fusable(
+    const physical::Project& project_opr, const algebra::OrderBy& order_by_opr,
+    const Context& ctx, const std::vector<common::IrDataType>& data_types);
+
 Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
                      Context&& ctx,
                      const std::map<std::string, std::string>& params,
                      const std::vector<common::IrDataType>& data_types);
+
+Context eval_project_order_by(
+    const physical::Project& project_opr, const algebra::OrderBy& order_by_opr,
+    const ReadTransaction& txn, Context&& ctx,
+    const std::map<std::string, std::string>& params,
+    const std::vector<common::IrDataType>& data_types);
 
 Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
                   const std::map<std::string, std::string>& params);

@@ -223,6 +223,16 @@ size_t Context::row_num() const {
   return 0;
 }
 
+bool Context::exist(int alias) const {
+  if (alias == -1 && head != nullptr) {
+    return true;
+  }
+  if (static_cast<size_t>(alias) >= columns.size()) {
+    return false;
+  }
+  return columns[alias] != nullptr;
+}
+
 void Context::desc(const std::string& info) const {
   if (!info.empty()) {
     LOG(INFO) << info;
