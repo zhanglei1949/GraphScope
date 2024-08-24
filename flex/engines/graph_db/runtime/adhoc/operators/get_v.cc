@@ -15,6 +15,7 @@
 
 #include "flex/engines/graph_db/runtime/common/operators/get_v.h"
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
+#include "flex/engines/graph_db/runtime/adhoc/operators/special_predicates.h"
 #include "flex/engines/graph_db/runtime/adhoc/predicates.h"
 #include "flex/engines/graph_db/runtime/adhoc/utils.h"
 
@@ -60,11 +61,42 @@ Context eval_get_v(const physical::GetV& opr, const ReadTransaction& txn,
     p.tables = parse_tables(query_params);
     p.alias = alias;
     if (query_params.has_predicate()) {
-      GeneralVertexPredicate pred(txn, ctx, params, query_params.predicate());
-
       if (opt == VOpt::kItself) {
-        return GetV::get_vertex_from_vertices(txn, std::move(ctx), p, pred);
+        std::set<label_t> labels_set;
+        label_t exact_pk_label;
+        Any exact_pk;
+        if (is_label_within_predicate(query_params.predicate(), labels_set)) {
+          std::shared_ptr<IVertexColumn> input_vertex_list_ptr =
+              std::dynamic_pointer_cast<IVertexColumn>(ctx.get(p.tag));
+          bool within = true;
+          for (auto label : input_vertex_list_ptr->get_labels_set()) {
+            if (labels_set.find(label) == labels_set.end()) {
+              within = false;
+              break;
+            }
+          }
+          if (p.tag == -1 && within) {
+            ctx.set(p.alias, input_vertex_list_ptr);
+            return ctx;
+          } else {
+            GeneralVertexPredicate pred(txn, ctx, params,
+                                        query_params.predicate());
+            return GetV::get_vertex_from_vertices(txn, std::move(ctx), p, pred);
+          }
+        } else if (is_pk_exact_check(query_params.predicate(), params,
+                                     exact_pk_label, exact_pk)) {
+          vid_t index = std::numeric_limits<vid_t>::max();
+          txn.GetVertexIndex(exact_pk_label, exact_pk, index);
+          ExactVertexPredicate pred(exact_pk_label, index);
+
+          return GetV::get_vertex_from_vertices(txn, std::move(ctx), p, pred);
+        } else {
+          GeneralVertexPredicate pred(txn, ctx, params,
+                                      query_params.predicate());
+          return GetV::get_vertex_from_vertices(txn, std::move(ctx), p, pred);
+        }
       } else if (opt == VOpt::kEnd || opt == VOpt::kStart) {
+        GeneralVertexPredicate pred(txn, ctx, params, query_params.predicate());
         return GetV::get_vertex_from_edges(txn, std::move(ctx), p, pred);
       }
     } else {

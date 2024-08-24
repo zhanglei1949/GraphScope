@@ -53,6 +53,17 @@ struct GeneralVertexPredicate {
   Expr expr_;
 };
 
+struct ExactVertexPredicate {
+  ExactVertexPredicate(label_t label, vid_t vid) : label_(label), vid_(vid) {}
+
+  bool operator()(label_t label, vid_t vid, size_t path_idx) const {
+    return (label == label_) && (vid == vid_);
+  }
+
+  label_t label_;
+  vid_t vid_;
+};
+
 struct GeneralEdgePredicate {
   GeneralEdgePredicate(const ReadTransaction& txn, const Context& ctx,
                        const std::map<std::string, std::string>& params,

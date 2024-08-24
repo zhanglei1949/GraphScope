@@ -16,6 +16,7 @@
 #include "flex/engines/graph_db/runtime/common/operators/scan.h"
 #include "flex/engines/graph_db/runtime/adhoc/expr_impl.h"
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
+#include "flex/engines/graph_db/runtime/adhoc/operators/special_predicates.h"
 namespace gs {
 
 namespace runtime {
@@ -171,8 +172,19 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
     }
     CHECK(scan_opr.has_params());
     const auto& scan_opr_params = scan_opr.params();
-    for (const auto& table : scan_opr_params.tables()) {
-      scan_params.tables.push_back(table.id());
+    std::set<label_t> within_labels;
+    if (scan_opr_params.has_predicate() &&
+        is_label_within_predicate(scan_opr_params.predicate(), within_labels)) {
+      for (const auto& table : scan_opr_params.tables()) {
+        label_t label = static_cast<label_t>(table.id());
+        if (within_labels.find(label) != within_labels.end()) {
+          scan_params.tables.push_back(table.id());
+        }
+      }
+    } else {
+      for (const auto& table : scan_opr_params.tables()) {
+        scan_params.tables.push_back(table.id());
+      }
     }
 
     if (scan_opr.has_idx_predicate() && scan_opr_params.has_predicate()) {
