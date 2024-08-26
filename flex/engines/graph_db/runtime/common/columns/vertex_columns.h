@@ -139,6 +139,8 @@ class SLVertexColumn : public IVertexColumn {
 
   ISigColumn* generate_signature() const override;
 
+  const std::vector<vid_t>& vertices() const { return vertices_; }
+
  private:
   friend class SLVertexColumnBuilder;
   std::vector<vid_t> vertices_;

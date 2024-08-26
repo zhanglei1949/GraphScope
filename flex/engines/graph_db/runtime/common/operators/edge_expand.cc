@@ -14,6 +14,8 @@
  */
 
 #include "flex/engines/graph_db/runtime/common/operators/edge_expand.h"
+#include "flex/engines/graph_db/runtime/adhoc/runtime.h"
+#include "flex/engines/graph_db/runtime/common/operators/edge_expand_impl.h"
 
 namespace gs {
 
@@ -49,6 +51,7 @@ static std::vector<LabelTriplet> get_expand_label_set(
 Context EdgeExpand::expand_edge_without_predicate(
     const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params) {
   std::vector<size_t> shuffle_offset;
+  auto& op_cost = OpCost::get().table;
 
   if (params.labels.size() == 1) {
     if (params.dir == Direction::kIn) {
@@ -72,6 +75,7 @@ Context EdgeExpand::expand_edge_without_predicate(
                                     props);
 
       label_t dst_label = params.labels[0].dst_label;
+      double t = -grape::GetCurrentTime();
       foreach_vertex(input_vertex_list,
                      [&](size_t index, label_t label, vid_t v) {
                        if (label != dst_label) {
@@ -88,6 +92,8 @@ Context EdgeExpand::expand_edge_without_predicate(
                          ie_iter.Next();
                        }
                      });
+      t += grape::GetCurrentTime();
+      op_cost["EEP-01"] += t;
 
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       return ctx;
@@ -112,6 +118,7 @@ Context EdgeExpand::expand_edge_without_predicate(
       SDSLEdgeColumnBuilder builder(Direction::kOut, params.labels[0], pt,
                                     props);
       label_t src_label = params.labels[0].src_label;
+      double t = -grape::GetCurrentTime();
       foreach_vertex(input_vertex_list,
                      [&](size_t index, label_t label, vid_t v) {
                        if (label != src_label) {
@@ -128,6 +135,8 @@ Context EdgeExpand::expand_edge_without_predicate(
                          oe_iter.Next();
                        }
                      });
+      t += grape::GetCurrentTime();
+      op_cost["EEP-02"] += t;
 
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       return ctx;
@@ -142,6 +151,7 @@ Context EdgeExpand::expand_edge_without_predicate(
         pt = props[0];
       }
       BDSLEdgeColumnBuilder builder(params.labels[0], pt);
+      double t = -grape::GetCurrentTime();
       foreach_vertex(input_vertex_list, [&](size_t index, label_t label,
                                             vid_t v) {
         if (label == params.labels[0].src_label) {
@@ -167,6 +177,8 @@ Context EdgeExpand::expand_edge_without_predicate(
           }
         }
       });
+      t += grape::GetCurrentTime();
+      op_cost["EEP-03"] += t;
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       return ctx;
     }
@@ -199,6 +211,7 @@ Context EdgeExpand::expand_edge_without_predicate(
           auto& triplet = labels[0];
           SDSLEdgeColumnBuilder builder(Direction::kOut, triplet,
                                         label_props[0].second, props_vec[0]);
+          double t = -grape::GetCurrentTime();
           foreach_vertex(
               input_vertex_list, [&](size_t index, label_t label, vid_t v) {
                 if (label == triplet.src_label) {
@@ -212,6 +225,8 @@ Context EdgeExpand::expand_edge_without_predicate(
                   }
                 }
               });
+          t += grape::GetCurrentTime();
+          op_cost["EEP-04"] += t;
           ctx.set_with_reshuffle(params.alias, builder.finish(),
                                  shuffle_offset);
           return ctx;
@@ -219,6 +234,7 @@ Context EdgeExpand::expand_edge_without_predicate(
           auto& triplet = labels[0];
           SDSLEdgeColumnBuilder builder(Direction::kIn, triplet,
                                         label_props[0].second, props_vec[0]);
+          double t = -grape::GetCurrentTime();
           foreach_vertex(
               input_vertex_list, [&](size_t index, label_t label, vid_t v) {
                 if (label == triplet.dst_label) {
@@ -232,6 +248,8 @@ Context EdgeExpand::expand_edge_without_predicate(
                   }
                 }
               });
+          t += grape::GetCurrentTime();
+          op_cost["EEP-05"] += t;
           ctx.set_with_reshuffle(params.alias, builder.finish(),
                                  shuffle_offset);
           return ctx;
@@ -242,6 +260,7 @@ Context EdgeExpand::expand_edge_without_predicate(
 
         SDMLEdgeColumnBuilder builder(params.dir, label_props);
         if (params.dir == Direction::kOut) {
+          double t = -grape::GetCurrentTime();
           foreach_vertex(input_vertex_list, [&](size_t index, label_t label,
                                                 vid_t v) {
             for (auto& triplet : labels) {
@@ -259,7 +278,10 @@ Context EdgeExpand::expand_edge_without_predicate(
               }
             }
           });
+          t += grape::GetCurrentTime();
+          op_cost["EEP-06"] += t;
         } else {
+          double t = -grape::GetCurrentTime();
           foreach_vertex(input_vertex_list, [&](size_t index, label_t label,
                                                 vid_t v) {
             for (auto& triplet : labels) {
@@ -277,6 +299,8 @@ Context EdgeExpand::expand_edge_without_predicate(
               }
             }
           });
+          t += grape::GetCurrentTime();
+          op_cost["EEP-07"] += t;
         }
 
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
@@ -287,6 +311,7 @@ Context EdgeExpand::expand_edge_without_predicate(
         BDSLEdgeColumnBuilder builder(labels[0], label_props[0].second);
         auto& input_vertex_list =
             *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
+        double t = -grape::GetCurrentTime();
         foreach_vertex(input_vertex_list, [&](size_t index, label_t label,
                                               vid_t v) {
           if (label == labels[0].src_label) {
@@ -310,6 +335,8 @@ Context EdgeExpand::expand_edge_without_predicate(
             }
           }
         });
+        t += grape::GetCurrentTime();
+        op_cost["EEP-08"] += t;
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
         return ctx;
 
@@ -317,6 +344,7 @@ Context EdgeExpand::expand_edge_without_predicate(
         BDMLEdgeColumnBuilder builder(label_props);
         auto& input_vertex_list =
             *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
+        double t = -grape::GetCurrentTime();
         foreach_vertex(
             input_vertex_list, [&](size_t index, label_t label, vid_t v) {
               for (auto& triplet : labels) {
@@ -344,6 +372,8 @@ Context EdgeExpand::expand_edge_without_predicate(
                 }
               }
             });
+        t += grape::GetCurrentTime();
+        op_cost["EEP-09"] += t;
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
         return ctx;
       }
@@ -356,11 +386,14 @@ Context EdgeExpand::expand_edge_without_predicate(
 
 Context EdgeExpand::expand_vertex_without_predicate(
     const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params) {
+  auto& op_cost = OpCost::get().table;
+
   std::shared_ptr<IVertexColumn> input_vertex_list =
       std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
   VertexColumnType input_vertex_list_type =
       input_vertex_list->vertex_column_type();
 
+#if 0
   std::set<label_t> output_vertex_set;
   const std::set<label_t>& input_vertex_set =
       input_vertex_list->get_labels_set();
@@ -400,13 +433,15 @@ Context EdgeExpand::expand_vertex_without_predicate(
     if (input_vertex_list_type == VertexColumnType::kSingle) {
       auto casted_input_vertex_list =
           std::dynamic_pointer_cast<SLVertexColumn>(input_vertex_list);
-      label_t input_vertex_label = casted_input_vertex_list->label();
+      // label_t input_vertex_label = casted_input_vertex_list->label();
       if (params.labels.size() == 1) {
         auto& label_triplet = params.labels[0];
+#if 0
         if (params.dir == Direction::kBoth &&
             label_triplet.src_label == label_triplet.dst_label &&
             label_triplet.src_label == output_vertex_label &&
             output_vertex_label == input_vertex_label) {
+          double t = -grape::GetCurrentTime();
           casted_input_vertex_list->foreach_vertex(
               [&](size_t index, label_t label, vid_t v) {
                 auto oe_iter = txn.GetOutEdgeIterator(label, v, label,
@@ -426,6 +461,8 @@ Context EdgeExpand::expand_vertex_without_predicate(
                   ie_iter.Next();
                 }
               });
+          t += grape::GetCurrentTime();
+          op_cost["EENP-01"] += t;
           ctx.set_with_reshuffle(params.alias, builder.finish(),
                                  shuffle_offset);
         } else if (params.dir == Direction::kIn &&
@@ -435,6 +472,7 @@ Context EdgeExpand::expand_vertex_without_predicate(
               label_triplet.src_label, label_triplet.dst_label,
               label_triplet.edge_label);
           if (props.empty()) {
+            double t = -grape::GetCurrentTime();
             casted_input_vertex_list->foreach_vertex(
                 [&](size_t index, label_t label, vid_t v) {
                   auto iter = txn.GetInEdgeIterator(
@@ -445,8 +483,11 @@ Context EdgeExpand::expand_vertex_without_predicate(
                     iter.Next();
                   }
                 });
+            t += grape::GetCurrentTime();
+            op_cost["EENP-02"] += t;
           } else if (props[0] == PropertyType::kDate) {
             // also check csr mutability
+            double t = -grape::GetCurrentTime();
             const TypedMutableCsrBase<Date>* csr =
                 dynamic_cast<const TypedMutableCsrBase<Date>*>(
                     txn.graph().get_ie_csr(label_triplet.dst_label,
@@ -460,7 +501,10 @@ Context EdgeExpand::expand_vertex_without_predicate(
                     shuffle_offset.push_back(index);
                   }
                 });
+            t += grape::GetCurrentTime();
+            op_cost["EENP-03"] += t;
           } else {
+            double t = -grape::GetCurrentTime();
             casted_input_vertex_list->foreach_vertex(
                 [&](size_t index, label_t label, vid_t v) {
                   auto ie_iter = txn.GetInEdgeIterator(
@@ -472,6 +516,8 @@ Context EdgeExpand::expand_vertex_without_predicate(
                     ie_iter.Next();
                   }
                 });
+            t += grape::GetCurrentTime();
+            op_cost["EENP-04"] += t;
           }
           // casted_input_vertex_list->foreach_vertex(
           //     [&](size_t index, label_t label, vid_t v) {
@@ -490,6 +536,7 @@ Context EdgeExpand::expand_vertex_without_predicate(
         } else if (params.dir == Direction::kOut &&
                    label_triplet.src_label == input_vertex_label &&
                    label_triplet.dst_label == output_vertex_label) {
+          double t = -grape::GetCurrentTime();
           casted_input_vertex_list->foreach_vertex(
               [&](size_t index, label_t label, vid_t v) {
                 auto oe_iter = txn.GetOutEdgeIterator(
@@ -501,15 +548,26 @@ Context EdgeExpand::expand_vertex_without_predicate(
                   oe_iter.Next();
                 }
               });
+          t += grape::GetCurrentTime();
+          op_cost["EENP-05"] += t;
           ctx.set_with_reshuffle(params.alias, builder.finish(),
                                  shuffle_offset);
         } else {
           LOG(FATAL) << "xxx";
         }
+#else
+        double t = -grape::GetCurrentTime();
+        auto pair = expand_vertex_np_si_so_se(txn, *casted_input_vertex_list,
+                                              label_triplet, params.dir);
+        t += grape::GetCurrentTime();
+        op_cost["EENP-01-05"] += t;
+        ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
+#endif
       } else {
         MLVertexColumnBuilder builder;
         if (params.dir == Direction::kOut || params.dir == Direction::kIn) {
           if (params.dir == Direction::kOut) {
+            double t = -grape::GetCurrentTime();
             casted_input_vertex_list->foreach_vertex(
                 [&](size_t index, label_t label, vid_t v) {
                   for (auto& triplet : params.labels) {
@@ -526,7 +584,10 @@ Context EdgeExpand::expand_vertex_without_predicate(
                     }
                   }
                 });
+            t += grape::GetCurrentTime();
+            op_cost["EENP-06"] += t;
           } else {
+            double t = -grape::GetCurrentTime();
             casted_input_vertex_list->foreach_vertex(
                 [&](size_t index, label_t label, vid_t v) {
                   for (auto& triplet : params.labels) {
@@ -543,6 +604,8 @@ Context EdgeExpand::expand_vertex_without_predicate(
                     }
                   }
                 });
+            t += grape::GetCurrentTime();
+            op_cost["EENP-07"] += t;
           }
           ctx.set_with_reshuffle(params.alias, builder.finish(),
                                  shuffle_offset);
@@ -551,9 +614,11 @@ Context EdgeExpand::expand_vertex_without_predicate(
     } else if (input_vertex_list_type == VertexColumnType::kMultiple) {
       auto casted_input_vertex_list =
           std::dynamic_pointer_cast<MLVertexColumn>(input_vertex_list);
+#if 0
       if (params.dir == Direction::kBoth) {
         LOG(FATAL) << "AAAAAAAAA";
       } else if (params.dir == Direction::kIn) {
+        double t = -grape::GetCurrentTime();
         casted_input_vertex_list->foreach_vertex(
             [&](size_t index, label_t label, vid_t v) {
               for (auto& triplet : params.labels) {
@@ -569,8 +634,12 @@ Context EdgeExpand::expand_vertex_without_predicate(
                 }
               }
             });
+        t += grape::GetCurrentTime();
+        op_cost["EENP-08"] += t;
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       } else if (params.dir == Direction::kOut) {
+#if 1
+        double t = -grape::GetCurrentTime();
         casted_input_vertex_list->foreach_vertex(
             [&](size_t index, label_t label, vid_t v) {
               for (auto& triplet : params.labels) {
@@ -586,16 +655,66 @@ Context EdgeExpand::expand_vertex_without_predicate(
                 }
               }
             });
+        t += grape::GetCurrentTime();
+        op_cost["EENP-09"] += t;
+#else
+        std::vector<bool> src_labels_accessed(txn.schema().vertex_label_num(),
+                                              false);
+        std::vector<std::pair<label_t, label_t>> labels_mapping(
+            txn.schema().vertex_label_num());
+        std::vector<const SingleMutableCsr<grape::EmptyType>*> csrs(
+            txn.schema().vertex_label_num(), nullptr);
+        bool multiple_triplet = false;
+        for (auto& triplet : params.labels) {
+          if (src_labels_accessed[triplet.src_label]) {
+            multiple_triplet = true;
+            break;
+          }
+          src_labels_accessed[triplet.src_label] = true;
+          labels_mapping[triplet.src_label].first = triplet.dst_label;
+          labels_mapping[triplet.src_label].second = triplet.edge_label;
+          csrs[triplet.src_label] =
+              dynamic_cast<const SingleMutableCsr<grape::EmptyType>*>(
+                  txn.graph().get_oe_csr(triplet.src_label, triplet.dst_label,
+                                         triplet.edge_label));
+        }
+        CHECK(!multiple_triplet);
+        casted_input_vertex_list->foreach_vertex(
+            [&](size_t index, label_t label, vid_t v) {
+              // auto oe_iter =
+              //     txn.GetOutEdgeIterator(label, v,
+              //     labels_mapping[label].first,
+              //                            labels_mapping[label].second);
+              // while (oe_iter.IsValid()) {
+              //   auto nbr = oe_iter.GetNeighbor();
+              //   builder.push_back_opt(nbr);
+              //   shuffle_offset.push_back(index);
+              //   oe_iter.Next();
+              // }
+              auto nbr = csrs[label]->get_edge(v).neighbor;
+              builder.push_back_opt(nbr);
+              shuffle_offset.push_back(index);
+            });
+#endif
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       } else {
         LOG(FATAL) << "xxx";
       }
+#else
+      double t = -grape::GetCurrentTime();
+      auto pair = expand_vertex_np_mli(txn, *casted_input_vertex_list,
+                                       params.labels, params.dir);
+      t += grape::GetCurrentTime();
+      op_cost["EENP-08-09"] += t;
+      ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
+#endif
     } else if (input_vertex_list_type == VertexColumnType::kMultiSegment) {
       auto casted_input_vertex_list =
           std::dynamic_pointer_cast<MSVertexColumn>(input_vertex_list);
       if (params.dir == Direction::kBoth) {
         LOG(FATAL) << "AAAAAAAAA";
       } else if (params.dir == Direction::kIn) {
+        double t = -grape::GetCurrentTime();
         casted_input_vertex_list->foreach_vertex(
             [&](size_t index, label_t label, vid_t v) {
               for (auto& triplet : params.labels) {
@@ -611,8 +730,11 @@ Context EdgeExpand::expand_vertex_without_predicate(
                 }
               }
             });
+        t += grape::GetCurrentTime();
+        op_cost["EENP-10"] += t;
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       } else if (params.dir == Direction::kOut) {
+        double t = -grape::GetCurrentTime();
         casted_input_vertex_list->foreach_vertex(
             [&](size_t index, label_t label, vid_t v) {
               for (auto& triplet : params.labels) {
@@ -628,6 +750,7 @@ Context EdgeExpand::expand_vertex_without_predicate(
                 }
               }
             });
+        op_cost["EENP-11"] += t;
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       } else {
         LOG(FATAL) << "xxx";
@@ -668,6 +791,8 @@ Context EdgeExpand::expand_vertex_without_predicate(
         }
       }
 #else
+
+      double t = -grape::GetCurrentTime();
       MSVertexColumnBuilder builder;
       for (label_t output_vertex_label : output_vertex_set) {
         builder.start_label(output_vertex_label);
@@ -694,6 +819,8 @@ Context EdgeExpand::expand_vertex_without_predicate(
           LOG(FATAL) << "AAAAA";
         }
       }
+      t += grape::GetCurrentTime();
+      op_cost["EENP-12"] += t;
 #endif
 
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
@@ -702,6 +829,7 @@ Context EdgeExpand::expand_vertex_without_predicate(
         auto& casted_input_vertex_list =
             *std::dynamic_pointer_cast<IVertexColumn>(input_vertex_list);
         MLVertexColumnBuilder builder;
+        double t = -grape::GetCurrentTime();
         foreach_vertex(casted_input_vertex_list, [&](size_t index,
                                                      label_t label, vid_t v) {
           for (auto& triplet : params.labels) {
@@ -718,12 +846,15 @@ Context EdgeExpand::expand_vertex_without_predicate(
             }
           }
         });
+        t += grape::GetCurrentTime();
+        op_cost["EENP-13"] += t;
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
         return ctx;
       } else if (params.dir == Direction::kBoth) {
         auto& casted_input_vertex_list =
             *std::dynamic_pointer_cast<IVertexColumn>(input_vertex_list);
         MLVertexColumnBuilder builder;
+        double t = -grape::GetCurrentTime();
         foreach_vertex(casted_input_vertex_list, [&](size_t index,
                                                      label_t label, vid_t v) {
           for (auto& triplet : params.labels) {
@@ -751,6 +882,8 @@ Context EdgeExpand::expand_vertex_without_predicate(
             }
           }
         });
+        t += grape::GetCurrentTime();
+        op_cost["EENP-14"] += t;
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
         return ctx;
       } else {
@@ -759,8 +892,33 @@ Context EdgeExpand::expand_vertex_without_predicate(
       LOG(FATAL) << "edge expand vertex input multiple vertex label";
     }
   }
-
   return ctx;
+#else
+  if (input_vertex_list_type == VertexColumnType::kSingle) {
+    auto casted_input_vertex_list =
+        std::dynamic_pointer_cast<SLVertexColumn>(input_vertex_list);
+    double t = -grape::GetCurrentTime();
+    auto pair = expand_vertex_without_predicate_impl(
+        txn, *casted_input_vertex_list, params.labels, params.dir);
+    t += grape::GetCurrentTime();
+    op_cost["VENP[1-7,12]"] += t;
+    ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
+    return ctx;
+  } else if (input_vertex_list_type == VertexColumnType::kMultiple) {
+    auto casted_input_vertex_list =
+        std::dynamic_pointer_cast<MLVertexColumn>(input_vertex_list);
+    double t = -grape::GetCurrentTime();
+    auto pair = expand_vertex_without_predicate_impl(
+        txn, *casted_input_vertex_list, params.labels, params.dir);
+    t += grape::GetCurrentTime();
+    op_cost["VENP[8-9]"] += t;
+    ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
+    return ctx;
+  } else {
+    LOG(FATAL) << "unexpected to reach here";
+    return ctx;
+  }
+#endif
 }
 
 Context EdgeExpand::expand_2d_vertex_without_predicate(

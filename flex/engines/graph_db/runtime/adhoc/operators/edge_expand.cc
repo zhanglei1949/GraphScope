@@ -16,6 +16,7 @@
 #include "flex/engines/graph_db/runtime/common/operators/edge_expand.h"
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
 #include "flex/engines/graph_db/runtime/adhoc/predicates.h"
+#include "flex/engines/graph_db/runtime/adhoc/runtime.h"
 #include "flex/engines/graph_db/runtime/adhoc/utils.h"
 #include "flex/engines/graph_db/runtime/common/context.h"
 
@@ -46,6 +47,8 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
     alias = opr.alias().value();
   }
 
+  auto& op_cost = OpCost::get();
+
   if (opr.expand_opt() ==
       physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_VERTEX) {
     if (query_params.has_predicate()) {
@@ -70,7 +73,13 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
 
       GeneralEdgePredicate pred(txn, ctx, params, query_params.predicate());
 
-      return EdgeExpand::expand_edge(txn, std::move(ctx), eep, pred);
+      double t = -grape::GetCurrentTime();
+      auto ret = EdgeExpand::expand_edge(txn, std::move(ctx), eep, pred);
+      t += grape::GetCurrentTime();
+
+      op_cost.table["expand_edge_with_predicate"] += t;
+
+      return ret;
     } else {
       EdgeExpandParams eep;
       eep.v_tag = v_tag;
