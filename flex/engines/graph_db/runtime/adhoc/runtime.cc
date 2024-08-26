@@ -85,8 +85,24 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kEdge: {
       CHECK_EQ(opr.meta_data_size(), 1);
-      ret = eval_edge_expand(opr.opr().edge(), txn, std::move(ret), params,
-                             opr.meta_data(0));
+      if ((i + 1) < opr_num) {
+        const physical::PhysicalOpr& next_opr = plan.plan(i + 1);
+        if (next_opr.opr().has_vertex() &&
+            edge_expand_get_v_fusable(opr.opr().edge(), next_opr.opr().vertex(),
+                                      ret, opr.meta_data(0))) {
+          ret = eval_edge_expand_get_v(
+              opr.opr().edge(), next_opr.opr().vertex(), txn, std::move(ret),
+              params, opr.meta_data(0));
+          op_name += "_get_v";
+          ++i;
+        } else {
+          ret = eval_edge_expand(opr.opr().edge(), txn, std::move(ret), params,
+                                 opr.meta_data(0));
+        }
+      } else {
+        ret = eval_edge_expand(opr.opr().edge(), txn, std::move(ret), params,
+                               opr.meta_data(0));
+      }
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kVertex: {
       ret = eval_get_v(opr.opr().vertex(), txn, std::move(ret), params);

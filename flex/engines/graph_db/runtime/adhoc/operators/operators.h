@@ -75,6 +75,16 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
                          const std::map<std::string, std::string>& params,
                          const physical::PhysicalOpr_MetaData& meta);
 
+bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
+                               const physical::GetV& v_opr, const Context& ctx,
+                               const physical::PhysicalOpr_MetaData& meta);
+
+Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
+                               const physical::GetV& v_opr,
+                               const ReadTransaction& txn, Context&& ctx,
+                               const std::map<std::string, std::string>& params,
+                               const physical::PhysicalOpr_MetaData& meta);
+
 Context eval_get_v(const physical::GetV& opr, const ReadTransaction& txn,
                    Context&& ctx,
                    const std::map<std::string, std::string>& params);

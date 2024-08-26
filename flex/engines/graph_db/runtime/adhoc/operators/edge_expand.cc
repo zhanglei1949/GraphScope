@@ -101,9 +101,11 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
                                const physical::PhysicalOpr_MetaData& meta) {
   if (ee_opr.expand_opt() !=
       physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE) {
+    // LOG(INFO) << "not edge expand, fallback";
     return false;
   }
   if (ee_opr.params().has_predicate()) {
+    // LOG(INFO) << "edge expand has predicate, fallback";
     return false;
   }
   int alias = -1;
@@ -111,6 +113,7 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
     alias = ee_opr.alias().value();
   }
   if (alias != -1) {
+    // LOG(INFO) << "alias of edge expand is not -1, fallback";
     return false;
   }
 
@@ -118,22 +121,27 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
   if (v_opr.has_tag()) {
     tag = v_opr.tag().value();
   }
+  if (tag != -1) {
+    // LOG(INFO) << "the input of get_v is -1, fallback";
+    return false;
+  }
   if (v_opr.has_params()) {
     if (v_opr.params().has_predicate()) {
+      // LOG(INFO) << "get_v has predicate, fallback";
       return false;
     }
-  }
-  if (tag != -1) {
-    return false;
   }
 
   int input_tag = -1;
   if (ee_opr.has_v_tag()) {
     input_tag = ee_opr.v_tag().value();
   }
-  const std::set<label_t>& input_vertex_labels =
-      std::dynamic_pointer_cast<IVertexColumn>(ctx.get(input_tag))
-          ->get_labels_set();
+  auto upstream = std::dynamic_pointer_cast<IVertexColumn>(ctx.get(input_tag));
+  if (upstream == nullptr) {
+    // LOG(INFO) << "upstream is not a vertex column, fallback";
+    return false;
+  }
+  const std::set<label_t>& input_vertex_labels = upstream->get_labels_set();
   std::vector<label_t> v_tables = parse_tables(v_opr.params());
 
   std::vector<LabelTriplet> triplets = parse_label_triplets(meta);
@@ -151,22 +159,25 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
       output_vertex_labels.push_back(triplet.src_label);
     }
   } else {
+    // LOG(INFO)
+    //     << "direction of edge_expand is not consistent with vopt of get_v";
     return false;
   }
 
   grape::DistinctSort(v_tables);
   grape::DistinctSort(output_vertex_labels);
   if (v_tables != output_vertex_labels) {
+    // LOG(INFO) << "tables of output vertices not match";
     return false;
   }
   return true;
 }
 
-Context edge_expand_get_v(const physical::EdgeExpand& ee_opr,
-                          const physical::GetV& v_opr,
-                          const ReadTransaction& txn, Context&& ctx,
-                          const std::map<std::string, std::string>& params,
-                          const physical::PhysicalOpr_MetaData& meta) {
+Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
+                               const physical::GetV& v_opr,
+                               const ReadTransaction& txn, Context&& ctx,
+                               const std::map<std::string, std::string>& params,
+                               const physical::PhysicalOpr_MetaData& meta) {
   int v_tag;
   if (!ee_opr.has_v_tag()) {
     v_tag = -1;
