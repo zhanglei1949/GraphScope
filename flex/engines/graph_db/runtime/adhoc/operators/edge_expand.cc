@@ -96,6 +96,109 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
   return ctx;
 }
 
+bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
+                               const physical::GetV& v_opr, const Context& ctx,
+                               const physical::PhysicalOpr_MetaData& meta) {
+  if (ee_opr.expand_opt() !=
+      physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE) {
+    return false;
+  }
+  if (ee_opr.params().has_predicate()) {
+    return false;
+  }
+  int alias = -1;
+  if (ee_opr.has_alias()) {
+    alias = ee_opr.alias().value();
+  }
+  if (alias != -1) {
+    return false;
+  }
+
+  int tag = -1;
+  if (v_opr.has_tag()) {
+    tag = v_opr.tag().value();
+  }
+  if (v_opr.has_params()) {
+    if (v_opr.params().has_predicate()) {
+      return false;
+    }
+  }
+  if (tag != -1) {
+    return false;
+  }
+
+  int input_tag = -1;
+  if (ee_opr.has_v_tag()) {
+    input_tag = ee_opr.v_tag().value();
+  }
+  const std::set<label_t>& input_vertex_labels =
+      std::dynamic_pointer_cast<IVertexColumn>(ctx.get(input_tag))
+          ->get_labels_set();
+  std::vector<label_t> v_tables = parse_tables(v_opr.params());
+
+  std::vector<LabelTriplet> triplets = parse_label_triplets(meta);
+  Direction dir = parse_direction(ee_opr.direction());
+
+  std::vector<label_t> output_vertex_labels;
+  if (dir == Direction::kOut &&
+      v_opr.opt() == physical::GetV_VOpt::GetV_VOpt_END) {
+    for (auto& triplet : triplets) {
+      output_vertex_labels.push_back(triplet.dst_label);
+    }
+  } else if (dir == Direction::kIn &&
+             v_opr.opt() == physical::GetV_VOpt::GetV_VOpt_START) {
+    for (auto& triplet : triplets) {
+      output_vertex_labels.push_back(triplet.src_label);
+    }
+  } else {
+    return false;
+  }
+
+  grape::DistinctSort(v_tables);
+  grape::DistinctSort(output_vertex_labels);
+  if (v_tables != output_vertex_labels) {
+    return false;
+  }
+  return true;
+}
+
+Context edge_expand_get_v(const physical::EdgeExpand& ee_opr,
+                          const physical::GetV& v_opr,
+                          const ReadTransaction& txn, Context&& ctx,
+                          const std::map<std::string, std::string>& params,
+                          const physical::PhysicalOpr_MetaData& meta) {
+  int v_tag;
+  if (!ee_opr.has_v_tag()) {
+    v_tag = -1;
+  } else {
+    v_tag = ee_opr.v_tag().value();
+  }
+
+  Direction dir = parse_direction(ee_opr.direction());
+  bool is_optional = ee_opr.is_optional();
+  CHECK(!is_optional);
+
+  CHECK(ee_opr.has_params());
+  const algebra::QueryParams& query_params = ee_opr.params();
+
+  int alias = -1;
+  if (v_opr.has_alias()) {
+    alias = v_opr.alias().value();
+  }
+
+  CHECK(ee_opr.expand_opt() ==
+        physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE);
+  CHECK(!query_params.has_predicate());
+
+  EdgeExpandParams eep;
+  eep.v_tag = v_tag;
+  eep.labels = parse_label_triplets(meta);
+  eep.dir = dir;
+  eep.alias = alias;
+
+  return EdgeExpand::expand_vertex_without_predicate(txn, std::move(ctx), eep);
+}
+
 }  // namespace runtime
 
 }  // namespace gs

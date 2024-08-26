@@ -26,6 +26,7 @@ template <typename EDATA_T>
 std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_on_graph_view(const GraphView<EDATA_T>& view,
                             const SLVertexColumn& input, label_t nbr_label) {
+  double t = -grape::GetCurrentTime();
   SLVertexColumnBuilder builder(nbr_label);
   std::vector<size_t> offsets;
   size_t idx = 0;
@@ -37,6 +38,8 @@ expand_vertex_on_graph_view(const GraphView<EDATA_T>& view,
     }
     ++idx;
   }
+  t += grape::GetCurrentTime();
+  LOG(INFO) << "iterate: " << t;
   return std::make_pair(builder.finish(), std::move(offsets));
 }
 
@@ -513,14 +516,16 @@ inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_np_se(const ReadTransaction& txn, const SLVertexColumn& input,
                     label_t nbr_label, label_t edge_label, Direction dir) {
   label_t input_label = input.label();
-  std::vector<size_t> offsets;
-  SLVertexColumnBuilder builder(nbr_label);
   CHECK((dir == Direction::kIn) || (dir == Direction::kOut));
   GraphView<EDATA_T> view = (dir == Direction::kIn)
                                 ? txn.GetIncomingGraphView<EDATA_T>(
                                       input_label, nbr_label, edge_label)
                                 : txn.GetOutgoingGraphView<EDATA_T>(
                                       input_label, nbr_label, edge_label);
+#if 1
+  double t = -grape::GetCurrentTime();
+  SLVertexColumnBuilder builder(nbr_label);
+  std::vector<size_t> offsets;
   size_t idx = 0;
   for (auto v : input.vertices()) {
     auto es = view.get_edges(v);
@@ -530,7 +535,12 @@ expand_vertex_np_se(const ReadTransaction& txn, const SLVertexColumn& input,
     }
     ++idx;
   }
+  t += grape::GetCurrentTime();
+  LOG(INFO) << "iterate: " << t;
   return std::make_pair(builder.finish(), std::move(offsets));
+#else
+  return expand_vertex_on_graph_view(view, input, nbr_label);
+#endif
 }
 
 template <typename EDATA_T>
@@ -637,6 +647,7 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
                                      const SLVertexColumn& input,
                                      const std::vector<LabelTriplet>& labels,
                                      Direction dir) {
+  double t = -grape::GetCurrentTime();
   label_t input_label = input.label();
   std::vector<std::tuple<label_t, label_t, Direction>> label_dirs;
   std::vector<PropertyType> ed_types;
@@ -683,6 +694,8 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
       }
     }
   }
+  t += grape::GetCurrentTime();
+  LOG(INFO) << "preprocess: " << t;
   if (sp) {
     const PropertyType& ed_type = ed_types[0];
     if (ed_type == PropertyType::Empty()) {
@@ -733,7 +746,6 @@ expand_vertex_np_se(
     const ReadTransaction& txn, const MLVertexColumn& input,
     const std::vector<std::vector<std::tuple<label_t, label_t, Direction>>>&
         label_dirs) {
-  // double t = -grape::GetCurrentTime();
   int label_num = label_dirs.size();
   std::vector<GraphView<EDATA_T>*> views(label_num, nullptr);
   std::vector<label_t> nbr_labels(label_num,
@@ -763,9 +775,6 @@ expand_vertex_np_se(
 
   std::vector<size_t> offsets;
   std::shared_ptr<IContextColumn> col(nullptr);
-
-  // t += grape::GetCurrentTime();
-  // LOG(INFO) << "preprocess2: " << t;
 
   if (nbr_labels_set.size() == 1) {
     SLVertexColumnBuilder builder(*nbr_labels_set.begin());
@@ -917,7 +926,6 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
                                      const MLVertexColumn& input,
                                      const std::vector<LabelTriplet>& labels,
                                      Direction dir) {
-  // double t = -grape::GetCurrentTime();
   const std::set<label_t>& input_labels = input.get_labels_set();
   int label_num = txn.schema().vertex_label_num();
   std::vector<std::vector<std::tuple<label_t, label_t, Direction>>> label_dirs(
@@ -969,8 +977,6 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
       break;
     }
   }
-  // t += grape::GetCurrentTime();
-  // LOG(INFO) << "preprocess: " << t;
   if (sp) {
     const PropertyType& ed_type = ed_types[0];
     if (ed_type == PropertyType::Empty()) {
