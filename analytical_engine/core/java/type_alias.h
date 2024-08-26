@@ -122,9 +122,9 @@ template <typename OID_T, typename VID_T>
 using ArrowProjectedStringVEDFragmentGetter =
     ArrowProjectedFragmentGetter<OID_T, VID_T, std::string, std::string>;
 
-template <typename DATA_T>
+template <typename VID_T, typename DATA_T>
 using VertexArrayDefault =
-    grape::VertexArray<grape::VertexRange<uint64_t>, DATA_T>;
+    grape::VertexArray<grape::VertexRange<VID_T>, DATA_T>;
 
 template <typename VID_T, typename DATA_T>
 using JavaVertexArray = grape::VertexArray<grape::VertexRange<VID_T>, DATA_T>;

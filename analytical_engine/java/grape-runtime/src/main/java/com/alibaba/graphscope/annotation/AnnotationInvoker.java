@@ -141,10 +141,14 @@ import com.alibaba.fastffi.FFIGenBatch;
             @FFIGen(
                     type = "com.alibaba.graphscope.ds.GSVertexArray",
                     templates = {
-                        @CXXTemplate(cxx = "int64_t", java = "Long"),
-                        @CXXTemplate(cxx = "double", java = "Double"),
-                        @CXXTemplate(cxx = "int32_t", java = "Integer"),
-                        @CXXTemplate(cxx = "std::string", java = STD_STRING)
+                        @CXXTemplate(cxx = {"uint64_t","int64_t"}, java = {"Long", "Long"}),
+                        @CXXTemplate(cxx = {"uint64_t","double"}, java = {"Long", "Double"}),
+                        @CXXTemplate(cxx = {"uint64_t", "int32_t"}, java = {"Long", "Integer"}),
+                        @CXXTemplate(cxx = {"uint64_t", "std::string"}, java ={"Long", STD_STRING}),
+                        @CXXTemplate(cxx = {"uint32_t","int64_t"}, java = {"Integer", "Long"}),
+                        @CXXTemplate(cxx = {"uint32_t","double"}, java = {"Integer", "Double"}),
+                        @CXXTemplate(cxx = {"uint32_t", "int32_t"}, java = {"Integer", "Integer"}),
+                        @CXXTemplate(cxx = {"uint32_t", "std::string"}, java ={"Integer", STD_STRING})
                     }),
             @FFIGen(
                     type = "com.alibaba.graphscope.ds.VertexRange",
@@ -251,7 +255,6 @@ import com.alibaba.fastffi.FFIGenBatch;
                                     }),
                     }),
             @FFIGen(
-                    type = "com.alibaba.graphscope.column.LongColumn",
                     templates = {
                         @CXXTemplate(
                                 cxx = {ARROW_FRAGMENT + "<int64_t,uint64_t>"},
@@ -1048,16 +1051,23 @@ import com.alibaba.fastffi.FFIGenBatch;
                                 cxx = "grape::Vertex<uint64_t>",
                                 java = "com.alibaba.graphscope.ds.Vertex<java.lang.Long>"),
                         @CXXTemplate(
-                                cxx = GS_VERTEX_ARRAY + "<double>",
-                                java = "com.alibaba.graphscope.ds.GSVertexArray" + "<Double>"),
+                                cxx = GS_VERTEX_ARRAY + "<uint64_t,double>",
+                                java = "com.alibaba.graphscope.ds.GSVertexArray" + "<Long,Double>"),
                         @CXXTemplate(
-                                cxx = GS_VERTEX_ARRAY + "<int32_t>",
-                                java = "com.alibaba.graphscope.ds.GSVertexArray" + "<Integer>"),
+                                cxx = GS_VERTEX_ARRAY + "<uint64_t,int32_t>",
+                                java = "com.alibaba.graphscope.ds.GSVertexArray" + "<Long,Integer>"),
                         @CXXTemplate(
-                                cxx = GS_VERTEX_ARRAY + "<int64_t>",
-                                java =
-                                        "com.alibaba.graphscope.ds.GSVertexArray"
-                                                + "<java.lang.Long>"),
+                                cxx = GS_VERTEX_ARRAY + "<uint64_t,int64_t>",
+                                java = "com.alibaba.graphscope.ds.GSVertexArray" + "<Long,Long>"),
+                        @CXXTemplate(
+                                cxx = GS_VERTEX_ARRAY + "<uint32_t,double>",
+                                java = "com.alibaba.graphscope.ds.GSVertexArray" + "<Integer,Double>"),
+                        @CXXTemplate(
+                                cxx = GS_VERTEX_ARRAY + "<uint32_t,int32_t>",
+                                java = "com.alibaba.graphscope.ds.GSVertexArray" + "<Integer,Integer>"),
+                        @CXXTemplate(
+                                    cxx = GS_VERTEX_ARRAY + "<uint32_t,int64_t>",
+                                    java = "com.alibaba.graphscope.ds.GSVertexArray" + "<Integer,Long>"),
                     }),
             @FFIGen(
                     type = JAVA_ARROW_PROJECTED_FRAGMENT_MAPPER,

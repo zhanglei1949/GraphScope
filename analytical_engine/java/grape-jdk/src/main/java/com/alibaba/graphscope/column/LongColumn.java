@@ -40,11 +40,10 @@ import com.alibaba.graphscope.ds.Vertex;
 @CXXHead(ARROW_PROJECTED_FRAGMENT_H)
 @FFITypeAlias(LONG_COLUMN)
 public interface LongColumn<FRAG_T> extends FFIPointer {
-    double at(@CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex);
+    <VID_T> long at(@CXXReference Vertex<VID_T> vertex);
 
-    void set(@CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex, long value);
+    <VID_T> void set(@CXXReference Vertex<VID_T> vertex, long value);
 
     @CXXReference
-    @FFITypeAlias(GS_VERTEX_ARRAY + "<int64_t>")
-    GSVertexArray<Long> data();
+    <VID_T> GSVertexArray<VID_T, Long> data();
 }

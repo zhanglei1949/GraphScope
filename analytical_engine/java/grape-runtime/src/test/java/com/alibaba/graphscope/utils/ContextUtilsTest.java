@@ -52,7 +52,7 @@ public class ContextUtilsTest {
     }
 
     public static class SampleContext2
-            extends VertexDataContext<IFragment<Long, Long, Long, Double>, Double>
+            extends VertexDataContext<Long, Long, Long, Double, Double>
             implements DefaultContextBase<Long, Long, Long, Double> {
 
         /**

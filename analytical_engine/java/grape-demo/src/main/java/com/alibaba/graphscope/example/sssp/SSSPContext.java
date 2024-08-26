@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class SSSPContext extends VertexDataContext<IFragment<Long, Long, Long, Long>, Double>
+public class SSSPContext extends VertexDataContext<Long,Long,Long,Long, Double>
         implements ParallelContextBase<Long, Long, Long, Long> {
 
     private static Logger logger = LoggerFactory.getLogger(SSSPContext.class);
@@ -90,7 +90,7 @@ public class SSSPContext extends VertexDataContext<IFragment<Long, Long, Long, L
                 "frag: " + frag.fid() + " receiveMessageTime: " + receiveMessageTime / 1000000000);
         logger.info("frag: " + frag.fid() + " execTime: " + execTime / 1000000000);
 
-        GSVertexArray<Double> vertexArray = data();
+        GSVertexArray<Long, Double> vertexArray = data();
         Vertex<Long> cur = FFITypeFactoryhelper.newVertexLong();
         for (long vid = 0; vid < frag.getInnerVerticesNum(); ++vid) {
             cur.setValue(vid);

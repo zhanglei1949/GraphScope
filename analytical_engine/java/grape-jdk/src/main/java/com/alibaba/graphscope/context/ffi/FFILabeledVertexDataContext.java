@@ -45,7 +45,7 @@ public interface FFILabeledVertexDataContext<FRAG_T, DATA_T> extends FFIPointer 
                     Vertex<Long> vertex);
 
     @CXXReference
-    StdVector<GSVertexArray<DATA_T>> data();
+    <VID_T> StdVector<GSVertexArray<VID_T, DATA_T>> data();
 
     @FFIFactory
     interface Factory<FRAG_T, DATA_T> {

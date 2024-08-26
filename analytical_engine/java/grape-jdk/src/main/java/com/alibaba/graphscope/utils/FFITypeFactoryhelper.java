@@ -334,8 +334,8 @@ public class FFITypeFactoryhelper {
         return getVertexArrayFactory(tmp).create();
     }
 
-    public static <T> GSVertexArray<T> newGSVertexArray(Class<T> clz) {
-        String tmp = GS_VERTEX_ARRAY + "<" + javaType2CppType(clz) + ">";
+    public static <VID_T,T> GSVertexArray<VID_T, T> newGSVertexArray(Class<VID_T> vidClass, Class<T> clz) {
+        String tmp = GS_VERTEX_ARRAY + "<" + javaType2CppType(vidClass) + "," + javaType2CppType(clz) + ">";
         return getGSVertexArrayFactory(tmp).create();
     }
 

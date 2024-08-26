@@ -47,7 +47,7 @@ import com.alibaba.fastffi.FFITypeAlias;
 @CXXHead(GRAPE_VERTEX_ARRAY_H)
 @CXXHead(system = "cstdint")
 @FFITypeAlias(GS_VERTEX_ARRAY)
-public interface GSVertexArray<T> extends FFIPointer, CXXPointer {
+public interface GSVertexArray<VID_T, T> extends FFIPointer, CXXPointer {
 
     /**
      * Init a vertex Array with a range of vertices.
@@ -56,7 +56,7 @@ public interface GSVertexArray<T> extends FFIPointer, CXXPointer {
      */
     @FFINameAlias("Init")
     void init(
-            @CXXReference @FFITypeAlias(GRAPE_VERTEX_RANGE + "<uint64_t>") VertexRange<Long> range);
+            @CXXReference VertexRange<VID_T> range);
 
     /**
      * Init a vertex Array with a range of vertices, with default value.
@@ -66,7 +66,7 @@ public interface GSVertexArray<T> extends FFIPointer, CXXPointer {
      */
     @FFINameAlias("Init")
     void init(
-            @CXXReference @FFITypeAlias(GRAPE_VERTEX_RANGE + "<uint64_t>") VertexRange<Long> range,
+            @CXXReference VertexRange<VID_T> range,
             @CXXReference T val);
 
     /**
@@ -85,7 +85,7 @@ public interface GSVertexArray<T> extends FFIPointer, CXXPointer {
      */
     @FFINameAlias("SetValue")
     void setValue(
-            @CXXReference @FFITypeAlias(GRAPE_VERTEX_RANGE + "<uint64_t>") VertexRange<Long> range,
+            @CXXReference VertexRange<VID_T> range,
             @CXXReference T val);
 
     /**
@@ -96,7 +96,7 @@ public interface GSVertexArray<T> extends FFIPointer, CXXPointer {
      */
     @FFINameAlias("SetValue")
     void setValue(
-            @CXXReference @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") Vertex<Long> vertex,
+            @CXXReference Vertex<VID_T> vertex,
             @CXXReference T val);
 
     /**
@@ -108,7 +108,7 @@ public interface GSVertexArray<T> extends FFIPointer, CXXPointer {
     @FFINameAlias("GetValue")
     @CXXOperator("[]")
     @CXXReference
-    T get(@CXXReference @FFITypeAlias(GRAPE_VERTEX + "<uint64_t>") Vertex<Long> vertex);
+    T get(@CXXReference Vertex<VID_T> vertex);
 
     /**
      * Get the vertex range for this vertex array.
@@ -116,11 +116,10 @@ public interface GSVertexArray<T> extends FFIPointer, CXXPointer {
      * @return the range of vertices.
      */
     @CXXReference
-    @FFITypeAlias(GRAPE_VERTEX_RANGE + "<uint64_t>")
-    VertexRange<Long> GetVertexRange();
+    VertexRange<VID_T> GetVertexRange();
 
     @FFINameAlias("Swap")
-    void swap(@CXXReference GSVertexArray<T> vertexArray);
+    void swap(@CXXReference GSVertexArray<VID_T, T> vertexArray);
 
     /**
      * Inherited from grape::Array
@@ -131,10 +130,11 @@ public interface GSVertexArray<T> extends FFIPointer, CXXPointer {
     /**
      * Factory GSVertexArray.
      *
+     * @param <VID_T> vertex id type.
      * @param <T> vertex data type.
      */
     @FFIFactory
-    interface Factory<T> {
-        GSVertexArray<T> create();
+    interface Factory<VID_T, T> {
+        GSVertexArray<VID_T, T> create();
     }
 }

@@ -66,7 +66,7 @@ public abstract class LabeledVertexDataContext<OID_T,VID_T, DATA_T> {
         return ffiLabeledVertexDataContext.getValue(vertex);
     }
 
-    public StdVector<GSVertexArray<DATA_T>> data() {
+    public StdVector<GSVertexArray<VID_T, DATA_T>> data() {
         if (Objects.isNull(ffiLabeledVertexDataContext)) {
             return null;
         }

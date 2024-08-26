@@ -28,11 +28,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
-public abstract class VertexDataContext<FRAG_T extends IFragment, DATA_T> {
+public abstract class VertexDataContext<OID_T,VID_T,VDATA_T, EDATA_T, DATA_T> {
     private static Logger logger = LoggerFactory.getLogger(VertexDataContext.class.getName());
 
     private long ffiContextAddress;
-    private FFIVertexDataContext<FRAG_T, DATA_T> ffiVertexDataContext;
+    private FFIVertexDataContext<IFragment<OID_T,VID_T,VDATA_T,EDATA_T>, DATA_T> ffiVertexDataContext;
     private FFIVertexDataContext.Factory factory;
     private Class<? extends DATA_T> dataClass;
 
@@ -44,7 +44,7 @@ public abstract class VertexDataContext<FRAG_T extends IFragment, DATA_T> {
      * @param includeOuter whether to include outer vertices or not.
      */
     protected void createFFIContext(
-            FRAG_T fragment, Class<? extends DATA_T> dataClass, boolean includeOuter) {
+            IFragment<OID_T,VID_T,VDATA_T,EDATA_T> fragment, Class<? extends DATA_T> dataClass, boolean includeOuter) {
         String fragmentTemplateStr = FFITypeFactoryhelper.getForeignName(fragment.getFFIPointer());
         this.dataClass = dataClass;
         String contextName =
@@ -57,7 +57,7 @@ public abstract class VertexDataContext<FRAG_T extends IFragment, DATA_T> {
         ffiContextAddress = ffiVertexDataContext.getAddress();
     }
 
-    public GSVertexArray<DATA_T> data() {
+    public GSVertexArray<VID_T, DATA_T> data() {
         if (Objects.isNull(ffiVertexDataContext)) {
             return null;
         }

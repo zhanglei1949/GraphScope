@@ -45,6 +45,5 @@ public interface DoubleColumn<FRAG_T> extends IColumn {
     void set(@CXXReference @FFITypeAlias(GRAPE_LONG_VERTEX) Vertex<Long> vertex, double value);
 
     @CXXReference
-    @FFITypeAlias(GS_VERTEX_ARRAY + "<double>")
-    GSVertexArray<Double> data();
+    <VID_T> GSVertexArray<VID_T, Double> data();
 }

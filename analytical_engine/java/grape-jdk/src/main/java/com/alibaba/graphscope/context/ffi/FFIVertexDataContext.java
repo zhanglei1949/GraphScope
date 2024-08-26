@@ -37,7 +37,7 @@ import com.alibaba.graphscope.utils.CppHeaderName;
 public interface FFIVertexDataContext<FRAG_T, DATA_T> extends FFIPointer {
 
     @CXXReference
-    GSVertexArray<DATA_T> data();
+    <VID_T> GSVertexArray<VID_T, DATA_T> data();
 
     @FFIFactory
     interface Factory<FRAG_T, DATA_T> {

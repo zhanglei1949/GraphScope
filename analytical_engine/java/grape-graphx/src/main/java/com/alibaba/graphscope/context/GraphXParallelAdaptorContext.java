@@ -54,7 +54,7 @@ import java.io.IOException;
 import java.net.URLClassLoader;
 
 public class GraphXParallelAdaptorContext<VDATA_T, EDATA_T, MSG>
-        extends VertexDataContext<IFragment<Long, Long, VDATA_T, EDATA_T>, VDATA_T>
+        extends VertexDataContext<Long,Long,VDATA_T,EDATA_T, VDATA_T>
         implements ParallelContextBase<Long, Long, VDATA_T, EDATA_T> {
 
     public static final String pathPrefix = "/tmp/gs_graphx_pie_";

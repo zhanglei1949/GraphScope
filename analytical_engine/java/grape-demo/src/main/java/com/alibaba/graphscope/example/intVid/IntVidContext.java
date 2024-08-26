@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class IntVidContext extends VertexDataContext<IFragment<Integer, Integer, Double, Long>, Long>
+public class IntVidContext extends VertexDataContext<Integer, Integer, Double, Long, Long>
         implements ParallelContextBase<Integer, Integer, Double, Long> {
     //存储一组点上的属性
     public class PathStorage extends FileObjectStorage{

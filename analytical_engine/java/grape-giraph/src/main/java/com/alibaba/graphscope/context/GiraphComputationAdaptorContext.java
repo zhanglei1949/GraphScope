@@ -79,7 +79,7 @@ import java.util.Objects;
  * @param <EDATA_T>
  */
 public class GiraphComputationAdaptorContext<OID_T, VID_T, VDATA_T, EDATA_T>
-        extends VertexDataContext<IFragment<OID_T, VID_T, VDATA_T, EDATA_T>, VDATA_T>
+        extends VertexDataContext<OID_T,VID_T, VDATA_T, EDATA_T, VDATA_T>
         implements DefaultContextBase<OID_T, VID_T, VDATA_T, EDATA_T> {
 
     private static Logger logger = LoggerFactory.getLogger(GiraphComputationAdaptorContext.class);

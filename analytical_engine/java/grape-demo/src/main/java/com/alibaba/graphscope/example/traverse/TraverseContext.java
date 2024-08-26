@@ -23,10 +23,10 @@ import com.alibaba.graphscope.ds.GSVertexArray;
 import com.alibaba.graphscope.fragment.IFragment;
 import com.alibaba.graphscope.parallel.ParallelMessageManager;
 
-public class TraverseContext extends VertexDataContext<IFragment<Long, Long, Double, Long>, Long>
+public class TraverseContext extends VertexDataContext<Long, Long, Double, Long, Long>
         implements ParallelContextBase<Long, Long, Double, Long> {
 
-    public GSVertexArray<Long> vertexArray;
+    public GSVertexArray<Long, Long> vertexArray;
     public int maxIteration;
 
     @Override

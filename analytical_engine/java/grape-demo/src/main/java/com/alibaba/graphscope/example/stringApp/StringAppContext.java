@@ -15,7 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class StringAppContext
-        extends VertexDataContext<IFragment<Long, Long, StringView, StringView>, StdString>
+        extends VertexDataContext<Long, Long, StringView, StringView, StdString>
         implements ParallelContextBase<Long, Long, StringView, StringView> {
 
     private static Logger logger = LoggerFactory.getLogger(StringAppContext.class);
@@ -51,7 +51,7 @@ public class StringAppContext
     @Override
     public void Output(IFragment<Long, Long, StringView, StringView> frag) {
         // output to inner vertex data
-        GSVertexArray<StdString> vertexData = data();
+        GSVertexArray<Long, StdString> vertexData = data();
         Vertex<Long> vertex = FFITypeFactoryhelper.newVertexLong();
         logger.info("Begin output");
         for (long i = 0; i < vertexData.size(); ++i) {

@@ -38,7 +38,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class PageRankContext extends VertexDataContext<IFragment<Long, Long, Long, Double>, Double>
+public class PageRankContext extends VertexDataContext<Long, Long, Long, Double, Double>
         implements ParallelContextBase<Long, Long, Long, Double> {
 
     private static Logger logger = LoggerFactory.getLogger(PageRankContext.class);
