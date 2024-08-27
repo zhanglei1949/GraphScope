@@ -19,7 +19,6 @@ package com.alibaba.graphscope.cypher.antlr4;
 import com.alibaba.graphscope.common.config.Configs;
 import com.alibaba.graphscope.common.config.FrontendConfig;
 import com.alibaba.graphscope.common.ir.rel.graph.GraphLogicalSource;
-import com.alibaba.graphscope.common.ir.tools.GraphBuilder;
 import com.alibaba.graphscope.common.ir.tools.LogicalPlan;
 import com.google.common.collect.ImmutableMap;
 
@@ -507,19 +506,31 @@ public class MatchTest {
     }
 
     @Test
-    public void property_exist_after_type_inference_test() {
-        GraphBuilder builder =
-                com.alibaba.graphscope.common.ir.Utils.mockGraphBuilder(
-                        "schema/ldbc_schema_exp_hierarchy.json");
-        // check property 'creationDate' still exists after type inference has updated the type of
-        // 'HASCREATOR'
+    public void shortest_path_test() {
+        // convert 'shortestpath' modifier to 'path_opt=[ANY_SHORTEST]' in IR, and 'all
+        // shortestpath' to 'path_opt=[ALL_SHORTEST]'
         RelNode rel =
-                com.alibaba.graphscope.cypher.antlr4.Utils.eval(
-                                "Match (a:PERSON)<-[h:HASCREATOR]-(b:COMMENT) Return h;", builder)
+                Utils.eval(
+                                "MATCH"
+                                    + " shortestPath((person1:person)-[path:knows*1..5]->(person2:person))"
+                                    + " Return count(person1)")
                         .build();
         Assert.assertEquals(
-                "RecordType(Graph_Schema_Type(labels=[EdgeLabel(HASCREATOR, COMMENT, PERSON)],"
-                        + " properties=[BIGINT creationDate]) h)",
-                rel.getRowType().toString());
+                "GraphLogicalAggregate(keys=[{variables=[], aliases=[]}],"
+                    + " values=[[{operands=[person1], aggFunction=COUNT, alias='$f0',"
+                    + " distinct=false}]])\n"
+                    + "  GraphLogicalSingleMatch(input=[null],"
+                    + " sentence=[GraphLogicalGetV(tableConfig=[{isAll=false, tables=[person]}],"
+                    + " alias=[person2], opt=[END])\n"
+                    + "  GraphLogicalPathExpand(expand=[GraphLogicalExpand(tableConfig=[{isAll=false,"
+                    + " tables=[knows]}], alias=[_], opt=[OUT])\n"
+                    + "], getV=[GraphLogicalGetV(tableConfig=[{isAll=false, tables=[person]}],"
+                    + " alias=[_], opt=[END])\n"
+                    + "], offset=[1], fetch=[4], path_opt=[ANY_SHORTEST], result_opt=[ALL_V_E],"
+                    + " alias=[path])\n"
+                    + "    GraphLogicalSource(tableConfig=[{isAll=false, tables=[person]}],"
+                    + " alias=[person1], opt=[VERTEX])\n"
+                    + "], matchOpt=[INNER])",
+                rel.explain().trim());
     }
 }
