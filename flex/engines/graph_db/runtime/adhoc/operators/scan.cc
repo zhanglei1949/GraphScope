@@ -17,6 +17,7 @@
 #include "flex/engines/graph_db/runtime/adhoc/expr_impl.h"
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
 #include "flex/engines/graph_db/runtime/adhoc/operators/special_predicates.h"
+#include "flex/engines/graph_db/runtime/adhoc/predicates.h"
 namespace gs {
 
 namespace runtime {
@@ -227,19 +228,28 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
     }
 
     if (scan_opr_params.has_predicate()) {
-      Context ctx;
-      auto expr = parse_expression(
-          txn, ctx, params, scan_opr_params.predicate(), VarType::kVertexVar);
-      if (expr->is_optional()) {
-        return Scan::scan_vertex(
-            txn, scan_params, [&expr](label_t label, vid_t vid) {
-              return expr->eval_vertex(label, vid, 0, 0).as_bool();
-            });
+      std::string prop_name;
+      RTAny threshold;
+      // if (is_property_lt(scan_opr_params.predicate(), params, prop_name,
+      //                    threshold)) {
+      if (false) {
+        VertexPropertyLTPredicate<int64_t> pred(txn, prop_name, threshold);
+        return Scan::scan_vertex(txn, scan_params, pred);
       } else {
-        return Scan::scan_vertex(
-            txn, scan_params, [&expr](label_t label, vid_t vid) {
-              return expr->eval_vertex(label, vid, 0).as_bool();
-            });
+        Context ctx;
+        auto expr = parse_expression(
+            txn, ctx, params, scan_opr_params.predicate(), VarType::kVertexVar);
+        if (expr->is_optional()) {
+          return Scan::scan_vertex(
+              txn, scan_params, [&expr](label_t label, vid_t vid) {
+                return expr->eval_vertex(label, vid, 0, 0).as_bool();
+              });
+        } else {
+          return Scan::scan_vertex(
+              txn, scan_params, [&expr](label_t label, vid_t vid) {
+                return expr->eval_vertex(label, vid, 0).as_bool();
+              });
+        }
       }
     }
 

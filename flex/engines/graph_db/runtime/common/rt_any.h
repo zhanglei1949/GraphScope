@@ -375,6 +375,9 @@ struct TypedConverter<int64_t> {
   static int64_t to_typed(const RTAny& val) { return val.as_int64(); }
   static RTAny from_typed(int64_t val) { return RTAny::from_int64(val); }
   static const std::string name() { return "int64"; }
+  static int64_t typed_from_string(const std::string& str) {
+    return std::stoll(str);
+  }
 };
 
 template <>

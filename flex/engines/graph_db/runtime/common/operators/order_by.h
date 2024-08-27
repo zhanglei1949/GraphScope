@@ -192,6 +192,33 @@ class OrderBy {
     ctx.reshuffle(offsets);
   }
 
+  template <typename Comparer>
+  static void staged_order_by_with_limit(const ReadTransaction& txn,
+                                         Context& ctx, const Comparer& cmp,
+                                         size_t low, size_t high,
+                                         const std::vector<size_t>& indices) {
+    std::priority_queue<size_t, std::vector<size_t>, Comparer> queue(cmp);
+    for (auto i : indices) {
+      queue.push(i);
+      if (queue.size() > high) {
+        queue.pop();
+      }
+    }
+    std::vector<size_t> offsets;
+    for (size_t k = 0; k < low; ++k) {
+      queue.pop();
+    }
+    offsets.resize(queue.size());
+    size_t idx = queue.size();
+
+    while (!queue.empty()) {
+      offsets[--idx] = queue.top();
+      queue.pop();
+    }
+
+    ctx.reshuffle(offsets);
+  }
+
   template <typename... Args>
   static void order_by_with_limit_beta(const ReadTransaction& txn, Context& ctx,
                                        const std::tuple<Args...>& keys,

@@ -396,6 +396,60 @@ std::shared_ptr<IContextColumn> build_column(
   return nullptr;
 }
 
+template <typename T>
+std::shared_ptr<IContextColumn> build_topN_value_column_impl(
+    const Expr& expr, size_t row_num, size_t limit, bool asc,
+    std::vector<size_t>& offsets) {
+  std::vector<T> values;
+  if (asc) {
+    TopNGenerator<T, TopNAscCmp<T>> gen(limit);
+    for (size_t i = 0; i < row_num; ++i) {
+      gen.push(TypedConverter<T>::to_typed(expr.eval_path(i)), i);
+    }
+    gen.generate_pairs(values, offsets);
+  } else {
+    TopNGenerator<T, TopNDescCmp<T>> gen(limit);
+    for (size_t i = 0; i < row_num; ++i) {
+      gen.push(TypedConverter<T>::to_typed(expr.eval_path(i)), i);
+    }
+    gen.generate_pairs(values, offsets);
+  }
+  ValueColumnBuilder<T> builder;
+  builder.reserve(values.size());
+  for (auto v : values) {
+    builder.push_back_opt(v);
+  }
+  return builder.finish();
+}
+
+std::shared_ptr<IContextColumn> build_topN_column(
+    const common::IrDataType& data_type, const Expr& expr, size_t row_num,
+    size_t limit, bool asc, std::vector<size_t>& offsets) {
+  if (expr.is_optional()) {
+    LOG(INFO) << "optional not supported...";
+    return nullptr;
+  }
+  if (data_type.type_case() != common::IrDataType::kDataType) {
+    LOG(INFO) << "only data type is supported...";
+    return nullptr;
+  }
+  switch (data_type.data_type()) {
+  case common::DataType::INT64: {
+    return build_topN_value_column_impl<int64_t>(expr, row_num, limit, asc,
+                                                 offsets);
+  }
+  case common::DataType::INT32: {
+    return build_topN_value_column_impl<int32_t>(expr, row_num, limit, asc,
+                                                 offsets);
+  }
+  default: {
+    LOG(INFO) << "type: " << common::DataType_Name(data_type.data_type())
+              << " not implemented...";
+    return nullptr;
+  }
+  }
+}
+
 std::shared_ptr<IContextColumn> build_optional_column_beta(const Expr& expr,
                                                            size_t row_num) {
   switch (expr.type().type_enum_) {

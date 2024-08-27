@@ -221,6 +221,12 @@ class IContextColumn {
   virtual void generate_dedup_offset(std::vector<size_t>& offsets) const {
     LOG(FATAL) << "not implemented for " << this->column_info();
   }
+
+  virtual bool order_by_limit(bool asc, size_t limit,
+                              std::vector<size_t>& offsets) const {
+    LOG(INFO) << "order by limit not implemented for " << this->column_info();
+    return false;
+  }
 };
 
 class IContextColumnBuilder {

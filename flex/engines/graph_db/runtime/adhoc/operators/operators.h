@@ -34,7 +34,7 @@ Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
                       Context&& ctx);
 
 Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
-                      Context&& ctx);
+                      Context&& ctx, bool enable_staged = true);
 
 Context eval_path_expand_v(const physical::PathExpand& opr,
                            const ReadTransaction& txn, Context&& ctx,

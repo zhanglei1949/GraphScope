@@ -18,6 +18,7 @@
 
 #include "flex/engines/graph_db/runtime/common/columns/i_context_column.h"
 #include "flex/engines/graph_db/runtime/common/rt_any.h"
+#include "flex/utils/top_n_generator.h"
 
 #include <vector>
 
@@ -108,6 +109,9 @@ class ValueColumn : public IValueColumn<T> {
 
   std::shared_ptr<IContextColumn> union_col(
       std::shared_ptr<IContextColumn> other) const override;
+
+  bool order_by_limit(bool asc, size_t limit,
+                      std::vector<size_t>& offsets) const override;
 
  private:
   template <typename _T>
@@ -722,6 +726,39 @@ std::shared_ptr<IContextColumn> ValueColumn<T>::union_col(
     builder.push_back_opt(v);
   }
   return builder.finish();
+}
+
+template <typename T>
+bool ValueColumn<T>::order_by_limit(bool asc, size_t limit,
+                                    std::vector<size_t>& offsets) const {
+  size_t size = data_.size();
+  if (size == 0) {
+    return false;
+  }
+#if 1
+  if (asc) {
+    TopNGenerator<T, TopNAscCmp<T>> generator(limit);
+    for (size_t i = 0; i < size; ++i) {
+      generator.push(data_[i], i);
+    }
+    generator.generate_indices(offsets);
+  } else {
+    TopNGenerator<T, TopNDescCmp<T>> generator(limit);
+    for (size_t i = 0; i < size; ++i) {
+      generator.push(data_[i], i);
+    }
+    generator.generate_indices(offsets);
+  }
+#else
+  if (asc) {
+    InplaceTopNGenerator<T, TopNAscCmp<T>> generator(limit);
+    generator.generate_indices(data_, offsets);
+  } else {
+    InplaceTopNGenerator<T, TopNDescCmp<T>> generator(limit);
+    generator.generate_indices(data_, offsets);
+  }
+#endif
+  return true;
 }
 
 }  // namespace runtime

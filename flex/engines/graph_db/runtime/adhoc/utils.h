@@ -49,6 +49,10 @@ std::shared_ptr<IContextColumn> build_column_beta(const Expr& expr,
 
 std::shared_ptr<IContextColumnBuilder> create_column_builder(RTAnyType type);
 
+std::shared_ptr<IContextColumn> build_topN_column(
+    const common::IrDataType& data_type, const Expr& expr, size_t row_num,
+    size_t limit, bool asc, std::vector<size_t>& offsets);
+
 }  // namespace runtime
 
 }  // namespace gs

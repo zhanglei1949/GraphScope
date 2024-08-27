@@ -15,6 +15,7 @@
 
 #include <limits>
 
+#include "flex/engines/graph_db/runtime/adhoc/runtime.h"
 #include "flex/engines/graph_db/runtime/adhoc/var.h"
 #include "flex/engines/graph_db/runtime/common/operators/order_by.h"
 
@@ -58,7 +59,8 @@ class GeneralComparer {
 };
 
 Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
-                      Context&& ctx) {
+                      Context&& ctx, bool enable_staged) {
+  auto& op_cost = OpCost::get().table;
   int lower = 0;
   int upper = std::numeric_limits<int>::max();
   if (opr.has_limit()) {
@@ -68,6 +70,46 @@ Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
 
   GeneralComparer cmp;
   int keys_num = opr.pairs_size();
+  CHECK_GE(keys_num, 1);
+  double t0 = -grape::GetCurrentTime();
+  bool staged_order_by = false;
+  std::vector<size_t> picked_indices;
+#if 1
+  if (enable_staged) {
+    if (ctx.row_num() <= static_cast<size_t>(upper)) {
+      LOG(INFO) << "row number of context <= upper, fallback";
+    } else {
+      if (opr.pairs(0).key().has_tag() && opr.pairs(0).key().tag().has_id()) {
+        if (!opr.pairs(0).key().has_property()) {
+          int tag = opr.pairs(0).key().tag().id();
+          if ((opr.pairs(0).order() == algebra::OrderBy_OrderingPair_Order::
+                                           OrderBy_OrderingPair_Order_ASC) ||
+              (opr.pairs(0).order() == algebra::OrderBy_OrderingPair_Order::
+                                           OrderBy_OrderingPair_Order_DESC)) {
+            bool asc = opr.pairs(0).order() ==
+                       algebra::OrderBy_OrderingPair_Order::
+                           OrderBy_OrderingPair_Order_ASC;
+            auto col = ctx.get(tag);
+            if (col != nullptr) {
+              staged_order_by = col->order_by_limit(asc, upper, picked_indices);
+              if (!staged_order_by) {
+                LOG(INFO) << "column staged order by returns false, fallback";
+              }
+            } else {
+              LOG(INFO) << "the col of first key is null, fallback";
+            }
+          } else {
+            LOG(INFO) << "order is not asc or desc, fallback";
+          }
+        } else {
+          LOG(INFO) << "first key is property, fallback";
+        }
+      }
+    }
+  }
+#endif
+  t0 += grape::GetCurrentTime();
+  op_cost["order_by:preprocess"] += t0;
   for (int i = 0; i < keys_num; ++i) {
     const algebra::OrderBy_OrderingPair& pair = opr.pairs(i);
     Var v(txn, ctx, pair.key(), VarType::kPathVar);
@@ -81,7 +123,19 @@ Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
     cmp.add_keys(std::move(v), order);
   }
 
-  OrderBy::order_by_with_limit<GeneralComparer>(txn, ctx, cmp, lower, upper);
+  if (!staged_order_by) {
+    double t1 = -grape::GetCurrentTime();
+    OrderBy::order_by_with_limit<GeneralComparer>(txn, ctx, cmp, lower, upper);
+    t1 += grape::GetCurrentTime();
+    op_cost["order_by:order_by"] += t0;
+  } else {
+    double t1 = -grape::GetCurrentTime();
+    CHECK_GE(picked_indices.size(), upper);
+    OrderBy::staged_order_by_with_limit<GeneralComparer>(txn, ctx, cmp, lower,
+                                                         upper, picked_indices);
+    t1 += grape::GetCurrentTime();
+    op_cost["order_by:staged_order_by"] += t1;
+  }
   return ctx;
 }
 

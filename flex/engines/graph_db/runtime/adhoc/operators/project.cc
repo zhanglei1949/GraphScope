@@ -182,17 +182,74 @@ Context eval_project_order_by(
 
   std::vector<int> added_alias_in_preproject;
   size_t row_num = ctx.row_num();
-  for (int i = 0; i < mappings_size; ++i) {
-    const physical::Project_ExprAlias& m = project_opr.mappings(i);
-    if (m.has_alias() &&
-        order_by_keys.find(m.alias().value()) != order_by_keys.end()) {
-      {
-        int alias = m.alias().value();
-        CHECK(!ctx.exist(alias));
-        Expr expr(txn, ctx, params, m.expr(), VarType::kPathVar);
-        auto col = build_column(data_types[i], expr, row_num);
-        ctx.set(alias, col);
-        added_alias_in_preproject.push_back(alias);
+  bool success = false;
+  if (order_by_opr.has_limit() &&
+      static_cast<size_t>(order_by_opr.limit().upper()) < ctx.row_num()) {
+    int limit = order_by_opr.limit().upper();
+    if (order_by_opr.pairs(0).has_key() &&
+        order_by_opr.pairs(0).key().has_tag() &&
+        order_by_opr.pairs(0).key().tag().has_id()) {
+      int first_key_tag = order_by_opr.pairs(0).key().tag().id();
+      if ((order_by_opr.pairs(0).order() ==
+           algebra::OrderBy_OrderingPair_Order::
+               OrderBy_OrderingPair_Order_ASC) ||
+          (order_by_opr.pairs(0).order() ==
+           algebra::OrderBy_OrderingPair_Order::
+               OrderBy_OrderingPair_Order_DESC)) {
+        bool asc =
+            order_by_opr.pairs(0).order() ==
+            algebra::OrderBy_OrderingPair_Order::OrderBy_OrderingPair_Order_ASC;
+        std::vector<size_t> offsets;
+        for (int i = 0; i < mappings_size; ++i) {
+          const physical::Project_ExprAlias& m = project_opr.mappings(i);
+          if (m.has_alias() && m.alias().value() == first_key_tag) {
+            CHECK(!ctx.exist(first_key_tag));
+            Expr expr(txn, ctx, params, m.expr(), VarType::kPathVar);
+            auto col = build_topN_column(data_types[i], expr, row_num, limit,
+                                         asc, offsets);
+            if (col != nullptr) {
+              success = true;
+              ctx.reshuffle(offsets);
+              ctx.set(first_key_tag, col);
+              added_alias_in_preproject.push_back(first_key_tag);
+              row_num = ctx.row_num();
+            } else {
+              LOG(INFO) << "build topN column returns nullptr";
+            }
+            break;
+          }
+        }
+        if (success) {
+          for (int i = 0; i < mappings_size; ++i) {
+            const physical::Project_ExprAlias& m = project_opr.mappings(i);
+            if (m.has_alias() && m.alias().value() != first_key_tag &&
+                order_by_keys.find(m.alias().value()) != order_by_keys.end()) {
+              int alias = m.alias().value();
+              CHECK(!ctx.exist(alias));
+              Expr expr(txn, ctx, params, m.expr(), VarType::kPathVar);
+              auto col = build_column(data_types[i], expr, row_num);
+              ctx.set(alias, col);
+              added_alias_in_preproject.push_back(alias);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (!success) {
+    for (int i = 0; i < mappings_size; ++i) {
+      const physical::Project_ExprAlias& m = project_opr.mappings(i);
+      if (m.has_alias() &&
+          order_by_keys.find(m.alias().value()) != order_by_keys.end()) {
+        {
+          int alias = m.alias().value();
+          CHECK(!ctx.exist(alias));
+          Expr expr(txn, ctx, params, m.expr(), VarType::kPathVar);
+          auto col = build_column(data_types[i], expr, row_num);
+          ctx.set(alias, col);
+          added_alias_in_preproject.push_back(alias);
+        }
       }
     }
   }
@@ -200,7 +257,7 @@ Context eval_project_order_by(
   t0 += grape::GetCurrentTime();
 
   double t1 = -grape::GetCurrentTime();
-  ctx = eval_order_by(order_by_opr, txn, std::move(ctx));
+  ctx = eval_order_by(order_by_opr, txn, std::move(ctx), !success);
   t1 += grape::GetCurrentTime();
 
   double t2 = -grape::GetCurrentTime();

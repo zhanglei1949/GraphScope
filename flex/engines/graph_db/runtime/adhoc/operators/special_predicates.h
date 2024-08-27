@@ -131,6 +131,52 @@ inline bool is_pk_exact_check(const common::Expression& expr,
   return true;
 }
 
+inline bool is_property_lt(const common::Expression& expr,
+                           const std::map<std::string, std::string>& params,
+                           std::string& property_name, RTAny& threshold) {
+  if (expr.operators_size() != 3) {
+    return false;
+  }
+  const common::ExprOpr& op0 = expr.operators(0);
+  if (!op0.has_var()) {
+    return false;
+  }
+  if (!op0.var().has_property()) {
+    return false;
+  }
+  if (!op0.var().property().has_key()) {
+    return false;
+  }
+  if (!op0.var().property().key().has_name()) {
+    return false;
+  }
+  property_name = op0.var().property().key().name();
+  const common::ExprOpr& op1 = expr.operators(1);
+  if (!op1.has_logical()) {
+    return false;
+  }
+  if (op1.logical() != common::Logical::LT) {
+    return false;
+  }
+  const common::ExprOpr& op2 = expr.operators(2);
+  if (!op2.has_param()) {
+    return false;
+  }
+  if (!op2.param().has_data_type()) {
+    return false;
+  }
+  if (!op2.param().data_type().has_data_type()) {
+    return false;
+  }
+  if (op2.param().data_type().data_type() != common::DataType::INT64) {
+    return false;
+  }
+  threshold = TypedConverter<int64_t>::from_typed(
+      TypedConverter<int64_t>::typed_from_string(
+          params.at(op2.param().name())));
+  return true;
+}
+
 }  // namespace runtime
 
 }  // namespace gs
