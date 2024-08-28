@@ -538,7 +538,6 @@ Context PathExpand::single_source_shortest_path(
       << "only support same src and dst label";
   auto dir = params.dir;
   CHECK(dir == Direction::kBoth) << "only support both direction";
-  LOG(INFO) << "single source shortest path" << ctx.row_num();
   SLVertexColumnBuilder builder(label_triplet.dst_label);
   GeneralPathColumnBuilder path_builder;
   std::vector<std::shared_ptr<PathImpl>> path_impls;
@@ -546,7 +545,7 @@ Context PathExpand::single_source_shortest_path(
     std::vector<vid_t> path;
     if (single_source_shortest_path_impl(txn, params, v, dests[0].second,
                                          path)) {
-      builder.push_back_opt(v);
+      builder.push_back_opt(dests[0].second);
       shuffle_offset.push_back(index);
       auto impl = PathImpl::make_path_impl(label_triplet.src_label, path);
       path_builder.push_back_opt(Path::make_path(impl));
@@ -558,7 +557,6 @@ Context PathExpand::single_source_shortest_path(
 
   ctx.set_with_reshuffle(params.v_alias, builder.finish(), shuffle_offset);
   ctx.set(params.alias, path_builder.finish());
-  LOG(INFO) << "single source shortest path done" << ctx.row_num();
   return ctx;
 }
 
