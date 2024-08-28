@@ -53,6 +53,9 @@ class GeneralPathColumn : public IPathColumn {
   std::shared_ptr<IContextColumn> dup() const override;
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
+
+  std::shared_ptr<IContextColumn> optional_shuffle(
+      const std::vector<size_t>& offsets) const override;
   RTAnyType elem_type() const override { return RTAnyType::kPath; }
   RTAny get_elem(size_t idx) const override { return RTAny(data_[idx]); }
   const Path& get_path(size_t idx) const override { return data_[idx]; }
@@ -129,6 +132,118 @@ class GeneralPathColumnBuilder : public IContextColumnBuilder {
   std::vector<std::shared_ptr<PathImpl>> path_impls_;
 };
 
+class OptionalGeneralPathColumn : public IPathColumn {
+ public:
+  OptionalGeneralPathColumn() = default;
+  ~OptionalGeneralPathColumn() {}
+  size_t size() const override { return data_.size(); }
+  std::string column_info() const override {
+    return "OptionalGeneralPathColumn[" + std::to_string(size()) + "]";
+  }
+  ContextColumnType column_type() const override {
+    return ContextColumnType::kPath;
+  }
+  std::shared_ptr<IContextColumn> dup() const override;
+  std::shared_ptr<IContextColumn> shuffle(
+      const std::vector<size_t>& offsets) const override;
+  bool is_optional() const override { return true; }
+  RTAnyType elem_type() const override { return RTAnyType::kPath; }
+  bool has_value(size_t idx) const override { return valids_[idx]; }
+  RTAny get_elem(size_t idx) const override {
+    if (!valids_[idx]) {
+      return RTAny(RTAnyType::kNull);
+    }
+    return RTAny(data_[idx]);
+  }
+  const Path& get_path(size_t idx) const override { return data_[idx]; }
+  ISigColumn* generate_signature() const override {
+    LOG(FATAL) << "not implemented for " << this->column_info();
+    return nullptr;
+  }
+
+  std::shared_ptr<IContextColumnBuilder> builder() const override;
+
+  void generate_dedup_offset(std::vector<size_t>& offsets) const override {
+    std::vector<size_t> origin_offsets(data_.size());
+    for (size_t i = 0; i < data_.size(); ++i) {
+      origin_offsets[i] = i;
+    }
+    std::sort(origin_offsets.begin(), origin_offsets.end(),
+              [this](size_t a, size_t b) {
+                // data_[a] == data_[b]
+                if (!(data_[a] < data_[b]) && !(data_[b] < data_[a])) {
+                  return a < b;
+                }
+                return data_[a] < data_[b];
+              });
+    offsets.clear();
+    offsets.push_back(origin_offsets[0]);
+    for (size_t i = 1; i < origin_offsets.size(); ++i) {
+      if (!(data_[origin_offsets[i]] == data_[origin_offsets[i - 1]])) {
+        offsets.push_back(origin_offsets[i]);
+      }
+    }
+  }
+
+  template <typename FUNC>
+  void foreach_path(FUNC func) const {
+    for (size_t i = 0; i < data_.size(); ++i) {
+      const auto& path = data_[i];
+      func(i, path);
+    }
+  }
+
+  void set_path_impls(std::vector<std::shared_ptr<PathImpl>>&& path_impls) {
+    path_impls_.swap(path_impls);
+  }
+
+ private:
+  friend class OptionalGeneralPathColumnBuilder;
+  std::vector<Path> data_;
+  std::vector<bool> valids_;
+  std::vector<std::shared_ptr<PathImpl>> path_impls_;
+};
+
+class OptionalGeneralPathColumnBuilder : public IContextColumnBuilder {
+ public:
+  OptionalGeneralPathColumnBuilder() = default;
+  ~OptionalGeneralPathColumnBuilder() = default;
+  void push_back_opt(const Path& p, bool valid) {
+    data_.push_back(p);
+    valids_.push_back(valid);
+  }
+  void push_back_elem(const RTAny& val) override {
+    data_.push_back(val.as_path());
+    valids_.push_back(true);
+  }
+  void push_back_null() {
+    data_.push_back(Path());
+    valids_.push_back(false);
+  }
+  void reserve(size_t size) override {
+    data_.reserve(size);
+    valids_.reserve(size);
+  }
+  void set_path_impls(
+      const std::vector<std::shared_ptr<PathImpl>>& path_impls) {
+    path_impls_ = path_impls;
+  }
+  std::shared_ptr<IContextColumn> finish() override {
+    auto col = std::make_shared<OptionalGeneralPathColumn>();
+    col->data_.swap(data_);
+    col->valids_.swap(valids_);
+    col->set_path_impls(std::move(path_impls_));
+    path_impls_.clear();
+    return col;
+  }
+
+ private:
+  std::vector<Path> data_;
+  std::vector<bool> valids_;
+  std::vector<std::shared_ptr<PathImpl>> path_impls_;
+};
+
 }  // namespace runtime
 }  // namespace gs
+
 #endif  // RUNTIME_COMMON_COLUMNS_PATH_COLUMNS_H_

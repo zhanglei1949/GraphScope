@@ -69,6 +69,7 @@ class PathImpl {
 };
 class Path {
  public:
+  Path() : impl_(nullptr) {}
   static Path make_path(const std::shared_ptr<PathImpl>& impl) {
     Path new_path;
     new_path.impl_ = impl.get();
