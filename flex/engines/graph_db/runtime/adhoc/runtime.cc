@@ -63,6 +63,50 @@ static std::string get_opr_name(const physical::PhysicalOpr& opr) {
   }
 }
 
+static bool is_shortest_path(const physical::PhysicalPlan& plan, int i) {
+  int opr_num = plan.plan_size();
+  const auto& opr = plan.plan(i).opr();
+  // must be simple path
+  if (opr.path().path_opt() !=
+          physical::PathExpand_PathOpt::PathExpand_PathOpt_SIMPLE ||
+      opr.path().result_opt() !=
+          physical::PathExpand_ResultOpt::PathExpand_ResultOpt_ALL_V_E) {
+    return false;
+  }
+  if (i + 2 < opr_num) {
+    const auto& get_v_opr = plan.plan(i + 1).opr();
+    const auto& get_v_filter_opr = plan.plan(i + 2).opr();
+    if (!get_v_filter_opr.has_vertex() || !get_v_opr.has_vertex()) {
+      return false;
+    }
+    if (get_v_opr.vertex().opt() != physical::GetV::END) {
+      return false;
+    }
+    if (get_v_filter_opr.vertex().opt() != physical::GetV::ITSELF) {
+      return false;
+    }
+
+    int path_alias = opr.path().has_alias() ? opr.path().alias().value() : -1;
+    int get_v_tag =
+        get_v_opr.vertex().has_tag() ? get_v_opr.vertex().tag().value() : -1;
+    int get_v_alias = get_v_opr.vertex().has_alias()
+                          ? get_v_opr.vertex().alias().value()
+                          : -1;
+    if (path_alias != get_v_tag && get_v_tag != -1) {
+      return false;
+    }
+    int get_v_filter_tag = get_v_filter_opr.vertex().has_tag()
+                               ? get_v_filter_opr.vertex().tag().value()
+                               : -1;
+    if (get_v_filter_tag != get_v_alias && get_v_filter_tag != -1) {
+      return false;
+    }
+
+    return true;
+  }
+  return false;
+}
+
 Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
                           const ReadTransaction& txn,
                           const std::map<std::string, std::string>& params,
@@ -151,6 +195,15 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
       ret = eval_select(opr.opr().select(), txn, std::move(ret), params);
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kPath: {
+      if ((i + 2) < opr_num) {
+        if (is_shortest_path(plan, i)) {
+          auto vertex = plan.plan(i + 2).opr().vertex();
+          ret = eval_shortest_path(opr.opr().path(), txn, std::move(ret),
+                                   params, opr.meta_data(0), vertex);
+          i += 2;
+          break;
+        }
+      }
       if ((i + 1) < opr_num) {
         const physical::PhysicalOpr& next_opr = plan.plan(i + 1);
         if (next_opr.opr().has_vertex() &&

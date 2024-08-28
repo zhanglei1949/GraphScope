@@ -388,6 +388,180 @@ Context PathExpand::edge_expand_p(const ReadTransaction& txn, Context&& ctx,
   return ctx;
 }
 
+static bool single_source_shortest_path_impl(const ReadTransaction& txn,
+                                             const ShortestPathParams& params,
+                                             vid_t src, vid_t dst,
+                                             std::vector<vid_t>& path) {
+  std::queue<vid_t> q1;
+  std::queue<vid_t> q2;
+  std::queue<vid_t> tmp;
+
+  label_t v_label = params.labels[0].src_label;
+  label_t e_label = params.labels[0].edge_label;
+  std::vector<int> pre(txn.GetVertexNum(v_label), -1);
+  std::vector<int> dis(txn.GetVertexNum(v_label), 0);
+  q1.push(src);
+  dis[src] = 1;
+  q2.push(dst);
+  dis[dst] = -1;
+
+  while (true) {
+    if (q1.size() <= q2.size()) {
+      if (q1.empty()) {
+        break;
+      }
+      while (!q1.empty()) {
+        int x = q1.front();
+        if (dis[x] >= params.hop_upper + 1) {
+          return false;
+        }
+        q1.pop();
+        auto oe_iter = txn.GetOutEdgeIterator(v_label, x, v_label, e_label);
+        while (oe_iter.IsValid()) {
+          int y = oe_iter.GetNeighbor();
+          if (dis[y] == 0) {
+            dis[y] = dis[x] + 1;
+            tmp.push(y);
+            pre[y] = x;
+          } else if (dis[y] < 0) {
+            while (x != -1) {
+              path.emplace_back(x);
+              x = pre[x];
+            }
+            std::reverse(path.begin(), path.end());
+            while (y != -1) {
+              path.emplace_back(y);
+              y = pre[y];
+            }
+            int len = path.size() - 1;
+            return len >= params.hop_lower && len < params.hop_upper;
+          }
+          oe_iter.Next();
+        }
+        auto ie_iter = txn.GetInEdgeIterator(v_label, x, v_label, e_label);
+        while (ie_iter.IsValid()) {
+          int y = ie_iter.GetNeighbor();
+          if (dis[y] == 0) {
+            dis[y] = dis[x] + 1;
+            tmp.push(y);
+            pre[y] = x;
+          } else if (dis[y] < 0) {
+            while (x != -1) {
+              path.emplace_back(x);
+              x = pre[x];
+            }
+            std::reverse(path.begin(), path.end());
+            while (y != -1) {
+              path.emplace_back(y);
+              y = pre[y];
+            }
+            int len = path.size() - 1;
+            return len >= params.hop_lower && len < params.hop_upper;
+          }
+          ie_iter.Next();
+        }
+      }
+      std::swap(q1, tmp);
+    } else {
+      if (q2.empty()) {
+        break;
+      }
+      while (!q2.empty()) {
+        int x = q2.front();
+        if (dis[x] <= -params.hop_upper - 1) {
+          return false;
+        }
+        q2.pop();
+        auto oe_iter = txn.GetOutEdgeIterator(v_label, x, v_label, e_label);
+        while (oe_iter.IsValid()) {
+          int y = oe_iter.GetNeighbor();
+          if (dis[y] == 0) {
+            dis[y] = dis[x] - 1;
+            tmp.push(y);
+            pre[y] = x;
+          } else if (dis[y] > 0) {
+            while (y != -1) {
+              path.emplace_back(y);
+              y = pre[y];
+            }
+            std::reverse(path.begin(), path.end());
+            while (x != -1) {
+              path.emplace_back(x);
+              x = pre[x];
+            }
+            int len = path.size() - 1;
+            return len >= params.hop_lower && len < params.hop_upper;
+          }
+          oe_iter.Next();
+        }
+        auto ie_iter = txn.GetInEdgeIterator(v_label, x, v_label, e_label);
+        while (ie_iter.IsValid()) {
+          int y = ie_iter.GetNeighbor();
+          if (dis[y] == 0) {
+            dis[y] = dis[x] - 1;
+            tmp.push(y);
+            pre[y] = x;
+          } else if (dis[y] > 0) {
+            while (y != -1) {
+              path.emplace_back(y);
+              y = pre[y];
+            }
+            std::reverse(path.begin(), path.end());
+            while (x != -1) {
+              path.emplace_back(x);
+              x = pre[x];
+            }
+            int len = path.size() - 1;
+            return len >= params.hop_lower && len < params.hop_upper;
+          }
+          ie_iter.Next();
+        }
+      }
+      std::swap(q2, tmp);
+    }
+  }
+  return false;
+}
+
+Context PathExpand::single_source_shortest_path(
+    const ReadTransaction& txn, Context&& ctx, const ShortestPathParams& params,
+    std::vector<std::pair<label_t, vid_t>>& dests) {
+  std::vector<size_t> shuffle_offset;
+  auto& input_vertex_list =
+      *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.start_tag));
+  auto label_sets = input_vertex_list.get_labels_set();
+  auto labels = params.labels;
+  CHECK(labels.size() == 1) << "only support one label triplet";
+  CHECK(label_sets.size() == 1) << "only support one label set";
+  auto label_triplet = labels[0];
+  CHECK(label_triplet.src_label == label_triplet.dst_label)
+      << "only support same src and dst label";
+  auto dir = params.dir;
+  CHECK(dir == Direction::kBoth) << "only support both direction";
+  LOG(INFO) << "single source shortest path" << ctx.row_num();
+  SLVertexColumnBuilder builder(label_triplet.dst_label);
+  GeneralPathColumnBuilder path_builder;
+  std::vector<std::shared_ptr<PathImpl>> path_impls;
+  foreach_vertex(input_vertex_list, [&](size_t index, label_t label, vid_t v) {
+    std::vector<vid_t> path;
+    if (single_source_shortest_path_impl(txn, params, v, dests[0].second,
+                                         path)) {
+      builder.push_back_opt(v);
+      shuffle_offset.push_back(index);
+      auto impl = PathImpl::make_path_impl(label_triplet.src_label, path);
+      path_builder.push_back_opt(Path::make_path(impl));
+      path_impls.emplace_back(impl);
+    }
+  });
+
+  path_builder.set_path_impls(path_impls);
+
+  ctx.set_with_reshuffle(params.v_alias, builder.finish(), shuffle_offset);
+  ctx.set(params.alias, path_builder.finish());
+  LOG(INFO) << "single source shortest path done" << ctx.row_num();
+  return ctx;
+}
+
 }  // namespace runtime
 
 }  // namespace gs

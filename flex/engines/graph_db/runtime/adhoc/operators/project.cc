@@ -144,7 +144,8 @@ bool project_order_by_fusable(
       // LOG(INFO) << "order by - " << k_i << " -th pair has no tag, fallback";
       return false;
     }
-    if (!order_by_opr.pairs(k_i).key().tag().has_id()) {
+    if (!(order_by_opr.pairs(k_i).key().tag().item_case() ==
+          common::NameOrId::ItemCase::kId)) {
       // LOG(INFO) << "order by - " << k_i << " -th pair has no id, fallback";
       return false;
     }
@@ -187,8 +188,7 @@ Context eval_project_order_by(
       static_cast<size_t>(order_by_opr.limit().upper()) < ctx.row_num()) {
     int limit = order_by_opr.limit().upper();
     if (order_by_opr.pairs(0).has_key() &&
-        order_by_opr.pairs(0).key().has_tag() &&
-        order_by_opr.pairs(0).key().tag().has_id()) {
+        order_by_opr.pairs(0).key().has_tag()) {
       int first_key_tag = order_by_opr.pairs(0).key().tag().id();
       if ((order_by_opr.pairs(0).order() ==
            algebra::OrderBy_OrderingPair_Order::

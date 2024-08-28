@@ -34,6 +34,14 @@ class PathImpl {
     new_path->path_.push_back(std::make_pair(label, v));
     return new_path;
   }
+  static std::shared_ptr<PathImpl> make_path_impl(
+      label_t label, std::vector<vid_t>& path_ids) {
+    auto new_path = std::make_shared<PathImpl>();
+    for (auto id : path_ids) {
+      new_path->path_.push_back(std::make_pair(label, id));
+    }
+    return new_path;
+  }
   std::shared_ptr<PathImpl> expand(label_t label, vid_t v) const {
     auto new_path = std::make_shared<PathImpl>();
     new_path->path_ = path_;

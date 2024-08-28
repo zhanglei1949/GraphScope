@@ -102,6 +102,82 @@ Context eval_path_expand_p(const physical::PathExpand& opr,
   return ctx;
 }
 
+std::vector<std::pair<label_t, vid_t>> parse_vertices(
+    const ReadTransaction& txn, label_t label, const physical::GetV& v_opr,
+    const std::map<std::string, std::string>& params) {
+  std::vector<std::pair<label_t, vid_t>> vertices;
+  if (v_opr.has_params()) {
+    const auto& v_params = v_opr.params();
+    if (v_params.has_predicate()) {
+      // label with label_id and vertex_id eq params
+      auto predicate = v_params.predicate();
+      int opr_num = predicate.operators_size();
+      bool flag = false;
+      for (int i = 0; i < opr_num; ++i) {
+        auto opr = predicate.operators(i);
+        if (opr.item_case() == common::ExprOpr::kLogical &&
+            opr.logical() == common::WITHIN) {
+          auto next_opr = predicate.operators(i + 1);
+          if (next_opr.item_case() == common::ExprOpr::kConst &&
+              next_opr.const_().has_i64_array()) {
+            int label_num = next_opr.const_().i64_array().item_size();
+            for (int j = 0; j < label_num; ++j) {
+              auto label_id = next_opr.const_().i64_array().item(j);
+              if (label_id == label) {
+                flag = true;
+                break;
+              }
+            }
+            CHECK(flag) << "label not in WITHIN";
+          }
+        }
+        if (opr.item_case() == common::ExprOpr::kLogical &&
+            opr.logical() == common::EQ) {
+          auto next_opr = predicate.operators(i + 1);
+          if (next_opr.has_param()) {
+            auto param = next_opr.param();
+            std::string name = param.name();
+            std::string value = params.at(name);
+            int64_t vertex_id = std::stoll(value);
+            vid_t vid;
+            CHECK(txn.GetVertexIndex(label, vertex_id, vid))
+                << "vertex not found";
+            vertices.emplace_back(label, vid);
+          }
+        }
+      }
+    }
+  }
+  return vertices;
+}
+
+Context eval_shortest_path(const physical::PathExpand& opr,
+                           const ReadTransaction& txn, Context&& ctx,
+                           const std::map<std::string, std::string>& params,
+                           const physical::PhysicalOpr_MetaData& meta,
+                           const physical::GetV& v_opr) {
+  CHECK(opr.has_start_tag());
+  int start_tag = opr.start_tag().value();
+  CHECK(!opr.is_optional());
+
+  ShortestPathParams spp;
+  spp.start_tag = start_tag;
+  spp.dir = parse_direction(opr.base().edge_expand().direction());
+  spp.v_alias = v_opr.has_alias() ? v_opr.alias().value() : -1;
+  spp.alias = opr.has_alias() ? opr.alias().value() : -1;
+  spp.hop_lower = opr.hop_range().lower();
+  spp.hop_upper = opr.hop_range().upper();
+
+  spp.labels = parse_label_triplets(meta);
+  CHECK(spp.labels.size() == 1) << "only support one label triplet";
+  CHECK(spp.labels[0].src_label == spp.labels[0].dst_label)
+      << "only support same src and dst label";
+  auto vertices = parse_vertices(txn, spp.labels[0].dst_label, v_opr, params);
+
+  return PathExpand::single_source_shortest_path(txn, std::move(ctx), spp,
+                                                 vertices);
+}
+
 }  // namespace runtime
 
 }  // namespace gs

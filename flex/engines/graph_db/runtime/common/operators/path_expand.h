@@ -38,6 +38,16 @@ struct PathExpandParams {
   std::set<int> keep_cols;
 };
 
+struct ShortestPathParams {
+  int start_tag;
+  std::vector<LabelTriplet> labels;
+  int alias;
+  int v_alias;
+  Direction dir;
+  int hop_lower;
+  int hop_upper;
+};
+
 class PathExpand {
  public:
   // PathExpand(expandOpt == Vertex && alias == -1 && resultOpt == END_V) +
@@ -46,6 +56,11 @@ class PathExpand {
                                const PathExpandParams& params);
   static Context edge_expand_p(const ReadTransaction& txn, Context&& ctx,
                                const PathExpandParams& params);
+
+  static Context single_source_shortest_path(
+      const ReadTransaction& txn, Context&& ctx,
+      const ShortestPathParams& params,
+      std::vector<std::pair<label_t, vid_t>>& dests);
 
   template <typename PRED_T>
   static Context edge_expand_v_pred(const ReadTransaction& txn, Context&& ctx,

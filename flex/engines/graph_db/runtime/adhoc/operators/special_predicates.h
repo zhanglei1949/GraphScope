@@ -32,7 +32,7 @@ inline bool is_label_within_predicate(const common::Expression& expr,
     if (var_op.has_var() && var_op.var().has_property() &&
         var_op.var().property().has_label()) {
       auto& within_op = expr.operators(1);
-      if (within_op.has_logical() &&
+      if (within_op.item_case() == common::ExprOpr::kLogical &&
           within_op.logical() == common::Logical::WITHIN) {
         auto& labels_op = expr.operators(2);
         if (labels_op.has_const_() && labels_op.const_().has_i64_array()) {
@@ -57,7 +57,7 @@ inline bool is_pk_exact_check(const common::Expression& expr,
   if (expr.operators_size() != 11) {
     return false;
   }
-  if (!(expr.operators(0).has_brace() &&
+  if (!(expr.operators(0).item_case() == common::ExprOpr::kBrace &&
         expr.operators(0).brace() ==
             common::ExprOpr_Brace::ExprOpr_Brace_LEFT_BRACE)) {
     return false;
@@ -66,7 +66,7 @@ inline bool is_pk_exact_check(const common::Expression& expr,
         expr.operators(1).var().property().has_label())) {
     return false;
   }
-  if (!(expr.operators(2).has_logical() &&
+  if (!(expr.operators(2).item_case() == common::ExprOpr::kLogical &&
         expr.operators(2).logical() == common::Logical::WITHIN)) {
     return false;
   }
@@ -80,16 +80,16 @@ inline bool is_pk_exact_check(const common::Expression& expr,
   } else {
     return false;
   }
-  if (!(expr.operators(4).has_brace() &&
+  if (!(expr.operators(4).item_case() == common::ExprOpr::kBrace &&
         expr.operators(4).brace() ==
             common::ExprOpr_Brace::ExprOpr_Brace_RIGHT_BRACE)) {
     return false;
   }
-  if (!(expr.operators(5).has_logical() &&
+  if (!(expr.operators(5).item_case() == common::ExprOpr::kLogical &&
         expr.operators(5).logical() == common::Logical::AND)) {
     return false;
   }
-  if (!(expr.operators(6).has_brace() &&
+  if (!(expr.operators(6).item_case() == common::ExprOpr::kBrace &&
         expr.operators(6).brace() ==
             common::ExprOpr_Brace::ExprOpr_Brace_LEFT_BRACE)) {
     return false;
@@ -97,11 +97,12 @@ inline bool is_pk_exact_check(const common::Expression& expr,
   if (!(expr.operators(7).has_var() && expr.operators(7).var().has_property() &&
         expr.operators(7).var().property().has_key())) {
     auto& key = expr.operators(7).var().property().key();
-    if (!(key.has_name() && key.name() == "id")) {
+    if (!(key.item_case() == common::NameOrId::ItemCase::kName &&
+          key.name() == "id")) {
       return false;
     }
   }
-  if (!(expr.operators(8).has_logical() &&
+  if (!(expr.operators(8).item_case() == common::ExprOpr::kLogical &&
         expr.operators(8).logical() == common::Logical::EQ)) {
     return false;
   }
@@ -112,7 +113,9 @@ inline bool is_pk_exact_check(const common::Expression& expr,
     if (p_iter == params.end()) {
       return false;
     }
-    if (!(p.has_data_type() && p.data_type().has_data_type() &&
+    if (!(p.has_data_type() &&
+          p.data_type().type_case() ==
+              common::IrDataType::TypeCase::kDataType &&
           p.data_type().data_type() == common::DataType::INT64)) {
       return false;
     }
@@ -120,7 +123,7 @@ inline bool is_pk_exact_check(const common::Expression& expr,
   } else {
     return false;
   }
-  if (!(expr.operators(10).has_brace() &&
+  if (!(expr.operators(10).item_case() == common::ExprOpr::kBrace &&
         expr.operators(10).brace() ==
             common::ExprOpr_Brace::ExprOpr_Brace_RIGHT_BRACE)) {
     return false;
@@ -147,12 +150,13 @@ inline bool is_property_lt(const common::Expression& expr,
   if (!op0.var().property().has_key()) {
     return false;
   }
-  if (!op0.var().property().key().has_name()) {
+  if (!(op0.var().property().key().item_case() ==
+        common::NameOrId::ItemCase::kName)) {
     return false;
   }
   property_name = op0.var().property().key().name();
   const common::ExprOpr& op1 = expr.operators(1);
-  if (!op1.has_logical()) {
+  if (!(op1.item_case() == common::ExprOpr::kLogical)) {
     return false;
   }
   if (op1.logical() != common::Logical::LT) {
@@ -165,7 +169,8 @@ inline bool is_property_lt(const common::Expression& expr,
   if (!op2.param().has_data_type()) {
     return false;
   }
-  if (!op2.param().data_type().has_data_type()) {
+  if (!(op2.param().data_type().type_case() ==
+        common::IrDataType::TypeCase::kDataType)) {
     return false;
   }
   if (op2.param().data_type().data_type() != common::DataType::INT64) {

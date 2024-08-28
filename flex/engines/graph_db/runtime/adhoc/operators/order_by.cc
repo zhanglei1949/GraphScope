@@ -79,7 +79,9 @@ Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
     if (ctx.row_num() <= static_cast<size_t>(upper)) {
       LOG(INFO) << "row number of context <= upper, fallback";
     } else {
-      if (opr.pairs(0).key().has_tag() && opr.pairs(0).key().tag().has_id()) {
+      if (opr.pairs(0).key().has_tag() &&
+          opr.pairs(0).key().tag().item_case() ==
+              common::NameOrId::ItemCase::kId) {
         if (!opr.pairs(0).key().has_property()) {
           int tag = opr.pairs(0).key().tag().id();
           if ((opr.pairs(0).order() == algebra::OrderBy_OrderingPair_Order::
