@@ -14,6 +14,7 @@
  */
 
 #include "flex/engines/graph_db/runtime/common/operators/path_expand.h"
+#include "flex/engines/graph_db/runtime/common/operators/path_expand_impl.h"
 
 namespace gs {
 
@@ -22,175 +23,18 @@ namespace runtime {
 Context PathExpand::edge_expand_v(const ReadTransaction& txn, Context&& ctx,
                                   const PathExpandParams& params) {
   std::vector<size_t> shuffle_offset;
-  if (params.labels.size() == 1) {
-    LOG(INFO) << "edge_expand_v";
-    if (params.dir == Direction::kOut) {
-      auto& input_vertex_list =
-          *std::dynamic_pointer_cast<SLVertexColumn>(ctx.get(params.start_tag));
-      label_t output_vertex_label = params.labels[0].dst_label;
-      label_t edge_label = params.labels[0].edge_label;
-      SLVertexColumnBuilder builder(output_vertex_label);
-
-      std::vector<vid_t> input;
-      std::vector<vid_t> output;
-      input_vertex_list.foreach_vertex(
-          [&](size_t index, label_t label, vid_t v) {
-            int depth = 0;
-            input.clear();
-            output.clear();
-            input.push_back(v);
-            while (depth < params.hop_upper && !input.empty()) {
-              if (depth >= params.hop_lower) {
-                for (auto u : input) {
-                  builder.push_back_opt(u);
-                  shuffle_offset.push_back(index);
-
-                  auto oe_iter = txn.GetOutEdgeIterator(
-                      label, u, output_vertex_label, edge_label);
-                  while (oe_iter.IsValid()) {
-                    output.push_back(oe_iter.GetNeighbor());
-                    oe_iter.Next();
-                  }
-                }
-              } else {
-                for (auto u : input) {
-                  auto oe_iter = txn.GetOutEdgeIterator(
-                      label, u, output_vertex_label, edge_label);
-                  while (oe_iter.IsValid()) {
-                    output.push_back(oe_iter.GetNeighbor());
-                    oe_iter.Next();
-                  }
-                }
-              }
-              ++depth;
-              input.clear();
-              std::swap(input, output);
-            }
-          });
-
-      ctx.set_with_reshuffle_beta(params.alias, builder.finish(),
-                                  shuffle_offset, params.keep_cols);
-      return ctx;
-    } else if (params.dir == Direction::kBoth &&
-               params.labels[0].src_label == params.labels[0].dst_label) {
-      auto& input_vertex_list =
-          *std::dynamic_pointer_cast<SLVertexColumn>(ctx.get(params.start_tag));
-      label_t output_vertex_label = params.labels[0].dst_label;
-      label_t edge_label = params.labels[0].edge_label;
-
-      SLVertexColumnBuilder builder(output_vertex_label);
-
-      std::vector<std::pair<size_t, vid_t>> input;
-      std::vector<std::pair<size_t, vid_t>> output;
-      std::set<vid_t> exclude;
-      CHECK_GE(params.hop_lower, 0);
-      CHECK_GE(params.hop_upper, params.hop_lower);
-      if (params.hop_lower == 0) {
-        LOG(FATAL) << "xxx";
-      } else {
-        if (params.hop_upper == 1) {
-          LOG(FATAL) << "xxx";
-        } else {
-          input_vertex_list.foreach_vertex(
-              [&](size_t index, label_t label, vid_t v) {
-                output.emplace_back(index, v);
-              });
-        }
-        int depth = 0;
-        while (depth < params.hop_upper) {
-          input.clear();
-          std::swap(input, output);
-
-          if (depth >= params.hop_lower) {
-            for (auto& pair : input) {
-              builder.push_back_opt(pair.second);
-              shuffle_offset.push_back(pair.first);
-            }
-          }
-
-          if (depth + 1 >= params.hop_upper) {
-            break;
-          }
-
-          auto label = params.labels[0].src_label;
-          for (auto& pair : input) {
-            auto index = pair.first;
-            auto v = pair.second;
-            auto oe_iter = txn.GetOutEdgeIterator(label, v, output_vertex_label,
-                                                  edge_label);
-            while (oe_iter.IsValid()) {
-              auto nbr = oe_iter.GetNeighbor();
-              if (exclude.find(nbr) == exclude.end()) {
-                output.emplace_back(index, nbr);
-              }
-              oe_iter.Next();
-            }
-
-            auto ie_iter = txn.GetInEdgeIterator(label, v, output_vertex_label,
-                                                 edge_label);
-            while (ie_iter.IsValid()) {
-              auto nbr = ie_iter.GetNeighbor();
-              if (exclude.find(nbr) == exclude.end()) {
-                output.emplace_back(index, nbr);
-              }
-              ie_iter.Next();
-            }
-          }
-
-          ++depth;
-        }
-      }
-      ctx.set_with_reshuffle_beta(params.alias, builder.finish(),
-                                  shuffle_offset, params.keep_cols);
-      return ctx;
-    } else if (params.dir == Direction::kIn) {
-      auto& input_vertex_list =
-          *std::dynamic_pointer_cast<SLVertexColumn>(ctx.get(params.start_tag));
-      label_t output_vertex_label = params.labels[0].src_label;
-      label_t edge_label = params.labels[0].edge_label;
-      SLVertexColumnBuilder builder(output_vertex_label);
-
-      std::vector<vid_t> input;
-      std::vector<vid_t> output;
-      input_vertex_list.foreach_vertex(
-          [&](size_t index, label_t label, vid_t v) {
-            int depth = 0;
-            input.clear();
-            output.clear();
-            input.push_back(v);
-            while (depth < params.hop_upper && !input.empty()) {
-              if (depth >= params.hop_lower) {
-                for (auto u : input) {
-                  builder.push_back_opt(u);
-                  shuffle_offset.push_back(index);
-
-                  auto ie_iter = txn.GetInEdgeIterator(
-                      label, u, output_vertex_label, edge_label);
-                  while (ie_iter.IsValid()) {
-                    output.push_back(ie_iter.GetNeighbor());
-                    ie_iter.Next();
-                  }
-                }
-              } else {
-                for (auto u : input) {
-                  auto ie_iter = txn.GetInEdgeIterator(
-                      label, u, output_vertex_label, edge_label);
-                  while (ie_iter.IsValid()) {
-                    output.push_back(ie_iter.GetNeighbor());
-                    ie_iter.Next();
-                  }
-                }
-              }
-              ++depth;
-              input.clear();
-              std::swap(input, output);
-            }
-          });
-
-      ctx.set_with_reshuffle_beta(params.alias, builder.finish(),
-                                  shuffle_offset, params.keep_cols);
-      return ctx;
-    }
+  if (params.labels.size() == 1 &&
+      ctx.get(params.start_tag)->column_type() == ContextColumnType::kVertex &&
+      std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.start_tag))
+              ->vertex_column_type() == VertexColumnType::kSingle) {
+    auto& input_vertex_list =
+        *std::dynamic_pointer_cast<SLVertexColumn>(ctx.get(params.start_tag));
+    auto pair = path_expand_vertex_without_predicate_impl(
+        txn, input_vertex_list, params.labels, params.dir, params.hop_lower,
+        params.hop_upper);
+    ctx.set_with_reshuffle_beta(params.alias, pair.first, pair.second,
+                                params.keep_cols);
+    return ctx;
   } else {
     if (params.dir == Direction::kOut) {
       auto& input_vertex_list =

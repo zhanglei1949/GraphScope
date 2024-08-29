@@ -59,8 +59,14 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
       eep.labels = parse_label_triplets(meta);
       eep.dir = dir;
       eep.alias = alias;
-      return EdgeExpand::expand_vertex_without_predicate(txn, std::move(ctx),
-                                                         eep);
+
+      double t = -grape::GetCurrentTime();
+      auto ret =
+          EdgeExpand::expand_vertex_without_predicate(txn, std::move(ctx), eep);
+      t += grape::GetCurrentTime();
+
+      op_cost.table["expand_vertex_without_predicate"] += t;
+      return ret;
     }
   } else if (opr.expand_opt() ==
              physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE) {
@@ -87,8 +93,12 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
       eep.dir = dir;
       eep.alias = alias;
 
-      return EdgeExpand::expand_edge_without_predicate(txn, std::move(ctx),
-                                                       eep);
+      double t = -grape::GetCurrentTime();
+      auto ret =
+          EdgeExpand::expand_edge_without_predicate(txn, std::move(ctx), eep);
+      t += grape::GetCurrentTime();
+
+      op_cost.table["expand_edge_without_predicate"] += t;
     }
   } else {
     LOG(FATAL) << "not support";
@@ -104,16 +114,16 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
     // LOG(INFO) << "not edge expand, fallback";
     return false;
   }
-  if (ee_opr.params().has_predicate()) {
-    // LOG(INFO) << "edge expand has predicate, fallback";
-    return false;
-  }
+  // if (ee_opr.params().has_predicate()) {
+  //   LOG(INFO) << "edge expand has predicate, fallback";
+  //   return false;
+  // }
   int alias = -1;
   if (ee_opr.has_alias()) {
     alias = ee_opr.alias().value();
   }
   if (alias != -1) {
-    // LOG(INFO) << "alias of edge expand is not -1, fallback";
+    LOG(INFO) << "alias of edge expand is not -1, fallback";
     return false;
   }
 
@@ -122,12 +132,12 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
     tag = v_opr.tag().value();
   }
   if (tag != -1) {
-    // LOG(INFO) << "the input of get_v is -1, fallback";
+    LOG(INFO) << "the input of get_v is -1, fallback";
     return false;
   }
   if (v_opr.has_params()) {
     if (v_opr.params().has_predicate()) {
-      // LOG(INFO) << "get_v has predicate, fallback";
+      LOG(INFO) << "get_v has predicate, fallback";
       return false;
     }
   }
@@ -138,7 +148,7 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
   }
   auto upstream = std::dynamic_pointer_cast<IVertexColumn>(ctx.get(input_tag));
   if (upstream == nullptr) {
-    // LOG(INFO) << "upstream is not a vertex column, fallback";
+    LOG(INFO) << "upstream is not a vertex column, fallback";
     return false;
   }
   const std::set<label_t>& input_vertex_labels = upstream->get_labels_set();
@@ -159,15 +169,14 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
       output_vertex_labels.push_back(triplet.src_label);
     }
   } else {
-    // LOG(INFO)
-    //     << "direction of edge_expand is not consistent with vopt of get_v";
+    LOG(INFO)
+        << "direction of edge_expand is not consistent with vopt of get_v";
     return false;
   }
 
   grape::DistinctSort(v_tables);
   grape::DistinctSort(output_vertex_labels);
-  if (v_tables != output_vertex_labels) {
-    // LOG(INFO) << "tables of output vertices not match";
+  if (!v_tables.empty() && v_tables != output_vertex_labels) {
     return false;
   }
   return true;
@@ -199,15 +208,28 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
 
   CHECK(ee_opr.expand_opt() ==
         physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE);
-  CHECK(!query_params.has_predicate());
 
-  EdgeExpandParams eep;
-  eep.v_tag = v_tag;
-  eep.labels = parse_label_triplets(meta);
-  eep.dir = dir;
-  eep.alias = alias;
+  if (!query_params.has_predicate()) {
+    EdgeExpandParams eep;
+    eep.v_tag = v_tag;
+    eep.labels = parse_label_triplets(meta);
+    eep.dir = dir;
+    eep.alias = alias;
 
-  return EdgeExpand::expand_vertex_without_predicate(txn, std::move(ctx), eep);
+    return EdgeExpand::expand_vertex_without_predicate(txn, std::move(ctx),
+                                                       eep);
+  } else {
+    EdgeExpandParams eep;
+    eep.v_tag = v_tag;
+    eep.labels = parse_label_triplets(meta);
+    eep.dir = dir;
+    eep.alias = alias;
+
+    GeneralEdgePredicate pred(txn, ctx, params, query_params.predicate());
+    LOG(INFO) << "enter expand vertex with predicate";
+    return EdgeExpand::expand_vertex<GeneralEdgePredicate>(txn, std::move(ctx),
+                                                           eep, pred);
+  }
 }
 
 }  // namespace runtime

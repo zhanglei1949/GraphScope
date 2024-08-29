@@ -40,6 +40,15 @@ class OpCost {
 
   void add_total(double t) { total += t; }
 
+  void output(const std::string& path) const {
+    std::ofstream fout(path);
+    for (auto& pair : table) {
+      fout << pair.first << ": " << pair.second << " ("
+           << pair.second / total * 100.0 << "%)" << std::endl;
+    }
+    fout.flush();
+  }
+
   std::map<std::string, double> table;
   double total = 0;
 };

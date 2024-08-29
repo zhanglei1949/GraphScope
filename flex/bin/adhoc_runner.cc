@@ -85,7 +85,8 @@ int main(int argc, char** argv) {
       "query-file,q", bpo::value<std::string>(), "query file")(
       "params_file,p", bpo::value<std::string>(), "params file")(
       "query-num,n", bpo::value<int>()->default_value(0))(
-      "output-file,o", bpo::value<std::string>(), "output file");
+      "output-file,o", bpo::value<std::string>(), "output file")(
+      "log-path,l", bpo::value<std::string>(), "log file path");
 
   google::InitGoogleLogging(argv[0]);
   FLAGS_logtostderr = true;
@@ -108,6 +109,7 @@ int main(int argc, char** argv) {
   std::string graph_schema_path = "";
   std::string data_path = "";
   std::string output_path = "";
+  std::string log_path = "";
   int query_num = vm["query-num"].as<int>();
 
   if (!vm.count("graph-config")) {
@@ -122,6 +124,9 @@ int main(int argc, char** argv) {
   data_path = vm["data-path"].as<std::string>();
   if (vm.count("output-file")) {
     output_path = vm["output-file"].as<std::string>();
+  }
+  if (vm.count("log-path")) {
+    log_path = vm["log-path"].as<std::string>();
   }
 
   setenv("TZ", "Asia/Shanghai", 1);
@@ -201,6 +206,9 @@ int main(int argc, char** argv) {
     }
     fflush(fout);
     fclose(fout);
+  }
+  if (!log_path.empty()) {
+    gs::runtime::OpCost::get().output(log_path);
   }
 
   return 0;

@@ -46,6 +46,8 @@ class IEdgeColumn : public IContextColumn {
 
 class SDSLEdgeColumnBuilder;
 class OptionalSDSLEdgeColumnBuilder;
+template <typename T>
+class SDSLEdgeColumnBuilderBeta;
 
 class SDSLEdgeColumn : public IEdgeColumn {
  public:
@@ -156,6 +158,8 @@ class SDSLEdgeColumn : public IEdgeColumn {
 
  private:
   friend class SDSLEdgeColumnBuilder;
+  template <typename _T>
+  friend class SDSLEdgeColumnBuilderBeta;
   Direction dir_;
   LabelTriplet label_;
   std::vector<std::pair<vid_t, vid_t>> edges_;
@@ -686,6 +690,54 @@ class SDSLEdgeColumnBuilder : public IContextColumnBuilder {
   std::shared_ptr<ColumnBase> prop_col_;
   std::vector<PropertyType> sub_types_;
   size_t cap_;
+};
+
+template <typename T>
+class SDSLEdgeColumnBuilderBeta : public IContextColumnBuilder {
+ public:
+  SDSLEdgeColumnBuilderBeta(Direction dir, const LabelTriplet& label,
+                            PropertyType prop_type)
+      : dir_(dir),
+        label_(label),
+        prop_type_(prop_type),
+        prop_col_(std::make_shared<TypedColumn<T>>(StorageStrategy::kMem)),
+        prop_col_ptr_(prop_col_.get()) {
+    prop_col_->open_in_memory("");
+  }
+  ~SDSLEdgeColumnBuilderBeta() = default;
+
+  void reserve(size_t size) override { edges_.reserve(size); }
+  void push_back_elem(const RTAny& val) override {
+    const auto& e = val.as_edge();
+    Any any_edata(std::get<3>(e));
+    push_back_opt(std::get<1>(e), std::get<2>(e),
+                  AnyConverter<T>::from_any(any_edata));
+  }
+  void push_back_opt(vid_t src, vid_t dst, const T& data) {
+    size_t len = edges_.size();
+    edges_.emplace_back(src, dst);
+    if (prop_col_ptr_->size() == len) {
+      prop_col_ptr_->resize(edges_.capacity());
+    }
+    prop_col_ptr_->set_value(len, data);
+  }
+
+  std::shared_ptr<IContextColumn> finish() override {
+    auto ret = std::make_shared<SDSLEdgeColumn>(dir_, label_, prop_type_,
+                                                std::vector<PropertyType>());
+    ret->edges_.swap(edges_);
+    prop_col_->resize(edges_.size());
+    ret->prop_col_ = prop_col_;
+    return ret;
+  }
+
+ private:
+  Direction dir_;
+  LabelTriplet label_;
+  std::vector<std::pair<vid_t, vid_t>> edges_;
+  PropertyType prop_type_;
+  std::shared_ptr<TypedColumn<T>> prop_col_;
+  TypedColumn<T>* prop_col_ptr_;
 };
 
 class BDSLEdgeColumnBuilder : public IContextColumnBuilder {

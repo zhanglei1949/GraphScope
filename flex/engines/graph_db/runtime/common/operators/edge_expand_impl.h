@@ -17,33 +17,47 @@
 #ifndef RUNTIME_COMMON_OPERATORS_EDGE_EXPAND_IMPL_H_
 #define RUNTIME_COMMON_OPERATORS_EDGE_EXPAND_IMPL_H_
 
-#include "flex/engines/graph_db/runtime/common/operators/edge_expand.h"
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "flex/engines/graph_db/runtime/common/columns/edge_columns.h"
+#include "flex/engines/graph_db/runtime/common/columns/i_context_column.h"
+#include "flex/engines/graph_db/runtime/common/columns/vertex_columns.h"
 
 namespace gs {
 namespace runtime {
 
-template <typename EDATA_T>
+template <typename EDATA_T, typename PRED_T>
 std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_on_graph_view(const GraphView<EDATA_T>& view,
-                            const SLVertexColumn& input, label_t nbr_label) {
+                            const SLVertexColumn& input, label_t nbr_label,
+                            label_t e_label, Direction dir,
+                            const PRED_T& pred) {
+  label_t input_label = input.label();
+
   SLVertexColumnBuilder builder(nbr_label);
   std::vector<size_t> offsets;
   size_t idx = 0;
   for (auto v : input.vertices()) {
     auto es = view.get_edges(v);
     for (auto& e : es) {
-      builder.push_back_opt(e.neighbor);
-      offsets.push_back(idx);
+      if (pred(input_label, v, nbr_label, e.neighbor, e_label, dir, e.data)) {
+        builder.push_back_opt(e.neighbor);
+        offsets.push_back(idx);
+      }
     }
     ++idx;
   }
+
   return std::make_pair(builder.finish(), std::move(offsets));
 }
 
-template <typename EDATA_T>
+template <typename EDATA_T, typename PRED_T>
 inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_np_se(const ReadTransaction& txn, const SLVertexColumn& input,
-                    label_t nbr_label, label_t edge_label, Direction dir) {
+                    label_t nbr_label, label_t edge_label, Direction dir,
+                    const PRED_T& pred) {
   label_t input_label = input.label();
   CHECK((dir == Direction::kIn) || (dir == Direction::kOut));
   GraphView<EDATA_T> view = (dir == Direction::kIn)
@@ -51,14 +65,16 @@ expand_vertex_np_se(const ReadTransaction& txn, const SLVertexColumn& input,
                                       input_label, nbr_label, edge_label)
                                 : txn.GetOutgoingGraphView<EDATA_T>(
                                       input_label, nbr_label, edge_label);
-  return expand_vertex_on_graph_view(view, input, nbr_label);
+  return expand_vertex_on_graph_view(view, input, nbr_label, edge_label, dir,
+                                     pred);
 }
 
-template <typename EDATA_T>
+template <typename EDATA_T, typename PRED_T>
 inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_np_me_sp(
     const ReadTransaction& txn, const SLVertexColumn& input,
-    const std::vector<std::tuple<label_t, label_t, Direction>>& label_dirs) {
+    const std::vector<std::tuple<label_t, label_t, Direction>>& label_dirs,
+    const PRED_T& pred) {
   std::vector<GraphView<EDATA_T>*> views;
   label_t input_label = input.label();
   std::vector<label_t> nbr_labels;
@@ -90,12 +106,20 @@ expand_vertex_np_me_sp(
     size_t idx = 0;
     SLVertexColumnBuilder builder(nbr_labels[0]);
     for (auto v : input.vertices()) {
+      size_t csr_idx = 0;
       for (auto csr : views) {
+        label_t nbr_label = std::get<0>(label_dirs[csr_idx]);
+        label_t edge_label = std::get<1>(label_dirs[csr_idx]);
+        Direction dir = std::get<2>(label_dirs[csr_idx]);
         auto es = csr->get_edges(v);
         for (auto& e : es) {
-          builder.push_back_opt(e.neighbor);
-          offsets.push_back(idx);
+          if (pred(input_label, v, nbr_label, e.neighbor, edge_label, dir,
+                   e.data)) {
+            builder.push_back_opt(e.neighbor);
+            offsets.push_back(idx);
+          }
         }
+        ++csr_idx;
       }
       ++idx;
     }
@@ -104,14 +128,20 @@ expand_vertex_np_me_sp(
     size_t idx = 0;
     MLVertexColumnBuilder builder;
     for (auto v : input.vertices()) {
-      const label_t* label_ptr = nbr_labels.data();
+      size_t csr_idx = 0;
       for (auto csr : views) {
+        label_t nbr_label = std::get<0>(label_dirs[csr_idx]);
+        label_t edge_label = std::get<1>(label_dirs[csr_idx]);
+        Direction dir = std::get<2>(label_dirs[csr_idx]);
         auto es = csr->get_edges(v);
         for (auto& e : es) {
-          builder.push_back_vertex(std::make_pair(*label_ptr, e.neighbor));
-          offsets.push_back(idx);
+          if (pred(input_label, v, nbr_label, e.neighbor, edge_label, dir,
+                   e.data)) {
+            builder.push_back_vertex(std::make_pair(nbr_label, e.neighbor));
+            offsets.push_back(idx);
+          }
         }
-        ++label_ptr;
+        ++csr_idx;
       }
       ++idx;
     }
@@ -125,10 +155,12 @@ expand_vertex_np_me_sp(
   return std::make_pair(col, std::move(offsets));
 }
 
+template <typename PRED_T>
 inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_np_me_mp(
     const ReadTransaction& txn, const SLVertexColumn& input,
-    const std::vector<std::tuple<label_t, label_t, Direction>>& labels) {
+    const std::vector<std::tuple<label_t, label_t, Direction>>& labels,
+    const PRED_T& pred) {
   MLVertexColumnBuilder builder;
   label_t input_label = input.label();
   size_t idx = 0;
@@ -136,15 +168,19 @@ expand_vertex_np_me_mp(
   for (auto v : input.vertices()) {
     for (auto& t : labels) {
       label_t nbr_label = std::get<0>(t);
-      auto it = (std::get<2>(t) == Direction::kOut)
-                    ? (txn.GetOutEdgeIterator(input_label, v, nbr_label,
-                                              std::get<1>(t)))
-                    : (txn.GetInEdgeIterator(input_label, v, nbr_label,
-                                             std::get<1>(t)));
+      label_t edge_label = std::get<1>(t);
+      Direction dir = std::get<2>(t);
+      auto it =
+          (dir == Direction::kOut)
+              ? (txn.GetOutEdgeIterator(input_label, v, nbr_label, edge_label))
+              : (txn.GetInEdgeIterator(input_label, v, nbr_label, edge_label));
       while (it.IsValid()) {
         auto nbr = it.GetNeighbor();
-        builder.push_back_vertex(std::make_pair(nbr_label, nbr));
-        offsets.push_back(idx);
+        if (pred(input_label, v, nbr_label, nbr, edge_label, dir,
+                 it.GetData())) {
+          builder.push_back_vertex(std::make_pair(nbr_label, nbr));
+          offsets.push_back(idx);
+        }
         it.Next();
       }
     }
@@ -153,11 +189,268 @@ expand_vertex_np_me_mp(
   return std::make_pair(builder.finish(), std::move(offsets));
 }
 
+template <typename EDATA_T, typename PRED_T>
 inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
-expand_vertex_without_predicate_impl(const ReadTransaction& txn,
-                                     const SLVertexColumn& input,
-                                     const std::vector<LabelTriplet>& labels,
-                                     Direction dir) {
+expand_vertex_np_se(
+    const ReadTransaction& txn, const MLVertexColumn& input,
+    const std::vector<std::vector<std::tuple<label_t, label_t, Direction>>>&
+        label_dirs,
+    const PRED_T& pred) {
+  int label_num = label_dirs.size();
+  std::vector<GraphView<EDATA_T>*> views(label_num, nullptr);
+  std::vector<label_t> nbr_labels(label_num,
+                                  std::numeric_limits<label_t>::max());
+  std::vector<label_t> edge_labels(label_num,
+                                   std::numeric_limits<label_t>::max());
+  std::vector<Direction> dirs(label_num);
+  std::set<label_t> nbr_labels_set;
+  bool all_exist = true;
+  for (auto i : input.get_labels_set()) {
+    if (label_dirs[i].empty()) {
+      all_exist = false;
+      continue;
+    }
+    auto& t = label_dirs[i][0];
+    label_t nbr_label = std::get<0>(t);
+    label_t edge_label = std::get<1>(t);
+    Direction dir = std::get<2>(t);
+    nbr_labels[i] = nbr_label;
+    edge_labels[i] = edge_label;
+    dirs[i] = dir;
+    nbr_labels_set.insert(nbr_label);
+    if (dir == Direction::kOut) {
+      views[i] = new GraphView(txn.GetOutgoingGraphView<EDATA_T>(
+          static_cast<label_t>(i), nbr_label, edge_label));
+    } else {
+      CHECK(dir == Direction::kIn);
+      views[i] = new GraphView(txn.GetIncomingGraphView<EDATA_T>(
+          static_cast<label_t>(i), nbr_label, edge_label));
+    }
+  }
+
+  std::vector<size_t> offsets;
+  std::shared_ptr<IContextColumn> col(nullptr);
+
+  if (nbr_labels_set.size() == 1) {
+    SLVertexColumnBuilder builder(*nbr_labels_set.begin());
+    if (all_exist) {
+      input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
+        auto es = views[l]->get_edges(vid);
+        for (auto& e : es) {
+          if (pred(l, vid, nbr_labels[l], e.neighbor, edge_labels[l], dirs[l],
+                   e.data)) {
+            builder.push_back_opt(e.neighbor);
+            offsets.push_back(idx);
+          }
+        }
+      });
+    } else {
+      input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
+        if (views[l]) {
+          auto es = views[l]->get_edges(vid);
+          for (auto& e : es) {
+            if (pred(l, vid, nbr_labels[l], e.neighbor, edge_labels[l], dirs[l],
+                     e.data)) {
+              builder.push_back_opt(e.neighbor);
+              offsets.push_back(idx);
+            }
+          }
+        }
+      });
+    }
+    col = builder.finish();
+  } else {
+    MLVertexColumnBuilder builder;
+    if (all_exist) {
+      input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
+        auto es = views[l]->get_edges(vid);
+        for (auto& e : es) {
+          if (pred(l, vid, nbr_labels[l], e.neighbor, edge_labels[l], dirs[l],
+                   e.data)) {
+            builder.push_back_vertex(std::make_pair(nbr_labels[l], e.neighbor));
+            offsets.push_back(idx);
+          }
+        }
+      });
+    } else {
+      input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
+        if (views[l]) {
+          auto es = views[l]->get_edges(vid);
+          for (auto& e : es) {
+            if (pred(l, vid, nbr_labels[l], e.neighbor, edge_labels[l], dirs[l],
+                     e.data)) {
+              builder.push_back_vertex(
+                  std::make_pair(nbr_labels[l], e.neighbor));
+              offsets.push_back(idx);
+            }
+          }
+        }
+      });
+    }
+    col = builder.finish();
+  }
+  for (auto ptr : views) {
+    if (ptr != nullptr) {
+      delete ptr;
+    }
+  }
+  return std::make_pair(col, std::move(offsets));
+}
+
+template <typename EDATA_T, typename PRED_T>
+inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+expand_vertex_np_me_sp(
+    const ReadTransaction& txn, const MLVertexColumn& input,
+    const std::vector<std::vector<std::tuple<label_t, label_t, Direction>>>&
+        label_dirs,
+    const PRED_T& pred) {
+  int label_num = label_dirs.size();
+  std::vector<std::vector<GraphView<EDATA_T>*>> views(label_num);
+  std::set<label_t> nbr_labels_set;
+  std::vector<std::vector<std::tuple<label_t, label_t, Direction>>>
+      label_dirs_map(label_num);
+
+  for (int i = 0; i < label_num; ++i) {
+    for (auto& t : label_dirs[i]) {
+      label_t nbr_label = std::get<0>(t);
+      label_t edge_label = std::get<1>(t);
+      Direction dir = std::get<2>(t);
+
+      nbr_labels_set.insert(nbr_label);
+      if (dir == Direction::kOut) {
+        views[i].emplace_back(new GraphView(txn.GetOutgoingGraphView<EDATA_T>(
+            static_cast<label_t>(i), nbr_label, edge_label)));
+      } else {
+        CHECK(dir == Direction::kIn);
+        views[i].emplace_back(new GraphView(txn.GetIncomingGraphView<EDATA_T>(
+            static_cast<label_t>(i), nbr_label, edge_label)));
+      }
+      label_dirs_map[i].emplace_back(nbr_label, edge_label, dir);
+    }
+  }
+
+  std::vector<size_t> offsets;
+  std::shared_ptr<IContextColumn> col(nullptr);
+
+  if (nbr_labels_set.size() == 1) {
+    SLVertexColumnBuilder builder(*nbr_labels_set.begin());
+    input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
+      size_t csr_idx = 0;
+      for (auto& view : views[l]) {
+        label_t nbr_label = std::get<0>(label_dirs_map[l][csr_idx]);
+        label_t edge_label = std::get<1>(label_dirs_map[l][csr_idx]);
+        Direction dir = std::get<2>(label_dirs_map[l][csr_idx]);
+        auto es = view->get_edges(vid);
+        for (auto& e : es) {
+          if (pred(l, vid, nbr_label, e.neighbor, edge_label, dir, e.data)) {
+            builder.push_back_opt(e.neighbor);
+            offsets.push_back(idx);
+          }
+        }
+        ++csr_idx;
+      }
+    });
+    col = builder.finish();
+  } else {
+    MLVertexColumnBuilder builder;
+    input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
+      size_t csr_idx = 0;
+      for (auto& view : views[l]) {
+        label_t nbr_label = std::get<0>(label_dirs_map[l][csr_idx]);
+        label_t edge_label = std::get<1>(label_dirs_map[l][csr_idx]);
+        Direction dir = std::get<2>(label_dirs_map[l][csr_idx]);
+        auto es = view->get_edges(vid);
+        for (auto& e : es) {
+          if (pred(l, vid, nbr_label, e.neighbor, edge_label, dir, e.data)) {
+            builder.push_back_vertex(std::make_pair(nbr_label, e.neighbor));
+            offsets.push_back(idx);
+          }
+        }
+        ++csr_idx;
+      }
+    });
+    col = builder.finish();
+  }
+  for (auto& vec : views) {
+    for (auto ptr : vec) {
+      delete ptr;
+    }
+  }
+  return std::make_pair(col, std::move(offsets));
+}
+
+template <typename PRED_T>
+inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+expand_vertex_np_me_mp(
+    const ReadTransaction& txn, const MLVertexColumn& input,
+    const std::vector<std::vector<std::tuple<label_t, label_t, Direction>>>&
+        label_dirs,
+    const PRED_T& pred) {
+  MLVertexColumnBuilder builder;
+  std::vector<size_t> offsets;
+  input.foreach_vertex([&](size_t idx, label_t label, vid_t v) {
+    for (auto& t : label_dirs[label]) {
+      label_t nbr_label = std::get<0>(t);
+      label_t edge_label = std::get<1>(t);
+      Direction dir = std::get<2>(t);
+      auto it = (dir == Direction::kOut)
+                    ? (txn.GetOutEdgeIterator(label, v, nbr_label, edge_label))
+                    : (txn.GetInEdgeIterator(label, v, nbr_label, edge_label));
+      while (it.IsValid()) {
+        auto nbr = it.GetNeighbor();
+        if (pred(label, v, nbr_label, nbr, edge_label, dir, it.GetData())) {
+          builder.push_back_vertex(std::make_pair(nbr_label, nbr));
+          offsets.push_back(idx);
+        }
+        it.Next();
+      }
+    }
+  });
+  return std::make_pair(builder.finish(), std::move(offsets));
+}
+
+template <typename GPRED_T, typename EDATA_T>
+struct GPredWrapper {
+  GPredWrapper(const GPRED_T& gpred) : gpred_(gpred) {}
+
+  bool operator()(label_t v_label, vid_t v, label_t nbr_label, vid_t nbr_vid,
+                  label_t edge_label, Direction dir, const EDATA_T& ed) const {
+    Any edata = AnyConverter<EDATA_T>::to_any(ed);
+    if (dir == Direction::kOut) {
+      return gpred_(LabelTriplet(v_label, nbr_label, edge_label), v, nbr_vid,
+                    edata, Direction::kOut, 0);
+    } else {
+      return gpred_(LabelTriplet(nbr_label, v_label, edge_label), nbr_vid, v,
+                    edata, Direction::kIn, 0);
+    }
+  }
+
+  const GPRED_T& gpred_;
+};
+
+template <typename GPRED_T>
+struct GPredWrapper<GPRED_T, Any> {
+  GPredWrapper(const GPRED_T& gpred) : gpred_(gpred) {}
+
+  bool operator()(label_t v_label, vid_t v, label_t nbr_label, vid_t nbr_vid,
+                  label_t edge_label, Direction dir, const Any& edata) const {
+    if (dir == Direction::kOut) {
+      return gpred_(LabelTriplet(v_label, nbr_label, edge_label), v, nbr_vid,
+                    edata, Direction::kOut, 0);
+    } else {
+      return gpred_(LabelTriplet(nbr_label, v_label, edge_label), nbr_vid, v,
+                    edata, Direction::kIn, 0);
+    }
+  }
+
+  const GPRED_T& gpred_;
+};
+
+template <typename GPRED_T>
+inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+expand_vertex_impl(const ReadTransaction& txn, const SLVertexColumn& input,
+                   const std::vector<LabelTriplet>& labels, Direction dir,
+                   const GPRED_T& gpred) {
   label_t input_label = input.label();
   std::vector<std::tuple<label_t, label_t, Direction>> label_dirs;
   std::vector<PropertyType> ed_types;
@@ -208,35 +501,43 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
     const PropertyType& ed_type = ed_types[0];
     if (ed_type == PropertyType::Empty()) {
       if (se) {
-        return expand_vertex_np_se<grape::EmptyType>(
+        return expand_vertex_np_se<grape::EmptyType,
+                                   GPredWrapper<GPRED_T, grape::EmptyType>>(
             txn, input, std::get<0>(label_dirs[0]), std::get<1>(label_dirs[0]),
-            std::get<2>(label_dirs[0]));
+            std::get<2>(label_dirs[0]),
+            GPredWrapper<GPRED_T, grape::EmptyType>(gpred));
       } else {
-        return expand_vertex_np_me_sp<grape::EmptyType>(txn, input, label_dirs);
+        return expand_vertex_np_me_sp<grape::EmptyType,
+                                      GPredWrapper<GPRED_T, grape::EmptyType>>(
+            txn, input, label_dirs,
+            GPredWrapper<GPRED_T, grape::EmptyType>(gpred));
       }
     } else if (ed_type == PropertyType::Int32()) {
       if (se) {
-        return expand_vertex_np_se<int>(txn, input, std::get<0>(label_dirs[0]),
-                                        std::get<1>(label_dirs[0]),
-                                        std::get<2>(label_dirs[0]));
+        return expand_vertex_np_se<int, GPredWrapper<GPRED_T, int>>(
+            txn, input, std::get<0>(label_dirs[0]), std::get<1>(label_dirs[0]),
+            std::get<2>(label_dirs[0]), GPredWrapper<GPRED_T, int>(gpred));
       } else {
-        return expand_vertex_np_me_sp<int>(txn, input, label_dirs);
+        return expand_vertex_np_me_sp<int, GPredWrapper<GPRED_T, int>>(
+            txn, input, label_dirs, GPredWrapper<GPRED_T, int>(gpred));
       }
     } else if (ed_type == PropertyType::Int64()) {
       if (se) {
-        return expand_vertex_np_se<int64_t>(
+        return expand_vertex_np_se<int64_t, GPredWrapper<GPRED_T, int64_t>>(
             txn, input, std::get<0>(label_dirs[0]), std::get<1>(label_dirs[0]),
-            std::get<2>(label_dirs[0]));
+            std::get<2>(label_dirs[0]), GPredWrapper<GPRED_T, int64_t>(gpred));
       } else {
-        return expand_vertex_np_me_sp<int64_t>(txn, input, label_dirs);
+        return expand_vertex_np_me_sp<int64_t, GPredWrapper<GPRED_T, int64_t>>(
+            txn, input, label_dirs, GPredWrapper<GPRED_T, int64_t>(gpred));
       }
     } else if (ed_type == PropertyType::Date()) {
       if (se) {
-        return expand_vertex_np_se<Date>(txn, input, std::get<0>(label_dirs[0]),
-                                         std::get<1>(label_dirs[0]),
-                                         std::get<2>(label_dirs[0]));
+        return expand_vertex_np_se<Date, GPredWrapper<GPRED_T, Date>>(
+            txn, input, std::get<0>(label_dirs[0]), std::get<1>(label_dirs[0]),
+            std::get<2>(label_dirs[0]), GPredWrapper<GPRED_T, Date>(gpred));
       } else {
-        return expand_vertex_np_me_sp<Date>(txn, input, label_dirs);
+        return expand_vertex_np_me_sp<Date, GPredWrapper<GPRED_T, Date>>(
+            txn, input, label_dirs, GPredWrapper<GPRED_T, Date>(gpred));
       }
     } else {
       LOG(INFO) << "type - " << ed_type << " - not implemented, fallback";
@@ -245,195 +546,15 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
     LOG(INFO)
         << "different edge property type in an edge(vertex) expand, fallback";
   }
-  return expand_vertex_np_me_mp(txn, input, label_dirs);
+  return expand_vertex_np_me_mp<GPredWrapper<GPRED_T, Any>>(
+      txn, input, label_dirs, GPredWrapper<GPRED_T, Any>(gpred));
 }
 
-template <typename EDATA_T>
-inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
-expand_vertex_np_se(
-    const ReadTransaction& txn, const MLVertexColumn& input,
-    const std::vector<std::vector<std::tuple<label_t, label_t, Direction>>>&
-        label_dirs) {
-  int label_num = label_dirs.size();
-  std::vector<GraphView<EDATA_T>*> views(label_num, nullptr);
-  std::vector<label_t> nbr_labels(label_num,
-                                  std::numeric_limits<label_t>::max());
-  std::set<label_t> nbr_labels_set;
-  bool all_exist = true;
-  for (auto i : input.get_labels_set()) {
-    if (label_dirs[i].empty()) {
-      all_exist = false;
-      continue;
-    }
-    auto& t = label_dirs[i][0];
-    label_t nbr_label = std::get<0>(t);
-    label_t edge_label = std::get<1>(t);
-    Direction dir = std::get<2>(t);
-    nbr_labels[i] = nbr_label;
-    nbr_labels_set.insert(nbr_label);
-    if (dir == Direction::kOut) {
-      views[i] = new GraphView(txn.GetOutgoingGraphView<EDATA_T>(
-          static_cast<label_t>(i), nbr_label, edge_label));
-    } else {
-      CHECK(dir == Direction::kIn);
-      views[i] = new GraphView(txn.GetIncomingGraphView<EDATA_T>(
-          static_cast<label_t>(i), nbr_label, edge_label));
-    }
-  }
-
-  std::vector<size_t> offsets;
-  std::shared_ptr<IContextColumn> col(nullptr);
-
-  if (nbr_labels_set.size() == 1) {
-    SLVertexColumnBuilder builder(*nbr_labels_set.begin());
-    if (all_exist) {
-      input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
-        auto es = views[l]->get_edges(vid);
-        for (auto& e : es) {
-          builder.push_back_opt(e.neighbor);
-          offsets.push_back(idx);
-        }
-      });
-    } else {
-      input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
-        if (views[l]) {
-          auto es = views[l]->get_edges(vid);
-          for (auto& e : es) {
-            builder.push_back_opt(e.neighbor);
-            offsets.push_back(idx);
-          }
-        }
-      });
-    }
-    col = builder.finish();
-  } else {
-    MLVertexColumnBuilder builder;
-    if (all_exist) {
-      input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
-        auto es = views[l]->get_edges(vid);
-        for (auto& e : es) {
-          builder.push_back_vertex(std::make_pair(nbr_labels[l], e.neighbor));
-          offsets.push_back(idx);
-        }
-      });
-    } else {
-      input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
-        if (views[l]) {
-          auto es = views[l]->get_edges(vid);
-          for (auto& e : es) {
-            builder.push_back_vertex(std::make_pair(nbr_labels[l], e.neighbor));
-            offsets.push_back(idx);
-          }
-        }
-      });
-    }
-    col = builder.finish();
-  }
-  for (auto ptr : views) {
-    if (ptr != nullptr) {
-      delete ptr;
-    }
-  }
-  return std::make_pair(col, std::move(offsets));
-}
-
-template <typename EDATA_T>
-inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
-expand_vertex_np_me_sp(
-    const ReadTransaction& txn, const MLVertexColumn& input,
-    const std::vector<std::vector<std::tuple<label_t, label_t, Direction>>>&
-        label_dirs) {
-  int label_num = label_dirs.size();
-  std::vector<std::vector<GraphView<EDATA_T>*>> views(label_num);
-  std::set<label_t> nbr_labels_set;
-
-  for (int i = 0; i < label_num; ++i) {
-    for (auto& t : label_dirs[i]) {
-      label_t nbr_label = std::get<0>(t);
-      label_t edge_label = std::get<1>(t);
-      Direction dir = std::get<2>(t);
-
-      nbr_labels_set.insert(nbr_label);
-      if (dir == Direction::kOut) {
-        views[i].emplace_back(new GraphView(txn.GetOutgoingGraphView<EDATA_T>(
-            static_cast<label_t>(i), nbr_label, edge_label)));
-      } else {
-        CHECK(dir == Direction::kIn);
-        views[i].emplace_back(new GraphView(txn.GetIncomingGraphView<EDATA_T>(
-            static_cast<label_t>(i), nbr_label, edge_label)));
-      }
-    }
-  }
-
-  std::vector<size_t> offsets;
-  std::shared_ptr<IContextColumn> col(nullptr);
-
-  if (nbr_labels_set.size() == 1) {
-    SLVertexColumnBuilder builder(*nbr_labels_set.begin());
-    input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
-      for (auto& view : views[l]) {
-        auto es = view->get_edges(vid);
-        for (auto& e : es) {
-          builder.push_back_opt(e.neighbor);
-          offsets.push_back(idx);
-        }
-      }
-    });
-    col = builder.finish();
-  } else {
-    MLVertexColumnBuilder builder;
-    input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
-      const auto* label_ptr = label_dirs[l].data();
-      for (auto& view : views[l]) {
-        label_t nbr_label = std::get<0>(*label_ptr);
-        ++label_ptr;
-        auto es = view->get_edges(vid);
-        for (auto& e : es) {
-          builder.push_back_vertex(std::make_pair(nbr_label, e.neighbor));
-          offsets.push_back(idx);
-        }
-      }
-    });
-    col = builder.finish();
-  }
-  for (auto& vec : views) {
-    for (auto ptr : vec) {
-      delete ptr;
-    }
-  }
-  return std::make_pair(col, std::move(offsets));
-}
-
-inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
-expand_vertex_np_me_mp(
-    const ReadTransaction& txn, const MLVertexColumn& input,
-    const std::vector<std::vector<std::tuple<label_t, label_t, Direction>>>&
-        label_dirs) {
-  MLVertexColumnBuilder builder;
-  std::vector<size_t> offsets;
-  input.foreach_vertex([&](size_t idx, label_t label, vid_t v) {
-    for (auto& t : label_dirs[label]) {
-      label_t nbr_label = std::get<0>(t);
-      auto it =
-          (std::get<2>(t) == Direction::kOut)
-              ? (txn.GetOutEdgeIterator(label, v, nbr_label, std::get<1>(t)))
-              : (txn.GetInEdgeIterator(label, v, nbr_label, std::get<1>(t)));
-      while (it.IsValid()) {
-        auto nbr = it.GetNeighbor();
-        builder.push_back_vertex(std::make_pair(nbr_label, nbr));
-        offsets.push_back(idx);
-        it.Next();
-      }
-    }
-  });
-  return std::make_pair(builder.finish(), std::move(offsets));
-}
-
-inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
-expand_vertex_without_predicate_impl(const ReadTransaction& txn,
-                                     const MLVertexColumn& input,
-                                     const std::vector<LabelTriplet>& labels,
-                                     Direction dir) {
+template <typename GPRED_T>
+std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+expand_vertex_impl(const ReadTransaction& txn, const MLVertexColumn& input,
+                   const std::vector<LabelTriplet>& labels, Direction dir,
+                   const GPRED_T& gpred) {
   const std::set<label_t>& input_labels = input.get_labels_set();
   int label_num = txn.schema().vertex_label_num();
   std::vector<std::vector<std::tuple<label_t, label_t, Direction>>> label_dirs(
@@ -489,27 +610,39 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
     const PropertyType& ed_type = ed_types[0];
     if (ed_type == PropertyType::Empty()) {
       if (se) {
-        return expand_vertex_np_se<grape::EmptyType>(txn, input, label_dirs);
+        return expand_vertex_np_se<grape::EmptyType,
+                                   GPredWrapper<GPRED_T, grape::EmptyType>>(
+            txn, input, label_dirs,
+            GPredWrapper<GPRED_T, grape::EmptyType>(gpred));
       } else {
-        return expand_vertex_np_me_sp<grape::EmptyType>(txn, input, label_dirs);
+        return expand_vertex_np_me_sp<grape::EmptyType,
+                                      GPredWrapper<GPRED_T, grape::EmptyType>>(
+            txn, input, label_dirs,
+            GPredWrapper<GPRED_T, grape::EmptyType>(gpred));
       }
     } else if (ed_type == PropertyType::Int32()) {
       if (se) {
-        return expand_vertex_np_se<int>(txn, input, label_dirs);
+        return expand_vertex_np_se<int, GPredWrapper<GPRED_T, int>>(
+            txn, input, label_dirs, GPredWrapper<GPRED_T, int>(gpred));
       } else {
-        return expand_vertex_np_me_sp<int>(txn, input, label_dirs);
+        return expand_vertex_np_me_sp<int, GPredWrapper<GPRED_T, int>>(
+            txn, input, label_dirs, GPredWrapper<GPRED_T, int>(gpred));
       }
     } else if (ed_type == PropertyType::Int64()) {
       if (se) {
-        return expand_vertex_np_se<int64_t>(txn, input, label_dirs);
+        return expand_vertex_np_se<int64_t, GPredWrapper<GPRED_T, int64_t>>(
+            txn, input, label_dirs, GPredWrapper<GPRED_T, int64_t>(gpred));
       } else {
-        return expand_vertex_np_me_sp<int64_t>(txn, input, label_dirs);
+        return expand_vertex_np_me_sp<int64_t, GPredWrapper<GPRED_T, int64_t>>(
+            txn, input, label_dirs, GPredWrapper<GPRED_T, int64_t>(gpred));
       }
     } else if (ed_type == PropertyType::Date()) {
       if (se) {
-        return expand_vertex_np_se<Date>(txn, input, label_dirs);
+        return expand_vertex_np_se<Date, GPredWrapper<GPRED_T, Date>>(
+            txn, input, label_dirs, GPredWrapper<GPRED_T, Date>(gpred));
       } else {
-        return expand_vertex_np_me_sp<Date>(txn, input, label_dirs);
+        return expand_vertex_np_me_sp<Date, GPredWrapper<GPRED_T, Date>>(
+            txn, input, label_dirs, GPredWrapper<GPRED_T, Date>(gpred));
       }
     } else {
       LOG(INFO) << "type - " << ed_type << " - not implemented, fallback";
@@ -518,7 +651,119 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
     LOG(INFO)
         << "different edge property type in an edge(vertex) expand, fallback";
   }
-  return expand_vertex_np_me_mp(txn, input, label_dirs);
+  return expand_vertex_np_me_mp<GPredWrapper<GPRED_T, Any>>(
+      txn, input, label_dirs, GPredWrapper<GPRED_T, Any>(gpred));
+}
+
+std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+expand_vertex_without_predicate_impl(const ReadTransaction& txn,
+                                     const SLVertexColumn& input,
+                                     const std::vector<LabelTriplet>& labels,
+                                     Direction dir);
+
+std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+expand_vertex_without_predicate_impl(const ReadTransaction& txn,
+                                     const MLVertexColumn& input,
+                                     const std::vector<LabelTriplet>& labels,
+                                     Direction dir);
+
+template <typename EDATA_T, typename PRED_T>
+inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+expand_edge_ep_se(const ReadTransaction& txn, const SLVertexColumn& input,
+                  label_t nbr_label, label_t edge_label, Direction dir,
+                  const PropertyType& prop_type, const PRED_T& pred) {
+  label_t input_label = input.label();
+  CHECK((dir == Direction::kIn) || (dir == Direction::kOut));
+  LabelTriplet triplet(dir == Direction::kIn ? nbr_label : input_label,
+                       dir == Direction::kIn ? input_label : nbr_label,
+                       edge_label);
+  SDSLEdgeColumnBuilderBeta<EDATA_T> builder(dir, triplet, prop_type);
+  std::vector<size_t> offsets;
+  if (dir == Direction::kIn) {
+    GraphView<EDATA_T> view =
+        txn.GetIncomingGraphView<EDATA_T>(input_label, nbr_label, edge_label);
+    size_t idx = 0;
+    for (auto v : input.vertices()) {
+      auto es = view.get_edges(v);
+      for (auto& e : es) {
+        Any edata = AnyConverter<EDATA_T>::to_any(e.data);
+        if (pred(triplet, e.neighbor, v, edata, dir, idx)) {
+          builder.push_back_opt(e.neighbor, v, e.data);
+          offsets.push_back(idx);
+        }
+      }
+      ++idx;
+    }
+  } else {
+    CHECK(dir == Direction::kOut);
+    GraphView<EDATA_T> view =
+        txn.GetOutgoingGraphView<EDATA_T>(input_label, nbr_label, edge_label);
+    size_t idx = 0;
+    for (auto v : input.vertices()) {
+      auto es = view.get_edges(v);
+      for (auto& e : es) {
+        Any edata = AnyConverter<EDATA_T>::to_any(e.data);
+        if (pred(triplet, v, e.neighbor, edata, dir, idx)) {
+          builder.push_back_opt(v, e.neighbor, e.data);
+          offsets.push_back(idx);
+        }
+      }
+      ++idx;
+    }
+  }
+
+  return std::make_pair(builder.finish(), std::move(offsets));
+}
+
+template <typename PRED_T>
+std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+expand_edge_impl(const ReadTransaction& txn, const SLVertexColumn& input,
+                 const LabelTriplet& triplet, const PRED_T& pred,
+                 Direction dir) {
+  label_t input_label = input.label();
+  std::tuple<label_t, label_t, Direction> label_dir;
+  CHECK(txn.schema().exist(triplet.src_label, triplet.dst_label,
+                           triplet.edge_label));
+  if (dir == Direction::kOut) {
+    CHECK(triplet.src_label == input_label);
+    std::get<0>(label_dir) = triplet.dst_label;
+  } else {
+    CHECK(dir == Direction::kIn);
+    CHECK(triplet.dst_label == input_label);
+    std::get<0>(label_dir) = triplet.src_label;
+  }
+  std::get<1>(label_dir) = triplet.edge_label;
+  std::get<2>(label_dir) = dir;
+
+  const auto& properties = txn.schema().get_edge_properties(
+      triplet.src_label, triplet.dst_label, triplet.edge_label);
+  if (properties.empty()) {
+    return expand_edge_ep_se<grape::EmptyType, PRED_T>(
+        txn, input, std::get<0>(label_dir), std::get<1>(label_dir),
+        std::get<2>(label_dir), PropertyType::Empty(), pred);
+  } else if (properties.size() == 1) {
+    const PropertyType& ed_type = properties[0];
+    if (ed_type == PropertyType::Int32()) {
+      return expand_edge_ep_se<int, PRED_T>(
+          txn, input, std::get<0>(label_dir), std::get<1>(label_dir),
+          std::get<2>(label_dir), ed_type, pred);
+    } else if (ed_type == PropertyType::Int64()) {
+      return expand_edge_ep_se<int64_t, PRED_T>(
+          txn, input, std::get<0>(label_dir), std::get<1>(label_dir),
+          std::get<2>(label_dir), ed_type, pred);
+    } else if (ed_type == PropertyType::Date()) {
+      return expand_edge_ep_se<Date, PRED_T>(
+          txn, input, std::get<0>(label_dir), std::get<1>(label_dir),
+          std::get<2>(label_dir), ed_type, pred);
+    } else {
+      LOG(INFO) << "type - " << ed_type << " - not implemented, fallback";
+    }
+  } else {
+    LOG(INFO) << "multiple properties...";
+  }
+  std::shared_ptr<IContextColumn> col(nullptr);
+  std::vector<size_t> offsets;
+  return std::make_pair(col, offsets);
 }
 
 }  // namespace runtime

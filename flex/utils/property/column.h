@@ -325,6 +325,8 @@ class TypedColumn<grape::EmptyType> : public ColumnBase {
 
   void set_any(size_t index, const Any& value) override {}
 
+  void set_value(size_t index, const grape::EmptyType& value) {}
+
   Any get(size_t index) const override { return Any(); }
 
   void ingest(uint32_t index, grape::OutArchive& arc) override {}
