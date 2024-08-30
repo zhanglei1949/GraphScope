@@ -110,6 +110,7 @@ static bool is_shortest_path(const physical::PhysicalPlan& plan, int i) {
 Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
                           const ReadTransaction& txn,
                           const std::map<std::string, std::string>& params,
+                          int op_id_offset = 0,
                           const std::string& prefix = "") {
   Context ret = ctx;
 
@@ -136,16 +137,16 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
                                       ret, opr.meta_data(0))) {
           ret = eval_edge_expand_get_v(
               opr.opr().edge(), next_opr.opr().vertex(), txn, std::move(ret),
-              params, opr.meta_data(0));
+              params, opr.meta_data(0), i + op_id_offset);
           op_name += "_get_v";
           ++i;
         } else {
           ret = eval_edge_expand(opr.opr().edge(), txn, std::move(ret), params,
-                                 opr.meta_data(0));
+                                 opr.meta_data(0), op_id_offset + i);
         }
       } else {
         ret = eval_edge_expand(opr.opr().edge(), txn, std::move(ret), params,
-                               opr.meta_data(0));
+                               opr.meta_data(0), op_id_offset + i);
       }
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kVertex: {
@@ -240,9 +241,10 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
       auto op = opr.opr().join();
       auto ret_dup = ret.dup();
       auto ctx = runtime_eval_impl(op.left_plan(), std::move(ret), txn, params,
-                                   op_name + "-left");
-      auto ctx2 = runtime_eval_impl(op.right_plan(), std::move(ret_dup), txn,
-                                    params, op_name + "-right");
+                                   op_id_offset + 100, op_name + "-left");
+      auto ctx2 =
+          runtime_eval_impl(op.right_plan(), std::move(ret_dup), txn, params,
+                            op_id_offset + 200, op_name + "-right");
       double tj = -grape::GetCurrentTime();
       ret = eval_join(op, std::move(ctx), std::move(ctx2));
       tj += grape::GetCurrentTime();
@@ -256,15 +258,17 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
       for (size_t i = 0; i < num; ++i) {
         if (i + 1 < num) {
           auto ret_dup = ret.dup();
-          ctxs.push_back(runtime_eval_impl(
-              op.sub_plans(i), std::move(ret_dup), txn, params,
-              op_name + "-sub[" + std::to_string(i) + "/" +
-                  std ::to_string(num) + "]"));
+          ctxs.push_back(runtime_eval_impl(op.sub_plans(i), std::move(ret_dup),
+                                           txn, params, op_id_offset + i * 200,
+                                           op_name + "-sub[" +
+                                               std::to_string(i) + "/" +
+                                               std ::to_string(num) + "]"));
         } else {
-          ctxs.push_back(
-              runtime_eval_impl(op.sub_plans(i), std::move(ret), txn, params,
-                                op_name + "-sub[" + std::to_string(i) + "/" +
-                                    std ::to_string(num) + "]"));
+          ctxs.push_back(runtime_eval_impl(op.sub_plans(i), std::move(ret), txn,
+                                           params, op_id_offset + i * 200 + 100,
+                                           op_name + "-sub[" +
+                                               std::to_string(i) + "/" +
+                                               std ::to_string(num) + "]"));
         }
       }
       ret = eval_intersect(txn, op, std::move(ctxs));

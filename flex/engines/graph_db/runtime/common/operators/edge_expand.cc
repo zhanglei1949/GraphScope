@@ -413,6 +413,13 @@ Context EdgeExpand::expand_vertex_without_predicate(
     op_cost["VENP[8-9]"] += t;
     ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
     return ctx;
+  } else if (input_vertex_list_type == VertexColumnType::kMultiSegment) {
+    auto casted_input_vertex_list =
+        std::dynamic_pointer_cast<MSVertexColumn>(input_vertex_list);
+    auto pair = expand_vertex_without_predicate_impl(
+        txn, *casted_input_vertex_list, params.labels, params.dir);
+    ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
+    return ctx;
   } else {
     LOG(FATAL) << "unexpected to reach here";
     return ctx;

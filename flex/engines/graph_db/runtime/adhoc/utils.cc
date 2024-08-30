@@ -450,6 +450,88 @@ std::shared_ptr<IContextColumn> build_topN_column(
   }
 }
 
+template <typename T>
+bool vertex_property_topN_impl(
+    bool asc, size_t limit, const std::shared_ptr<IVertexColumn>& col,
+    const std::vector<std::shared_ptr<ColumnBase>>& property_columns,
+    std::vector<size_t>& offsets) {
+  std::vector<const TypedColumn<T>*> casted_columns(property_columns.size(),
+                                                    nullptr);
+  for (size_t k = 0; k < property_columns.size(); ++k) {
+    if (property_columns[k] != nullptr) {
+      auto casted =
+          std::dynamic_pointer_cast<TypedColumn<T>>(property_columns[k]);
+      if (casted != nullptr) {
+        casted_columns[k] = casted.get();
+      }
+    }
+  }
+  bool success = true;
+  if (asc) {
+    TopNGenerator<T, TopNAscCmp<T>> gen(limit);
+    foreach_vertex(*col, [&](size_t idx, label_t label, vid_t v) {
+      if (casted_columns[label] != nullptr) {
+        gen.push(casted_columns[label]->get_view(v), idx);
+      } else {
+        success = false;
+      }
+    });
+    if (success) {
+      gen.generate_indices(offsets);
+    }
+  } else {
+    TopNGenerator<T, TopNDescCmp<T>> gen(limit);
+    foreach_vertex(*col, [&](size_t idx, label_t label, vid_t v) {
+      if (casted_columns[label] != nullptr) {
+        gen.push(casted_columns[label]->get_view(v), idx);
+      } else {
+        success = false;
+      }
+    });
+    if (success) {
+      gen.generate_indices(offsets);
+    }
+  }
+
+  return success;
+}
+
+bool vertex_property_topN(bool asc, size_t limit,
+                          const std::shared_ptr<IVertexColumn>& col,
+                          const ReadTransaction& txn,
+                          const std::string& prop_name,
+                          std::vector<size_t>& offsets) {
+  label_t label_num = txn.schema().vertex_label_num();
+  std::vector<std::shared_ptr<ColumnBase>> columns(label_num, nullptr);
+  std::vector<PropertyType> prop_types;
+  for (auto l : col->get_labels_set()) {
+    columns[l] = txn.get_vertex_property_column(l, prop_name);
+    if (columns[l] != nullptr) {
+      prop_types.push_back(columns[l]->type());
+    }
+  }
+  if (prop_types.empty()) {
+    return false;
+  }
+  for (size_t k = 1; k < prop_types.size(); ++k) {
+    if (prop_types[k] != prop_types[0]) {
+      LOG(INFO) << "multiple types...";
+      return false;
+    }
+  }
+  if (prop_types[0] == PropertyType::Date()) {
+    return vertex_property_topN_impl<Date>(asc, limit, col, columns, offsets);
+  } else if (prop_types[0] == PropertyType::Int32()) {
+    return vertex_property_topN_impl<int>(asc, limit, col, columns, offsets);
+  } else if (prop_types[0] == PropertyType::Int64()) {
+    return vertex_property_topN_impl<int64_t>(asc, limit, col, columns,
+                                              offsets);
+  } else {
+    LOG(INFO) << "prop type not support...";
+    return false;
+  }
+}
+
 std::shared_ptr<IContextColumn> build_optional_column_beta(const Expr& expr,
                                                            size_t row_num) {
   switch (expr.type().type_enum_) {

@@ -268,8 +268,15 @@ class EdgeExpand {
                                              params.labels, params.dir, pred);
       ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
       return ctx;
+    } else if (input_vertex_list_type == VertexColumnType::kMultiSegment) {
+      auto casted_input_vertex_list =
+          std::dynamic_pointer_cast<MSVertexColumn>(input_vertex_list);
+      auto pair = expand_vertex_impl<PRED_T>(txn, *casted_input_vertex_list,
+                                             params.labels, params.dir, pred);
+      ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
+      return ctx;
     } else {
-      LOG(FATAL) << "unexpected to reach here";
+      LOG(FATAL) << "unexpected to reach here...";
       return ctx;
     }
   }

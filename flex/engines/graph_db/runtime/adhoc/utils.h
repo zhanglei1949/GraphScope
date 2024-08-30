@@ -53,6 +53,12 @@ std::shared_ptr<IContextColumn> build_topN_column(
     const common::IrDataType& data_type, const Expr& expr, size_t row_num,
     size_t limit, bool asc, std::vector<size_t>& offsets);
 
+bool vertex_property_topN(bool asc, size_t limit,
+                          const std::shared_ptr<IVertexColumn>& col,
+                          const ReadTransaction& txn,
+                          const std::string& prop_name,
+                          std::vector<size_t>& offsets);
+
 }  // namespace runtime
 
 }  // namespace gs

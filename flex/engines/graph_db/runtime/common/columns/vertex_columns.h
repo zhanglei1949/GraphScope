@@ -316,6 +316,14 @@ class MSVertexColumn : public IVertexColumn {
 
   ISigColumn* generate_signature() const override;
 
+  size_t seg_num() const { return vertices_.size(); }
+
+  label_t seg_label(size_t seg_id) const { return vertices_[seg_id].first; }
+
+  const std::vector<vid_t>& seg_vertices(size_t seg_id) const {
+    return vertices_[seg_id].second;
+  }
+
  private:
   friend class MSVertexColumnBuilder;
   std::vector<std::pair<label_t, std::vector<vid_t>>> vertices_;

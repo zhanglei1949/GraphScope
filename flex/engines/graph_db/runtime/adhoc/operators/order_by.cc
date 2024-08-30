@@ -16,6 +16,7 @@
 #include <limits>
 
 #include "flex/engines/graph_db/runtime/adhoc/runtime.h"
+#include "flex/engines/graph_db/runtime/adhoc/utils.h"
 #include "flex/engines/graph_db/runtime/adhoc/var.h"
 #include "flex/engines/graph_db/runtime/common/operators/order_by.h"
 
@@ -77,35 +78,43 @@ Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
 #if 1
   if (enable_staged) {
     if (ctx.row_num() <= static_cast<size_t>(upper)) {
-      LOG(INFO) << "row number of context <= upper, fallback";
+      // LOG(INFO) << "row number of context <= upper, fallback";
     } else {
       if (opr.pairs(0).key().has_tag() &&
           opr.pairs(0).key().tag().item_case() ==
               common::NameOrId::ItemCase::kId) {
-        if (!opr.pairs(0).key().has_property()) {
-          int tag = opr.pairs(0).key().tag().id();
-          if ((opr.pairs(0).order() == algebra::OrderBy_OrderingPair_Order::
-                                           OrderBy_OrderingPair_Order_ASC) ||
-              (opr.pairs(0).order() == algebra::OrderBy_OrderingPair_Order::
-                                           OrderBy_OrderingPair_Order_DESC)) {
-            bool asc = opr.pairs(0).order() ==
-                       algebra::OrderBy_OrderingPair_Order::
-                           OrderBy_OrderingPair_Order_ASC;
-            auto col = ctx.get(tag);
-            if (col != nullptr) {
+        int tag = opr.pairs(0).key().tag().id();
+        if ((opr.pairs(0).order() == algebra::OrderBy_OrderingPair_Order::
+                                         OrderBy_OrderingPair_Order_ASC) ||
+            (opr.pairs(0).order() == algebra::OrderBy_OrderingPair_Order::
+                                         OrderBy_OrderingPair_Order_DESC)) {
+          bool asc = opr.pairs(0).order() ==
+                     algebra::OrderBy_OrderingPair_Order::
+                         OrderBy_OrderingPair_Order_ASC;
+          auto col = ctx.get(tag);
+          if (col != nullptr) {
+            if (!opr.pairs(0).key().has_property()) {
               staged_order_by = col->order_by_limit(asc, upper, picked_indices);
               if (!staged_order_by) {
                 LOG(INFO) << "column staged order by returns false, fallback";
               }
+            } else if (col->column_type() == ContextColumnType::kVertex) {
+              std::string prop_name =
+                  opr.pairs(0).key().property().key().name();
+              staged_order_by = vertex_property_topN(
+                  asc, upper, std::dynamic_pointer_cast<IVertexColumn>(col),
+                  txn, prop_name, picked_indices);
             } else {
-              LOG(INFO) << "the col of first key is null, fallback";
+              LOG(INFO) << "first key is property of not vertex, fallback";
             }
           } else {
-            LOG(INFO) << "order is not asc or desc, fallback";
+            LOG(INFO) << "the col of first key is null, fallback";
           }
         } else {
-          LOG(INFO) << "first key is property, fallback";
+          LOG(INFO) << "first pair doesn't have tag";
         }
+      } else {
+        LOG(INFO) << "order is not asc or desc";
       }
     }
   }

@@ -44,6 +44,7 @@ class Scan {
       }
       ctx.set(params.alias, builder.finish());
     } else if (params.tables.size() > 1) {
+#if 0
       MLVertexColumnBuilder builder;
 
       for (auto label : params.tables) {
@@ -54,6 +55,19 @@ class Scan {
           }
         }
       }
+#else
+      MSVertexColumnBuilder builder;
+
+      for (auto label : params.tables) {
+        vid_t vnum = txn.GetVertexNum(label);
+        builder.start_label(label);
+        for (vid_t vid = 0; vid != vnum; ++vid) {
+          if (predicate(label, vid)) {
+            builder.push_back_opt(vid);
+          }
+        }
+      }
+#endif
       ctx.set(params.alias, builder.finish());
     }
     return ctx;
