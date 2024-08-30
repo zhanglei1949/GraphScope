@@ -23,6 +23,7 @@ Context PathExpand::edge_expand_v(const ReadTransaction& txn, Context&& ctx,
                                   const PathExpandParams& params) {
   std::vector<size_t> shuffle_offset;
   if (params.labels.size() == 1) {
+    LOG(INFO) << "edge_expand_v";
     if (params.dir == Direction::kOut) {
       auto& input_vertex_list =
           *std::dynamic_pointer_cast<SLVertexColumn>(ctx.get(params.start_tag));
@@ -139,6 +140,53 @@ Context PathExpand::edge_expand_v(const ReadTransaction& txn, Context&& ctx,
           ++depth;
         }
       }
+      ctx.set_with_reshuffle_beta(params.alias, builder.finish(),
+                                  shuffle_offset, params.keep_cols);
+      return ctx;
+    } else if (params.dir == Direction::kIn) {
+      auto& input_vertex_list =
+          *std::dynamic_pointer_cast<SLVertexColumn>(ctx.get(params.start_tag));
+      label_t output_vertex_label = params.labels[0].src_label;
+      label_t edge_label = params.labels[0].edge_label;
+      SLVertexColumnBuilder builder(output_vertex_label);
+
+      std::vector<vid_t> input;
+      std::vector<vid_t> output;
+      input_vertex_list.foreach_vertex(
+          [&](size_t index, label_t label, vid_t v) {
+            int depth = 0;
+            input.clear();
+            output.clear();
+            input.push_back(v);
+            while (depth < params.hop_upper && !input.empty()) {
+              if (depth >= params.hop_lower) {
+                for (auto u : input) {
+                  builder.push_back_opt(u);
+                  shuffle_offset.push_back(index);
+
+                  auto ie_iter = txn.GetInEdgeIterator(
+                      label, u, output_vertex_label, edge_label);
+                  while (ie_iter.IsValid()) {
+                    output.push_back(ie_iter.GetNeighbor());
+                    ie_iter.Next();
+                  }
+                }
+              } else {
+                for (auto u : input) {
+                  auto ie_iter = txn.GetInEdgeIterator(
+                      label, u, output_vertex_label, edge_label);
+                  while (ie_iter.IsValid()) {
+                    output.push_back(ie_iter.GetNeighbor());
+                    ie_iter.Next();
+                  }
+                }
+              }
+              ++depth;
+              input.clear();
+              std::swap(input, output);
+            }
+          });
+
       ctx.set_with_reshuffle_beta(params.alias, builder.finish(),
                                   shuffle_offset, params.keep_cols);
       return ctx;
