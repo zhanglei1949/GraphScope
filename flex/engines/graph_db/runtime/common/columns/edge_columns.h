@@ -817,7 +817,7 @@ class SDMLEdgeColumnBuilder : public IContextColumnBuilder {
   }
 
   void push_back_endpoints(int8_t index, vid_t src, vid_t dst) {
-    edges_.emplace_back(index, src, dst, prop_cols_[index]->size());
+    LOG(FATAL) << "Not implemented";
   }
 
   std::shared_ptr<IContextColumn> finish() override;

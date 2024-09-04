@@ -56,7 +56,7 @@ Context eval_shortest_path(const physical::PathExpand& opr,
                            const ReadTransaction& txn, Context&& ctx,
                            const std::map<std::string, std::string>& params,
                            const physical::PhysicalOpr_MetaData& meta,
-                           const physical::GetV& get_v_opr);
+                           const physical::GetV& get_v_opr, int);
 Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
                      Context&& ctx,
                      const std::map<std::string, std::string>& params,

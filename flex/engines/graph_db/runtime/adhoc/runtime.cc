@@ -66,9 +66,9 @@ static std::string get_opr_name(const physical::PhysicalOpr& opr) {
 static bool is_shortest_path(const physical::PhysicalPlan& plan, int i) {
   int opr_num = plan.plan_size();
   const auto& opr = plan.plan(i).opr();
-  // must be simple path
+  // must be any shortest path
   if (opr.path().path_opt() !=
-          physical::PathExpand_PathOpt::PathExpand_PathOpt_SIMPLE ||
+          physical::PathExpand_PathOpt::PathExpand_PathOpt_ANY_SHORTEST ||
       opr.path().result_opt() !=
           physical::PathExpand_ResultOpt::PathExpand_ResultOpt_ALL_V_E) {
     return false;
@@ -199,8 +199,16 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
       if ((i + 2) < opr_num) {
         if (is_shortest_path(plan, i)) {
           auto vertex = plan.plan(i + 2).opr().vertex();
+          int v_alias = -1;
+          if (!vertex.has_alias()) {
+            v_alias = plan.plan(i + 1).opr().vertex().has_alias()
+                          ? plan.plan(i + 1).opr().vertex().alias().value()
+                          : -1;
+          } else {
+            v_alias = vertex.alias().value();
+          }
           ret = eval_shortest_path(opr.opr().path(), txn, std::move(ret),
-                                   params, opr.meta_data(0), vertex);
+                                   params, opr.meta_data(0), vertex, v_alias);
           i += 2;
           break;
         }

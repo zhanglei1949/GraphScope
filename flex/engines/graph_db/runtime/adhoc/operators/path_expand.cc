@@ -26,8 +26,7 @@ Context eval_path_expand_v(const physical::PathExpand& opr,
                            const std::map<std::string, std::string>& params,
                            const physical::PhysicalOpr_MetaData& meta,
                            int alias) {
-  CHECK(opr.has_start_tag());
-  int start_tag = opr.start_tag().value();
+  int start_tag = opr.has_start_tag() ? opr.start_tag().value() : -1;
   CHECK(opr.path_opt() ==
         physical::PathExpand_PathOpt::PathExpand_PathOpt_ARBITRARY);
   if (opr.result_opt() !=
@@ -102,9 +101,10 @@ Context eval_path_expand_p(const physical::PathExpand& opr,
   return ctx;
 }
 
-std::vector<std::pair<label_t, vid_t>> parse_vertices(
-    const ReadTransaction& txn, label_t label, const physical::GetV& v_opr,
-    const std::map<std::string, std::string>& params) {
+bool parse_vertices(const ReadTransaction& txn, label_t label,
+                    const physical::GetV& v_opr,
+                    const std::map<std::string, std::string>& params,
+                    std::pair<label_t, vid_t>& vertice) {
   std::vector<std::pair<label_t, vid_t>> vertices;
   if (v_opr.has_params()) {
     const auto& v_params = v_opr.params();
@@ -115,6 +115,9 @@ std::vector<std::pair<label_t, vid_t>> parse_vertices(
       bool flag = false;
       for (int i = 0; i < opr_num; ++i) {
         auto opr = predicate.operators(i);
+        if (opr.has_var() && opr.var().has_property()) {
+          return false;
+        }
         if (opr.item_case() == common::ExprOpr::kLogical &&
             opr.logical() == common::WITHIN) {
           auto next_opr = predicate.operators(i + 1);
@@ -142,20 +145,21 @@ std::vector<std::pair<label_t, vid_t>> parse_vertices(
             vid_t vid;
             CHECK(txn.GetVertexIndex(label, vertex_id, vid))
                 << "vertex not found";
-            vertices.emplace_back(label, vid);
+            vertice = std::make_pair(label, vid);
+            return true;
           }
         }
       }
     }
   }
-  return vertices;
+  return false;
 }
 
 Context eval_shortest_path(const physical::PathExpand& opr,
                            const ReadTransaction& txn, Context&& ctx,
                            const std::map<std::string, std::string>& params,
                            const physical::PhysicalOpr_MetaData& meta,
-                           const physical::GetV& v_opr) {
+                           const physical::GetV& v_opr, int v_alias) {
   CHECK(opr.has_start_tag());
   int start_tag = opr.start_tag().value();
   CHECK(!opr.is_optional());
@@ -163,7 +167,7 @@ Context eval_shortest_path(const physical::PathExpand& opr,
   ShortestPathParams spp;
   spp.start_tag = start_tag;
   spp.dir = parse_direction(opr.base().edge_expand().direction());
-  spp.v_alias = v_opr.has_alias() ? v_opr.alias().value() : -1;
+  spp.v_alias = v_alias;
   spp.alias = opr.has_alias() ? opr.alias().value() : -1;
   spp.hop_lower = opr.hop_range().lower();
   spp.hop_upper = opr.hop_range().upper();
@@ -172,10 +176,26 @@ Context eval_shortest_path(const physical::PathExpand& opr,
   CHECK(spp.labels.size() == 1) << "only support one label triplet";
   CHECK(spp.labels[0].src_label == spp.labels[0].dst_label)
       << "only support same src and dst label";
-  auto vertices = parse_vertices(txn, spp.labels[0].dst_label, v_opr, params);
+  std::pair<label_t, vid_t> vertex;
+  if (parse_vertices(txn, spp.labels[0].dst_label, v_opr, params, vertex)) {
+    return PathExpand::single_source_shortest_path(txn, std::move(ctx), spp,
+                                                   vertex);
+  } else {
+    if (v_opr.has_params() && v_opr.params().has_predicate()) {
+      Context tmp_ctx;
+      auto predicate =
+          parse_expression(txn, tmp_ctx, params, v_opr.params().predicate(),
+                           VarType::kVertexVar);
+      auto pred = [&predicate](label_t label, vid_t v) {
+        return predicate->eval_vertex(label, v, 0).as_bool();
+      };
+      return PathExpand::single_source_shortest_path_with_predicate(
+          txn, std::move(ctx), spp, pred);
 
-  return PathExpand::single_source_shortest_path(txn, std::move(ctx), spp,
-                                                 vertices);
+    } else {
+      LOG(FATAL) << "shortest path not support" << v_opr.DebugString();
+    }
+  }
 }
 
 }  // namespace runtime

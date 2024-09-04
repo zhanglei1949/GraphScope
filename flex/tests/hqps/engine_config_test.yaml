@@ -18,18 +18,22 @@ compute_engine:
 compiler:
   planner:
     is_on: true
-    opt: RBO
+    opt: CBO
     rules:
       - FilterIntoJoinRule
       - FilterMatchRule
       - NotMatchToAntiJoinRule
+      - ExtendIntersectRule
+      - ExpandGetVFusionRule
   meta:
     reader:
       schema:
-        uri: http://localhost:7777/v1/service/status
+        #uri: http://localhost:7777/v1/service/status
+        uri: /root/0819/data/sf10_validation/graph.yaml
         interval: 1000 # ms
       statistics:
-        uri: http://localhost:7777/v1/graph/%s/statistics
+        #uri: http://localhost:7777/v1/graph/%s/statistics
+        uri: /root/0819/data/sf10_validation/ldbc_30_statistics.json
         interval: 86400000 # ms
   endpoint:
     default_listen_address: localhost
@@ -41,6 +45,7 @@ compiler:
       port: 8182
   query_timeout: 40000
   gremlin_script_language_name: antlr_gremlin_calcite
+  physical.opt.config: proto
 http_service:
   default_listen_address: localhost
   admin_port: 7777

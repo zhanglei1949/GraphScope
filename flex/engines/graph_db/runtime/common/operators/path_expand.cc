@@ -417,7 +417,7 @@ static bool single_source_shortest_path_impl(const ReadTransaction& txn,
 
 Context PathExpand::single_source_shortest_path(
     const ReadTransaction& txn, Context&& ctx, const ShortestPathParams& params,
-    std::vector<std::pair<label_t, vid_t>>& dests) {
+    std::pair<label_t, vid_t>& dest) {
   std::vector<size_t> shuffle_offset;
   auto& input_vertex_list =
       *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.start_tag));
@@ -435,9 +435,8 @@ Context PathExpand::single_source_shortest_path(
   std::vector<std::shared_ptr<PathImpl>> path_impls;
   foreach_vertex(input_vertex_list, [&](size_t index, label_t label, vid_t v) {
     std::vector<vid_t> path;
-    if (single_source_shortest_path_impl(txn, params, v, dests[0].second,
-                                         path)) {
-      builder.push_back_opt(dests[0].second);
+    if (single_source_shortest_path_impl(txn, params, v, dest.second, path)) {
+      builder.push_back_opt(dest.second);
       shuffle_offset.push_back(index);
       auto impl = PathImpl::make_path_impl(label_triplet.src_label, path);
       path_builder.push_back_opt(Path::make_path(impl));

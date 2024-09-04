@@ -174,7 +174,7 @@ description: "${procedure_description}"
 type: cypher
 EOM
 
-  cmd="java -cp ${COMPILER_LIB_DIR}/*:${COMPILER_JAR}"
+  cmd="java -cp ${COMPILER_JAR}:${COMPILER_LIB_DIR}/*"
   cmd="${cmd} -Dgraph.schema=${graph_schema_path}"
   cmd="${cmd} -Djna.library.path=${IR_CORE_LIB_DIR}"
   if [ ! -z ${statistic_path} ]; then

@@ -177,6 +177,17 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
 bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
                                const physical::GetV& v_opr, const Context& ctx,
                                const physical::PhysicalOpr_MetaData& meta) {
+  if (ee_opr.expand_opt() !=
+          physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE &&
+      ee_opr.expand_opt() !=
+          physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_VERTEX) {
+    // LOG(INFO) << "not edge expand, fallback";
+    return false;
+  }
+  if (ee_opr.params().has_predicate()) {
+    // LOG(INFO) << "edge expand has predicate, fallback";
+    return false;
+  }
   int alias = -1;
   if (ee_opr.has_alias()) {
     alias = ee_opr.alias().value();
@@ -243,6 +254,12 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
   if (v_opr.has_alias()) {
     alias = v_opr.alias().value();
   }
+
+  CHECK(ee_opr.expand_opt() ==
+            physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE ||
+        ee_opr.expand_opt() ==
+            physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_VERTEX);
+  CHECK(!query_params.has_predicate());
 
   EdgeExpandParams eep;
   eep.v_tag = v_tag;
