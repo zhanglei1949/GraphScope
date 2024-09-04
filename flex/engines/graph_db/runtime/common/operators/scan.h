@@ -104,10 +104,10 @@ class Scan {
     return ctx;
   }
 
-  template <typename PRED_T>
+  template <typename PRED_T, typename KEY_T>
   static Context filter_oids(const ReadTransaction& txn,
                              const ScanParams& params, const PRED_T& predicate,
-                             const std::vector<int64_t>& oids) {
+                             const std::vector<KEY_T>& oids) {
     Context ctx;
     if (params.tables.size() == 1) {
       label_t label = params.tables[0];
@@ -146,7 +146,7 @@ class Scan {
     Context ctx;
     SLVertexColumnBuilder builder(label);
     if (scan_oid) {
-      int64_t oid = expr();
+      auto oid = expr();
       vid_t vid;
       if (txn.GetVertexIndex(label, oid, vid)) {
         builder.push_back_opt(vid);
