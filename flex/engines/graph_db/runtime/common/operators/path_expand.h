@@ -149,8 +149,6 @@ class PathExpand {
       });
 
       path_builder.set_path_impls(path_impls);
-      LOG(INFO) << "path_builder size: " << params.v_alias << " "
-                << params.alias;
       ctx.set_with_reshuffle(params.v_alias, builder.finish(), shuffle_offset);
       ctx.set(params.alias, path_builder.finish());
       return ctx;

@@ -116,7 +116,10 @@ bool parse_vertices(const ReadTransaction& txn, label_t label,
       for (int i = 0; i < opr_num; ++i) {
         auto opr = predicate.operators(i);
         if (opr.has_var() && opr.var().has_property()) {
-          return false;
+          if (!(opr.var().property().has_key() &&
+                opr.var().property().key().name() == "id")) {
+            return false;
+          }
         }
         if (opr.item_case() == common::ExprOpr::kLogical &&
             opr.logical() == common::WITHIN) {
@@ -178,6 +181,7 @@ Context eval_shortest_path(const physical::PathExpand& opr,
       << "only support same src and dst label";
   std::pair<label_t, vid_t> vertex;
   if (parse_vertices(txn, spp.labels[0].dst_label, v_opr, params, vertex)) {
+    LOG(INFO) << "single source shortest path";
     return PathExpand::single_source_shortest_path(txn, std::move(ctx), spp,
                                                    vertex);
   } else {
