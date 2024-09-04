@@ -49,6 +49,47 @@ inline bool is_label_within_predicate(const common::Expression& expr,
   return false;
 }
 
+inline bool is_pk_oid_exact_check(
+    const common::Expression& expr,
+    const std::map<std::string, std::string>& params, Any& pk) {
+  if (expr.operators_size() != 3) {
+    return false;
+  }
+  if (!(expr.operators(0).has_var() && expr.operators(0).var().has_property() &&
+        expr.operators(0).var().property().has_key())) {
+    auto& key = expr.operators(7).var().property().key();
+    if (!(key.item_case() == common::NameOrId::ItemCase::kName &&
+          key.name() == "id")) {
+      return false;
+    }
+    return false;
+  }
+  if (!(expr.operators(1).item_case() == common::ExprOpr::kLogical &&
+        expr.operators(1).logical() == common::Logical::EQ)) {
+    return false;
+  }
+
+  if (expr.operators(2).has_param()) {
+    auto& p = expr.operators(2).param();
+    const std::string& p_name = p.name();
+    auto p_iter = params.find(p_name);
+    if (p_iter == params.end()) {
+      return false;
+    }
+    if (!(p.has_data_type() &&
+          p.data_type().type_case() ==
+              common::IrDataType::TypeCase::kDataType &&
+          p.data_type().data_type() == common::DataType::INT64)) {
+      return false;
+    }
+    pk.set_i64(std::stoll(p_iter->second));
+    return true;
+  } else {
+    return false;
+  }
+  return false;
+}
+
 inline bool is_pk_exact_check(const common::Expression& expr,
                               const std::map<std::string, std::string>& params,
                               label_t& label, Any& pk) {
