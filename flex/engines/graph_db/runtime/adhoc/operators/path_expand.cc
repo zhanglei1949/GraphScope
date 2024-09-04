@@ -125,7 +125,6 @@ Context eval_shortest_path(const physical::PathExpand& opr,
       << "only support same src and dst label";
 
   gs::Any vertex;
-  LOG(INFO) << v_opr.DebugString();
   if (v_opr.has_params() && v_opr.params().has_predicate() &&
       is_pk_oid_exact_check(v_opr.params().predicate(), params, vertex)) {
     vid_t vid;
