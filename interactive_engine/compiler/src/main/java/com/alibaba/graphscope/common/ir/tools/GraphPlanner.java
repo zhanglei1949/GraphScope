@@ -38,6 +38,7 @@ import com.alibaba.graphscope.common.ir.type.GraphTypeFactoryImpl;
 import com.alibaba.graphscope.cypher.antlr4.parser.CypherAntlr4Parser;
 import com.alibaba.graphscope.cypher.antlr4.visitor.LogicalPlanVisitor;
 import com.google.common.collect.Maps;
+
 import org.apache.calcite.plan.GraphOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -234,15 +235,16 @@ public class GraphPlanner {
         // write physical plan to file
         PhysicalPlan<byte[]> physicalPlan = summary.physicalPlan;
         FileUtils.writeByteArrayToFile(new File(args[2]), physicalPlan.getContent());
-//        // write stored procedure meta to file
-//        LogicalPlan logicalPlan = summary.getLogicalPlan();
-//        Configs extraConfigs = createExtraConfigs(args.length > 4 ? args[4] : null);
-//        StoredProcedureMeta procedureMeta =
-//                new StoredProcedureMeta(
-//                        extraConfigs,
-//                        query,
-//                        logicalPlan.getOutputType(),
-//                        logicalPlan.getDynamicParams());
-//        StoredProcedureMeta.Serializer.perform(procedureMeta, new FileOutputStream(args[3]));
+        //        // write stored procedure meta to file
+        //        LogicalPlan logicalPlan = summary.getLogicalPlan();
+        //        Configs extraConfigs = createExtraConfigs(args.length > 4 ? args[4] : null);
+        //        StoredProcedureMeta procedureMeta =
+        //                new StoredProcedureMeta(
+        //                        extraConfigs,
+        //                        query,
+        //                        logicalPlan.getOutputType(),
+        //                        logicalPlan.getDynamicParams());
+        //        StoredProcedureMeta.Serializer.perform(procedureMeta, new
+        // FileOutputStream(args[3]));
     }
 }

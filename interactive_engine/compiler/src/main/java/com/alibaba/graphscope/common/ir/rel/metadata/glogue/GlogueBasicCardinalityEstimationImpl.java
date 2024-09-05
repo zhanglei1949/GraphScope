@@ -162,6 +162,7 @@ public class GlogueBasicCardinalityEstimationImpl implements GlogueCardinalityEs
             }
         }
         // if not exist, return 1.0
+        logger.warn("pattern {} not exist in glogue, return count = 1.0", queryPattern);
         return 1.0;
     }
 
