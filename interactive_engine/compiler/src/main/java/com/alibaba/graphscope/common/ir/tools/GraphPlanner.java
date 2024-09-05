@@ -23,7 +23,6 @@ import com.alibaba.graphscope.common.ir.meta.IrMeta;
 import com.alibaba.graphscope.common.ir.meta.IrMetaTracker;
 import com.alibaba.graphscope.common.ir.meta.fetcher.IrMetaFetcher;
 import com.alibaba.graphscope.common.ir.meta.fetcher.StaticIrMetaFetcher;
-import com.alibaba.graphscope.common.ir.meta.procedure.StoredProcedureMeta;
 import com.alibaba.graphscope.common.ir.meta.reader.HttpIrMetaReader;
 import com.alibaba.graphscope.common.ir.meta.reader.LocalIrMetaReader;
 import com.alibaba.graphscope.common.ir.meta.schema.GraphOptSchema;
@@ -39,7 +38,6 @@ import com.alibaba.graphscope.common.ir.type.GraphTypeFactoryImpl;
 import com.alibaba.graphscope.cypher.antlr4.parser.CypherAntlr4Parser;
 import com.alibaba.graphscope.cypher.antlr4.visitor.LogicalPlanVisitor;
 import com.google.common.collect.Maps;
-
 import org.apache.calcite.plan.GraphOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -52,7 +50,6 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -232,18 +229,20 @@ public class GraphPlanner {
                         optimizer);
         PlannerInstance instance = planner.instance(query, metaFetcher.fetch().get());
         Summary summary = instance.plan();
+        logger.info("logical plan\n {}", summary.logicalPlan.explain());
+        logger.info("physical plan {}", summary.physicalPlan.explain());
         // write physical plan to file
         PhysicalPlan<byte[]> physicalPlan = summary.physicalPlan;
         FileUtils.writeByteArrayToFile(new File(args[2]), physicalPlan.getContent());
-        // write stored procedure meta to file
-        LogicalPlan logicalPlan = summary.getLogicalPlan();
-        Configs extraConfigs = createExtraConfigs(args.length > 4 ? args[4] : null);
-        StoredProcedureMeta procedureMeta =
-                new StoredProcedureMeta(
-                        extraConfigs,
-                        query,
-                        logicalPlan.getOutputType(),
-                        logicalPlan.getDynamicParams());
-        StoredProcedureMeta.Serializer.perform(procedureMeta, new FileOutputStream(args[3]));
+//        // write stored procedure meta to file
+//        LogicalPlan logicalPlan = summary.getLogicalPlan();
+//        Configs extraConfigs = createExtraConfigs(args.length > 4 ? args[4] : null);
+//        StoredProcedureMeta procedureMeta =
+//                new StoredProcedureMeta(
+//                        extraConfigs,
+//                        query,
+//                        logicalPlan.getOutputType(),
+//                        logicalPlan.getDynamicParams());
+//        StoredProcedureMeta.Serializer.perform(procedureMeta, new FileOutputStream(args[3]));
     }
 }

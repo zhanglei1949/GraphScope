@@ -121,7 +121,7 @@ public class GraphQueryExecutor extends FabricExecutor {
                     new GraphPlanner.Summary(
                             cacheValue.summary.getLogicalPlan(),
                             cacheValue.summary.getPhysicalPlan());
-            logger.debug(
+            logger.info(
                     "cypher query \"{}\", job conf name \"{}\", calcite logical plan {}, hash id"
                             + " {}",
                     statement,
