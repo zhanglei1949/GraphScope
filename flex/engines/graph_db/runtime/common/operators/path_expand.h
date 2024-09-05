@@ -22,6 +22,7 @@
 #include "flex/engines/graph_db/runtime/common/columns/path_columns.h"
 #include "flex/engines/graph_db/runtime/common/columns/vertex_columns.h"
 #include "flex/engines/graph_db/runtime/common/context.h"
+#include "flex/engines/graph_db/runtime/common/operators/path_expand_impl.h"
 #include "flex/engines/graph_db/runtime/common/types.h"
 
 namespace gs {
@@ -58,104 +59,69 @@ class PathExpand {
                                const PathExpandParams& params);
 
   // single dst
+  static Context single_source_single_dest_shortest_path(
+      const ReadTransaction& txn, Context&& ctx,
+      const ShortestPathParams& params, std::pair<label_t, vid_t>& dest);
+
+  template <typename PRED_T>
   static Context single_source_shortest_path(const ReadTransaction& txn,
                                              Context&& ctx,
                                              const ShortestPathParams& params,
-                                             std::pair<label_t, vid_t>& dest);
-
-  template <typename PRED_T>
-  static void single_source_shortest_path_with_pred_impl(
-      const ReadTransaction& txn, const ShortestPathParams& params, int v,
-      std::vector<std::vector<vid_t>>& path, PRED_T& pred) {
-    std::unordered_map<vid_t, int> parent;
-    std::vector<vid_t> cur;
-    std::vector<vid_t> next;
-    cur.push_back(v);
-    parent[v] = -1;
-    int depth = 0;
-    while (depth < params.hop_upper && !cur.empty()) {
-      for (auto u : cur) {
-        if (depth >= params.hop_lower && pred(params.labels[0].src_label, u)) {
-          std::vector<vid_t> p;
-          int x = u;
-          while (x != -1) {
-            p.push_back(x);
-            x = parent[x];
-          }
-          std::reverse(p.begin(), p.end());
-          path.push_back(p);
-        }
-        auto oe_iter = txn.GetOutEdgeIterator(params.labels[0].src_label, u,
-                                              params.labels[0].dst_label,
-                                              params.labels[0].edge_label);
-        while (oe_iter.IsValid()) {
-          auto nbr = oe_iter.GetNeighbor();
-          if (parent.find(nbr) == parent.end()) {
-            parent[nbr] = u;
-            next.push_back(nbr);
-          }
-          oe_iter.Next();
-        }
-
-        auto ie_iter = txn.GetInEdgeIterator(params.labels[0].src_label, u,
-                                             params.labels[0].dst_label,
-                                             params.labels[0].edge_label);
-        while (ie_iter.IsValid()) {
-          auto nbr = ie_iter.GetNeighbor();
-          if (parent.find(nbr) == parent.end()) {
-            parent[nbr] = u;
-            next.push_back(nbr);
-          }
-          ie_iter.Next();
-        }
-      }
-      ++depth;
-      cur.clear();
-      std::swap(cur, next);
-    }
-  }
-
-  template <typename PRED_T>
-  static Context single_source_shortest_path_with_predicate(
-      const ReadTransaction& txn, Context&& ctx,
-      const ShortestPathParams& params, PRED_T& pred) {
+                                             const PRED_T& pred) {
     std::vector<size_t> shuffle_offset;
+    auto input_vertex_col =
+        std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.start_tag));
     if (params.labels.size() == 1 &&
         params.labels[0].src_label == params.labels[0].dst_label &&
-        params.dir == Direction::kBoth) {
-      auto& input_vertex_list =
-          *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.start_tag));
-      SLVertexColumnBuilder builder(params.labels[0].dst_label);
-      GeneralPathColumnBuilder path_builder;
-      std::vector<std::shared_ptr<PathImpl>> path_impls;
-      foreach_vertex(input_vertex_list, [&](size_t index, label_t label,
-                                            vid_t v) {
-        std::vector<std::vector<vid_t>> paths;
-        single_source_shortest_path_with_pred_impl(txn, params, v, paths, pred);
-        {
-          for (auto path : paths) {
-            // skip empty path and single vertex path
-            if (path.empty() || path.size() == 1) {
-              continue;
-            }
-            builder.push_back_opt(path.back());
-            shuffle_offset.push_back(index);
-            auto impl =
-                PathImpl::make_path_impl(params.labels[0].src_label, path);
-            path_builder.push_back_opt(Path::make_path(impl));
-            path_impls.emplace_back(impl);
-          }
+        params.dir == Direction::kBoth &&
+        input_vertex_col->get_labels_set().size() == 1) {
+      const auto& properties = txn.schema().get_edge_properties(
+          params.labels[0].src_label, params.labels[0].dst_label,
+          params.labels[0].edge_label);
+      if (properties.empty()) {
+        auto tup = single_source_shortest_path_impl<grape::EmptyType, PRED_T>(
+            txn, *input_vertex_col, params.labels[0].edge_label, params.dir,
+            params.hop_lower, params.hop_upper, pred);
+        ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
+                               std::get<2>(tup));
+        ctx.set(params.alias, std::get<1>(tup));
+        return ctx;
+      } else if (properties.size() == 1) {
+        if (properties[0] == PropertyType::Int32()) {
+          auto tup = single_source_shortest_path_impl<int, PRED_T>(
+              txn, *input_vertex_col, params.labels[0].edge_label, params.dir,
+              params.hop_lower, params.hop_upper, pred);
+          ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
+                                 std::get<2>(tup));
+          ctx.set(params.alias, std::get<1>(tup));
+          return ctx;
+        } else if (properties[0] == PropertyType::Int64()) {
+          auto tup = single_source_shortest_path_impl<int64_t, PRED_T>(
+              txn, *input_vertex_col, params.labels[0].edge_label, params.dir,
+              params.hop_lower, params.hop_upper, pred);
+          ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
+                                 std::get<2>(tup));
+          ctx.set(params.alias, std::get<1>(tup));
+          return ctx;
+        } else if (properties[0] == PropertyType::Date()) {
+          auto tup = single_source_shortest_path_impl<Date, PRED_T>(
+              txn, *input_vertex_col, params.labels[0].edge_label, params.dir,
+              params.hop_lower, params.hop_upper, pred);
+          ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
+                                 std::get<2>(tup));
+          ctx.set(params.alias, std::get<1>(tup));
+          return ctx;
         }
-      });
-
-      path_builder.set_path_impls(path_impls);
-      ctx.set_with_reshuffle(params.v_alias, builder.finish(), shuffle_offset);
-      ctx.set(params.alias, path_builder.finish());
-      return ctx;
+      }
     }
-    LOG(FATAL) << "not support...";
+    auto tup = default_single_source_shortest_path_impl<PRED_T>(
+        txn, *input_vertex_col, params.labels, params.dir, params.hop_lower,
+        params.hop_upper, pred);
+    ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup), std::get<2>(tup));
+    ctx.set(params.alias, std::get<1>(tup));
     return ctx;
   }
+
   template <typename PRED_T>
   static Context edge_expand_v_pred(const ReadTransaction& txn, Context&& ctx,
                                     const PathExpandParams& params,

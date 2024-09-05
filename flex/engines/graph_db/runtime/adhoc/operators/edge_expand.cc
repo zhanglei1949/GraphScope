@@ -193,7 +193,7 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
     alias = ee_opr.alias().value();
   }
   if (alias != -1) {
-    LOG(INFO) << "alias of edge expand is not -1, fallback";
+    // LOG(INFO) << "alias of edge expand is not -1, fallback";
     return false;
   }
 

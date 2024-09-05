@@ -996,7 +996,7 @@ class PathLenPathAccessor : public IAccessor {
       : path_col_(*std::dynamic_pointer_cast<IPathColumn>(ctx.get(tag))) {}
 
   elem_t typed_eval_path(size_t idx) const {
-    return static_cast<int32_t>(path_col_.get_path(idx).len()) - 1;
+    return path_col_.get_path_length(idx);
   }
 
   RTAny eval_path(size_t idx) const override {

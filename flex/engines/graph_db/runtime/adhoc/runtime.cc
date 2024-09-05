@@ -158,7 +158,7 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
         for (int i = 0; i < opr.meta_data_size(); ++i) {
           if (opr.meta_data(i).type().type_case() ==
               common::IrDataType::TypeCase::TYPE_NOT_SET) {
-            LOG(INFO) << "type not set";
+            // LOG(INFO) << "type not set";
           }
           data_types.push_back(opr.meta_data(i).type());
         }

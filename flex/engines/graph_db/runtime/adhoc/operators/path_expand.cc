@@ -131,7 +131,8 @@ Context eval_shortest_path(const physical::PathExpand& opr,
     CHECK(txn.GetVertexIndex(spp.labels[0].dst_label, vertex, vid))
         << "vertex not found";
     auto v = std::make_pair(spp.labels[0].dst_label, vid);
-    return PathExpand::single_source_shortest_path(txn, std::move(ctx), spp, v);
+    return PathExpand::single_source_single_dest_shortest_path(
+        txn, std::move(ctx), spp, v);
   } else {
     if (v_opr.has_params() && v_opr.params().has_predicate()) {
       Context tmp_ctx;
@@ -141,11 +142,12 @@ Context eval_shortest_path(const physical::PathExpand& opr,
       auto pred = [&predicate](label_t label, vid_t v) {
         return predicate->eval_vertex(label, v, 0).as_bool();
       };
-      return PathExpand::single_source_shortest_path_with_predicate(
-          txn, std::move(ctx), spp, pred);
-
+      return PathExpand::single_source_shortest_path(txn, std::move(ctx), spp,
+                                                     pred);
     } else {
-      LOG(FATAL) << "shortest path not support" << v_opr.DebugString();
+      auto pred = [](label_t label, vid_t v) { return true; };
+      return PathExpand::single_source_shortest_path(txn, std::move(ctx), spp,
+                                                     pred);
     }
   }
 }

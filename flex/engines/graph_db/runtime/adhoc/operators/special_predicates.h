@@ -49,6 +49,7 @@ inline bool is_label_within_predicate(const common::Expression& expr,
   return false;
 }
 
+// TODO(lexiao): merge with is_pk_exact_check
 inline bool is_pk_oid_exact_check(
     const common::Expression& expr,
     const std::map<std::string, std::string>& params, Any& pk) {

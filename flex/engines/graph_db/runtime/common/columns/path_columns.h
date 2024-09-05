@@ -33,6 +33,9 @@ class IPathColumn : public IContextColumn {
   virtual RTAnyType elem_type() const = 0;
   virtual RTAny get_elem(size_t idx) const = 0;
   virtual const Path& get_path(size_t idx) const = 0;
+  virtual int get_path_length(size_t idx) const {
+    return get_path(idx).len() - 1;
+  }
   virtual ISigColumn* generate_signature() const = 0;
   virtual void generate_dedup_offset(std::vector<size_t>& offsets) const = 0;
 };

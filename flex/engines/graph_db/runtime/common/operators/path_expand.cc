@@ -280,10 +280,9 @@ Context PathExpand::edge_expand_p(const ReadTransaction& txn, Context&& ctx,
   return ctx;
 }
 
-static bool single_source_shortest_path_impl(const ReadTransaction& txn,
-                                             const ShortestPathParams& params,
-                                             vid_t src, vid_t dst,
-                                             std::vector<vid_t>& path) {
+static bool single_source_single_dest_shortest_path_impl(
+    const ReadTransaction& txn, const ShortestPathParams& params, vid_t src,
+    vid_t dst, std::vector<vid_t>& path) {
   std::queue<vid_t> q1;
   std::queue<vid_t> q2;
   std::queue<vid_t> tmp;
@@ -415,7 +414,7 @@ static bool single_source_shortest_path_impl(const ReadTransaction& txn,
   return false;
 }
 
-Context PathExpand::single_source_shortest_path(
+Context PathExpand::single_source_single_dest_shortest_path(
     const ReadTransaction& txn, Context&& ctx, const ShortestPathParams& params,
     std::pair<label_t, vid_t>& dest) {
   std::vector<size_t> shuffle_offset;
@@ -435,7 +434,8 @@ Context PathExpand::single_source_shortest_path(
   std::vector<std::shared_ptr<PathImpl>> path_impls;
   foreach_vertex(input_vertex_list, [&](size_t index, label_t label, vid_t v) {
     std::vector<vid_t> path;
-    if (single_source_shortest_path_impl(txn, params, v, dest.second, path)) {
+    if (single_source_single_dest_shortest_path_impl(txn, params, v,
+                                                     dest.second, path)) {
       builder.push_back_opt(dest.second);
       shuffle_offset.push_back(index);
       auto impl = PathImpl::make_path_impl(label_triplet.src_label, path);
