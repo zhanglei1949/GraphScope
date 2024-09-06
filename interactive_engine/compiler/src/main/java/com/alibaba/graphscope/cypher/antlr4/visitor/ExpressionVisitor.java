@@ -404,6 +404,23 @@ public class ExpressionVisitor extends CypherGSBaseVisitor<ExprVisitorResult> {
     }
 
     @Override
+    public ExprVisitorResult visitOC_UserDefinedFunctionInvocation(
+            CypherGSParser.OC_UserDefinedFunctionInvocationContext ctx) {
+        String functionName = ctx.oC_UserDefinedFunctionName().getText();
+        List<RelBuilder.AggCall> aggCalls = Lists.newArrayList();
+        List<RexNode> parameters = Lists.newArrayList(builder.literal(functionName));
+        ctx.oC_Expression()
+                .forEach(
+                        k -> {
+                            ExprVisitorResult res = visitOC_Expression(k);
+                            aggCalls.addAll(res.getAggCalls());
+                            parameters.add(res.getExpr());
+                        });
+        RexNode udfCall = builder.call(GraphStdOperatorTable.USER_DEFINED_FUNCTION, parameters);
+        return new ExprVisitorResult(aggCalls, udfCall);
+    }
+
+    @Override
     public ExprVisitorResult visitOC_ScalarFunctionInvocation(
             CypherGSParser.OC_ScalarFunctionInvocationContext ctx) {
         List<CypherGSParser.OC_ExpressionContext> exprCtx = ctx.oC_Expression();

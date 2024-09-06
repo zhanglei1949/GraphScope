@@ -61,9 +61,7 @@ public class GraphBuilderTest {
                                 "CBO",
                                 "graph.planner.rules",
                                 "FilterIntoJoinRule, FilterMatchRule, ExtendIntersectRule,"
-                                        + " ExpandGetVFusionRule",
-                                "graph.planner.cbo.glogue.schema",
-                                "target/test-classes/statistics/modern_statistics.txt"));
+                                        + " ExpandGetVFusionRule"));
         optimizer = new GraphRelOptimizer(configs);
         irMeta =
                 Utils.mockIrMeta(

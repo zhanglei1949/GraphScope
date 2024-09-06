@@ -18,7 +18,11 @@ package com.alibaba.graphscope.cypher.antlr4;
 
 import com.alibaba.graphscope.common.config.Configs;
 import com.alibaba.graphscope.common.config.FrontendConfig;
+import com.alibaba.graphscope.common.ir.meta.IrMeta;
+import com.alibaba.graphscope.common.ir.planner.GraphIOProcessor;
+import com.alibaba.graphscope.common.ir.planner.GraphRelOptimizer;
 import com.alibaba.graphscope.common.ir.rel.graph.GraphLogicalSource;
+import com.alibaba.graphscope.common.ir.tools.GraphBuilder;
 import com.alibaba.graphscope.common.ir.tools.LogicalPlan;
 import com.google.common.collect.ImmutableMap;
 
@@ -27,9 +31,34 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class MatchTest {
+    private static Configs configs;
+    private static IrMeta irMeta;
+    private static GraphRelOptimizer optimizer;
+
+    @BeforeClass
+    public static void beforeClass() {
+        configs =
+                new Configs(
+                        ImmutableMap.of(
+                                "graph.planner.is.on",
+                                "true",
+                                "graph.planner.opt",
+                                "CBO",
+                                "graph.planner.rules",
+                                "FilterIntoJoinRule, FilterMatchRule, ExtendIntersectRule,"
+                                        + " ExpandGetVFusionRule"));
+        optimizer = new GraphRelOptimizer(configs);
+        irMeta =
+                com.alibaba.graphscope.common.ir.Utils.mockIrMeta(
+                        "schema/modern.json",
+                        "statistics/modern_statistics.json",
+                        optimizer.getGlogueHolder());
+    }
+
     @Test
     public void match_1_test() {
         RelNode source = Utils.eval("Match (n) Return n").build();
@@ -532,5 +561,28 @@ public class MatchTest {
                     + " alias=[person1], opt=[VERTEX])\n"
                     + "], matchOpt=[INNER])",
                 rel.explain().trim());
+    }
+
+    @Test
+    public void udf_function_test() {
+        GraphBuilder builder =
+                com.alibaba.graphscope.common.ir.Utils.mockGraphBuilder(optimizer, irMeta);
+        RelNode node =
+                Utils.eval(
+                                "MATCH (person1:person)-[path:knows]->(person2:person)"
+                                        + " Return graph.udf.startNode(path)",
+                                builder)
+                        .build();
+        RelNode after = optimizer.optimize(node, new GraphIOProcessor(builder, irMeta));
+        Assert.assertEquals(
+                "GraphLogicalProject($f0=[USER_DEFINED_FUNCTION(_UTF-8'graph.udf.startNode',"
+                        + " path)], isAppend=[false])\n"
+                        + "  GraphLogicalGetV(tableConfig=[{isAll=false, tables=[person]}],"
+                        + " alias=[person2], opt=[END])\n"
+                        + "    GraphLogicalExpand(tableConfig=[{isAll=false, tables=[knows]}],"
+                        + " alias=[path], startAlias=[person1], opt=[OUT])\n"
+                        + "      GraphLogicalSource(tableConfig=[{isAll=false, tables=[person]}],"
+                        + " alias=[person1], opt=[VERTEX])",
+                after.explain().trim());
     }
 }

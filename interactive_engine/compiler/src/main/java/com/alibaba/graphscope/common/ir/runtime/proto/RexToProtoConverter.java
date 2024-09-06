@@ -31,11 +31,13 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Sarg;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * convert an expression in calcite to logical expression in ir_core
@@ -73,11 +75,38 @@ public class RexToProtoConverter extends RexVisitorImpl<OuterExpression.Expressi
         } else if (operator.getKind() == SqlKind.OTHER
                 && operator.getName().equals("DATETIME_MINUS")) {
             return visitDateMinus(call);
+        } else if (operator.getKind() == SqlKind.OTHER
+                && operator.getName().equals("USER_DEFINED_FUNCTION")) {
+            return visitUserDefinedFunction(call);
         } else if (call.getOperands().size() == 1) {
             return visitUnaryOperator(call);
         } else {
             return visitBinaryOperator(call);
         }
+    }
+
+    private OuterExpression.Expression visitUserDefinedFunction(RexCall call) {
+        List<RexNode> operands = call.getOperands();
+        Preconditions.checkArgument(
+                !operands.isEmpty()
+                        && operands.get(0) instanceof RexLiteral
+                        && operands.get(0).getType().getSqlTypeName() == SqlTypeName.CHAR,
+                "function name should be 'StringLiteral'");
+        String functionName = ((RexLiteral) operands.get(0)).getValueAs(NlsString.class).getValue();
+        List<OuterExpression.Expression> parameters =
+                operands.subList(1, operands.size()).stream()
+                        .map(operand -> operand.accept(this))
+                        .collect(Collectors.toList());
+        return OuterExpression.Expression.newBuilder()
+                .addOperators(
+                        OuterExpression.ExprOpr.newBuilder()
+                                .setUdfFunc(
+                                        OuterExpression.UserDefinedFunction.newBuilder()
+                                                .setName(functionName)
+                                                .addAllParameters(parameters)
+                                                .build())
+                                .setNodeType(Utils.protoIrDataType(call.getType(), isColumnId)))
+                .build();
     }
 
     private OuterExpression.Expression visitPathFunction(RexCall call) {

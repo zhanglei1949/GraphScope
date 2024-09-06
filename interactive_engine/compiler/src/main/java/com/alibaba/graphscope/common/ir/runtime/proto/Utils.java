@@ -279,6 +279,7 @@ public abstract class Utils {
         if (basicType instanceof GraphLabelType) return Common.DataType.INT32;
         switch (basicType.getSqlTypeName()) {
             case NULL:
+            case ANY:
                 return Common.DataType.NONE;
             case BOOLEAN:
                 return Common.DataType.BOOLEAN;

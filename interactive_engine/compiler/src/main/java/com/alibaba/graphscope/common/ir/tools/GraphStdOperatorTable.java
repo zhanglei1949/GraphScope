@@ -335,4 +335,17 @@ public class GraphStdOperatorTable extends SqlStdOperatorTable {
                             i -> ImmutableList.of("Path", "FuncOpt", "PropertyProjection").get(i),
                             i -> false),
                     SqlFunctionCategory.SYSTEM);
+
+    public static final SqlOperator USER_DEFINED_FUNCTION =
+            new SqlFunction(
+                    "USER_DEFINED_FUNCTION",
+                    SqlKind.OTHER,
+                    ReturnTypes.explicit(SqlTypeName.ANY),
+                    GraphInferTypes.FIRST_KNOWN,
+                    GraphOperandTypes.family(
+                            ImmutableList.of(SqlTypeFamily.CHARACTER),
+                            (ordinal -> ordinal > 0),
+                            false), // first parameter should be function name, with varied number
+                    // of parameters
+                    SqlFunctionCategory.USER_DEFINED_FUNCTION);
 }

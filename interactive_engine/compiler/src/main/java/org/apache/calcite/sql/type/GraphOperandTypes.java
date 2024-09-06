@@ -83,6 +83,17 @@ public abstract class GraphOperandTypes {
         return new GraphFamilyOperandTypeChecker(ImmutableList.copyOf(families), i -> false);
     }
 
+    public static FamilyOperandTypeChecker family(
+            List<SqlTypeFamily> families, Predicate<Integer> optional) {
+        return new GraphFamilyOperandTypeChecker(ImmutableList.copyOf(families), optional);
+    }
+
+    public static FamilyOperandTypeChecker family(
+            List<SqlTypeFamily> families, Predicate<Integer> optional, boolean fixedParameters) {
+        return new GraphFamilyOperandTypeChecker(
+                ImmutableList.copyOf(families), optional, fixedParameters);
+    }
+
     public static final SqlSingleOperandTypeChecker PLUS_OPERATOR =
             OperandTypes.or(
                     NUMERIC_NUMERIC, INTERVAL_SAME_SAME, DATETIME_INTERVAL, INTERVAL_DATETIME);

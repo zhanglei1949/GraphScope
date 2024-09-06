@@ -25,10 +25,7 @@ import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeFamily;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SqlCallBinding;
-import org.apache.calcite.sql.SqlNode;
-import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlUtil;
+import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.validate.implicit.TypeCoercion;
 import org.apache.calcite.util.Litmus;
 
@@ -42,16 +39,39 @@ import java.util.function.Predicate;
  * we have to make the subclass under the same package {@code org.apache.calcite.sql.type}
  */
 public class GraphFamilyOperandTypeChecker extends FamilyOperandTypeChecker {
+    private static final int MAX_OPERANDS_COUNT = 20;
     protected final List<RelDataTypeFamily> expectedFamilies;
+    protected final boolean fixedParameters;
 
     protected GraphFamilyOperandTypeChecker(
             List<RelDataTypeFamily> typeFamilies, Predicate<Integer> optional) {
+        this(typeFamilies, optional, true);
+    }
+
+    protected GraphFamilyOperandTypeChecker(
+            List<RelDataTypeFamily> typeFamilies,
+            Predicate<Integer> optional,
+            boolean fixedParameters) {
         super(ImmutableList.of(), optional);
         this.expectedFamilies = typeFamilies;
+        this.fixedParameters = fixedParameters;
+    }
+
+    @Override
+    public SqlOperandCountRange getOperandCountRange() {
+        int max = this.isFixedParameters() ? this.families.size() : MAX_OPERANDS_COUNT;
+        int min;
+        for (min = max; min > 0 && this.optional.test(min - 1); --min) {}
+        return SqlOperandCountRanges.between(min, max);
+    }
+
+    @Override
+    public boolean isFixedParameters() {
+        return this.fixedParameters;
     }
 
     public boolean checkOperandTypes(SqlCallBinding callBinding, boolean throwOnFailure) {
-        if (expectedFamilies.size() != callBinding.getOperandCount()) {
+        if (!getOperandCountRange().isValidCount(callBinding.getOperandCount())) {
             Litmus.THROW.fail(
                     "Expect {} operands, but got {} operands, expected operands of types {}",
                     expectedFamilies.size(),
@@ -67,7 +87,7 @@ public class GraphFamilyOperandTypeChecker extends FamilyOperandTypeChecker {
         }
         RexCallBinding rexCallBinding = (RexCallBinding) callBinding;
         for (Ord<RexNode> op : Ord.zip(rexCallBinding.getRexOperands())) {
-            if (!checkSingleOperandType(callBinding, op.e, op.i, false)) {
+            if (!optional.test(op.i) && !checkSingleOperandType(callBinding, op.e, op.i, false)) {
                 // try to coerce type if it is allowed.
                 boolean coerced = false;
                 if (callBinding.isTypeCoercionEnabled()) {
