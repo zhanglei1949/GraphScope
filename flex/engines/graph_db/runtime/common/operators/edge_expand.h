@@ -19,6 +19,7 @@
 #include <set>
 
 #include "flex/engines/graph_db/database/read_transaction.h"
+#include "flex/engines/graph_db/runtime/adhoc/operators/special_predicates.h"
 #include "flex/engines/graph_db/runtime/common/columns/edge_columns.h"
 #include "flex/engines/graph_db/runtime/common/columns/vertex_columns.h"
 #include "flex/engines/graph_db/runtime/common/context.h"
@@ -54,7 +55,6 @@ class EdgeExpand {
         auto pair = expand_edge_impl<PRED_T>(
             txn, *casted_input_vertex_list, params.labels[0], pred, params.dir);
         if (pair.first != nullptr) {
-          LOG(INFO) << "hit and passed";
           ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
           return ctx;
         }
@@ -241,6 +241,34 @@ class EdgeExpand {
     LOG(FATAL) << "not support";
   }
 
+  static Context expand_edge_with_special_edge_predicate(
+      const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params,
+      const SPEdgePredicate& pred) {
+    if (pred.data_type() == RTAnyType::kI64Value) {
+      if (pred.type() == SPEdgePredicateType::kPropertyGT) {
+        return expand_edge<EdgePropertyGTPredicate<int64_t>>(
+            txn, std::move(ctx), params,
+            dynamic_cast<const EdgePropertyGTPredicate<int64_t>&>(pred));
+      } else if (pred.type() == SPEdgePredicateType::kPropertyLT) {
+        return expand_edge<EdgePropertyLTPredicate<int64_t>>(
+            txn, std::move(ctx), params,
+            dynamic_cast<const EdgePropertyLTPredicate<int64_t>&>(pred));
+      }
+    } else if (pred.data_type() == RTAnyType::kI32Value) {
+      if (pred.type() == SPEdgePredicateType::kPropertyGT) {
+        return expand_edge<EdgePropertyGTPredicate<int>>(
+            txn, std::move(ctx), params,
+            dynamic_cast<const EdgePropertyGTPredicate<int>&>(pred));
+      } else if (pred.type() == SPEdgePredicateType::kPropertyLT) {
+        return expand_edge<EdgePropertyLTPredicate<int>>(
+            txn, std::move(ctx), params,
+            dynamic_cast<const EdgePropertyLTPredicate<int>&>(pred));
+      }
+    }
+    LOG(FATAL) << "not impl";
+    return Context();
+  }
+
   static Context expand_edge_without_predicate(const ReadTransaction& txn,
                                                Context&& ctx,
                                                const EdgeExpandParams& params);
@@ -279,6 +307,74 @@ class EdgeExpand {
       LOG(FATAL) << "unexpected to reach here...";
       return ctx;
     }
+  }
+
+  template <typename PRED_T>
+  struct SPVPWrapper {
+    SPVPWrapper(const PRED_T& pred) : pred_(pred) {}
+
+    bool operator()(const LabelTriplet& label, vid_t src, vid_t dst,
+                    const Any& edata, Direction dir, size_t path_idx) const {
+      if (dir == Direction::kOut) {
+        return pred_(label.dst_label, dst);
+      } else {
+        return pred_(label.src_label, src);
+      }
+    }
+
+    const PRED_T& pred_;
+  };
+
+  static Context expand_vertex_with_special_vertex_predicate(
+      const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params,
+      const SPVertexPredicate& pred) {
+    if (pred.type() == SPVertexPredicateType::kIdEQ) {
+      return expand_vertex<SPVPWrapper<VertexIdEQPredicateBeta>>(
+          txn, std::move(ctx), params,
+          SPVPWrapper(dynamic_cast<const VertexIdEQPredicateBeta&>(pred)));
+    } else {
+      if (pred.data_type() == RTAnyType::kI64Value) {
+        if (pred.type() == SPVertexPredicateType::kPropertyLT) {
+          return expand_vertex<
+              SPVPWrapper<VertexPropertyLTPredicateBeta<int64_t>>>(
+              txn, std::move(ctx), params,
+              SPVPWrapper(
+                  dynamic_cast<const VertexPropertyLTPredicateBeta<int64_t>&>(
+                      pred)));
+        } else if (pred.type() == SPVertexPredicateType::kPropertyGT) {
+          return expand_vertex<
+              SPVPWrapper<VertexPropertyGTPredicateBeta<int64_t>>>(
+              txn, std::move(ctx), params,
+              SPVPWrapper(
+                  dynamic_cast<const VertexPropertyGTPredicateBeta<int64_t>&>(
+                      pred)));
+        } else if (pred.type() == SPVertexPredicateType::kPropertyLE) {
+          return expand_vertex<
+              SPVPWrapper<VertexPropertyLEPredicateBeta<int64_t>>>(
+              txn, std::move(ctx), params,
+              SPVPWrapper(
+                  dynamic_cast<const VertexPropertyLEPredicateBeta<int64_t>&>(
+                      pred)));
+        } else if (pred.type() == SPVertexPredicateType::kPropertyBetween) {
+          return expand_vertex<
+              SPVPWrapper<VertexPropertyBetweenPredicateBeta<int64_t>>>(
+              txn, std::move(ctx), params,
+              SPVPWrapper(dynamic_cast<
+                          const VertexPropertyBetweenPredicateBeta<int64_t>&>(
+                  pred)));
+        } else {
+          CHECK(pred.type() == SPVertexPredicateType::kPropertyEQ);
+          return expand_vertex<
+              SPVPWrapper<VertexPropertyEQPredicateBeta<int64_t>>>(
+              txn, std::move(ctx), params,
+              SPVPWrapper(
+                  dynamic_cast<const VertexPropertyEQPredicateBeta<int64_t>&>(
+                      pred)));
+        }
+      }
+    }
+    LOG(FATAL) << "not impl";
+    return ctx;
   }
 
   static Context expand_vertex_without_predicate(

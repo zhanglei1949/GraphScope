@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "flex/engines/graph_db/database/read_transaction.h"
+#include "flex/engines/graph_db/runtime/adhoc/operators/special_predicates.h"
 #include "flex/engines/graph_db/runtime/common/columns/path_columns.h"
 #include "flex/engines/graph_db/runtime/common/columns/vertex_columns.h"
 #include "flex/engines/graph_db/runtime/common/context.h"
@@ -119,6 +120,62 @@ class PathExpand {
         params.hop_upper, pred);
     ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup), std::get<2>(tup));
     ctx.set(params.alias, std::get<1>(tup));
+    return ctx;
+  }
+
+  static Context single_source_shortest_path_with_special_vertex_predicate(
+      const ReadTransaction& txn, Context&& ctx,
+      const ShortestPathParams& params, const SPVertexPredicate& pred) {
+    if (pred.type() == SPVertexPredicateType::kIdEQ) {
+      return single_source_shortest_path<VertexIdEQPredicateBeta>(
+          txn, std::move(ctx), params,
+          dynamic_cast<const VertexIdEQPredicateBeta&>(pred));
+    } else {
+      if (pred.data_type() == RTAnyType::kI64Value) {
+        if (pred.type() == SPVertexPredicateType::kPropertyLT) {
+          return single_source_shortest_path<
+              VertexPropertyLTPredicateBeta<int64_t>>(
+              txn, std::move(ctx), params,
+              dynamic_cast<const VertexPropertyLTPredicateBeta<int64_t>&>(
+                  pred));
+        } else if (pred.type() == SPVertexPredicateType::kPropertyGT) {
+          return single_source_shortest_path<
+              VertexPropertyGTPredicateBeta<int64_t>>(
+              txn, std::move(ctx), params,
+              dynamic_cast<const VertexPropertyGTPredicateBeta<int64_t>&>(
+                  pred));
+        } else if (pred.type() == SPVertexPredicateType::kPropertyLE) {
+          return single_source_shortest_path<
+              VertexPropertyLEPredicateBeta<int64_t>>(
+              txn, std::move(ctx), params,
+              dynamic_cast<const VertexPropertyLEPredicateBeta<int64_t>&>(
+                  pred));
+        } else if (pred.type() == SPVertexPredicateType::kPropertyBetween) {
+          return single_source_shortest_path<
+              VertexPropertyBetweenPredicateBeta<int64_t>>(
+              txn, std::move(ctx), params,
+              dynamic_cast<const VertexPropertyBetweenPredicateBeta<int64_t>&>(
+                  pred));
+        } else {
+          CHECK(pred.type() == SPVertexPredicateType::kPropertyEQ);
+          return single_source_shortest_path<
+              VertexPropertyEQPredicateBeta<int64_t>>(
+              txn, std::move(ctx), params,
+              dynamic_cast<const VertexPropertyEQPredicateBeta<int64_t>&>(
+                  pred));
+        }
+      } else if (pred.data_type() == RTAnyType::kStringValue) {
+        if (pred.type() == SPVertexPredicateType::kPropertyEQ) {
+          return single_source_shortest_path<
+              VertexPropertyEQPredicateBeta<std::string_view>>(
+              txn, std::move(ctx), params,
+              dynamic_cast<
+                  const VertexPropertyEQPredicateBeta<std::string_view>&>(
+                  pred));
+        }
+      }
+    }
+    LOG(FATAL) << "not impl";
     return ctx;
   }
 

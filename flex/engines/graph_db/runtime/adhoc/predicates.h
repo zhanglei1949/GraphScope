@@ -64,68 +64,6 @@ struct ExactVertexPredicate {
   vid_t vid_;
 };
 
-template <typename T>
-struct VertexPropertyLTPredicate {
-  VertexPropertyLTPredicate(const ReadTransaction& txn,
-                            const std::string& property_name,
-                            const RTAny& threshold) {
-    label_t label_num = txn.schema().vertex_label_num();
-    cols_.resize(label_num, nullptr);
-    for (label_t l = 0; l < label_num; ++l) {
-      auto col = std::dynamic_pointer_cast<TypedColumn<T>>(
-          txn.get_vertex_property_column(l, property_name));
-      if (col != nullptr) {
-        cols_[l] = col.get();
-      }
-    }
-    threshold_ = TypedConverter<T>::to_typed(threshold);
-  }
-
-  bool operator()(label_t label, vid_t vid) const {
-    return cols_[label]->get_view(vid) < threshold_;
-  }
-
-  T threshold_;
-  std::vector<const TypedColumn<T>*> cols_;
-};
-
-template <>
-struct VertexPropertyLTPredicate<int64_t> {
-  VertexPropertyLTPredicate(const ReadTransaction& txn,
-                            const std::string& property_name,
-                            const RTAny& threshold) {
-    label_t label_num = txn.schema().vertex_label_num();
-    cols_.resize(label_num, nullptr);
-    date_cols_.resize(label_num, nullptr);
-    for (label_t l = 0; l < label_num; ++l) {
-      auto col = txn.get_vertex_property_column(l, property_name);
-      if (col != nullptr) {
-        auto casted_col0 = std::dynamic_pointer_cast<TypedColumn<int64_t>>(col);
-        if (casted_col0 != nullptr) {
-          cols_[l] = casted_col0.get();
-        } else {
-          auto casted_col1 = std::dynamic_pointer_cast<TypedColumn<Date>>(col);
-          if (casted_col1 != nullptr) {
-            date_cols_[l] = casted_col1.get();
-          }
-        }
-      }
-    }
-    threshold_ = threshold.as_int64();
-  }
-
-  bool operator()(label_t label, vid_t vid) const {
-    auto val = (cols_[label] == nullptr)
-                   ? date_cols_[label]->get_view(vid).milli_second
-                   : cols_[label]->get_view(vid);
-    return val < threshold_;
-  }
-
-  int64_t threshold_;
-  std::vector<const TypedColumn<int64_t>*> cols_;
-  std::vector<const TypedColumn<Date>*> date_cols_;
-};
-
 struct GeneralEdgePredicate {
   GeneralEdgePredicate(const ReadTransaction& txn, const Context& ctx,
                        const std::map<std::string, std::string>& params,

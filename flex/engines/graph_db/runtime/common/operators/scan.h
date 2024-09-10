@@ -16,6 +16,7 @@
 #ifndef RUNTIME_COMMON_OPERATORS_SCAN_H_
 #define RUNTIME_COMMON_OPERATORS_SCAN_H_
 
+#include "flex/engines/graph_db/runtime/adhoc/operators/special_predicates.h"
 #include "flex/engines/graph_db/runtime/common/columns/vertex_columns.h"
 #include "flex/engines/graph_db/runtime/common/context.h"
 
@@ -73,6 +74,34 @@ class Scan {
     return ctx;
   }
 
+  static Context scan_vertex_with_special_vertex_predicate(
+      const ReadTransaction& txn, const ScanParams& params,
+      const SPVertexPredicate& pred) {
+    if (pred.type() == SPVertexPredicateType::kIdEQ) {
+      return scan_vertex<VertexIdEQPredicateBeta>(
+          txn, params, dynamic_cast<const VertexIdEQPredicateBeta&>(pred));
+    } else {
+      if (pred.data_type() == RTAnyType::kI64Value) {
+        if (pred.type() == SPVertexPredicateType::kPropertyEQ) {
+          return scan_vertex<VertexPropertyEQPredicateBeta<int64_t>>(
+              txn, params,
+              dynamic_cast<const VertexPropertyEQPredicateBeta<int64_t>&>(
+                  pred));
+        }
+      } else if (pred.data_type() == RTAnyType::kStringValue) {
+        if (pred.type() == SPVertexPredicateType::kPropertyEQ) {
+          return scan_vertex<VertexPropertyEQPredicateBeta<std::string_view>>(
+              txn, params,
+              dynamic_cast<
+                  const VertexPropertyEQPredicateBeta<std::string_view>&>(
+                  pred));
+        }
+      }
+    }
+    LOG(FATAL) << "not impl... - " << static_cast<int>(pred.type());
+    return Context();
+  }
+
   template <typename PRED_T>
   static Context filter_gids(const ReadTransaction& txn,
                              const ScanParams& params, const PRED_T& predicate,
@@ -102,6 +131,19 @@ class Scan {
       ctx.set(params.alias, builder.finish());
     }
     return ctx;
+  }
+
+  template <typename KEY_T>
+  static Context filter_gids_with_special_vertex_predicate(
+      const ReadTransaction& txn, const ScanParams& params,
+      const SPVertexPredicate& predicate, const std::vector<KEY_T>& oids) {
+    if (predicate.type() == SPVertexPredicateType::kIdEQ) {
+      return filter_gids<VertexIdEQPredicateBeta>(
+          txn, params, dynamic_cast<const VertexIdEQPredicateBeta&>(predicate),
+          oids);
+    }
+    LOG(FATAL) << "not impl...";
+    return Context();
   }
 
   template <typename PRED_T, typename KEY_T>
@@ -137,6 +179,19 @@ class Scan {
       ctx.set(params.alias, builder.finish());
     }
     return ctx;
+  }
+
+  template <typename KEY_T>
+  static Context filter_oids_with_special_vertex_predicate(
+      const ReadTransaction& txn, const ScanParams& params,
+      const SPVertexPredicate& predicate, const std::vector<KEY_T>& oids) {
+    if (predicate.type() == SPVertexPredicateType::kIdEQ) {
+      return filter_oids<VertexIdEQPredicateBeta>(
+          txn, params, dynamic_cast<const VertexIdEQPredicateBeta&>(predicate),
+          oids);
+    }
+    LOG(FATAL) << "not impl...";
+    return Context();
   }
 
   // EXPR() is a function that returns the oid of the vertex

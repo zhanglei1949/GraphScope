@@ -151,15 +151,26 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
   } else if (opr.expand_opt() ==
              physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE) {
     if (query_params.has_predicate()) {
-      GeneralEdgePredicate pred(txn, ctx, params, query_params.predicate());
+      auto sp_edge_pred =
+          parse_special_edge_predicate(query_params.predicate(), txn, params);
+      if (sp_edge_pred == nullptr) {
+        GeneralEdgePredicate pred(txn, ctx, params, query_params.predicate());
 
-      double t = -grape::GetCurrentTime();
-      auto ret = EdgeExpand::expand_edge(txn, std::move(ctx), eep, pred);
-      t += grape::GetCurrentTime();
+        double t = -grape::GetCurrentTime();
+        auto ret = EdgeExpand::expand_edge(txn, std::move(ctx), eep, pred);
+        t += grape::GetCurrentTime();
 
-      op_cost.table["expand_edge_with_predicate"] += t;
+        op_cost.table["expand_edge_with_predicate"] += t;
 
-      return ret;
+        return ret;
+      } else {
+        double t = -grape::GetCurrentTime();
+        auto ret = EdgeExpand::expand_edge_with_special_edge_predicate(
+            txn, std::move(ctx), eep, *sp_edge_pred);
+        t += grape::GetCurrentTime();
+
+        op_cost.table["expand_edge_with_sp_predicate"] += t;
+      }
     } else {
       double t = -grape::GetCurrentTime();
       auto ret =
@@ -393,16 +404,27 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
           op_cost.table["#### 9Split-" + std::to_string(op_id)] += t;
           return v_ret;
         } else {
-          GeneralVertexPredicate v_pred(txn, ctx, params,
-                                        v_opr.params().predicate());
-          VertexPredicateWrapper vpred(v_pred);
-          // LOG(INFO) << "##### 9 " << op_id;
-          double t = -grape::GetCurrentTime();
-          auto ret = EdgeExpand::expand_vertex<VertexPredicateWrapper>(
-              txn, std::move(ctx), eep, vpred);
-          t += grape::GetCurrentTime();
-          op_cost.table["#### 9Fuse-" + std::to_string(op_id)] += t;
-          return ret;
+          auto sp_vertex_pred = parse_special_vertex_predicate(
+              v_opr.params().predicate(), txn, params);
+          if (sp_vertex_pred == nullptr) {
+            GeneralVertexPredicate v_pred(txn, ctx, params,
+                                          v_opr.params().predicate());
+            VertexPredicateWrapper vpred(v_pred);
+            // LOG(INFO) << "##### 9 " << op_id;
+            double t = -grape::GetCurrentTime();
+            auto ret = EdgeExpand::expand_vertex<VertexPredicateWrapper>(
+                txn, std::move(ctx), eep, vpred);
+            t += grape::GetCurrentTime();
+            op_cost.table["#### 9Fuse-" + std::to_string(op_id)] += t;
+            return ret;
+          } else {
+            double t = -grape::GetCurrentTime();
+            auto ret = EdgeExpand::expand_vertex_with_special_vertex_predicate(
+                txn, std::move(ctx), eep, *sp_vertex_pred);
+            t += grape::GetCurrentTime();
+            op_cost.table["#### 9FuseBeta-" + std::to_string(op_id)] += t;
+            return ret;
+          }
         }
       }
     }

@@ -135,15 +135,23 @@ Context eval_shortest_path(const physical::PathExpand& opr,
         txn, std::move(ctx), spp, v);
   } else {
     if (v_opr.has_params() && v_opr.params().has_predicate()) {
-      Context tmp_ctx;
-      auto predicate =
-          parse_expression(txn, tmp_ctx, params, v_opr.params().predicate(),
-                           VarType::kVertexVar);
-      auto pred = [&predicate](label_t label, vid_t v) {
-        return predicate->eval_vertex(label, v, 0).as_bool();
-      };
-      return PathExpand::single_source_shortest_path(txn, std::move(ctx), spp,
-                                                     pred);
+      auto sp_vertex_pred = parse_special_vertex_predicate(
+          v_opr.params().predicate(), txn, params);
+      if (sp_vertex_pred == nullptr) {
+        Context tmp_ctx;
+        auto predicate =
+            parse_expression(txn, tmp_ctx, params, v_opr.params().predicate(),
+                             VarType::kVertexVar);
+        auto pred = [&predicate](label_t label, vid_t v) {
+          return predicate->eval_vertex(label, v, 0).as_bool();
+        };
+        return PathExpand::single_source_shortest_path(txn, std::move(ctx), spp,
+                                                       pred);
+      } else {
+        return PathExpand::
+            single_source_shortest_path_with_special_vertex_predicate(
+                txn, std::move(ctx), spp, *sp_vertex_pred);
+      }
     } else {
       auto pred = [](label_t label, vid_t v) { return true; };
       return PathExpand::single_source_shortest_path(txn, std::move(ctx), spp,

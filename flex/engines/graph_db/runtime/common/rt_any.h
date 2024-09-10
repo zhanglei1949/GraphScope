@@ -331,6 +331,9 @@ struct TypedConverter<int> {
   static int to_typed(const RTAny& val) { return val.as_int32(); }
   static RTAny from_typed(int val) { return RTAny::from_int32(val); }
   static const std::string name() { return "int"; }
+  static int typed_from_string(const std::string& str) {
+    return std::stoi(str);
+  }
 };
 
 template <>

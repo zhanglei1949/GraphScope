@@ -274,25 +274,39 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
     if (!has_other_type_oid && scan_opr.has_idx_predicate()) {
       if (scan_opr.has_idx_predicate() && scan_opr_params.has_predicate()) {
         Context ctx;
-        auto expr = parse_expression(
-            txn, ctx, params, scan_opr_params.predicate(), VarType::kVertexVar);
         std::vector<int64_t> oids{};
         CHECK(parse_idx_predicate(scan_opr.idx_predicate(), params, oids,
                                   scan_oid));
-        if (scan_oid) {
-          return Scan::filter_oids(
-              txn, scan_params,
-              [&expr, oids](label_t label, vid_t vid) {
-                return expr->eval_vertex(label, vid, 0).as_bool();
-              },
-              oids);
+
+        auto sp_vertex_pred = parse_special_vertex_predicate(
+            scan_opr_params.predicate(), txn, params);
+        if (sp_vertex_pred == nullptr) {
+          auto expr =
+              parse_expression(txn, ctx, params, scan_opr_params.predicate(),
+                               VarType::kVertexVar);
+          if (scan_oid) {
+            return Scan::filter_oids(
+                txn, scan_params,
+                [&expr, oids](label_t label, vid_t vid) {
+                  return expr->eval_vertex(label, vid, 0).as_bool();
+                },
+                oids);
+          } else {
+            return Scan::filter_gids(
+                txn, scan_params,
+                [&expr, oids](label_t label, vid_t vid) {
+                  return expr->eval_vertex(label, vid, 0).as_bool();
+                },
+                oids);
+          }
         } else {
-          return Scan::filter_gids(
-              txn, scan_params,
-              [&expr, oids](label_t label, vid_t vid) {
-                return expr->eval_vertex(label, vid, 0).as_bool();
-              },
-              oids);
+          if (scan_oid) {
+            return Scan::filter_oids_with_special_vertex_predicate(
+                txn, scan_params, *sp_vertex_pred, oids);
+          } else {
+            return Scan::filter_gids_with_special_vertex_predicate(
+                txn, scan_params, *sp_vertex_pred, oids);
+          }
         }
       }
 
@@ -312,30 +326,48 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
       }
     } else if (scan_opr.has_idx_predicate()) {
       if (scan_opr.has_idx_predicate() && scan_opr_params.has_predicate()) {
-        Context ctx;
-        auto expr = parse_expression(
-            txn, ctx, params, scan_opr_params.predicate(), VarType::kVertexVar);
         std::vector<Any> oids{};
         CHECK(parse_idx_predicate(scan_opr.idx_predicate(), params, oids,
                                   scan_oid));
-        if (scan_oid) {
-          return Scan::filter_oids(
-              txn, scan_params,
-              [&expr, oids](label_t label, vid_t vid) {
-                return expr->eval_vertex(label, vid, 0).as_bool();
-              },
-              oids);
-        } else {
-          std::vector<int64_t> gids;
-          for (size_t i = 0; i < oids.size(); i++) {
-            gids.push_back(oids[i].AsInt64());
+
+        auto sp_vertex_pred = parse_special_vertex_predicate(
+            scan_opr_params.predicate(), txn, params);
+        if (sp_vertex_pred == nullptr) {
+          Context ctx;
+          auto expr =
+              parse_expression(txn, ctx, params, scan_opr_params.predicate(),
+                               VarType::kVertexVar);
+          if (scan_oid) {
+            return Scan::filter_oids(
+                txn, scan_params,
+                [&expr, oids](label_t label, vid_t vid) {
+                  return expr->eval_vertex(label, vid, 0).as_bool();
+                },
+                oids);
+          } else {
+            std::vector<int64_t> gids;
+            for (size_t i = 0; i < oids.size(); i++) {
+              gids.push_back(oids[i].AsInt64());
+            }
+            return Scan::filter_gids(
+                txn, scan_params,
+                [&expr, gids](label_t label, vid_t vid) {
+                  return expr->eval_vertex(label, vid, 0).as_bool();
+                },
+                gids);
           }
-          return Scan::filter_gids(
-              txn, scan_params,
-              [&expr, gids](label_t label, vid_t vid) {
-                return expr->eval_vertex(label, vid, 0).as_bool();
-              },
-              gids);
+        } else {
+          if (scan_oid) {
+            return Scan::filter_oids_with_special_vertex_predicate(
+                txn, scan_params, *sp_vertex_pred, oids);
+          } else {
+            std::vector<int64_t> gids;
+            for (size_t i = 0; i < oids.size(); i++) {
+              gids.push_back(oids[i].AsInt64());
+            }
+            return Scan::filter_gids_with_special_vertex_predicate(
+                txn, scan_params, *sp_vertex_pred, gids);
+          }
         }
       }
 
@@ -360,14 +392,9 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
     }
 
     if (scan_opr_params.has_predicate()) {
-      std::string prop_name;
-      RTAny threshold;
-      // if (is_property_lt(scan_opr_params.predicate(), params, prop_name,
-      //                    threshold)) {
-      if (false) {
-        VertexPropertyLTPredicate<int64_t> pred(txn, prop_name, threshold);
-        return Scan::scan_vertex(txn, scan_params, pred);
-      } else {
+      auto sp_vertex_pred = parse_special_vertex_predicate(
+          scan_opr_params.predicate(), txn, params);
+      if (sp_vertex_pred == nullptr) {
         Context ctx;
         auto expr = parse_expression(
             txn, ctx, params, scan_opr_params.predicate(), VarType::kVertexVar);
@@ -382,6 +409,9 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
                 return expr->eval_vertex(label, vid, 0).as_bool();
               });
         }
+      } else {
+        return Scan::scan_vertex_with_special_vertex_predicate(txn, scan_params,
+                                                               *sp_vertex_pred);
       }
     }
 
