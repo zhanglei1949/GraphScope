@@ -23,7 +23,6 @@ import com.alibaba.graphscope.common.ir.planner.GraphRelOptimizer;
 import com.alibaba.graphscope.common.ir.rel.graph.GraphLogicalSource;
 import com.alibaba.graphscope.common.ir.tools.LogicalPlan;
 import com.google.common.collect.ImmutableMap;
-
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.runtime.CalciteException;
@@ -55,6 +54,11 @@ public class MatchTest {
                         "schema/modern.json",
                         "statistics/modern_statistics.json",
                         optimizer.getGlogueHolder());
+        //        irMeta =
+        //                com.alibaba.graphscope.common.ir.Utils.mockIrMeta(
+        //                        "schema/ldbc.json",
+        //                        "statistics/ldbc30_statistics.json",
+        //                        optimizer.getGlogueHolder());
     }
 
     @Test
@@ -561,57 +565,45 @@ public class MatchTest {
                 rel.explain().trim());
     }
 
-    //    @Test
-    //    public void udf_function_test() {
-    //        GraphBuilder builder =
-    //                com.alibaba.graphscope.common.ir.Utils.mockGraphBuilder(optimizer, irMeta);
-    //        RelNode node =
-    //                Utils.eval(
-    //                                "MATCH (person1:PERSON)-[path:KNOWS]->(person2:PERSON)"
-    //                                        + " Return gs.function.endNode(path)",
-    //                                builder)
-    //                        .build();
-    //        RelNode after = optimizer.optimize(node, new GraphIOProcessor(builder, irMeta));
-    //        System.out.println(after.getRowType());
-    ////        Assert.assertEquals(
-    ////                "GraphLogicalProject($f0=[gs.function.startNode(path)], isAppend=[false])\n"
-    // +
-    ////                        "  GraphLogicalGetV(tableConfig=[{isAll=false, tables=[person]}],
-    // alias=[person2], opt=[END])\n" +
-    ////                        "    GraphLogicalExpand(tableConfig=[{isAll=false, tables=[knows]}],
-    // alias=[path], startAlias=[person1], opt=[OUT])\n" +
-    ////                        "      GraphLogicalSource(tableConfig=[{isAll=false,
-    // tables=[person]}], alias=[person1], opt=[VERTEX])",
-    ////                after.explain().trim());
-    //        GraphRelProtoPhysicalBuilder builder1 = new GraphRelProtoPhysicalBuilder(configs,
-    // irMeta, new LogicalPlan(after));
-    //        System.out.println(builder1.build().explain());
-    //    }
-    //
-    //    @Test
-    //    public void unfold_test() {
-    //        GraphBuilder builder =
-    //                com.alibaba.graphscope.common.ir.Utils.mockGraphBuilder(optimizer, irMeta);
-    //        RelNode node =
-    //                Utils.eval(
-    //                                "MATCH all ShortestPath((person1:PERSON { id: $person1Id
-    // })-[path:KNOWS*0..10]-(person2:PERSON { id: $person2Id }))\n" +
-    //                                        "WITH path, gs.function.relationships(path) as
-    // rels_in_path, gs.function.nodes(path) as nodes_in_path\n" +
-    //                                        "UNWIND rels_in_path as rel\n" +
-    //                                        "OPTIONAL MATCH
-    // (a:PERSON)<-[:HASCREATOR]-(:COMMENT)-[:REPLYOF]->(:POST)-[:HASCREATOR]->(b:PERSON)\n" +
-    //                                        "WHERE (a = gs.function.startNode(rel) AND b =
-    // gs.function.endNode(rel)) OR (a = gs.function.endNode(rel) AND b =
-    // gs.function.startNode(rel))\n" +
-    //                                        "Return path, nodes_in_path, rels_in_path, COUNT(a) AS
-    // weight1Count",
-    //                                builder)
-    //                        .build();
-    //        RelNode after = optimizer.optimize(node, new GraphIOProcessor(builder, irMeta));
-    //        GraphRelProtoPhysicalBuilder builder1 = new GraphRelProtoPhysicalBuilder(configs,
-    // irMeta, new LogicalPlan(after));
-    //        System.out.println(after.explain());
-    //        System.out.println(builder1.build().explain());
-    //    }
+//    @Test
+//    public void unfold_test() {
+//        GraphBuilder builder =
+//                com.alibaba.graphscope.common.ir.Utils.mockGraphBuilder(optimizer, irMeta);
+//        RelNode node =
+//                Utils.eval(
+//                                "MATCH all ShortestPath((person1:PERSON { id: $person1Id"
+//                                    + " })-[path:KNOWS*0..10]-(person2:PERSON { id: $person2Id"
+//                                    + " }))\n"
+//                                    + "WITH path, gs.function.relationships(path) as rels_in_path,"
+//                                    + " gs.function.nodes(path) as nodes_in_path\n"
+//                                    + "UNWIND rels_in_path as rel\n"
+//                                    + "OPTIONAL MATCH"
+//                                    + " (a:PERSON)<-[:HASCREATOR]-(:COMMENT)-[:REPLYOF]->(:POST)-[:HASCREATOR]->(b:PERSON)\n"
+//                                    + "WHERE (a = gs.function.startNode(rel) AND b ="
+//                                    + " gs.function.endNode(rel)) OR (a = gs.function.endNode(rel)"
+//                                    + " AND b = gs.function.startNode(rel))\n"
+//                                    + "With path, nodes_in_path, rels_in_path, COUNT(a) AS"
+//                                    + " weight1Count\n"
+//                                    + "UNWIND rels_in_path as rel\n"
+//                                    + "OPTIONAL MATCH"
+//                                    + " (c:PERSON)<-[:HASCREATOR]-(:COMMENT)-[:REPLYOF]->(:COMMENT)-[:HASCREATOR]->(d:PERSON)\n"
+//                                    + "WHERE (c = gs.function.startNode(rel) AND d ="
+//                                    + " gs.function.endNode(rel)) OR (c = gs.function.endNode(rel)"
+//                                    + " AND d = gs.function.startNode(rel))\n"
+//                                    + "WITH path, nodes_in_path, weight1Count, COUNT(c) AS"
+//                                    + " weight2Count\n"
+//                                    + "UNWIND nodes_in_path as node\n"
+//                                    + "WITH path, COLLECT(node) as personIdsInPath, weight1Count,"
+//                                    + " weight2Count\n"
+//                                    + "RETURN personIdsInPath, (weight1Count +"
+//                                    + " gs.function.toFloor(weight2Count) / 2) AS pathWeight\n"
+//                                    + "ORDER BY pathWeight DESC;",
+//                                builder)
+//                        .build();
+//        RelNode after = optimizer.optimize(node, new GraphIOProcessor(builder, irMeta));
+//        GraphRelProtoPhysicalBuilder builder1 =
+//                new GraphRelProtoPhysicalBuilder(configs, irMeta, new LogicalPlan(after));
+//        System.out.println(after.explain());
+//        System.out.println(builder1.build().explain());
+//    }
 }
