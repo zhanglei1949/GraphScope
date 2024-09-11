@@ -39,7 +39,8 @@ public class ProcedureCallVisitor extends CypherGSBaseVisitor<RexNode> {
 
     public ProcedureCallVisitor(GraphBuilder builder, IrMeta irMeta) {
         this.builder = builder;
-        this.expressionVisitor = new ExpressionVisitor(new GraphBuilderVisitor(this.builder));
+        this.expressionVisitor =
+                new ExpressionVisitor(new GraphBuilderVisitor(this.builder, irMeta));
         this.irMeta = irMeta;
     }
 

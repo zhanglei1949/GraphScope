@@ -18,6 +18,7 @@ package com.alibaba.graphscope.cypher.antlr4.visitor;
 
 import com.alibaba.graphscope.common.antlr4.ExprUniqueAliasInfer;
 import com.alibaba.graphscope.common.antlr4.ExprVisitorResult;
+import com.alibaba.graphscope.common.ir.meta.IrMeta;
 import com.alibaba.graphscope.common.ir.rel.GraphLogicalAggregate;
 import com.alibaba.graphscope.common.ir.rel.graph.GraphLogicalGetV;
 import com.alibaba.graphscope.common.ir.rel.graph.GraphLogicalPathExpand;
@@ -51,20 +52,34 @@ public class GraphBuilderVisitor extends CypherGSBaseVisitor<GraphBuilder> {
     private final GraphBuilder builder;
     private final ExpressionVisitor expressionVisitor;
     private final ExprUniqueAliasInfer aliasInfer;
+    private final IrMeta irMeta;
 
-    public GraphBuilderVisitor(GraphBuilder builder) {
-        this(builder, new ExprUniqueAliasInfer());
+    public GraphBuilderVisitor(GraphBuilder builder, IrMeta irMeta) {
+        this(builder, new ExprUniqueAliasInfer(), irMeta);
     }
 
-    public GraphBuilderVisitor(GraphBuilder builder, ExprUniqueAliasInfer aliasInfer) {
+    public GraphBuilderVisitor(
+            GraphBuilder builder, ExprUniqueAliasInfer aliasInfer, IrMeta irMeta) {
         this.builder = Objects.requireNonNull(builder);
         this.aliasInfer = Objects.requireNonNull(aliasInfer);
         this.expressionVisitor = new ExpressionVisitor(this);
+        this.irMeta = irMeta;
+    }
+
+    public IrMeta getIrMeta() {
+        return irMeta;
     }
 
     @Override
     public GraphBuilder visitOC_Cypher(CypherGSParser.OC_CypherContext ctx) {
         return visitOC_Statement(ctx.oC_Statement());
+    }
+
+    @Override
+    public GraphBuilder visitOC_Unwind(CypherGSParser.OC_UnwindContext ctx) {
+        RexNode expr = expressionVisitor.visitOC_Expression(ctx.oC_Expression()).getExpr();
+        String alias = ctx.oC_Variable() == null ? null : ctx.oC_Variable().getText();
+        return builder.unfold(expr, alias);
     }
 
     @Override

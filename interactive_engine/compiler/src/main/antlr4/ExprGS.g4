@@ -149,7 +149,7 @@ oC_UserDefinedFunctionInvocation
     : oC_UserDefinedFunctionName SP? '(' SP? ( oC_Expression SP? ( ',' SP? oC_Expression SP? )* )? ')' ;
 
 oC_UserDefinedFunctionName
-    : 'graph.udf.' oC_Namespace oC_SymbolicName ;
+    : 'gs.function.' oC_Namespace oC_SymbolicName ;
 
 oC_Namespace
      :  ( oC_SymbolicName '.' )* ;

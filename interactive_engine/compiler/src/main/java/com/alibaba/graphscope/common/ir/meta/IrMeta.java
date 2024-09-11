@@ -18,6 +18,7 @@
 
 package com.alibaba.graphscope.common.ir.meta;
 
+import com.alibaba.graphscope.common.ir.meta.function.GraphFunctions;
 import com.alibaba.graphscope.common.ir.meta.procedure.GraphStoredProcedures;
 import com.alibaba.graphscope.common.ir.meta.schema.IrGraphSchema;
 
@@ -34,6 +35,7 @@ public class IrMeta {
     protected final SnapshotId snapshotId;
     protected final IrGraphSchema schema;
     protected final @Nullable GraphStoredProcedures storedProcedures;
+    protected final GraphFunctions functions;
 
     public IrMeta(IrGraphSchema schema) {
         this(SnapshotId.createEmpty(), schema);
@@ -56,6 +58,7 @@ public class IrMeta {
         this.snapshotId = Objects.requireNonNull(snapshotId);
         this.schema = Objects.requireNonNull(schema);
         this.storedProcedures = storedProcedures;
+        this.functions = new GraphFunctions();
     }
 
     public IrGraphSchema getSchema() {
@@ -72,5 +75,9 @@ public class IrMeta {
 
     public GraphId getGraphId() {
         return graphId;
+    }
+
+    public GraphFunctions getFunctions() {
+        return functions;
     }
 }

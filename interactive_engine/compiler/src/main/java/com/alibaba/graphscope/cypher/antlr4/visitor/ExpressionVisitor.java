@@ -18,6 +18,8 @@ package com.alibaba.graphscope.cypher.antlr4.visitor;
 
 import com.alibaba.graphscope.common.antlr4.ExprUniqueAliasInfer;
 import com.alibaba.graphscope.common.antlr4.ExprVisitorResult;
+import com.alibaba.graphscope.common.ir.meta.IrMeta;
+import com.alibaba.graphscope.common.ir.meta.function.GraphFunctions;
 import com.alibaba.graphscope.common.ir.rel.type.group.GraphAggCall;
 import com.alibaba.graphscope.common.ir.rex.RexGraphVariable;
 import com.alibaba.graphscope.common.ir.rex.RexTmpVariable;
@@ -408,7 +410,7 @@ public class ExpressionVisitor extends CypherGSBaseVisitor<ExprVisitorResult> {
             CypherGSParser.OC_UserDefinedFunctionInvocationContext ctx) {
         String functionName = ctx.oC_UserDefinedFunctionName().getText();
         List<RelBuilder.AggCall> aggCalls = Lists.newArrayList();
-        List<RexNode> parameters = Lists.newArrayList(builder.literal(functionName));
+        List<RexNode> parameters = Lists.newArrayList();
         ctx.oC_Expression()
                 .forEach(
                         k -> {
@@ -416,7 +418,13 @@ public class ExpressionVisitor extends CypherGSBaseVisitor<ExprVisitorResult> {
                             aggCalls.addAll(res.getAggCalls());
                             parameters.add(res.getExpr());
                         });
-        RexNode udfCall = builder.call(GraphStdOperatorTable.USER_DEFINED_FUNCTION, parameters);
+        IrMeta irMeta = parent.getIrMeta();
+        GraphFunctions functions = irMeta.getFunctions();
+        RexNode udfCall =
+                builder.call(
+                        GraphStdOperatorTable.USER_DEFINED_FUNCTION(
+                                functions.getFunction(functionName)),
+                        parameters);
         return new ExprVisitorResult(aggCalls, udfCall);
     }
 

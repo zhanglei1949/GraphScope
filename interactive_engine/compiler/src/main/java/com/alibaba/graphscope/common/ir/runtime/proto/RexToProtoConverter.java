@@ -16,6 +16,7 @@
 
 package com.alibaba.graphscope.common.ir.runtime.proto;
 
+import com.alibaba.graphscope.common.ir.meta.function.GraphFunctions;
 import com.alibaba.graphscope.common.ir.rex.RexGraphVariable;
 import com.alibaba.graphscope.common.ir.tools.AliasInference;
 import com.alibaba.graphscope.common.ir.tools.GraphStdOperatorTable;
@@ -31,7 +32,6 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.type.IntervalSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Sarg;
 
 import java.math.BigDecimal;
@@ -76,7 +76,7 @@ public class RexToProtoConverter extends RexVisitorImpl<OuterExpression.Expressi
                 && operator.getName().equals("DATETIME_MINUS")) {
             return visitDateMinus(call);
         } else if (operator.getKind() == SqlKind.OTHER
-                && operator.getName().equals("USER_DEFINED_FUNCTION")) {
+                && operator.getName().startsWith(GraphFunctions.FUNCTION_PREFIX)) {
             return visitUserDefinedFunction(call);
         } else if (call.getOperands().size() == 1) {
             return visitUnaryOperator(call);
@@ -87,22 +87,14 @@ public class RexToProtoConverter extends RexVisitorImpl<OuterExpression.Expressi
 
     private OuterExpression.Expression visitUserDefinedFunction(RexCall call) {
         List<RexNode> operands = call.getOperands();
-        Preconditions.checkArgument(
-                !operands.isEmpty()
-                        && operands.get(0) instanceof RexLiteral
-                        && operands.get(0).getType().getSqlTypeName() == SqlTypeName.CHAR,
-                "function name should be 'StringLiteral'");
-        String functionName = ((RexLiteral) operands.get(0)).getValueAs(NlsString.class).getValue();
         List<OuterExpression.Expression> parameters =
-                operands.subList(1, operands.size()).stream()
-                        .map(operand -> operand.accept(this))
-                        .collect(Collectors.toList());
+                operands.stream().map(operand -> operand.accept(this)).collect(Collectors.toList());
         return OuterExpression.Expression.newBuilder()
                 .addOperators(
                         OuterExpression.ExprOpr.newBuilder()
                                 .setUdfFunc(
                                         OuterExpression.UserDefinedFunction.newBuilder()
-                                                .setName(functionName)
+                                                .setName(call.op.getName())
                                                 .addAllParameters(parameters)
                                                 .build())
                                 .setNodeType(Utils.protoIrDataType(call.getType(), isColumnId)))

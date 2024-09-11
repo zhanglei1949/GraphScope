@@ -773,30 +773,34 @@ public class GraphRelToProtoConverter extends GraphShuttle {
                 !conditions.isEmpty(), "join condition in physical should not be empty");
         List<RexNode> leftKeys = Lists.newArrayList();
         List<RexNode> rightKeys = Lists.newArrayList();
-        for (RexNode condition : conditions) {
-            List<RexGraphVariable> leftRightVars = getLeftRightVariables(condition);
-            Preconditions.checkArgument(
-                    leftRightVars.size() == 2,
-                    "join condition in physical should have two operands, while it is %s",
-                    leftRightVars.size());
-            leftKeys.add(leftRightVars.get(0));
-            rightKeys.add(leftRightVars.get(1));
-            OuterExpression.Variable leftVar =
-                    leftRightVars
-                            .get(0)
-                            .accept(new RexToProtoConverter(true, isColumnId, this.rexBuilder))
-                            .getOperators(0)
-                            .getVar();
-            OuterExpression.Variable rightVar =
-                    leftRightVars
-                            .get(1)
-                            .accept(new RexToProtoConverter(true, isColumnId, this.rexBuilder))
-                            .getOperators(0)
-                            .getVar();
-            joinBuilder.addLeftKeys(leftVar);
-            joinBuilder.addRightKeys(rightVar);
+        RexNode otherCondition = null;
+        try {
+            for (RexNode condition : conditions) {
+                List<RexGraphVariable> leftRightVars = getLeftRightVariables(condition);
+                Preconditions.checkArgument(
+                        leftRightVars.size() == 2,
+                        "join condition in physical should have two operands, while it is %s",
+                        leftRightVars.size());
+                leftKeys.add(leftRightVars.get(0));
+                rightKeys.add(leftRightVars.get(1));
+                OuterExpression.Variable leftVar =
+                        leftRightVars
+                                .get(0)
+                                .accept(new RexToProtoConverter(true, isColumnId, this.rexBuilder))
+                                .getOperators(0)
+                                .getVar();
+                OuterExpression.Variable rightVar =
+                        leftRightVars
+                                .get(1)
+                                .accept(new RexToProtoConverter(true, isColumnId, this.rexBuilder))
+                                .getOperators(0)
+                                .getVar();
+                joinBuilder.addLeftKeys(leftVar);
+                joinBuilder.addRightKeys(rightVar);
+            }
+        } catch (IllegalArgumentException e) {
+            otherCondition = join.getCondition();
         }
-
         GraphAlgebraPhysical.PhysicalPlan.Builder leftPlanBuilder =
                 GraphAlgebraPhysical.PhysicalPlan.newBuilder();
         GraphAlgebraPhysical.PhysicalPlan.Builder rightPlanBuilder =
@@ -820,8 +824,7 @@ public class GraphRelToProtoConverter extends GraphShuttle {
                         this.relToCommons,
                         this.extraParams,
                         depth + 1));
-        if (isPartitioned) {
-
+        if (otherCondition == null && isPartitioned) {
             Map<Integer, Set<GraphNameOrId>> leftTagColumns =
                     Utils.extractTagColumnsFromRexNodes(leftKeys);
             Map<Integer, Set<GraphNameOrId>> rightTagColumns =
@@ -836,6 +839,11 @@ public class GraphRelToProtoConverter extends GraphShuttle {
             }
             lazyPropertyFetching(leftPlanBuilder, leftTagColumns, false);
             lazyPropertyFetching(rightPlanBuilder, rightTagColumns, false);
+        } else {
+            // todo: set other condition
+            joinBuilder.setCondition(
+                    otherCondition.accept(
+                            new RexToProtoConverter(true, isColumnId, this.rexBuilder)));
         }
         joinBuilder.setLeftPlan(leftPlanBuilder);
         joinBuilder.setRightPlan(rightPlanBuilder);
@@ -960,6 +968,31 @@ public class GraphRelToProtoConverter extends GraphShuttle {
                         .setIntersect(intersectBuilder));
         physicalBuilder.addPlan(intersectOprBuilder.build());
         return multiJoin;
+    }
+
+    @Override
+    public RelNode visit(GraphLogicalUnfold unfold) {
+        visitChildren(unfold);
+        RexNode unfoldKey = unfold.getUnfoldKey();
+        Preconditions.checkArgument(
+                unfoldKey instanceof RexGraphVariable,
+                "unfold key should be a variable, but is [%s]",
+                unfoldKey);
+        int keyAliasId = ((RexGraphVariable) unfoldKey).getAliasId();
+        GraphAlgebraPhysical.Unfold.Builder unfoldBuilder =
+                GraphAlgebraPhysical.Unfold.newBuilder().setTag(Utils.asAliasId(keyAliasId));
+        if (unfold.getAliasId() != AliasInference.DEFAULT_ID) {
+            unfoldBuilder.setAlias(Utils.asAliasId(unfold.getAliasId()));
+        }
+        physicalBuilder.addPlan(
+                GraphAlgebraPhysical.PhysicalOpr.newBuilder()
+                        .setOpr(
+                                GraphAlgebraPhysical.PhysicalOpr.Operator.newBuilder()
+                                        .setUnfold(unfoldBuilder)
+                                        .build())
+                        .addAllMetaData(Utils.physicalProtoRowType(unfold.getRowType(), isColumnId))
+                        .build());
+        return unfold;
     }
 
     private List<RexGraphVariable> getLeftRightVariables(RexNode condition) {

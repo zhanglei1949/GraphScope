@@ -140,6 +140,11 @@ public class GraphHepPlanner extends HepPlanner {
         }
 
         @Override
+        public RelNode visit(GraphLogicalUnfold unfold) {
+            return findBestIfRoot(unfold, visitChildren(unfold));
+        }
+
+        @Override
         public RelNode visit(CommonTableScan tableScan) {
             RelOptTable optTable = tableScan.getTable();
             if (optTable instanceof CommonOptTable) {

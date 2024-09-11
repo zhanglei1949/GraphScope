@@ -16,6 +16,7 @@
 
 package com.alibaba.graphscope.common.ir.tools;
 
+import com.alibaba.graphscope.common.ir.meta.function.FunctionMeta;
 import com.alibaba.graphscope.common.ir.meta.procedure.StoredProcedureMeta;
 import com.alibaba.graphscope.common.ir.rex.operator.CaseOperator;
 import com.alibaba.graphscope.common.ir.rex.operator.SqlArrayValueConstructor;
@@ -270,6 +271,17 @@ public class GraphStdOperatorTable extends SqlStdOperatorTable {
                 SqlFunctionCategory.USER_DEFINED_PROCEDURE);
     }
 
+    public static final SqlFunction USER_DEFINED_FUNCTION(FunctionMeta meta) {
+        return new SqlFunction(
+                meta.getSignature(),
+                SqlKind.OTHER,
+                meta.getReturnTypeInference(),
+                GraphInferTypes.FIRST_KNOWN,
+                meta.getOperandTypeChecker(),
+                // of parameters
+                SqlFunctionCategory.USER_DEFINED_FUNCTION);
+    }
+
     // combine multiple expressions into a list
     public static final SqlOperator ARRAY_VALUE_CONSTRUCTOR = new SqlArrayValueConstructor();
 
@@ -335,17 +347,4 @@ public class GraphStdOperatorTable extends SqlStdOperatorTable {
                             i -> ImmutableList.of("Path", "FuncOpt", "PropertyProjection").get(i),
                             i -> false),
                     SqlFunctionCategory.SYSTEM);
-
-    public static final SqlOperator USER_DEFINED_FUNCTION =
-            new SqlFunction(
-                    "USER_DEFINED_FUNCTION",
-                    SqlKind.OTHER,
-                    ReturnTypes.explicit(SqlTypeName.ANY),
-                    GraphInferTypes.FIRST_KNOWN,
-                    GraphOperandTypes.family(
-                            ImmutableList.of(SqlTypeFamily.CHARACTER),
-                            (ordinal -> ordinal > 0),
-                            false), // first parameter should be function name, with varied number
-                    // of parameters
-                    SqlFunctionCategory.USER_DEFINED_FUNCTION);
 }

@@ -26,11 +26,14 @@ import com.alibaba.graphscope.cypher.antlr4.visitor.LogicalPlanVisitor;
 public abstract class Utils {
     public static final GraphBuilder eval(String query) {
         GraphBuilder graphBuilder = com.alibaba.graphscope.common.ir.Utils.mockGraphBuilder();
-        return new GraphBuilderVisitor(graphBuilder).visit(new CypherAntlr4Parser().parse(query));
+        return new GraphBuilderVisitor(
+                        graphBuilder, com.alibaba.graphscope.common.ir.Utils.schemaMeta)
+                .visit(new CypherAntlr4Parser().parse(query));
     }
 
     public static final GraphBuilder eval(String query, GraphBuilder builder) {
-        return new GraphBuilderVisitor(builder).visit(new CypherAntlr4Parser().parse(query));
+        return new GraphBuilderVisitor(builder, com.alibaba.graphscope.common.ir.Utils.schemaMeta)
+                .visit(new CypherAntlr4Parser().parse(query));
     }
 
     public static LogicalPlan evalLogicalPlan(String query) {

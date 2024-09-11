@@ -44,7 +44,7 @@ public class StoredProcedureMeta {
     private final String extension;
     private final Map<String, Object> options;
 
-    protected StoredProcedureMeta(
+    public StoredProcedureMeta(
             String name,
             Mode mode,
             String description,
