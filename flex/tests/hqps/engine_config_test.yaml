@@ -25,14 +25,17 @@ compiler:
       - NotMatchToAntiJoinRule
       - ExtendIntersectRule
       - ExpandGetVFusionRule
+      #- JoinDecompositionRule
+    join_min_pattern_size: 15
   meta:
     reader:
       schema:
-        #uri: http://localhost:7777/v1/service/status
+        #uri: /root/0819/GraphScope/interactive_engine/executor/ir/core/resource/ldbc_schema.json
+        #uri: /root/0819/GraphScope/interactive_engine/executor/ir/core/resource/ldbc_schema.json
         uri: /root/0819/data/sf10_validation/graph.yaml
         interval: 1000 # ms
       statistics:
-        #uri: http://localhost:7777/v1/graph/%s/statistics
+        #uri: /root/0819/GraphScope/interactive_engine/compiler/src/test/resources/statistics/ldbc30_statistics.json
         uri: /root/0819/data/sf10_validation/ldbc_30_statistics.json
         interval: 86400000 # ms
   endpoint:
@@ -44,7 +47,7 @@ compiler:
       disabled: false
       port: 8182
   query_timeout: 40000
-  gremlin_script_language_name: antlr_gremlin_calcite
+  #gremlin_script_language_name: antlr_gremlin_calcite
   physical.opt.config: proto
 http_service:
   default_listen_address: localhost

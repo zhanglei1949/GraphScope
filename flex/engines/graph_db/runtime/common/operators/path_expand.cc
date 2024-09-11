@@ -15,6 +15,7 @@
 
 #include "flex/engines/graph_db/runtime/common/operators/path_expand.h"
 #include "flex/engines/graph_db/runtime/common/operators/path_expand_impl.h"
+#include "flex/engines/graph_db/runtime/common/utils/bitset.h"
 
 namespace gs {
 
@@ -448,6 +449,224 @@ Context PathExpand::single_source_single_dest_shortest_path(
 
   ctx.set_with_reshuffle(params.v_alias, builder.finish(), shuffle_offset);
   ctx.set(params.alias, path_builder.finish());
+  return ctx;
+}
+
+static void dfs(const ReadTransaction& txn, vid_t src, vid_t dst,
+                const Bitset& visited, const std::vector<int8_t>& dist,
+                const ShortestPathParams& params,
+                std::vector<std::vector<vid_t>>& paths,
+                std::vector<vid_t>& cur_path) {
+  cur_path.push_back(src);
+  if (src == dst) {
+    paths.emplace_back(cur_path);
+    cur_path.pop_back();
+    return;
+  }
+  auto oe_iter = txn.GetOutEdgeIterator(params.labels[0].src_label, src,
+                                        params.labels[0].dst_label,
+                                        params.labels[0].edge_label);
+  while (oe_iter.IsValid()) {
+    vid_t nbr = oe_iter.GetNeighbor();
+    if (visited.get(nbr) && dist[nbr] == dist[src] + 1) {
+      dfs(txn, nbr, dst, visited, dist, params, paths, cur_path);
+    }
+    oe_iter.Next();
+  }
+  auto ie_iter = txn.GetInEdgeIterator(params.labels[0].dst_label, src,
+                                       params.labels[0].src_label,
+                                       params.labels[0].edge_label);
+  while (ie_iter.IsValid()) {
+    vid_t nbr = ie_iter.GetNeighbor();
+    if (visited.get(nbr) && dist[nbr] == dist[src] + 1) {
+      dfs(txn, nbr, dst, visited, dist, params, paths, cur_path);
+    }
+
+    ie_iter.Next();
+  }
+  cur_path.pop_back();
+}
+static void all_shortest_path_with_given_source_and_dest_impl(
+    const ReadTransaction& txn, const ShortestPathParams& params, vid_t src,
+    vid_t dst, std::vector<std::vector<vid_t>>& paths) {
+  std::vector<int8_t> dist_from_src(
+      txn.GetVertexNum(params.labels[0].src_label), -1);
+  std::vector<int8_t> dist_from_dst(
+      txn.GetVertexNum(params.labels[0].dst_label), -1);
+  dist_from_src[src] = 0;
+  dist_from_dst[dst] = 0;
+  std::queue<vid_t> q1, q2, tmp;
+  q1.push(src);
+  q2.push(dst);
+  std::vector<vid_t> vec;
+  int8_t src_dep = 0, dst_dep = 0;
+
+  while (true) {
+    if (src_dep >= params.hop_upper || dst_dep >= params.hop_upper ||
+        !vec.empty()) {
+      break;
+    }
+    if (q1.size() <= q2.size()) {
+      if (q1.empty()) {
+        break;
+      }
+      while (!q1.empty()) {
+        vid_t v = q1.front();
+        q1.pop();
+        auto oe_iter = txn.GetOutEdgeIterator(params.labels[0].src_label, v,
+                                              params.labels[0].dst_label,
+                                              params.labels[0].edge_label);
+        while (oe_iter.IsValid()) {
+          vid_t nbr = oe_iter.GetNeighbor();
+          if (dist_from_src[nbr] == -1) {
+            dist_from_src[nbr] = src_dep + 1;
+            tmp.push(nbr);
+            if (dist_from_dst[nbr] != -1) {
+              vec.push_back(nbr);
+            }
+          }
+          oe_iter.Next();
+        }
+        auto ie_iter = txn.GetInEdgeIterator(params.labels[0].dst_label, v,
+                                             params.labels[0].src_label,
+                                             params.labels[0].edge_label);
+        while (ie_iter.IsValid()) {
+          vid_t nbr = ie_iter.GetNeighbor();
+          if (dist_from_src[nbr] == -1) {
+            dist_from_src[nbr] = src_dep + 1;
+            tmp.push(nbr);
+            if (dist_from_dst[nbr] != -1) {
+              vec.push_back(nbr);
+            }
+          }
+          ie_iter.Next();
+        }
+      }
+      std::swap(q1, tmp);
+      ++src_dep;
+    } else {
+      if (q2.empty()) {
+        break;
+      }
+      while (!q2.empty()) {
+        vid_t v = q2.front();
+        q2.pop();
+        auto oe_iter = txn.GetOutEdgeIterator(params.labels[0].dst_label, v,
+                                              params.labels[0].src_label,
+                                              params.labels[0].edge_label);
+        while (oe_iter.IsValid()) {
+          vid_t nbr = oe_iter.GetNeighbor();
+          if (dist_from_dst[nbr] == -1) {
+            dist_from_dst[nbr] = dst_dep + 1;
+            tmp.push(nbr);
+            if (dist_from_src[nbr] != -1) {
+              vec.push_back(nbr);
+            }
+          }
+          oe_iter.Next();
+        }
+        auto ie_iter = txn.GetInEdgeIterator(params.labels[0].src_label, v,
+                                             params.labels[0].dst_label,
+                                             params.labels[0].edge_label);
+        while (ie_iter.IsValid()) {
+          vid_t nbr = ie_iter.GetNeighbor();
+          if (dist_from_dst[nbr] == -1) {
+            dist_from_dst[nbr] = dst_dep + 1;
+            tmp.push(nbr);
+            if (dist_from_src[nbr] != -1) {
+              vec.push_back(nbr);
+            }
+          }
+          ie_iter.Next();
+        }
+      }
+      std::swap(q2, tmp);
+      ++dst_dep;
+    }
+  }
+
+  while (!q1.empty()) {
+    q1.pop();
+  }
+  if (vec.empty()) {
+    return;
+  }
+  if (src_dep + dst_dep >= params.hop_upper) {
+    return;
+  }
+  Bitset visited;
+  visited.resize(txn.GetVertexNum(params.labels[0].src_label));
+  for (auto v : vec) {
+    q1.push(v);
+    visited.set(v);
+  }
+  while (!q1.empty()) {
+    auto v = q1.front();
+    q1.pop();
+    auto oe_iter = txn.GetOutEdgeIterator(params.labels[0].src_label, v,
+                                          params.labels[0].dst_label,
+                                          params.labels[0].edge_label);
+    while (oe_iter.IsValid()) {
+      vid_t nbr = oe_iter.GetNeighbor();
+      if (dist_from_src[nbr] != -1 &&
+          dist_from_src[nbr] + 1 == dist_from_src[v]) {
+        q1.push(nbr);
+        visited.set(nbr);
+      }
+      if (dist_from_dst[nbr] != -1 &&
+          dist_from_dst[nbr] + 1 == dist_from_dst[v]) {
+        q1.push(nbr);
+        visited.set(nbr);
+        dist_from_src[nbr] = dist_from_src[v] + 1;
+      }
+      oe_iter.Next();
+    }
+
+    auto ie_iter = txn.GetInEdgeIterator(params.labels[0].dst_label, v,
+                                         params.labels[0].src_label,
+                                         params.labels[0].edge_label);
+    while (ie_iter.IsValid()) {
+      vid_t nbr = ie_iter.GetNeighbor();
+      if (dist_from_src[nbr] != -1 &&
+          dist_from_src[nbr] + 1 == dist_from_src[v]) {
+        q1.push(nbr);
+        visited.set(nbr);
+      }
+      if (dist_from_dst[nbr] != -1 &&
+          dist_from_dst[nbr] + 1 == dist_from_dst[v]) {
+        q1.push(nbr);
+        visited.set(nbr);
+        dist_from_src[nbr] = dist_from_src[v] + 1;
+      }
+      ie_iter.Next();
+    }
+  }
+  std::vector<vid_t> cur_path;
+  dfs(txn, src, dst, visited, dist_from_src, params, paths, cur_path);
+}
+
+Context PathExpand::all_shortest_path_with_given_source_and_dest(
+    const ReadTransaction& txn, Context&& ctx, const ShortestPathParams& params,
+    const std::vector<std::pair<label_t, vid_t>>& dests) {
+  auto& input_vertex_list =
+      *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.start_tag));
+  auto label_sets = input_vertex_list.get_labels_set();
+  auto labels = params.labels;
+  CHECK(labels.size() == 1) << "only support one label triplet";
+  CHECK(label_sets.size() == 1) << "only support one label set";
+  auto label_triplet = labels[0];
+  CHECK(label_triplet.src_label == label_triplet.dst_label)
+      << "only support same src and dst label";
+  auto dir = params.dir;
+  CHECK(dir == Direction::kBoth) << "only support both direction";
+  CHECK(dests.size() == 1) << "only support one dest";
+  CHECK(dests[0].first == label_triplet.dst_label)
+      << "only support same src and dst label";
+  foreach_vertex(input_vertex_list, [&](size_t index, label_t label, vid_t v) {
+    std::vector<std::vector<vid_t>> paths;
+    all_shortest_path_with_given_source_and_dest_impl(txn, params, v,
+                                                      dests[0].second, paths);
+  });
   return ctx;
 }
 
