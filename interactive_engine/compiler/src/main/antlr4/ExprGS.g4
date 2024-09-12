@@ -144,7 +144,7 @@ HEAD : ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'D' | 'd' );
 
 DURATION: ( 'D' | 'd' ) ( 'U' | 'u' ) ( 'R' | 'r' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' );
 
-// user defined function should start with a namespace 'graph.udf'
+// user defined function should start with a namespace 'gs.function.'
 oC_UserDefinedFunctionInvocation
     : oC_UserDefinedFunctionName SP? '(' SP? ( oC_Expression SP? ( ',' SP? oC_Expression SP? )* )? ')' ;
 

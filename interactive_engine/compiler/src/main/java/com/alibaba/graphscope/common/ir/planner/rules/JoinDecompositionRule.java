@@ -4,6 +4,7 @@ import com.alibaba.graphscope.common.ir.meta.glogue.Utils;
 import com.alibaba.graphscope.common.ir.rel.GraphJoinDecomposition;
 import com.alibaba.graphscope.common.ir.rel.GraphPattern;
 import com.alibaba.graphscope.common.ir.rel.metadata.glogue.pattern.*;
+import com.alibaba.graphscope.common.ir.tools.config.GraphOpt;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -290,8 +291,11 @@ public class JoinDecompositionRule<C extends JoinDecompositionRule.Config> exten
         }
         PatternEdge probeEdge = probeEdges.get(edgeId);
         PathExpandRange pxdRange = probeEdge.getElementDetails().getRange();
+        GraphOpt.PathExpandPath pathOpt = probeEdge.getElementDetails().getPathOpt();
         // try to split the path expand
-        if (pxdRange != null) {
+        if (pxdRange != null
+                && pathOpt != GraphOpt.PathExpandPath.ALL_SHORTEST
+                && pathOpt != GraphOpt.PathExpandPath.ANY_SHORTEST) {
             int minHop = pxdRange.getOffset();
             int maxHop = pxdRange.getOffset() + pxdRange.getFetch() - 1;
             if (maxHop >= config.getMinPatternSize() - 1) {
