@@ -103,15 +103,16 @@ Context Intersect::intersect(Context&& ctx,
   LOG(FATAL) << "not support";
 }
 
-static Context intersect_impl(std::vector<Context>&& ctxs, int key) {
+static Context intersect_impl(Context&& ctx, std::vector<Context>&& ctxs,
+                              int key) {
   if (ctxs[0].get(key)->column_type() == ContextColumnType::kVertex) {
     if (ctxs.size() == 2) {
       auto& vlist0 =
           *(std::dynamic_pointer_cast<IVertexColumn>(ctxs[0].get(key)));
       auto& vlist1 =
           *(std::dynamic_pointer_cast<IVertexColumn>(ctxs[1].get(key)));
-      auto& idx_col0 = ctxs[0].get_idx_col();
-      auto& idx_col1 = ctxs[1].get_idx_col();
+      auto& idx_col0 = ctxs[0].get_offsets();
+      auto& idx_col1 = ctxs[1].get_offsets();
       std::vector<size_t> offsets0(idx_col0.size()), offsets1(idx_col1.size());
       for (size_t k = 0; k < idx_col0.size(); ++k) {
         offsets0[k] = k;
@@ -167,21 +168,31 @@ static Context intersect_impl(std::vector<Context>&& ctxs, int key) {
 
       ctxs[0].reshuffle(shuffle_offsets);
       ctxs[1].reshuffle(shuffle_offsets_1);
-      ctxs[0].pop_idx_col();
-      for (size_t i = 0; i < ctxs[1].col_num(); ++i) {
-        if (i >= ctxs[0].col_num() || ctxs[0].get(i) == nullptr) {
-          ctxs[0].set(i, ctxs[1].get(i));
+      ctx.reshuffle(ctxs[0].get_offsets().data());
+
+      for (size_t i = 0; i < ctxs[0].col_num() || i < ctxs[1].col_num(); ++i) {
+        if (i < ctxs[0].col_num()) {
+          if (ctxs[0].get(i) != nullptr) {
+            ctx.set(i, ctxs[0].get(i));
+          }
+        } else if (i < ctxs[1].col_num()) {
+          if (ctxs[1].get(i) != nullptr) {
+            ctx.set(i, ctxs[1].get(i));
+          }
+        } else if (i > ctx.col_num()) {
+          ctx.set(i, nullptr);
         }
       }
-      return ctxs[0];
+      return ctx;
     }
   }
   LOG(FATAL) << "not support";
   return Context();
 }
 
-Context Intersect::intersect(std::vector<Context>&& ctxs, int key) {
-  return intersect_impl(std::move(ctxs), key);
+Context Intersect::intersect(Context&& ctx, std::vector<Context>&& ctxs,
+                             int key) {
+  return intersect_impl(std::move(ctx), std::move(ctxs), key);
 }
 
 }  // namespace runtime

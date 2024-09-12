@@ -76,6 +76,8 @@ class ValueColumn : public IValueColumn<T> {
 
   T get_value(size_t idx) const override { return data_[idx]; }
 
+  const std::vector<T>& data() const { return data_; }
+
   ISigColumn* generate_signature() const override {
     if constexpr (std::is_same_v<T, bool> or std::is_same_v<T, Tuple>) {
       LOG(FATAL) << "not implemented for " << this->column_info();

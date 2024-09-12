@@ -502,6 +502,7 @@ static void all_shortest_path_with_given_source_and_dest_impl(
   int8_t src_dep = 0, dst_dep = 0;
 
   while (true) {
+    LOG(INFO) << "src_dep: " << (int) src_dep << ", dst_dep: " << (int) dst_dep;
     if (src_dep >= params.hop_upper || dst_dep >= params.hop_upper ||
         !vec.empty()) {
       break;
@@ -600,6 +601,7 @@ static void all_shortest_path_with_given_source_and_dest_impl(
     q1.push(v);
     visited.set(v);
   }
+  LOG(INFO) << "vec size: " << vec.size();
   while (!q1.empty()) {
     auto v = q1.front();
     q1.pop();
@@ -608,6 +610,10 @@ static void all_shortest_path_with_given_source_and_dest_impl(
                                           params.labels[0].edge_label);
     while (oe_iter.IsValid()) {
       vid_t nbr = oe_iter.GetNeighbor();
+      if (visited.get(nbr)) {
+        oe_iter.Next();
+        continue;
+      }
       if (dist_from_src[nbr] != -1 &&
           dist_from_src[nbr] + 1 == dist_from_src[v]) {
         q1.push(nbr);
@@ -627,6 +633,10 @@ static void all_shortest_path_with_given_source_and_dest_impl(
                                          params.labels[0].edge_label);
     while (ie_iter.IsValid()) {
       vid_t nbr = ie_iter.GetNeighbor();
+      if (visited.get(nbr)) {
+        ie_iter.Next();
+        continue;
+      }
       if (dist_from_src[nbr] != -1 &&
           dist_from_src[nbr] + 1 == dist_from_src[v]) {
         q1.push(nbr);
@@ -641,13 +651,14 @@ static void all_shortest_path_with_given_source_and_dest_impl(
       ie_iter.Next();
     }
   }
+  LOG(INFO) << "finish bfs";
   std::vector<vid_t> cur_path;
   dfs(txn, src, dst, visited, dist_from_src, params, paths, cur_path);
 }
 
-Context PathExpand::all_shortest_path_with_given_source_and_dest(
+Context PathExpand::all_shortest_paths_with_given_source_and_dest(
     const ReadTransaction& txn, Context&& ctx, const ShortestPathParams& params,
-    const std::vector<std::pair<label_t, vid_t>>& dests) {
+    const std::pair<label_t, vid_t>& dest) {
   auto& input_vertex_list =
       *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.start_tag));
   auto label_sets = input_vertex_list.get_labels_set();
@@ -659,14 +670,14 @@ Context PathExpand::all_shortest_path_with_given_source_and_dest(
       << "only support same src and dst label";
   auto dir = params.dir;
   CHECK(dir == Direction::kBoth) << "only support both direction";
-  CHECK(dests.size() == 1) << "only support one dest";
-  CHECK(dests[0].first == label_triplet.dst_label)
+
+  CHECK(dest.first == label_triplet.dst_label)
       << "only support same src and dst label";
   foreach_vertex(input_vertex_list, [&](size_t index, label_t label, vid_t v) {
     std::vector<std::vector<vid_t>> paths;
     all_shortest_path_with_given_source_and_dest_impl(txn, params, v,
-                                                      dests[0].second, paths);
-  });
+                                                      dest.second, paths);
+    });
   return ctx;
 }
 

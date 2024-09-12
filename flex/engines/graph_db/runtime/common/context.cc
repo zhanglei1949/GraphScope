@@ -21,37 +21,15 @@ namespace gs {
 
 namespace runtime {
 
-Context::Context() : head(nullptr) {}
+Context::Context()
+    : head(nullptr), prev_context(nullptr), offset_ptr(nullptr) {}
 
 void Context::clear() {
   columns.clear();
   head.reset();
-  idx_columns.clear();
+  offset_ptr = nullptr;
   tag_ids.clear();
-}
-
-Context Context::dup() const {
-  Context new_ctx;
-  new_ctx.head = nullptr;
-  for (auto col : columns) {
-    if (col != nullptr) {
-      new_ctx.columns.push_back(col->dup());
-      if (col == head) {
-        new_ctx.head = new_ctx.columns.back();
-      }
-    } else {
-      new_ctx.columns.push_back(nullptr);
-    }
-  }
-  if (head != nullptr && new_ctx.head == nullptr) {
-    new_ctx.head = head->dup();
-  }
-  for (auto& idx_col : idx_columns) {
-    new_ctx.idx_columns.emplace_back(
-        std::dynamic_pointer_cast<ValueColumn<size_t>>(idx_col->dup()));
-  }
-  new_ctx.tag_ids = tag_ids;
-  return new_ctx;
+  prev_context = nullptr;
 }
 
 void Context::update_tag_ids(const std::vector<size_t>& tag_ids) {
@@ -139,12 +117,10 @@ void Context::reshuffle(const std::vector<size_t>& offsets) {
     head = head->shuffle(offsets);
   }
   std::swap(new_cols, columns);
-  std::vector<std::shared_ptr<ValueColumn<size_t>>> new_idx_columns;
-  for (auto& idx_col : idx_columns) {
-    new_idx_columns.emplace_back(std::dynamic_pointer_cast<ValueColumn<size_t>>(
-        idx_col->shuffle(offsets)));
+  if (offset_ptr != nullptr) {
+    offset_ptr = std::dynamic_pointer_cast<ValueColumn<size_t>>(
+        offset_ptr->shuffle(offsets));
   }
-  std::swap(new_idx_columns, idx_columns);
 }
 
 void Context::optional_reshuffle(const std::vector<size_t>& offsets) {
@@ -169,30 +145,73 @@ void Context::optional_reshuffle(const std::vector<size_t>& offsets) {
     head = head->optional_shuffle(offsets);
   }
   std::swap(new_cols, columns);
-  std::vector<std::shared_ptr<ValueColumn<size_t>>> new_idx_columns;
-  for (auto& idx_col : idx_columns) {
-    new_idx_columns.emplace_back(std::dynamic_pointer_cast<ValueColumn<size_t>>(
-        idx_col->optional_shuffle(offsets)));
+  if (offset_ptr != nullptr) {
+    offset_ptr = offset_ptr = std::dynamic_pointer_cast<ValueColumn<size_t>>(
+        offset_ptr->optional_shuffle(offsets));
   }
-  std::swap(new_idx_columns, idx_columns);
 }
 
 std::shared_ptr<IContextColumn> Context::get(int alias) {
-  if (alias == -1) {
-    return head;
+  if (prev_context == nullptr) {
+    if (alias == -1) {
+      return head;
+    }
+    CHECK(static_cast<size_t>(alias) < columns.size());
+    return columns[alias];
+  } else {
+    std::shared_ptr<IContextColumn> ptr{nullptr};
+    // find in the current context
+    if (alias == -1) {
+      ptr = head;
+    } else {
+      if (static_cast<size_t>(alias) < columns.size()) {
+        ptr = columns[alias];
+      }
+    }
+    if (ptr == nullptr) {
+      auto ptr = prev_context->get(alias);
+      if ((ptr != nullptr) && ptr->size() != offset_ptr->size()) {
+        ptr = ptr->shuffle(offset_ptr->data());
+      }
+      set(alias, ptr);
+      return ptr;
+    } else {
+      return ptr;
+    }
   }
-  assert(static_cast<size_t>(alias) < columns.size());
-  return columns[alias];
 }
 
 const std::shared_ptr<IContextColumn> Context::get(int alias) const {
-  if (alias == -1) {
-    assert(head != nullptr);
-    return head;
+  if (prev_context == nullptr) {
+    if (alias == -1) {
+      assert(head != nullptr);
+      return head;
+    }
+    CHECK(static_cast<size_t>(alias) < columns.size());
+    // return nullptr if the column is not set
+    return columns[alias];
+  } else {
+    std::shared_ptr<IContextColumn> ptr{nullptr};
+    // find in the current context
+    if (alias == -1) {
+      ptr = head;
+    } else {
+      if (static_cast<size_t>(alias) < columns.size()) {
+        ptr = columns[alias];
+      }
+    }
+    if (ptr == nullptr) {
+      auto ptr = prev_context->get(alias);
+      if ((ptr != nullptr) && ptr->size() != offset_ptr->size()) {
+        ptr = ptr->shuffle(offset_ptr->data());
+      }
+      // ???
+      // set(alias, ptr);
+      return ptr;
+    } else {
+      return ptr;
+    }
   }
-  assert(static_cast<size_t>(alias) < columns.size());
-  // return nullptr if the column is not set
-  return columns[alias];
 }
 
 void Context::remove(int alias) {
@@ -267,33 +286,20 @@ void Context::show(const ReadTransaction& txn) const {
   }
 }
 
-void Context::generate_idx_col(int idx) {
-  size_t n = row_num();
+void Context::set_prev_context(Context* prev_context) {
+  this->prev_context = prev_context;
+  CHECK(prev_context != this);
   ValueColumnBuilder<size_t> builder;
-  builder.reserve(n);
-  for (size_t k = 0; k < n; ++k) {
-    builder.push_back_opt(k);
+  size_t prev_row_num = prev_context->row_num();
+  builder.reserve(prev_row_num);
+  for (size_t i = 0; i < prev_row_num; ++i) {
+    builder.push_back_opt(i);
   }
-  set(idx, builder.finish());
+  offset_ptr = std::dynamic_pointer_cast<ValueColumn<size_t>>(builder.finish());
 }
 
+const ValueColumn<size_t>& Context::get_offsets() const { return *offset_ptr; }
 size_t Context::col_num() const { return columns.size(); }
-
-void Context::push_idx_col() {
-  ValueColumnBuilder<size_t> builder;
-  builder.reserve(row_num());
-  for (size_t k = 0; k < row_num(); ++k) {
-    builder.push_back_opt(k);
-  }
-  idx_columns.emplace_back(
-      std::dynamic_pointer_cast<ValueColumn<size_t>>(builder.finish()));
-}
-
-const ValueColumn<size_t>& Context::get_idx_col() const {
-  return *idx_columns.back();
-}
-
-void Context::pop_idx_col() { idx_columns.pop_back(); }
 
 }  // namespace runtime
 

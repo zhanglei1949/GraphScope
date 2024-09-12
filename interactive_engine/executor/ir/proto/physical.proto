@@ -119,6 +119,8 @@ message Join {
   JoinKind join_kind = 3;
   PhysicalPlan left_plan = 4;
   PhysicalPlan right_plan = 5;
+  // for ic benchmark, we add an additional expression to denote complex join conditions
+  common.Expression condition = 6;
 }
 
 message Apply {

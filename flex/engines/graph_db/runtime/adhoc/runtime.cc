@@ -57,6 +57,9 @@ static std::string get_opr_name(const physical::PhysicalOpr& opr) {
   case physical::PhysicalOpr_Operator::OpKindCase::kRoot: {
     return "root";
   }
+  case physical::PhysicalOpr_Operator::OpKindCase::kIntersect: {
+    return "intersect";
+  }
   default:
     return "unknown - " +
            std::to_string(static_cast<int>(opr.opr().op_kind_case()));
@@ -73,6 +76,50 @@ static bool is_shortest_path(const physical::PhysicalPlan& plan, int i) {
           physical::PathExpand_ResultOpt::PathExpand_ResultOpt_ALL_V_E) {
     return false;
   }
+  if (i + 2 < opr_num) {
+    const auto& get_v_opr = plan.plan(i + 1).opr();
+    const auto& get_v_filter_opr = plan.plan(i + 2).opr();
+    if (!get_v_filter_opr.has_vertex() || !get_v_opr.has_vertex()) {
+      return false;
+    }
+    if (get_v_opr.vertex().opt() != physical::GetV::END) {
+      return false;
+    }
+    if (get_v_filter_opr.vertex().opt() != physical::GetV::ITSELF) {
+      return false;
+    }
+
+    int path_alias = opr.path().has_alias() ? opr.path().alias().value() : -1;
+    int get_v_tag =
+        get_v_opr.vertex().has_tag() ? get_v_opr.vertex().tag().value() : -1;
+    int get_v_alias = get_v_opr.vertex().has_alias()
+                          ? get_v_opr.vertex().alias().value()
+                          : -1;
+    if (path_alias != get_v_tag && get_v_tag != -1) {
+      return false;
+    }
+    int get_v_filter_tag = get_v_filter_opr.vertex().has_tag()
+                               ? get_v_filter_opr.vertex().tag().value()
+                               : -1;
+    if (get_v_filter_tag != get_v_alias && get_v_filter_tag != -1) {
+      return false;
+    }
+
+    return true;
+  }
+  return false;
+}
+
+bool is_all_shortest_path(const physical::PhysicalPlan& plan, int i) {
+  int opr_num = plan.plan_size();
+  const auto& opr = plan.plan(i).opr();
+  if (opr.path().path_opt() !=
+          physical::PathExpand_PathOpt::PathExpand_PathOpt_ALL_SHORTEST ||
+      opr.path().result_opt() !=
+          physical::PathExpand_ResultOpt::PathExpand_ResultOpt_ALL_V_E) {
+    return false;
+  }
+
   if (i + 2 < opr_num) {
     const auto& get_v_opr = plan.plan(i + 1).opr();
     const auto& get_v_filter_opr = plan.plan(i + 2).opr();
@@ -211,6 +258,21 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
                                    params, opr.meta_data(0), vertex, v_alias);
           i += 2;
           break;
+        } else if (is_all_shortest_path(plan, i)) {
+          auto vertex = plan.plan(i + 2).opr().vertex();
+          int v_alias = -1;
+          if (!vertex.has_alias()) {
+            v_alias = plan.plan(i + 1).opr().vertex().has_alias()
+                          ? plan.plan(i + 1).opr().vertex().alias().value()
+                          : -1;
+          } else {
+            v_alias = vertex.alias().value();
+          }
+          ret = eval_all_shortest_paths(opr.opr().path(), txn, std::move(ret),
+                                        params, opr.meta_data(0), vertex,
+                                        v_alias);
+          i += 2;
+          break;
         }
       }
       if ((i + 1) < opr_num) {
@@ -247,7 +309,7 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kJoin: {
       auto op = opr.opr().join();
-      auto ret_dup = ret.dup();
+      Context ret_dup;
       auto ctx = runtime_eval_impl(op.left_plan(), std::move(ret), txn, params,
                                    op_id_offset + 100, op_name + "-left");
       auto ctx2 =
@@ -262,24 +324,15 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
       auto op = opr.opr().intersect();
       size_t num = op.sub_plans_size();
       std::vector<Context> ctxs;
-      ret.push_idx_col();
       for (size_t i = 0; i < num; ++i) {
-        if (i + 1 < num) {
-          auto ret_dup = ret.dup();
-          ctxs.push_back(runtime_eval_impl(op.sub_plans(i), std::move(ret_dup),
-                                           txn, params, op_id_offset + i * 200,
-                                           op_name + "-sub[" +
-                                               std::to_string(i) + "/" +
-                                               std ::to_string(num) + "]"));
-        } else {
-          ctxs.push_back(runtime_eval_impl(op.sub_plans(i), std::move(ret), txn,
-                                           params, op_id_offset + i * 200 + 100,
-                                           op_name + "-sub[" +
-                                               std::to_string(i) + "/" +
-                                               std ::to_string(num) + "]"));
-        }
+        Context n_ctx;
+        n_ctx.set_prev_context(&ret);
+        ctxs.push_back(runtime_eval_impl(op.sub_plans(i), std::move(n_ctx), txn,
+                                         params, op_id_offset + i * 200,
+                                         op_name + "-sub[" + std::to_string(i) +
+                                             "/" + std ::to_string(num) + "]"));
       }
-      ret = eval_intersect(txn, op, std::move(ctxs));
+      ret = eval_intersect(txn, op, std::move(ret), std::move(ctxs));
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kLimit: {
       ret = eval_limit(opr.opr().limit(), std::move(ret));

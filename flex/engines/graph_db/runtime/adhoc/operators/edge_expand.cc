@@ -107,7 +107,7 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
 
   Direction dir = parse_direction(opr.direction());
   bool is_optional = opr.is_optional();
-  CHECK(!is_optional);
+  // CHECK(!is_optional);
 
   CHECK(opr.has_params());
   const algebra::QueryParams& query_params = opr.params();
@@ -124,6 +124,7 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
   eep.labels = parse_label_triplets(meta);
   eep.dir = dir;
   eep.alias = alias;
+  eep.is_optional = is_optional;
 
   if (opr.expand_opt() ==
       physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_VERTEX) {
@@ -140,7 +141,6 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
       return ret;
     } else {
       double t = -grape::GetCurrentTime();
-      // LOG(INFO) << "##### 10 " << op_id;
       auto ret =
           EdgeExpand::expand_vertex_without_predicate(txn, std::move(ctx), eep);
       t += grape::GetCurrentTime();

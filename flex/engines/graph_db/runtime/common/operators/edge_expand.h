@@ -35,6 +35,7 @@ struct EdgeExpandParams {
   std::vector<LabelTriplet> labels;
   int alias;
   Direction dir;
+  bool is_optional;
 };
 
 class EdgeExpand {

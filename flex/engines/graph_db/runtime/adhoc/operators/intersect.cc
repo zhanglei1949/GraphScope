@@ -21,13 +21,13 @@ namespace gs {
 namespace runtime {
 
 Context eval_intersect(const ReadTransaction& txn,
-                       const physical::Intersect& opr,
+                       const physical::Intersect& opr, Context&& ctx,
                        std::vector<Context>&& ctxs) {
   int32_t key = opr.key();
   if (ctxs.size() == 1) {
     return std::move(ctxs[0]);
   }
-  return Intersect::intersect(std::move(ctxs), key);
+  return Intersect::intersect(std::move(ctx), std::move(ctxs), key);
 }
 
 }  // namespace runtime

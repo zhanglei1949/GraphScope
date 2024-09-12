@@ -29,8 +29,6 @@ class Context {
   Context();
   ~Context() = default;
 
-  Context dup() const;
-
   void clear();
 
   void update_tag_ids(const std::vector<size_t>& tag_ids);
@@ -62,20 +60,19 @@ class Context {
 
   void show(const ReadTransaction& txn) const;
 
-  void generate_idx_col(int idx);
-
   size_t col_num() const;
 
-  void push_idx_col();
-
-  const ValueColumn<size_t>& get_idx_col() const;
-
-  void pop_idx_col();
+  void set_prev_context(Context* prev_context);
 
   std::vector<std::shared_ptr<IContextColumn>> columns;
   std::shared_ptr<IContextColumn> head;
-  std::vector<std::shared_ptr<ValueColumn<size_t>>> idx_columns;
+
   std::vector<size_t> tag_ids;
+
+  // for intersect
+  const ValueColumn<size_t>& get_offsets() const;
+  Context* prev_context;
+  std::shared_ptr<ValueColumn<size_t>> offset_ptr;
 };
 
 }  // namespace runtime

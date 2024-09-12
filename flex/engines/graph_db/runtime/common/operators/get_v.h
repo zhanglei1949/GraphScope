@@ -56,6 +56,51 @@ std::vector<label_t> extract_labels(const std::vector<LabelTriplet>& labels,
 class GetV {
  public:
   template <typename PRED_T>
+  static Context get_vertex_from_edges_optional_impl(const ReadTransaction& txn,
+                                                     Context&& ctx,
+                                                     const GetVParams& params,
+                                                     const PRED_T& pred) {
+    auto column = std::dynamic_pointer_cast<IEdgeColumn>(ctx.get(params.tag));
+    CHECK(column != nullptr);
+
+    std::vector<size_t> shuffle_offset;
+    if (column->edge_column_type() == EdgeColumnType::kBDSL) {
+      OptionalSLVertexColumnBuilder builder(column->get_labels()[0].src_label);
+      auto& input_edge_list =
+          *std::dynamic_pointer_cast<OptionalBDSLEdgeColumn>(column);
+      input_edge_list.foreach_edge([&](size_t index, const LabelTriplet& label,
+                                       vid_t src, vid_t dst, const Any& edata,
+                                       Direction dir) {
+        if (!input_edge_list.has_value(index)) {
+          if (pred(label.src_label, src, index, 0)) {
+            builder.push_back_opt(src);
+            shuffle_offset.push_back(index);
+          }
+        } else {
+          if (dir == Direction::kOut) {
+            if (label.dst_label == params.tables[0]) {
+              if (pred(label.dst_label, dst, index)) {
+                builder.push_back_opt(dst);
+                shuffle_offset.push_back(index);
+              }
+            }
+          } else {
+            if (label.src_label == params.tables[0]) {
+              if (pred(label.src_label, src, index)) {
+                builder.push_back_opt(src);
+                shuffle_offset.push_back(index);
+              }
+            }
+          }
+        }
+      });
+      ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
+      return ctx;
+    }
+    LOG(FATAL) << "not support" << static_cast<int>(column->edge_column_type());
+    return ctx;
+  }
+  template <typename PRED_T>
   static Context get_vertex_from_edges(const ReadTransaction& txn,
                                        Context&& ctx, const GetVParams& params,
                                        const PRED_T& pred) {
@@ -76,6 +121,10 @@ class GetV {
     }
 
     auto column = std::dynamic_pointer_cast<IEdgeColumn>(ctx.get(params.tag));
+    if (column->is_optional()) {
+      return get_vertex_from_edges_optional_impl(txn, std::move(ctx), params,
+                                                 pred);
+    }
     CHECK(column != nullptr);
     if (column->edge_column_type() == EdgeColumnType::kSDSL) {
       auto& input_edge_list =

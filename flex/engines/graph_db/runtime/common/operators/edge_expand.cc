@@ -48,8 +48,74 @@ static std::vector<LabelTriplet> get_expand_label_set(
   return label_triplets;
 }
 
+static Context expand_edge_without_predicate_optional_impl(
+    const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params) {
+  std::vector<size_t> shuffle_offset;
+  // has only one label
+  if (params.labels.size() == 1) {
+    // both direction and src_label == dst_label
+    if (params.dir == Direction::kBoth &&
+        params.labels[0].src_label == params.labels[0].dst_label) {
+      auto& input_vertex_list =
+          *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
+      LOG(INFO) << "input vertex size: " << input_vertex_list.size();
+      CHECK(!input_vertex_list.is_optional())
+          << "not support optional vertex column as input currently";
+      auto& triplet = params.labels[0];
+      auto props = txn.schema().get_edge_properties(
+          triplet.src_label, triplet.dst_label, triplet.edge_label);
+      PropertyType pt = PropertyType::kEmpty;
+      if (!props.empty()) {
+        pt = props[0];
+      }
+      if (props.size() > 1) {
+        pt = PropertyType::kRecordView;
+      }
+      OptionalBDSLEdgeColumnBuilder builder(triplet, pt);
+      foreach_vertex(input_vertex_list, [&](size_t index, label_t label,
+                                            vid_t v) {
+        bool has_edge = false;
+        if (label == triplet.src_label) {
+          auto oe_iter = txn.GetOutEdgeIterator(label, v, triplet.dst_label,
+                                                triplet.edge_label);
+          while (oe_iter.IsValid()) {
+            auto nbr = oe_iter.GetNeighbor();
+            builder.push_back_opt(v, nbr, oe_iter.GetData(), Direction::kOut);
+            shuffle_offset.push_back(index);
+            has_edge = true;
+            oe_iter.Next();
+          }
+        }
+        if (label == triplet.dst_label) {
+          auto ie_iter = txn.GetInEdgeIterator(label, v, triplet.src_label,
+                                               triplet.edge_label);
+          while (ie_iter.IsValid()) {
+            auto nbr = ie_iter.GetNeighbor();
+            builder.push_back_opt(nbr, v, ie_iter.GetData(), Direction::kIn);
+            shuffle_offset.push_back(index);
+            has_edge = true;
+            ie_iter.Next();
+          }
+        }
+        if (!has_edge) {
+          builder.push_back_null();
+          shuffle_offset.push_back(index);
+        }
+      });
+      ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
+      return ctx;
+    }
+  }
+  LOG(FATAL) << "not support";
+  return ctx;
+}
+
 Context EdgeExpand::expand_edge_without_predicate(
     const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params) {
+  if (params.is_optional) {
+    return expand_edge_without_predicate_optional_impl(txn, std::move(ctx),
+                                                       params);
+  }
   std::vector<size_t> shuffle_offset;
   auto& op_cost = OpCost::get().table;
 

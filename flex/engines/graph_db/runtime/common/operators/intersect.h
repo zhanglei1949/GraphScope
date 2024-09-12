@@ -31,7 +31,7 @@ class Intersect {
                            std::vector<std::tuple<Context, int, int>>&& ctxs,
                            int alias);
 
-  static Context intersect(std::vector<Context>&& ctxs, int key);
+  static Context intersect(Context&& ctx, std::vector<Context>&& ctxs, int key);
 };
 
 }  // namespace runtime

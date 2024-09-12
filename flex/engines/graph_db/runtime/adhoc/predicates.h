@@ -50,6 +50,11 @@ struct GeneralVertexPredicate {
     return val.as_bool();
   }
 
+  bool operator()(label_t label, vid_t v, size_t path_idx, int) const {
+    auto val = expr_.eval_vertex(label, v, path_idx, 0);
+    return val.as_bool();
+  }
+
   Expr expr_;
 };
 
@@ -81,6 +86,11 @@ struct GeneralEdgePredicate {
 
 struct DummyVertexPredicate {
   bool operator()(label_t label, vid_t v, size_t path_idx) const {
+    return true;
+  }
+
+  // for optional vertex
+  bool operator()(label_t label, vid_t v, size_t path_idx, int) const {
     return true;
   }
 };

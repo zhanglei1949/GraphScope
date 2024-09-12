@@ -59,10 +59,9 @@ class PathExpand {
   static Context edge_expand_p(const ReadTransaction& txn, Context&& ctx,
                                const PathExpandParams& params);
 
-  static Context all_shortest_path_with_given_source_and_dest(
+  static Context all_shortest_paths_with_given_source_and_dest(
       const ReadTransaction& txn, Context&& ctx,
-      const ShortestPathParams& params,
-      const std::vector<std::pair<label_t, vid_t>>& dst);
+      const ShortestPathParams& params, const std::pair<label_t, vid_t>& dst);
   // single dst
   static Context single_source_single_dest_shortest_path(
       const ReadTransaction& txn, Context&& ctx,

@@ -70,6 +70,7 @@ Context eval_path_expand_p(const physical::PathExpand& opr,
                            const std::map<std::string, std::string>& params,
                            const physical::PhysicalOpr_MetaData& meta,
                            int alias) {
+  LOG(INFO) << opr.DebugString();
   CHECK(opr.has_start_tag());
   int start_tag = opr.start_tag().value();
   CHECK(opr.path_opt() ==
@@ -158,6 +159,45 @@ Context eval_shortest_path(const physical::PathExpand& opr,
                                                      pred);
     }
   }
+}
+
+Context eval_all_shortest_paths(
+    const physical::PathExpand& opr, const ReadTransaction& txn, Context&& ctx,
+    const std::map<std::string, std::string>& params,
+    const physical::PhysicalOpr_MetaData& meta, const physical::GetV& v_opr,
+    int v_alias) {
+  CHECK(opr.has_start_tag());
+  int start_tag = opr.start_tag().value();
+  CHECK(!opr.is_optional());
+
+  ShortestPathParams aspp;
+  aspp.start_tag = start_tag;
+  aspp.dir = parse_direction(opr.base().edge_expand().direction());
+  aspp.v_alias = v_alias;
+  aspp.alias = opr.has_alias() ? opr.alias().value() : -1;
+  aspp.hop_lower = opr.hop_range().lower();
+  aspp.hop_upper = opr.hop_range().upper();
+
+  aspp.labels = parse_label_triplets(meta);
+  CHECK(aspp.labels.size() == 1) << "only support one label triplet";
+  CHECK(aspp.labels[0].src_label == aspp.labels[0].dst_label)
+      << "only support same src and dst label";
+
+  gs::Any vertex;
+  if (v_opr.has_params() && v_opr.params().has_predicate() &&
+      is_pk_oid_exact_check(v_opr.params().predicate(), params, vertex)) {
+    vid_t vid;
+    CHECK(txn.GetVertexIndex(aspp.labels[0].dst_label, vertex, vid))
+        << "vertex not found";
+    auto v = std::make_pair(aspp.labels[0].dst_label, vid);
+    return PathExpand::all_shortest_paths_with_given_source_and_dest(
+        txn, std::move(ctx), aspp, v);
+
+  } else {
+    LOG(FATAL) << "only support all shortest paths from a single source to a "
+                  "single destination";
+  }
+  return Context();
 }
 
 }  // namespace runtime

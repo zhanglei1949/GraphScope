@@ -57,6 +57,13 @@ Context eval_shortest_path(const physical::PathExpand& opr,
                            const std::map<std::string, std::string>& params,
                            const physical::PhysicalOpr_MetaData& meta,
                            const physical::GetV& get_v_opr, int);
+
+Context eval_all_shortest_paths(
+    const physical::PathExpand& opr, const ReadTransaction& txn, Context&& ctx,
+    const std::map<std::string, std::string>& params,
+    const physical::PhysicalOpr_MetaData& meta, const physical::GetV& get_v_opr,
+    int);
+
 Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
                      Context&& ctx,
                      const std::map<std::string, std::string>& params,
@@ -96,8 +103,8 @@ Context eval_get_v(const physical::GetV& opr, const ReadTransaction& txn,
                    const std::map<std::string, std::string>& params);
 
 Context eval_intersect(const ReadTransaction& txn,
-                       const physical::Intersect& opr,
-                       std::vector<Context>&& ctx);
+                       const physical::Intersect& opr, Context&& ctx,
+                       std::vector<Context>&& ctxs);
 
 Context eval_join(const physical::Join& opr, Context&& ctx, Context&& ctx2);
 
