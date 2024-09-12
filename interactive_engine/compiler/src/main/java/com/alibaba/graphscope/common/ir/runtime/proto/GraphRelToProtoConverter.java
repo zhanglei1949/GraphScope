@@ -824,21 +824,25 @@ public class GraphRelToProtoConverter extends GraphShuttle {
                         this.relToCommons,
                         this.extraParams,
                         depth + 1));
-        if (otherCondition == null && isPartitioned) {
-            Map<Integer, Set<GraphNameOrId>> leftTagColumns =
-                    Utils.extractTagColumnsFromRexNodes(leftKeys);
-            Map<Integer, Set<GraphNameOrId>> rightTagColumns =
-                    Utils.extractTagColumnsFromRexNodes(rightKeys);
-            if (preCacheEdgeProps) {
-                Utils.removeEdgeProperties(
-                        com.alibaba.graphscope.common.ir.tools.Utils.getOutputType(join.getLeft()),
-                        leftTagColumns);
-                Utils.removeEdgeProperties(
-                        com.alibaba.graphscope.common.ir.tools.Utils.getOutputType(join.getRight()),
-                        rightTagColumns);
+        if (otherCondition == null) {
+            if (isPartitioned) {
+                Map<Integer, Set<GraphNameOrId>> leftTagColumns =
+                        Utils.extractTagColumnsFromRexNodes(leftKeys);
+                Map<Integer, Set<GraphNameOrId>> rightTagColumns =
+                        Utils.extractTagColumnsFromRexNodes(rightKeys);
+                if (preCacheEdgeProps) {
+                    Utils.removeEdgeProperties(
+                            com.alibaba.graphscope.common.ir.tools.Utils.getOutputType(
+                                    join.getLeft()),
+                            leftTagColumns);
+                    Utils.removeEdgeProperties(
+                            com.alibaba.graphscope.common.ir.tools.Utils.getOutputType(
+                                    join.getRight()),
+                            rightTagColumns);
+                }
+                lazyPropertyFetching(leftPlanBuilder, leftTagColumns, false);
+                lazyPropertyFetching(rightPlanBuilder, rightTagColumns, false);
             }
-            lazyPropertyFetching(leftPlanBuilder, leftTagColumns, false);
-            lazyPropertyFetching(rightPlanBuilder, rightTagColumns, false);
         } else {
             // todo: set other condition
             joinBuilder.setCondition(
