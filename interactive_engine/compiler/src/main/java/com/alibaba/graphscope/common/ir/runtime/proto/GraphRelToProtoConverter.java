@@ -800,6 +800,8 @@ public class GraphRelToProtoConverter extends GraphShuttle {
             }
         } catch (IllegalArgumentException e) {
             otherCondition = join.getCondition();
+            joinBuilder.clearLeftKeys();
+            joinBuilder.clearRightKeys();
         }
         GraphAlgebraPhysical.PhysicalPlan.Builder leftPlanBuilder =
                 GraphAlgebraPhysical.PhysicalPlan.newBuilder();
@@ -988,13 +990,19 @@ public class GraphRelToProtoConverter extends GraphShuttle {
         if (unfold.getAliasId() != AliasInference.DEFAULT_ID) {
             unfoldBuilder.setAlias(Utils.asAliasId(unfold.getAliasId()));
         }
+        List<RelDataTypeField> fullFields = unfold.getRowType().getFieldList();
+        Preconditions.checkArgument(!fullFields.isEmpty(), "there is no fields in unfold row type");
+        RelDataType curRowType =
+                new RelRecordType(
+                        StructKind.FULLY_QUALIFIED,
+                        fullFields.subList(fullFields.size() - 1, fullFields.size()));
         physicalBuilder.addPlan(
                 GraphAlgebraPhysical.PhysicalOpr.newBuilder()
                         .setOpr(
                                 GraphAlgebraPhysical.PhysicalOpr.Operator.newBuilder()
                                         .setUnfold(unfoldBuilder)
                                         .build())
-                        .addAllMetaData(Utils.physicalProtoRowType(unfold.getRowType(), isColumnId))
+                        .addAllMetaData(Utils.physicalProtoRowType(curRowType, isColumnId))
                         .build());
         return unfold;
     }
