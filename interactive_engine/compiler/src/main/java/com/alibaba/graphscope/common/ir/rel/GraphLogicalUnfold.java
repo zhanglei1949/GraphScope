@@ -19,7 +19,7 @@
 package com.alibaba.graphscope.common.ir.rel;
 
 import com.alibaba.graphscope.common.ir.tools.AliasInference;
-import com.google.common.collect.ImmutableList;
+import com.alibaba.graphscope.common.ir.tools.Utils;
 
 import org.apache.calcite.plan.GraphOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -27,14 +27,12 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttle;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.SingleRel;
-import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
-import org.apache.calcite.rel.type.RelRecordType;
-import org.apache.calcite.rel.type.StructKind;
+import org.apache.calcite.rel.type.*;
 import org.apache.calcite.rex.RexNode;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class GraphLogicalUnfold extends SingleRel {
     private final RexNode key;
@@ -62,11 +60,15 @@ public class GraphLogicalUnfold extends SingleRel {
 
     @Override
     public RelDataType deriveRowType() {
-        return new RelRecordType(
-                StructKind.FULLY_QUALIFIED,
-                ImmutableList.of(
-                        new RelDataTypeFieldImpl(
-                                this.aliasName, this.aliasId, key.getType().getComponentType())));
+        RelDataType inputOutputType = Utils.getOutputType(input);
+        List<RelDataTypeField> fields =
+                inputOutputType.getFieldList().stream()
+                        .filter(k -> k.getIndex() != AliasInference.DEFAULT_ID)
+                        .collect(Collectors.toList());
+        fields.add(
+                new RelDataTypeFieldImpl(
+                        this.aliasName, this.aliasId, key.getType().getComponentType()));
+        return new RelRecordType(StructKind.FULLY_QUALIFIED, fields);
     }
 
     @Override
