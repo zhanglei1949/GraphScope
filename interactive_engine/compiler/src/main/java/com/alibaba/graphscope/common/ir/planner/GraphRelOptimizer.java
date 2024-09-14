@@ -21,8 +21,10 @@ import com.alibaba.graphscope.common.config.PlannerConfig;
 import com.alibaba.graphscope.common.ir.meta.IrMeta;
 import com.alibaba.graphscope.common.ir.meta.glogue.calcite.GraphRelMetadataQuery;
 import com.alibaba.graphscope.common.ir.meta.glogue.calcite.handler.GraphMetadataHandlerProvider;
+import com.alibaba.graphscope.common.ir.meta.schema.CommonOptTable;
 import com.alibaba.graphscope.common.ir.planner.rules.*;
 import com.alibaba.graphscope.common.ir.planner.volcano.VolcanoPlannerX;
+import com.alibaba.graphscope.common.ir.rel.CommonTableScan;
 import com.alibaba.graphscope.common.ir.rel.GraphShuttle;
 import com.alibaba.graphscope.common.ir.rel.graph.GraphLogicalSource;
 import com.alibaba.graphscope.common.ir.rel.graph.match.AbstractLogicalMatch;
@@ -34,6 +36,7 @@ import com.alibaba.graphscope.common.ir.tools.config.GraphOpt;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.GraphOptCluster;
@@ -55,6 +58,7 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -108,6 +112,13 @@ public class GraphRelOptimizer {
             // apply rules of 'FilterPushDown' before the match optimization
             relPlanner.setRoot(before);
             RelNode relOptimized = relPlanner.findBestExp();
+            if (config.getRules().contains(FlatJoinToExpandRule.class.getSimpleName())) {
+                relOptimized = relOptimized.accept(new FlatJoinToExpandRule());
+            }
+            if (config.getRules().contains(FlatJoinToIntersectRule.class.getSimpleName())) {
+                relOptimized =
+                        relOptimized.accept(new FlatJoinToIntersectRule(ioProcessor.getBuilder()));
+            }
             if (config.getOpt() == PlannerConfig.Opt.CBO) {
                 relOptimized = relOptimized.accept(new MatchOptimizer(ioProcessor));
             }
@@ -124,9 +135,25 @@ public class GraphRelOptimizer {
 
     private class MatchOptimizer extends GraphShuttle {
         private final GraphIOProcessor ioProcessor;
+        // record the common rel(s) which has been optimized
+        private final Map<String, RelNode> commonTableToOpt;
 
         public MatchOptimizer(GraphIOProcessor ioProcessor) {
             this.ioProcessor = ioProcessor;
+            this.commonTableToOpt = Maps.newHashMap();
+        }
+
+        @Override
+        public RelNode visit(CommonTableScan tableScan) {
+            CommonOptTable optTable = (CommonOptTable) tableScan.getTable();
+            String tableName = optTable.getQualifiedName().get(0);
+            RelNode commonOpt = commonTableToOpt.get(tableName);
+            if (commonOpt == null) {
+                commonOpt = optTable.getCommon().accept(this);
+                commonTableToOpt.put(tableName, commonOpt);
+            }
+            return new CommonTableScan(
+                    tableScan.getCluster(), tableScan.getTraitSet(), new CommonOptTable(commonOpt));
         }
 
         @Override
