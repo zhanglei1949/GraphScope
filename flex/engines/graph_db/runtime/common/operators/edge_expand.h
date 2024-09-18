@@ -44,6 +44,9 @@ class EdgeExpand {
   static Context expand_edge(const ReadTransaction& txn, Context&& ctx,
                              const EdgeExpandParams& params,
                              const PRED_T& pred) {
+    if (params.is_optional) {
+      LOG(FATAL) << "not support optional edge expand";
+    }
     std::vector<size_t> shuffle_offset;
     std::shared_ptr<IVertexColumn> input_vertex_list_ptr =
         std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
@@ -245,6 +248,9 @@ class EdgeExpand {
   static Context expand_edge_with_special_edge_predicate(
       const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params,
       const SPEdgePredicate& pred) {
+    if (params.is_optional) {
+      LOG(FATAL) << "not support optional edge expand";
+    }
     if (pred.data_type() == RTAnyType::kI64Value) {
       if (pred.type() == SPEdgePredicateType::kPropertyGT) {
         return expand_edge<EdgePropertyGTPredicate<int64_t>>(
@@ -278,6 +284,9 @@ class EdgeExpand {
   static Context expand_vertex(const ReadTransaction& txn, Context&& ctx,
                                const EdgeExpandParams& params,
                                const PRED_T& pred) {
+    if (params.is_optional) {
+      LOG(FATAL) << "not support optional edge expand";
+    }
     std::shared_ptr<IVertexColumn> input_vertex_list =
         std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
     VertexColumnType input_vertex_list_type =
@@ -329,6 +338,9 @@ class EdgeExpand {
   static Context expand_vertex_with_special_vertex_predicate(
       const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params,
       const SPVertexPredicate& pred) {
+    if (params.is_optional) {
+      LOG(FATAL) << "not support optional edge expand";
+    }
     if (pred.type() == SPVertexPredicateType::kIdEQ) {
       return expand_vertex<SPVPWrapper<VertexIdEQPredicateBeta>>(
           txn, std::move(ctx), params,

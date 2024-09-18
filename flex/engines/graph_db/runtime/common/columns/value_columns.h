@@ -69,6 +69,9 @@ class ValueColumn : public IValueColumn<T> {
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
 
+  std::shared_ptr<IContextColumn> optional_shuffle(
+      const std::vector<size_t>& offsets) const override;
+
   RTAnyType elem_type() const override { return TypedConverter<T>::type(); }
   RTAny get_elem(size_t idx) const override {
     return TypedConverter<T>::from_typed(data_[idx]);
@@ -209,8 +212,13 @@ class ValueColumnBuilder : public IContextColumnBuilder {
 template <typename T>
 class ListValueColumnBuilder;
 
+class ListValueColumnBase : public IValueColumn<List> {
+ public:
+  virtual std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+  unfold() const = 0;
+};
 template <typename T>
-class ListValueColumn : public IValueColumn<List> {
+class ListValueColumn : public ListValueColumnBase {
  public:
   ListValueColumn() = default;
   ~ListValueColumn() = default;
@@ -271,6 +279,27 @@ class ListValueColumn : public IValueColumn<List> {
     }
   }
 
+  std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>> unfold()
+      const override {
+    if constexpr (std::is_same_v<T, std::string>) {
+      LOG(FATAL) << "not implemented for " << this->column_info();
+      return {nullptr, {}};
+    } else {
+      std::vector<size_t> offsets;
+      auto builder = std::make_shared<ValueColumnBuilder<T>>();
+      size_t i = 0;
+      for (const auto& list : data_) {
+        for (size_t j = 0; j < list.size(); ++j) {
+          auto elem = list.get(j);
+          builder->push_back_elem(elem);
+          offsets.push_back(i);
+        }
+        ++i;
+      }
+      return {builder->finish(), offsets};
+    }
+  }
+
  private:
   template <typename _T>
   friend class ListValueColumnBuilder;
@@ -279,10 +308,16 @@ class ListValueColumn : public IValueColumn<List> {
   std::vector<std::shared_ptr<T>> list_data_;
 };
 
-template <typename T>
-class ListValueColumnBuilder : public IContextColumnBuilder {
+class ListValueColumnBuilderBase : public IContextColumnBuilder {
  public:
-  ListValueColumnBuilder() = default;
+  virtual void set_list_impls(
+      const std::vector<std::shared_ptr<ListImplBase>>& list_impls) = 0;
+  virtual bool impls_has_been_set() const = 0;
+};
+template <typename T>
+class ListValueColumnBuilder : public ListValueColumnBuilderBase {
+ public:
+  ListValueColumnBuilder() : impls_has_been_set_(false) {}
   ~ListValueColumnBuilder() = default;
 
   void reserve(size_t size) override { data_.reserve(size); }
@@ -293,8 +328,11 @@ class ListValueColumnBuilder : public IContextColumnBuilder {
 
   void push_back_opt(const List& val) { data_.emplace_back(val); }
 
+  bool impls_has_been_set() const override { return impls_has_been_set_; }
+
   void set_list_impls(
-      const std::vector<std::shared_ptr<ListImplBase>>& list_impls) {
+      const std::vector<std::shared_ptr<ListImplBase>>& list_impls) override {
+    impls_has_been_set_ = true;
     list_impls_ = list_impls;
   }
 
@@ -303,6 +341,9 @@ class ListValueColumnBuilder : public IContextColumnBuilder {
   }
 
   std::shared_ptr<IContextColumn> finish() override {
+    if (!impls_has_been_set_) {
+      LOG(FATAL) << "ListValueColumnBuilder: list impls have not been set";
+    }
     auto ret = std::make_shared<ListValueColumn<T>>();
     ret->data_.swap(data_);
     ret->list_impls_.swap(list_impls_);
@@ -312,6 +353,7 @@ class ListValueColumnBuilder : public IContextColumnBuilder {
   }
 
  private:
+  bool impls_has_been_set_ = false;
   std::vector<List> data_;
   std::vector<std::shared_ptr<ListImplBase>> list_impls_;
   std::vector<std::shared_ptr<T>> list_data_;
@@ -703,6 +745,21 @@ std::shared_ptr<IContextColumn> ValueColumn<T>::shuffle(
   builder.reserve(offsets.size());
   for (auto offset : offsets) {
     builder.push_back_opt(data_[offset]);
+  }
+  return builder.finish();
+}
+
+template <typename T>
+std::shared_ptr<IContextColumn> ValueColumn<T>::optional_shuffle(
+    const std::vector<size_t>& offsets) const {
+  OptionalValueColumnBuilder<T> builder;
+  builder.reserve(offsets.size());
+  for (auto offset : offsets) {
+    if (offset == std::numeric_limits<size_t>::max()) {
+      builder.push_back_null();
+    } else {
+      builder.push_back_opt(data_[offset], true);
+    }
   }
   return builder.finish();
 }

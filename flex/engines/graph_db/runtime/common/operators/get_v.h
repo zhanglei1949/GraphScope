@@ -96,6 +96,37 @@ class GetV {
       });
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       return ctx;
+    } else if (column->edge_column_type() == EdgeColumnType::kSDSL) {
+      label_t output_vertex_label{0};
+      if (params.opt == VOpt::kEnd) {
+        output_vertex_label = column->get_labels()[0].dst_label;
+      } else {
+        output_vertex_label = column->get_labels()[0].src_label;
+      }
+      OptionalSLVertexColumnBuilder builder(output_vertex_label);
+      auto& input_edge_list =
+          *std::dynamic_pointer_cast<OptionalSDSLEdgeColumn>(column);
+      if (params.opt == VOpt::kEnd) {
+        input_edge_list.foreach_edge(
+            [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
+                const Any& edata, Direction dir) {
+              if (!input_edge_list.has_value(index)) {
+                if (pred(label.src_label, src, index, 0)) {
+                  builder.push_back_opt(src);
+                  shuffle_offset.push_back(index);
+                }
+              } else {
+                if (label.dst_label == params.tables[0]) {
+                  if (pred(label.dst_label, dst, index)) {
+                    builder.push_back_opt(dst);
+                    shuffle_offset.push_back(index);
+                  }
+                }
+              }
+            });
+      }
+      ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
+      return ctx;
     }
     LOG(FATAL) << "not support" << static_cast<int>(column->edge_column_type());
     return ctx;

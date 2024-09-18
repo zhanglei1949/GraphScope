@@ -31,6 +31,37 @@ struct JoinParams {
 class Join {
  public:
   static Context join(Context&& ctx, Context&& ctx2, const JoinParams& params);
+
+  template <typename PRED_T>
+  static Context join(Context&& ctx, Context&& ctx2, const JoinParams& params,
+                      PRED_T&& pred) {
+    Context ret;
+    std::vector<size_t> left_offsets, right_offsets;
+    if (params.join_type == JoinKind::kInnerJoin) {
+      for (size_t i = 0; i < ctx.row_num(); i++) {
+        for (size_t j = 0; j < ctx2.row_num(); j++) {
+          if (pred(i, j)) {
+            left_offsets.push_back(i);
+            right_offsets.push_back(j);
+          }
+        }
+      }
+      ctx.reshuffle(left_offsets);
+      ctx2.reshuffle(right_offsets);
+      for (size_t i = 0; i < ctx.col_num() || i < ctx2.col_num(); i++) {
+        if (i < ctx.col_num() && ctx.get(i) != nullptr) {
+          ret.set(i, ctx.get(i));
+        }
+        if (i < ctx2.col_num() && ctx2.get(i) != nullptr) {
+          ret.set(i, ctx2.get(i));
+        }
+      }
+
+      return ret;
+    }
+    LOG(FATAL) << "Unsupported join type";
+    return ret;
+  }
 };
 }  // namespace runtime
 }  // namespace gs

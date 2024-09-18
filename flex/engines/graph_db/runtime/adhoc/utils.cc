@@ -289,6 +289,7 @@ std::shared_ptr<IContextColumn> build_column(
       }
 
       return builder.finish();
+
     } break;
     case common::DataType::DATE32: {
       ValueColumnBuilder<Date> builder;
@@ -301,14 +302,14 @@ std::shared_ptr<IContextColumn> build_column(
       return builder.finish();
     } break;
     case common::DataType::STRING_ARRAY: {
-      ValueColumnBuilder<std::set<std::string>> builder;
-      builder.reserve(row_num);
+      auto builder = expr.builder();
+      builder->reserve(row_num);
       for (size_t i = 0; i < row_num; ++i) {
-        const auto& v = expr.eval_path(i).as_string_set();
-        builder.push_back_opt(v);
+        const auto& v = expr.eval_path(i);
+        builder->push_back_elem(v);
       }
 
-      return builder.finish();
+      return builder->finish();
     } break;
     case common::DataType::TIMESTAMP: {
       ValueColumnBuilder<Date> builder;
@@ -584,8 +585,20 @@ std::shared_ptr<IContextColumn> build_optional_column_beta(const Expr& expr,
     }
     return builder->finish();
   } break;
+  case RTAnyType::RTAnyTypeImpl::kTuple: {
+    OptionalValueColumnBuilder<Tuple> builder;
+    for (size_t i = 0; i < row_num; ++i) {
+      auto v = expr.eval_path(i, 0);
+      if (v.is_null()) {
+        builder.push_back_null();
+      } else {
+        builder.push_back_elem(v);
+      }
+    }
+    return builder.finish();
+  } break;
   default: {
-    LOG(FATAL) << "not support";
+    LOG(FATAL) << "not support" << static_cast<int>(expr.type().type_enum_);
     break;
   }
   }
@@ -682,6 +695,11 @@ std::shared_ptr<IContextColumn> build_column_beta(const Expr& expr,
     auto builder = expr.builder();
     for (size_t i = 0; i < row_num; ++i) {
       builder->push_back_elem(expr.eval_path(i));
+    }
+    // set impls
+    auto& list_builder = dynamic_cast<ListValueColumnBuilderBase&>(*builder);
+    if (!list_builder.impls_has_been_set()) {
+      list_builder.set_list_impls(expr.get_list_impls());
     }
     return builder->finish();
   }

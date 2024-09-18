@@ -104,7 +104,7 @@ std::shared_ptr<IContextColumn> SDSLEdgeColumnBuilder::finish() {
       std::make_shared<SDSLEdgeColumn>(dir_, label_, prop_type_, sub_types_);
   ret->edges_.swap(edges_);
   // shrink to fit
-  prop_col_->resize(edges_.size());
+  prop_col_->resize(ret->edges_.size());
   ret->prop_col_ = prop_col_;
   return ret;
 }
@@ -251,6 +251,24 @@ std::shared_ptr<IContextColumn> OptionalBDSLEdgeColumn::shuffle(
   }
   return builder.finish();
 }
+
+std::shared_ptr<IContextColumn> OptionalBDSLEdgeColumn::optional_shuffle(
+    const std::vector<size_t>& offsets) const {
+  OptionalBDSLEdgeColumnBuilder builder(label_, prop_type_);
+  size_t new_row_num = offsets.size();
+  builder.reserve(new_row_num);
+  for (size_t idx = 0; idx < new_row_num; ++idx) {
+    size_t off = offsets[idx];
+    if (off == std::numeric_limits<size_t>::max()) {
+      builder.push_back_null();
+      continue;
+    }
+    const auto& e = get_edge(off);
+    builder.push_back_opt(std::get<1>(e), std::get<2>(e), std::get<3>(e),
+                          std::get<4>(e));
+  }
+  return builder.finish();
+}
 std::shared_ptr<IContextColumn> OptionalBDSLEdgeColumn::dup() const {
   OptionalBDSLEdgeColumnBuilder builder(label_, prop_type_);
   builder.reserve(edges_.size());
@@ -266,6 +284,8 @@ std::shared_ptr<IContextColumn> OptionalBDSLEdgeColumnBuilder::finish() {
   auto ret = std::make_shared<OptionalBDSLEdgeColumn>(label_, prop_type_);
   ret->edges_.swap(edges_);
   ret->prop_col_ = prop_col_;
+  // shrink to fit
+  ret->prop_col_->resize(ret->edges_.size());
   return ret;
 }
 
@@ -296,6 +316,8 @@ std::shared_ptr<IContextColumn> OptionalSDSLEdgeColumnBuilder::finish() {
   auto ret = std::make_shared<OptionalSDSLEdgeColumn>(dir_, label_, prop_type_);
   ret->edges_.swap(edges_);
   ret->prop_col_ = prop_col_;
+  // shrink to fit
+  ret->prop_col_->resize(ret->edges_.size());
   return ret;
 }
 

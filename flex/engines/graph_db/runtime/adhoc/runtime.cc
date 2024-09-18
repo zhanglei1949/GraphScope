@@ -316,12 +316,13 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
           runtime_eval_impl(op.right_plan(), std::move(ret_dup), txn, params,
                             op_id_offset + 200, op_name + "-right");
       double tj = -grape::GetCurrentTime();
-      ret = eval_join(op, std::move(ctx), std::move(ctx2));
+      ret = eval_join(txn, params, op, std::move(ctx), std::move(ctx2));
       tj += grape::GetCurrentTime();
       op_cost[op_name + "-impl"] += tj;
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kIntersect: {
       auto op = opr.opr().intersect();
+
       size_t num = op.sub_plans_size();
       std::vector<Context> ctxs;
       for (size_t i = 0; i < num; ++i) {
@@ -336,6 +337,10 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kLimit: {
       ret = eval_limit(opr.opr().limit(), std::move(ret));
+    } break;
+
+    case physical::PhysicalOpr_Operator::OpKindCase::kUnfold: {
+      ret = eval_unfold(opr.opr().unfold(), std::move(ret));
     } break;
 
     default:

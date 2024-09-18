@@ -27,6 +27,20 @@ namespace gs {
 
 namespace runtime {
 
+struct Relation {
+  label_t label;
+  vid_t src;
+  vid_t dst;
+  bool operator<(const Relation& r) const {
+    return std::tie(label, src, dst) < std::tie(r.label, r.src, r.dst);
+  }
+  bool operator==(const Relation& r) const {
+    return std::tie(label, src, dst) == std::tie(r.label, r.src, r.dst);
+  }
+  std::pair<label_t, vid_t> start_node() const { return {label, src}; }
+  std::pair<label_t, vid_t> end_node() const { return {label, dst}; }
+};
+
 class PathImpl {
  public:
   static std::shared_ptr<PathImpl> make_path_impl(label_t label, vid_t v) {
@@ -81,6 +95,20 @@ class Path {
   int32_t len() const { return impl_->path_.size(); }
   std::pair<label_t, vid_t> get_end() const { return impl_->get_end(); }
 
+  std::vector<Relation> relationships() const {
+    std::vector<Relation> relations;
+    for (size_t i = 0; i < impl_->path_.size() - 1; ++i) {
+      Relation r;
+      r.label = impl_->path_[i].first;
+      r.src = impl_->path_[i].second;
+      r.dst = impl_->path_[i + 1].second;
+      relations.push_back(r);
+    }
+    return relations;
+  }
+
+  std::vector<std::pair<label_t, vid_t>> nodes() { return impl_->path_; }
+
   std::pair<label_t, vid_t> get_start() const { return impl_->get_start(); }
   bool operator<(const Path& p) const { return *impl_ < *(p.impl_); }
   bool operator==(const Path& p) const { return *(impl_) == *(p.impl_); }
@@ -98,6 +126,9 @@ class ListImplBase {
   virtual RTAny get(size_t idx) const = 0;
 };
 
+template <typename T>
+class ListImpl;
+
 class List {
  public:
   static List make_list(const std::shared_ptr<ListImplBase>& impl) {
@@ -110,7 +141,6 @@ class List {
   bool operator==(const List& p) const { return *(impl_) == *(p.impl_); }
   size_t size() const { return impl_->size(); }
   RTAny get(size_t idx) const;
-
   ListImplBase* impl_;
 };
 
@@ -175,6 +205,7 @@ class RTAnyType {
     kTuple,
     kList,
     kMap,
+    kRelation,
   };
   static const RTAnyType kVertex;
   static const RTAnyType kEdge;
@@ -193,6 +224,7 @@ class RTAnyType {
   static const RTAnyType kTuple;
   static const RTAnyType kList;
   static const RTAnyType kMap;
+  static const RTAnyType kRelation;
 
   RTAnyType() : type_enum_(RTAnyTypeImpl::kUnknown) {}
   RTAnyType(const RTAnyType& other)
@@ -230,6 +262,7 @@ union RTAnyValue {
 
   std::pair<label_t, vid_t> vertex;
   std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction> edge;
+  Relation relation;
   int64_t i64_val;
   uint64_t u64_val;
   int i32_val;
@@ -262,6 +295,8 @@ class RTAny {
   static RTAny from_vertex(const std::pair<label_t, vid_t>& v);
   static RTAny from_edge(
       const std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction>& v);
+
+  static RTAny from_relation(const Relation& r);
   static RTAny from_bool(bool v);
   static RTAny from_int64(int64_t v);
   static RTAny from_uint64(uint64_t v);
@@ -292,6 +327,7 @@ class RTAny {
   Tuple as_tuple() const;
   List as_list() const;
   Map as_map() const;
+  Relation as_relation() const;
 
   bool operator<(const RTAny& other) const;
   bool operator==(const RTAny& other) const;
@@ -428,6 +464,28 @@ struct TypedConverter<Map> {
   static RTAny from_typed(Map val) { return RTAny::from_map(val); }
   static const std::string name() { return "map"; }
 };
+
+template <>
+struct TypedConverter<Relation> {
+  static RTAnyType type() { return RTAnyType::kRelation; }
+  static Relation to_typed(const RTAny& val) { return val.as_relation(); }
+  static RTAny from_typed(const Relation& val) {
+    return RTAny::from_relation(val);
+  }
+  static const std::string name() { return "relation"; }
+};
+
+template <>
+struct TypedConverter<std::pair<label_t, vid_t>> {
+  static RTAnyType type() { return RTAnyType::kVertex; }
+  static std::pair<label_t, vid_t> to_typed(const RTAny& val) {
+    return val.as_vertex();
+  }
+  static RTAny from_typed(const std::pair<label_t, vid_t>& val) {
+    return RTAny::from_vertex(val);
+  }
+  static const std::string name() { return "vertex"; }
+};
 template <typename T>
 class ListImpl : ListImplBase {
  public:
@@ -435,6 +493,7 @@ class ListImpl : ListImplBase {
   static std::shared_ptr<ListImplBase> make_list_impl(std::vector<T>&& vals) {
     auto new_list = new ListImpl<T>();
     new_list->list_ = std::move(vals);
+    new_list->is_valid_.resize(new_list->list_.size(), true);
     return std::shared_ptr<ListImplBase>(static_cast<ListImplBase*>(new_list));
   }
 

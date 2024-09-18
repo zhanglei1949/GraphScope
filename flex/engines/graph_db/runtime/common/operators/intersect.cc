@@ -102,7 +102,69 @@ Context Intersect::intersect(Context&& ctx,
 
   LOG(FATAL) << "not support";
 }
+static Context left_outer_intersect(Context&& ctx, Context&& ctx0,
+                                    Context&& ctx1, int key) {
+  // specifically, this function is called when the first context is not
+  // optional and the second context is optional
+  auto& idx_col0 = ctx0.get_offsets();
+  auto& idx_col1 = ctx1.get_offsets();
+  auto& vlist0 = *(std::dynamic_pointer_cast<IVertexColumn>(ctx0.get(key)));
+  auto& vlist1 = *(std::dynamic_pointer_cast<IVertexColumn>(ctx1.get(key)));
 
+  std::vector<size_t> offset0, offset1;
+  if (ctx0.row_num() == ctx.row_num()) {
+    bool flag = true;
+    for (size_t i = 0; i < idx_col0.size(); ++i) {
+      if (idx_col0.get_value(i) != i) {
+        flag = false;
+        break;
+      }
+    }
+    if (flag) {
+      size_t j = 0;
+      for (size_t i = 0; i < ctx0.row_num(); i++) {
+        bool exist = false;
+        for (; j < ctx1.row_num(); ++j) {
+          if (idx_col1.get_value(j) != idx_col0.get_value(i)) {
+            break;
+          }
+          if (vlist1.has_value(j) &&
+              vlist0.get_vertex(i) == vlist1.get_vertex(j)) {
+            exist = true;
+            offset0.emplace_back(i);
+            offset1.emplace_back(j);
+          }
+        }
+        if (!exist) {
+          offset0.emplace_back(i);
+          offset1.emplace_back(std::numeric_limits<size_t>::max());
+        }
+      }
+      ctx0.reshuffle(offset0);
+      ctx1.optional_reshuffle(offset1);
+      ctx.reshuffle(ctx0.get_offsets().data());
+      for (size_t i = 0; i < ctx0.col_num() || i < ctx1.col_num(); ++i) {
+        if (i < ctx0.col_num()) {
+          if (ctx0.get(i) != nullptr) {
+            ctx.set(i, ctx0.get(i));
+          }
+        }
+        if (i < ctx1.col_num()) {
+          if ((i >= ctx.col_num() || ctx.get(i) == nullptr) &&
+              ctx1.get(i) != nullptr) {
+            ctx.set(i, ctx1.get(i));
+          }
+        } else if (i >= ctx.col_num()) {
+          ctx.set(i, nullptr);
+        }
+      }
+      return ctx;
+    }
+  }
+
+  LOG(FATAL) << "not support";
+  return ctx;
+}
 static Context intersect_impl(Context&& ctx, std::vector<Context>&& ctxs,
                               int key) {
   if (ctxs[0].get(key)->column_type() == ContextColumnType::kVertex) {
@@ -111,6 +173,18 @@ static Context intersect_impl(Context&& ctx, std::vector<Context>&& ctxs,
           *(std::dynamic_pointer_cast<IVertexColumn>(ctxs[0].get(key)));
       auto& vlist1 =
           *(std::dynamic_pointer_cast<IVertexColumn>(ctxs[1].get(key)));
+      //      LOG(INFO) << vlist0.size() << " " << vlist1.size();
+      //      LOG(INFO) << vlist0.is_optional() << " " << vlist1.is_optional();
+      if (!vlist0.is_optional() && vlist1.is_optional()) {
+        return left_outer_intersect(std::move(ctx), std::move(ctxs[0]),
+                                    std::move(ctxs[1]), key);
+      } else if (vlist0.is_optional() && !vlist1.is_optional()) {
+        return left_outer_intersect(std::move(ctx), std::move(ctxs[1]),
+                                    std::move(ctxs[0]), key);
+      } else if (vlist0.is_optional() && vlist1.is_optional()) {
+        //        LOG(INFO) << "both optional" << vlist0.size() << " " <<
+        //        vlist1.size();
+      }
       auto& idx_col0 = ctxs[0].get_offsets();
       auto& idx_col1 = ctxs[1].get_offsets();
       std::vector<size_t> offsets0(idx_col0.size()), offsets1(idx_col1.size());
@@ -120,6 +194,7 @@ static Context intersect_impl(Context&& ctx, std::vector<Context>&& ctxs,
       for (size_t k = 0; k < idx_col1.size(); ++k) {
         offsets1[k] = k;
       }
+      /**
       std::sort(offsets0.begin(), offsets0.end(),
                 [&idx_col0, &vlist0](size_t a, size_t b) {
                   if (idx_col0.get_value(a) == idx_col0.get_value(b)) {
@@ -133,7 +208,7 @@ static Context intersect_impl(Context&& ctx, std::vector<Context>&& ctxs,
                     return vlist1.get_vertex(a) < vlist1.get_vertex(b);
                   }
                   return idx_col1.get_value(a) < idx_col1.get_value(b);
-                });
+                });*/
       std::vector<size_t> shuffle_offsets;
       std::vector<size_t> shuffle_offsets_1;
       size_t idx0 = 0, idx1 = 0;
@@ -175,7 +250,8 @@ static Context intersect_impl(Context&& ctx, std::vector<Context>&& ctxs,
           if (ctxs[0].get(i) != nullptr) {
             ctx.set(i, ctxs[0].get(i));
           }
-        } else if (i < ctxs[1].col_num()) {
+        }
+        if (i < ctxs[1].col_num()) {
           if (ctxs[1].get(i) != nullptr) {
             ctx.set(i, ctxs[1].get(i));
           }

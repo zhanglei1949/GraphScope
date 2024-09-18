@@ -190,6 +190,17 @@ RTAny UnaryLogicalExpr::eval_path(size_t idx) const {
   return RTAny::from_bool(false);
 }
 
+RTAny UnaryLogicalExpr::eval_path(size_t idx, int) const {
+  if (logic_ == common::Logical::NOT) {
+    return RTAny::from_bool(!expr_->eval_path(idx, 0).as_bool());
+  } else if (logic_ == common::Logical::ISNULL) {
+    return RTAny::from_bool(expr_->eval_path(idx, 0).type() ==
+                            RTAnyType::kNull);
+  }
+  LOG(FATAL) << "not support" << static_cast<int>(logic_);
+  return RTAny::from_bool(false);
+}
+
 RTAny UnaryLogicalExpr::eval_vertex(label_t label, vid_t v, size_t idx) const {
   if (logic_ == common::Logical::NOT) {
     return RTAny::from_bool(!expr_->eval_vertex(label, v, idx).as_bool());
@@ -252,7 +263,17 @@ RTAny ArithExpr::eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
   return RTAny();
 }
 
-RTAnyType ArithExpr::type() const { return lhs_->type(); }
+RTAnyType ArithExpr::type() const {
+  if (lhs_->type() == RTAnyType::kF64Value ||
+      rhs_->type() == RTAnyType::kF64Value) {
+    return RTAnyType::kF64Value;
+  }
+  if (lhs_->type() == RTAnyType::kI64Value ||
+      rhs_->type() == RTAnyType::kI64Value) {
+    return RTAnyType::kI64Value;
+  }
+  return lhs_->type();
+}
 
 ConstExpr::ConstExpr(const RTAny& val) : val_(val) {
   if (val_.type() == RTAnyType::kStringValue) {
@@ -544,20 +565,34 @@ static std::unique_ptr<ExprBase> build_expr(
         auto rhs = opr_stack.top();
         opr_stack.pop();
         CHECK(lhs.has_var());
-        CHECK(rhs.has_const_());
-        auto key =
-            std::make_unique<VariableExpr>(txn, ctx, lhs.var(), var_type);
-        if (key->type() == RTAnyType::kI64Value) {
-          return std::make_unique<WithInExpr<int64_t>>(txn, ctx, std::move(key),
-                                                       rhs.const_());
-        } else if (key->type() == RTAnyType::kI32Value) {
-          return std::make_unique<WithInExpr<int32_t>>(txn, ctx, std::move(key),
-                                                       rhs.const_());
-        } else if (key->type() == RTAnyType::kStringValue) {
-          return std::make_unique<WithInExpr<std::string>>(
-              txn, ctx, std::move(key), rhs.const_());
+        if (rhs.has_const_()) {
+          auto key =
+              std::make_unique<VariableExpr>(txn, ctx, lhs.var(), var_type);
+          if (key->type() == RTAnyType::kI64Value) {
+            return std::make_unique<WithInExpr<int64_t>>(
+                txn, ctx, std::move(key), rhs.const_());
+          } else if (key->type() == RTAnyType::kI32Value) {
+            return std::make_unique<WithInExpr<int32_t>>(
+                txn, ctx, std::move(key), rhs.const_());
+          } else if (key->type() == RTAnyType::kStringValue) {
+            return std::make_unique<WithInExpr<std::string>>(
+                txn, ctx, std::move(key), rhs.const_());
+          } else {
+            LOG(FATAL) << "not support";
+          }
+        } else if (rhs.has_var()) {
+          auto key =
+              std::make_unique<VariableExpr>(txn, ctx, lhs.var(), var_type);
+          if (key->type() == RTAnyType::kVertex) {
+            auto val =
+                std::make_unique<VariableExpr>(txn, ctx, rhs.var(), var_type);
+
+            return std::make_unique<VertexWithInExpr>(txn, ctx, std::move(key),
+                                                      std::move(val));
+          }
+
         } else {
-          LOG(FATAL) << "not support";
+          LOG(FATAL) << "not support" << rhs.DebugString();
         }
       } else if (opr.logical() == common::Logical::NOT ||
                  opr.logical() == common::Logical::ISNULL) {
@@ -633,6 +668,25 @@ static std::unique_ptr<ExprBase> build_expr(
       }
       LOG(FATAL) << "not support" << opr.DebugString();
     }
+    case common::ExprOpr::kUdfFunc: {
+      auto op = opr.udf_func();
+      std::string name = op.name();
+      auto expr = parse_expression_impl(txn, ctx, params, op.parameters().at(0),
+                                        var_type);
+      if (name == "gs.function.relationships") {
+        return std::make_unique<RelationshipsExpr>(std::move(expr));
+      } else if (name == "gs.function.nodes") {
+        return std::make_unique<NodesExpr>(std::move(expr));
+      } else if (name == "gs.function.startNode") {
+        return std::make_unique<StartNodeExpr>(std::move(expr));
+      } else if (name == "gs.function.endNode") {
+        return std::make_unique<EndNodeExpr>(std::move(expr));
+      } else if (name == "gs.function.toFloat") {
+        return std::make_unique<ToFloatExpr>(std::move(expr));
+      } else {
+        LOG(FATAL) << "not support udf" << opr.DebugString();
+      }
+    }
     default:
       LOG(FATAL) << "not support" << opr.DebugString();
       break;
@@ -697,6 +751,10 @@ static std::unique_ptr<ExprBase> parse_expression_impl(
       break;
     }
     case common::ExprOpr::kMap: {
+      opr_stack2.push(*it);
+      break;
+    }
+    case common::ExprOpr::kUdfFunc: {
       opr_stack2.push(*it);
       break;
     }

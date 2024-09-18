@@ -106,9 +106,13 @@ Context eval_intersect(const ReadTransaction& txn,
                        const physical::Intersect& opr, Context&& ctx,
                        std::vector<Context>&& ctxs);
 
-Context eval_join(const physical::Join& opr, Context&& ctx, Context&& ctx2);
+Context eval_join(const ReadTransaction& txn,
+                  const std::map<std::string, std::string>& params,
+                  const physical::Join& opr, Context&& ctx, Context&& ctx2);
 
 Context eval_limit(const algebra::Limit& opr, Context&& ctx);
+
+Context eval_unfold(const physical::Unfold& opr, Context&& ctx);
 
 void eval_sink(const Context& ctx, const ReadTransaction& txn, Encoder& output);
 

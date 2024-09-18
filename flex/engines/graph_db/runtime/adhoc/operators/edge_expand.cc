@@ -107,6 +107,7 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
 
   Direction dir = parse_direction(opr.direction());
   bool is_optional = opr.is_optional();
+  //  LOG(INFO) << opr.DebugString() << " \n row num:" << ctx.row_num();
   // CHECK(!is_optional);
 
   CHECK(opr.has_params());
@@ -140,6 +141,7 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
       op_cost.table["expand_vertex_with_predicate"] += t;
       return ret;
     } else {
+      //      LOG(INFO) << "##### 12 " << op_id;
       double t = -grape::GetCurrentTime();
       auto ret =
           EdgeExpand::expand_vertex_without_predicate(txn, std::move(ctx), eep);
@@ -151,6 +153,7 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
   } else if (opr.expand_opt() ==
              physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE) {
     if (query_params.has_predicate()) {
+      // LOG(INFO) << "##### 13 " << op_id;
       auto sp_edge_pred =
           parse_special_edge_predicate(query_params.predicate(), txn, params);
       if (sp_edge_pred == nullptr) {
@@ -164,6 +167,7 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
 
         return ret;
       } else {
+        // LOG(INFO) << "##### 14 " << op_id;
         double t = -grape::GetCurrentTime();
         auto ret = EdgeExpand::expand_edge_with_special_edge_predicate(
             txn, std::move(ctx), eep, *sp_edge_pred);
@@ -172,6 +176,7 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
         op_cost.table["expand_edge_with_sp_predicate"] += t;
       }
     } else {
+      // LOG(INFO) << "##### 15 " << op_id;
       double t = -grape::GetCurrentTime();
       auto ret =
           EdgeExpand::expand_edge_without_predicate(txn, std::move(ctx), eep);
@@ -246,6 +251,7 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
                                const std::map<std::string, std::string>& params,
                                const physical::PhysicalOpr_MetaData& meta,
                                int op_id) {
+  //  LOG(INFO) << v_opr.DebugString();
   auto& op_cost = OpCost::get();
   int v_tag;
   if (!ee_opr.has_v_tag()) {
@@ -256,7 +262,7 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
 
   Direction dir = parse_direction(ee_opr.direction());
   bool is_optional = ee_opr.is_optional();
-  CHECK(!is_optional);
+  //  CHECK(!is_optional);
 
   CHECK(ee_opr.has_params());
   const algebra::QueryParams& query_params = ee_opr.params();
@@ -277,6 +283,8 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
   eep.labels = parse_label_triplets(meta);
   eep.dir = dir;
   eep.alias = alias;
+  eep.is_optional = is_optional;
+  // LOG(INFO) << is_optional << " " << "is optional";
 
   if (!v_opr.params().has_predicate()) {
     if (query_params.has_predicate()) {

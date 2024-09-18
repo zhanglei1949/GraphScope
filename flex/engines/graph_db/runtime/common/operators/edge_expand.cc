@@ -58,7 +58,6 @@ static Context expand_edge_without_predicate_optional_impl(
         params.labels[0].src_label == params.labels[0].dst_label) {
       auto& input_vertex_list =
           *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
-      LOG(INFO) << "input vertex size: " << input_vertex_list.size();
       CHECK(!input_vertex_list.is_optional())
           << "not support optional vertex column as input currently";
       auto& triplet = params.labels[0];
@@ -104,9 +103,54 @@ static Context expand_edge_without_predicate_optional_impl(
       });
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       return ctx;
+    } else if (params.dir == Direction::kOut) {
+      auto& input_vertex_list =
+          *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
+      //      LOG(INFO) << "input vertex size: " << input_vertex_list.size() <<
+      //      " "
+      //              << input_vertex_list.is_optional();
+      CHECK(!input_vertex_list.is_optional())
+          << "not support optional vertex column as input currently";
+      auto& triplet = params.labels[0];
+      auto props = txn.schema().get_edge_properties(
+          triplet.src_label, triplet.dst_label, triplet.edge_label);
+      PropertyType pt = PropertyType::kEmpty;
+      if (!props.empty()) {
+        pt = props[0];
+      }
+      if (props.size() > 1) {
+        pt = PropertyType::kRecordView;
+      }
+      OptionalSDSLEdgeColumnBuilder builder(Direction::kOut, triplet, pt);
+      foreach_vertex(input_vertex_list,
+                     [&](size_t index, label_t label, vid_t v) {
+                       if (label == triplet.src_label) {
+                         auto oe_iter = txn.GetOutEdgeIterator(
+                             label, v, triplet.dst_label, triplet.edge_label);
+                         bool has_edge = false;
+                         while (oe_iter.IsValid()) {
+                           auto nbr = oe_iter.GetNeighbor();
+                           builder.push_back_opt(v, nbr, oe_iter.GetData());
+                           shuffle_offset.push_back(index);
+                           oe_iter.Next();
+                           has_edge = true;
+                         }
+                         if (!has_edge) {
+                           builder.push_back_null();
+                           shuffle_offset.push_back(index);
+                         }
+                       } else {
+                         builder.push_back_null();
+                         shuffle_offset.push_back(index);
+                       }
+                     });
+
+      ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
+      return ctx;
     }
   }
-  LOG(FATAL) << "not support";
+  LOG(FATAL) << "not support" << params.labels.size() << " "
+             << (int) params.dir;
   return ctx;
 }
 
@@ -458,18 +502,38 @@ Context EdgeExpand::expand_vertex_without_predicate(
       std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
   VertexColumnType input_vertex_list_type =
       input_vertex_list->vertex_column_type();
-
   if (input_vertex_list_type == VertexColumnType::kSingle) {
-    auto casted_input_vertex_list =
-        std::dynamic_pointer_cast<SLVertexColumn>(input_vertex_list);
-    double t = -grape::GetCurrentTime();
-    auto pair = expand_vertex_without_predicate_impl(
-        txn, *casted_input_vertex_list, params.labels, params.dir);
-    t += grape::GetCurrentTime();
-    op_cost["VENP[1-7,12]"] += t;
-    ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
-    return ctx;
+    //    LOG(INFO) << "input vertex size: " << input_vertex_list->size();
+    if (input_vertex_list->is_optional()) {
+      auto casted_input_vertex_list =
+          std::dynamic_pointer_cast<OptionalSLVertexColumn>(input_vertex_list);
+      auto pair = expand_vertex_without_predicate_optional_impl(
+          txn, *casted_input_vertex_list, params.labels, params.dir);
+      ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
+      return ctx;
+    } else {
+      auto casted_input_vertex_list =
+          std::dynamic_pointer_cast<SLVertexColumn>(input_vertex_list);
+      // optional edge expand
+      if (params.is_optional) {
+        auto pair = expand_vertex_without_predicate_optional_impl(
+            txn, *input_vertex_list, params.labels, params.dir);
+        ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
+        return ctx;
+      } else {
+        double t = -grape::GetCurrentTime();
+        auto pair = expand_vertex_without_predicate_impl(
+            txn, *casted_input_vertex_list, params.labels, params.dir);
+        t += grape::GetCurrentTime();
+        op_cost["VENP[1-7,12]"] += t;
+        ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
+        return ctx;
+      }
+    }
   } else if (input_vertex_list_type == VertexColumnType::kMultiple) {
+    if (input_vertex_list->is_optional() || params.is_optional) {
+      LOG(FATAL) << "not support optional vertex column as input currently";
+    }
     auto casted_input_vertex_list =
         std::dynamic_pointer_cast<MLVertexColumn>(input_vertex_list);
     double t = -grape::GetCurrentTime();
@@ -480,6 +544,9 @@ Context EdgeExpand::expand_vertex_without_predicate(
     ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
     return ctx;
   } else if (input_vertex_list_type == VertexColumnType::kMultiSegment) {
+    if (input_vertex_list->is_optional() || params.is_optional) {
+      LOG(FATAL) << "not support optional vertex column as input currently";
+    }
     auto casted_input_vertex_list =
         std::dynamic_pointer_cast<MSVertexColumn>(input_vertex_list);
     auto pair = expand_vertex_without_predicate_impl(

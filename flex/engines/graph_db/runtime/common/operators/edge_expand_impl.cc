@@ -130,6 +130,65 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
 }
 
 std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+expand_vertex_without_predicate_optional_impl(
+    const ReadTransaction& txn, const IVertexColumn& input,
+    const std::vector<LabelTriplet>& labels, Direction dir) {
+  label_t input_label = *input.get_labels_set().begin();
+  std::vector<std::tuple<label_t, label_t, Direction>> label_dirs;
+  std::vector<PropertyType> ed_types;
+  for (auto& triplet : labels) {
+    if (!txn.schema().exist(triplet.src_label, triplet.dst_label,
+                            triplet.edge_label)) {
+      continue;
+    }
+    if (triplet.src_label == input_label &&
+        ((dir == Direction::kOut) || (dir == Direction::kBoth))) {
+      label_dirs.emplace_back(triplet.dst_label, triplet.edge_label,
+                              Direction::kOut);
+      const auto& properties = txn.schema().get_edge_properties(
+          triplet.src_label, triplet.dst_label, triplet.edge_label);
+      if (properties.empty()) {
+        ed_types.push_back(PropertyType::Empty());
+      } else {
+        CHECK_EQ(properties.size(), 1);
+        ed_types.push_back(properties[0]);
+      }
+    }
+    if (triplet.dst_label == input_label &&
+        ((dir == Direction::kIn) || (dir == Direction::kBoth))) {
+      label_dirs.emplace_back(triplet.src_label, triplet.edge_label,
+                              Direction::kIn);
+      const auto& properties = txn.schema().get_edge_properties(
+
+          triplet.src_label, triplet.dst_label, triplet.edge_label);
+      if (properties.empty()) {
+        ed_types.push_back(PropertyType::Empty());
+      } else {
+        CHECK_EQ(properties.size(), 1);
+        ed_types.push_back(properties[0]);
+      }
+    }
+  }
+  grape::DistinctSort(label_dirs);
+  bool se = (label_dirs.size() == 1);
+  bool sp = true;
+  if (sp) {
+    const PropertyType& ed_type = ed_types[0];
+    if (ed_type == PropertyType::Empty()) {
+      if (se) {
+        return expand_vertex_np_se_optional<grape::EmptyType,
+                                            DummyPredicate<grape::EmptyType>>(
+            txn, input, std::get<0>(label_dirs[0]), std::get<1>(label_dirs[0]),
+            std::get<2>(label_dirs[0]), DummyPredicate<grape::EmptyType>());
+      }
+    }
+  }
+  LOG(INFO) << "ed_types.size() " << se << " " << sp;
+  LOG(FATAL) << "not implemented";
+  return std::make_pair(nullptr, std::vector<size_t>());
+}
+
+std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_without_predicate_impl(const ReadTransaction& txn,
                                      const MLVertexColumn& input,
                                      const std::vector<LabelTriplet>& labels,
@@ -179,6 +238,12 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
     }
   }
   bool sp = true;
+  if (ed_types.size() == 0) {
+    MLVertexColumnBuilder builder;
+    //    LOG(FATAL) << "no edge property type in an edge(vertex) expand,
+    //    fallback";
+    return std::make_pair(builder.finish(), std::vector<size_t>());
+  }
   for (size_t k = 1; k < ed_types.size(); ++k) {
     if (ed_types[k] != ed_types[0]) {
       sp = false;

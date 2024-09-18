@@ -87,6 +87,20 @@ class SigColumn<std::pair<label_t, vid_t>> : public ISigColumn {
 };
 
 template <>
+class SigColumn<Relation> : public ISigColumn {
+ public:
+  SigColumn(const std::vector<Relation>& data) : data_(data.data()) {}
+  ~SigColumn() = default;
+  size_t get_sig(size_t idx) const override {
+    LOG(FATAL) << "not implemented";
+    return 0;
+  }
+
+ private:
+  const Relation* data_;
+};
+
+template <>
 class SigColumn<std::string_view> : public ISigColumn {
  public:
   SigColumn(const std::vector<std::string>& data) {

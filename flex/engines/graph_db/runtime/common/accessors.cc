@@ -45,6 +45,8 @@ std::shared_ptr<IAccessor> create_context_value_accessor(const Context& ctx,
   case RTAnyType::RTAnyTypeImpl::kList:
     return std::make_shared<ContextValueAccessor<List>>(ctx, tag);
 
+  case RTAnyType::RTAnyTypeImpl::kRelation:
+    return std::make_shared<ContextValueAccessor<Relation>>(ctx, tag);
   default:
     LOG(FATAL) << "not implemented - " << static_cast<int>(type.type_enum_);
   }

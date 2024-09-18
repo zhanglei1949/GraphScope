@@ -243,12 +243,12 @@ class OptionalSDSLEdgeColumn : public IEdgeColumn {
     if (prop_type_ == PropertyType::kEmpty) {
       size_t idx = 0;
       for (auto& e : edges_) {
-        func(idx++, label_, e.first, e.second, grape::EmptyType(), dir_, 0);
+        func(idx++, label_, e.first, e.second, grape::EmptyType(), dir_);
       }
     } else {
       size_t idx = 0;
       for (auto& e : edges_) {
-        func(idx, label_, e.first, e.second, prop_col_->get(idx), dir_, 0);
+        func(idx, label_, e.first, e.second, prop_col_->get(idx), dir_);
         ++idx;
       }
     }
@@ -299,7 +299,9 @@ class OptionalSDSLEdgeColumnBuilder : public IOptionalContextColumnBuilder {
   void push_back_opt(vid_t src, vid_t dst, const Any& data) {
     edges_.emplace_back(src, dst);
     size_t len = edges_.size();
-    prop_col_->resize(len);
+    if (prop_col_->size() <= len) {
+      prop_col_->resize(len * 2);
+    }
     prop_col_->set_any(len - 1, data);
   }
 
@@ -423,6 +425,8 @@ class OptionalBDSLEdgeColumn : public IEdgeColumn {
   }
 
   std::shared_ptr<IContextColumn> shuffle(
+      const std::vector<size_t>& offsets) const override;
+  std::shared_ptr<IContextColumn> optional_shuffle(
       const std::vector<size_t>& offsets) const override;
 
   std::shared_ptr<IContextColumn> dup() const override;
@@ -917,7 +921,9 @@ class OptionalBDSLEdgeColumnBuilder : public IOptionalContextColumnBuilder {
   void push_back_opt(vid_t src, vid_t dst, const Any& data, Direction dir) {
     edges_.emplace_back(src, dst, dir == Direction::kOut);
     size_t len = edges_.size();
-    prop_col_->resize(len);
+    if (len >= prop_col_->size()) {
+      prop_col_->resize(len * 2);
+    }
     prop_col_->set_any(len - 1, data);
   }
   void push_back_endpoints(vid_t src, vid_t dst, Direction dir) {
@@ -931,6 +937,9 @@ class OptionalBDSLEdgeColumnBuilder : public IOptionalContextColumnBuilder {
   void push_back_null() override {
     edges_.emplace_back(std::numeric_limits<vid_t>::max(),
                         std::numeric_limits<vid_t>::max(), false);
+    if (edges_.size() >= prop_col_->size()) {
+      prop_col_->resize(edges_.size() * 2);
+    }
   }
 
   std::shared_ptr<IContextColumn> finish() override;

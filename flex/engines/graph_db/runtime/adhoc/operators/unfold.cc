@@ -13,40 +13,22 @@
  * limitations under the License.
  */
 
-#include "flex/engines/graph_db/runtime/adhoc/expr.h"
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
 
 namespace gs {
-
 namespace runtime {
+Context eval_unfold(const physical::Unfold& opr, Context&& ctx) {
+  int key = opr.tag().value();
+  int alias = opr.alias().value();
+  auto col = ctx.get(key);
+  CHECK(col->elem_type() == RTAnyType::kList);
+  auto list_col = std::dynamic_pointer_cast<ListValueColumnBase>(col);
+  auto [ptr, offsets] = list_col->unfold();
 
-Context eval_select(const algebra::Select& opr, const ReadTransaction& txn,
-                    Context&& ctx,
-                    const std::map<std::string, std::string>& params) {
-  Expr expr(txn, ctx, params, opr.predicate(), VarType::kPathVar);
+  ctx.set_with_reshuffle(alias, ptr, offsets);
 
-  std::vector<size_t> offsets;
-  size_t row_num = ctx.row_num();
-  if (expr.is_optional()) {
-    for (size_t i = 0; i < row_num; ++i) {
-      if (expr.eval_path(i, 0).is_null()) {
-        continue;
-      } else if (expr.eval_path(i, 0).as_bool()) {
-        offsets.push_back(i);
-      }
-    }
-  } else {
-    for (size_t i = 0; i < row_num; ++i) {
-      if (expr.eval_path(i).as_bool()) {
-        offsets.push_back(i);
-      }
-    }
-  }
-
-  ctx.reshuffle(offsets);
+  LOG(INFO) << ctx.row_num() << " " << offsets.size();
   return ctx;
 }
-
 }  // namespace runtime
-
 }  // namespace gs

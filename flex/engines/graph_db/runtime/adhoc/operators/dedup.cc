@@ -47,6 +47,7 @@ Context eval_dedup(const algebra::Dedup& opr, const ReadTransaction& txn,
   } else {
     Dedup::dedup(txn, ctx, keys, vars);
   }
+  //  LOG(INFO) << "dedup row num:" << ctx.row_num();
   return ctx;
 }
 

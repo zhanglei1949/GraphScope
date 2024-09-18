@@ -26,7 +26,6 @@ enum class VertexColumnType {
   kSingle,
   kMultiSegment,
   kMultiple,
-  kSingleOptional,
 };
 
 class IVertexColumn : public IContextColumn {
@@ -188,11 +187,13 @@ class OptionalSLVertexColumn : public IVertexColumn {
   }
 
   VertexColumnType vertex_column_type() const override {
-    return VertexColumnType::kSingleOptional;
+    return VertexColumnType::kSingle;
   }
 
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
+  std::shared_ptr<IContextColumn> optional_shuffle(
+      const std::vector<size_t>& offset) const override;
 
   std::shared_ptr<IContextColumn> dup() const override;
 
@@ -212,7 +213,7 @@ class OptionalSLVertexColumn : public IVertexColumn {
   void foreach_vertex(const FUNC_T& func) const {
     size_t num = vertices_.size();
     for (size_t k = 0; k < num; ++k) {
-      func(k, label_, vertices_[k], 0);
+      func(k, label_, vertices_[k]);
     }
   }
 

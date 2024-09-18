@@ -107,8 +107,15 @@ std::pair<std::vector<std::vector<size_t>>, Context> generate_aggregate_indices(
     std::shared_ptr<IContextColumnBuilder> builder;
     if (type == RTAnyType::kList) {
       builder = keys[k_i].key.builder();
+    } else if (type == RTAnyType::kPath) {
+      builder = keys[k_i].key.builder();
     } else {
-      builder = create_column_builder(type);
+      if (type == RTAnyType::kVertex) {
+        builder = keys[k_i].key.builder();
+        CHECK(builder != nullptr);
+      } else {
+        builder = create_column_builder(type);
+      }
     }
     keys_columns.push_back(builder);
   }
@@ -248,6 +255,7 @@ std::shared_ptr<IContextColumn> general_count(
   ValueColumnBuilder<int64_t> builder;
   if (vars.size() == 1) {
     if (vars[0].is_optional()) {
+      //      LOG(INFO) << "count optional";
       size_t col_size = to_aggregate.size();
       builder.reserve(col_size);
       for (size_t k = 0; k < col_size; ++k) {
@@ -412,6 +420,29 @@ std::shared_ptr<IContextColumn> string_to_list(
   return builder.finish();
 }
 
+std::shared_ptr<IContextColumn> vertex_to_list(
+    const Var& var, const std::vector<std::vector<size_t>>& to_aggregate) {
+  ListValueColumnBuilder<std::pair<label_t, vid_t>> builder;
+  size_t col_size = to_aggregate.size();
+  builder.reserve(col_size);
+  std::vector<std::shared_ptr<ListImplBase>> impls;
+  for (size_t k = 0; k < col_size; ++k) {
+    auto& vec = to_aggregate[k];
+
+    std::vector<std::pair<label_t, vid_t>> elem;
+    for (auto idx : vec) {
+      elem.push_back(var.get(idx).as_vertex());
+    }
+    auto impl =
+        ListImpl<std::pair<label_t, vid_t>>::make_list_impl(std::move(elem));
+    auto list = List::make_list(impl);
+    impls.emplace_back(impl);
+    builder.push_back_opt(list);
+  }
+  builder.set_list_impls(impls);
+  return builder.finish();
+}
+
 std::shared_ptr<IContextColumn> apply_reduce(
     const AggFunc& func, const std::vector<std::vector<size_t>>& to_aggregate) {
   if (func.aggregate == AggrKind::kSum) {
@@ -487,6 +518,8 @@ std::shared_ptr<IContextColumn> apply_reduce(
       return tuple_to_list(var, to_aggregate);
     } else if (var.type() == RTAnyType::kStringValue) {
       return string_to_list(var, to_aggregate);
+    } else if (var.type() == RTAnyType::kVertex) {
+      return vertex_to_list(var, to_aggregate);
     } else {
       LOG(FATAL) << "not support" << static_cast<int>(var.type().type_enum_);
     }

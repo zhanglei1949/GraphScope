@@ -48,6 +48,8 @@ const RTAnyType RTAnyType::kNull = RTAnyType(RTAnyType::RTAnyTypeImpl::kNull);
 const RTAnyType RTAnyType::kTuple = RTAnyType(RTAnyType::RTAnyTypeImpl::kTuple);
 const RTAnyType RTAnyType::kList = RTAnyType(RTAnyType::RTAnyTypeImpl::kList);
 const RTAnyType RTAnyType::kMap = RTAnyType(RTAnyType::RTAnyTypeImpl::kMap);
+const RTAnyType RTAnyType::kRelation =
+    RTAnyType(RTAnyType::RTAnyTypeImpl::kRelation);
 RTAny List::get(size_t idx) const { return impl_->get(idx); }
 RTAnyType parse_from_ir_data_type(const ::common::IrDataType& dt) {
   switch (dt.type_case()) {
@@ -150,6 +152,8 @@ RTAny::RTAny(const RTAny& rhs) : type_(rhs.type_) {
     value_.f64_val = rhs.value_.f64_val;
   } else if (type_ == RTAnyType::kMap) {
     value_.map = rhs.value_.map;
+  } else if (type_ == RTAnyType::kRelation) {
+    value_.relation = rhs.value_.relation;
   } else {
     LOG(FATAL) << "unexpected type: " << static_cast<int>(type_.type_enum_);
   }
@@ -177,6 +181,10 @@ RTAny& RTAny::operator=(const RTAny& rhs) {
     value_.map = rhs.value_.map;
   } else if (type_ == RTAnyType::kEdge) {
     value_.edge = rhs.value_.edge;
+  } else if (type_ == RTAnyType::kRelation) {
+    value_.relation = rhs.value_.relation;
+  } else if (type_ == RTAnyType::kPath) {
+    value_.p = rhs.value_.p;
   } else {
     LOG(FATAL) << "unexpected type: " << static_cast<int>(type_.type_enum_);
   }
@@ -306,6 +314,13 @@ RTAny RTAny::from_map(const Map& m) {
   return ret;
 }
 
+RTAny RTAny::from_relation(const Relation& r) {
+  RTAny ret;
+  ret.type_ = RTAnyType::kRelation;
+  ret.value_.relation = r;
+  return ret;
+}
+
 bool RTAny::as_bool() const {
   if (type_ == RTAnyType::kNull) {
     return false;
@@ -383,6 +398,11 @@ Tuple RTAny::as_tuple() const {
 Map RTAny::as_map() const {
   CHECK(type_ == RTAnyType::kMap);
   return value_.map;
+}
+
+Relation RTAny::as_relation() const {
+  CHECK(type_ == RTAnyType::kRelation);
+  return value_.relation;
 }
 
 int RTAny::numerical_cmp(const RTAny& other) const {
@@ -490,22 +510,48 @@ bool RTAny::operator==(const RTAny& other) const {
 }
 
 RTAny RTAny::operator+(const RTAny& other) const {
-  if (type_ == RTAnyType::kI64Value && other.type_ == RTAnyType::kI32Value) {
-    return RTAny::from_int64(value_.i64_val + other.value_.i32_val);
-  } else if (type_ == RTAnyType::kI32Value &&
-             other.type_ == RTAnyType::kI64Value) {
-    return RTAny::from_int64(value_.i32_val * 1l + other.value_.i64_val);
-  }
-  if (type_ == RTAnyType::kF64Value) {
-    return RTAny::from_double(value_.f64_val + other.value_.f64_val);
+  int64_t left_i64 = 0;
+  double left_f64 = 0;
+  bool has_i64 = false;
+  bool has_f64 = false;
+
+  if (type_ == RTAnyType::kI32Value) {
+    left_i64 = value_.i32_val;
+    left_f64 = value_.i32_val;
   } else if (type_ == RTAnyType::kI64Value) {
-    return RTAny::from_int64(value_.i64_val + other.value_.i64_val);
-  } else if (type_ == RTAnyType::kI32Value) {
-    return RTAny::from_int32(value_.i32_val + other.value_.i32_val);
+    left_i64 = value_.i64_val;
+    left_f64 = value_.i64_val;
+    has_i64 = true;
+  } else if (type_ == RTAnyType::kF64Value) {
+    left_f64 = value_.f64_val;
+    has_f64 = true;
+  } else {
+    LOG(FATAL) << "not support" << static_cast<int>(type_.type_enum_);
   }
 
-  LOG(FATAL) << "not support" << static_cast<int>(type_.type_enum_);
-  return RTAny();
+  int64_t right_i64 = 0;
+  double right_f64 = 0;
+
+  if (other.type_ == RTAnyType::kI32Value) {
+    right_i64 = other.value_.i32_val;
+    right_f64 = other.value_.i32_val;
+  } else if (other.type_ == RTAnyType::kI64Value) {
+    right_i64 = other.value_.i64_val;
+    right_f64 = other.value_.i64_val;
+    has_i64 = true;
+  } else if (other.type_ == RTAnyType::kF64Value) {
+    right_f64 = other.value_.f64_val;
+    has_f64 = true;
+  } else {
+    LOG(FATAL) << "not support" << static_cast<int>(type_.type_enum_);
+  }
+  if (has_f64) {
+    return RTAny::from_double(left_f64 + right_f64);
+  } else if (has_i64) {
+    return RTAny::from_int64(left_i64 + right_i64);
+  } else {
+    return RTAny::from_int32(value_.i32_val + other.value_.i32_val);
+  }
 }
 
 RTAny RTAny::operator-(const RTAny& other) const {
@@ -732,6 +778,19 @@ void RTAny::encode_sig(RTAnyType type, Encoder& encoder) const {
     encoder.put_int(-1);
   } else if (type == RTAnyType::kF64Value) {
     encoder.put_double(this->as_double());
+  } else if (type == RTAnyType::kPath) {
+    Path p = this->as_path();
+    encoder.put_int(p.len() + 1);
+    auto nodes = p.nodes();
+    for (size_t i = 0; i < nodes.size(); ++i) {
+      encoder.put_byte(nodes[i].first);
+      encoder.put_int(nodes[i].second);
+    }
+  } else if (type == RTAnyType::kRelation) {
+    Relation r = this->as_relation();
+    encoder.put_byte(r.label);
+    encoder.put_int(r.src);
+    encoder.put_int(r.dst);
   } else {
     LOG(FATAL) << "not implemented for " << static_cast<int>(type_.type_enum_);
   }

@@ -71,6 +71,77 @@ expand_vertex_np_se(const ReadTransaction& txn, const SLVertexColumn& input,
 }
 
 template <typename EDATA_T, typename PRED_T>
+std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+expand_vertex_on_graph_view_optional(const GraphView<EDATA_T>& view,
+                                     const IVertexColumn& input,
+                                     label_t nbr_label, label_t e_label,
+                                     Direction dir, const PRED_T& pred) {
+  label_t input_label = *input.get_labels_set().begin();
+
+  OptionalSLVertexColumnBuilder builder(nbr_label);
+  std::vector<size_t> offsets;
+  if (input.is_optional()) {
+    const auto& col = dynamic_cast<const OptionalSLVertexColumn&>(input);
+    col.foreach_vertex([&](size_t idx, label_t l, vid_t v) {
+      if (!input.has_value(idx)) {
+        builder.push_back_null();
+        offsets.push_back(idx);
+        return;
+      }
+      auto es = view.get_edges(v);
+      bool found = false;
+      for (auto& e : es) {
+        if (pred(input_label, v, nbr_label, e.neighbor, e_label, dir, e.data)) {
+          builder.push_back_opt(e.neighbor);
+          offsets.push_back(idx);
+          found = true;
+        }
+      }
+      if (!found) {
+        builder.push_back_null();
+        offsets.push_back(idx);
+      }
+    });
+  } else {
+    const auto& col = dynamic_cast<const SLVertexColumn&>(input);
+    col.foreach_vertex([&](size_t idx, label_t l, vid_t v) {
+      auto es = view.get_edges(v);
+      bool found = false;
+      for (auto& e : es) {
+        if (pred(input_label, v, nbr_label, e.neighbor, e_label, dir, e.data)) {
+          builder.push_back_opt(e.neighbor);
+          offsets.push_back(idx);
+          found = true;
+        }
+      }
+      if (!found) {
+        builder.push_back_null();
+        offsets.push_back(idx);
+      }
+    });
+  }
+  return std::make_pair(builder.finish(), std::move(offsets));
+}
+
+template <typename EDATA_T, typename PRED_T>
+inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+expand_vertex_np_se_optional(const ReadTransaction& txn,
+                             const IVertexColumn& input, label_t nbr_label,
+                             label_t edge_label, Direction dir,
+                             const PRED_T& pred) {
+  // LOG(INFO) << "!!!!!!!!!!!!! hit A";
+  label_t input_label = *input.get_labels_set().begin();
+  CHECK((dir == Direction::kIn) || (dir == Direction::kOut));
+  GraphView<EDATA_T> view = (dir == Direction::kIn)
+                                ? txn.GetIncomingGraphView<EDATA_T>(
+                                      input_label, nbr_label, edge_label)
+                                : txn.GetOutgoingGraphView<EDATA_T>(
+                                      input_label, nbr_label, edge_label);
+  return expand_vertex_on_graph_view_optional(view, input, nbr_label,
+                                              edge_label, dir, pred);
+}
+
+template <typename EDATA_T, typename PRED_T>
 inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_np_me_sp(
     const ReadTransaction& txn, const SLVertexColumn& input,
@@ -1022,6 +1093,11 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
                                      const SLVertexColumn& input,
                                      const std::vector<LabelTriplet>& labels,
                                      Direction dir);
+
+std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
+expand_vertex_without_predicate_optional_impl(
+    const ReadTransaction& txn, const IVertexColumn& input,
+    const std::vector<LabelTriplet>& labels, Direction dir);
 
 std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_without_predicate_impl(const ReadTransaction& txn,

@@ -601,7 +601,6 @@ static void all_shortest_path_with_given_source_and_dest_impl(
     q1.push(v);
     visited.set(v);
   }
-  LOG(INFO) << "vec size: " << vec.size();
   while (!q1.empty()) {
     auto v = q1.front();
     q1.pop();
@@ -673,11 +672,25 @@ Context PathExpand::all_shortest_paths_with_given_source_and_dest(
 
   CHECK(dest.first == label_triplet.dst_label)
       << "only support same src and dst label";
+  SLVertexColumnBuilder builder(label_triplet.dst_label);
+  GeneralPathColumnBuilder path_builder;
+  std::vector<std::shared_ptr<PathImpl>> path_impls;
+  std::vector<size_t> shuffle_offset;
   foreach_vertex(input_vertex_list, [&](size_t index, label_t label, vid_t v) {
     std::vector<std::vector<vid_t>> paths;
     all_shortest_path_with_given_source_and_dest_impl(txn, params, v,
                                                       dest.second, paths);
-    });
+    for (auto& path : paths) {
+      auto ptr = PathImpl::make_path_impl(label_triplet.src_label, path);
+      builder.push_back_opt(dest.second);
+      path_builder.push_back_opt(Path::make_path(ptr));
+      path_impls.emplace_back(ptr);
+      shuffle_offset.push_back(index);
+    }
+  });
+  ctx.set_with_reshuffle(params.v_alias, builder.finish(), shuffle_offset);
+  path_builder.set_path_impls(path_impls);
+  ctx.set(params.alias, path_builder.finish());
   return ctx;
 }
 
