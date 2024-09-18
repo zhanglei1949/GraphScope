@@ -276,7 +276,9 @@ public class GraphStdOperatorTable extends SqlStdOperatorTable {
                 meta.getSignature(),
                 SqlKind.OTHER,
                 meta.getReturnTypeInference(),
-                GraphInferTypes.FIRST_KNOWN,
+                meta.getOperandTypeInference() != null
+                        ? meta.getOperandTypeInference()
+                        : GraphInferTypes.FIRST_KNOWN,
                 meta.getOperandTypeChecker(),
                 // of parameters
                 SqlFunctionCategory.USER_DEFINED_FUNCTION);

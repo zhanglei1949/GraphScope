@@ -588,5 +588,23 @@ public class MatchTest {
                         + "      GraphLogicalSource(tableConfig=[{isAll=false, tables=[person]}],"
                         + " alias=[person1], opt=[VERTEX])",
                 after.explain().trim());
+        RelNode node2 =
+                Utils.eval(
+                                "MATCH (s:software) WITH s.creationDate as date2,"
+                                        + " gs.function.datetime($endDate) as date\n"
+                                        + " Return 12 * ( date.year - date2.year )\n"
+                                        + "  + (date.month - date2.month)\n"
+                                        + "  + 1 AS months",
+                                builder)
+                        .build();
+        Assert.assertEquals(
+                "GraphLogicalProject(months=[+(+(*(12, -(EXTRACT(FLAG(YEAR), date),"
+                        + " EXTRACT(FLAG(YEAR), date2))), -(EXTRACT(FLAG(MONTH), date),"
+                        + " EXTRACT(FLAG(MONTH), date2))), 1)], isAppend=[false])\n"
+                        + "  GraphLogicalProject(date2=[s.creationDate],"
+                        + " date=[gs.function.datetime(?0)], isAppend=[false])\n"
+                        + "    GraphLogicalSource(tableConfig=[{isAll=false, tables=[software]}],"
+                        + " alias=[s], opt=[VERTEX])",
+                node2.explain().trim());
     }
 }

@@ -34,7 +34,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class StoredProcedureMeta {
-    private static final RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    public static final RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
 
     private final String name;
     private final RelDataType returnType;

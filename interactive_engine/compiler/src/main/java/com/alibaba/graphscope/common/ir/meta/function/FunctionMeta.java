@@ -19,20 +19,32 @@
 package com.alibaba.graphscope.common.ir.meta.function;
 
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
+import org.apache.calcite.sql.type.SqlOperandTypeInference;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class FunctionMeta {
     private final String signature;
     private final SqlReturnTypeInference returnTypeInference;
     private final SqlOperandTypeChecker operandTypeChecker;
+    private final @Nullable SqlOperandTypeInference operandTypeInference;
+
+    public FunctionMeta(
+            String signature,
+            SqlReturnTypeInference returnTypeInference,
+            SqlOperandTypeChecker operandTypeChecker,
+            @Nullable SqlOperandTypeInference operandTypeInference) {
+        this.signature = signature;
+        this.returnTypeInference = returnTypeInference;
+        this.operandTypeChecker = operandTypeChecker;
+        this.operandTypeInference = operandTypeInference;
+    }
 
     public FunctionMeta(
             String signature,
             SqlReturnTypeInference returnTypeInference,
             SqlOperandTypeChecker operandTypeChecker) {
-        this.signature = signature;
-        this.returnTypeInference = returnTypeInference;
-        this.operandTypeChecker = operandTypeChecker;
+        this(signature, returnTypeInference, operandTypeChecker, null);
     }
 
     public String getSignature() {
@@ -45,5 +57,9 @@ public class FunctionMeta {
 
     public SqlOperandTypeChecker getOperandTypeChecker() {
         return this.operandTypeChecker;
+    }
+
+    public @Nullable SqlOperandTypeInference getOperandTypeInference() {
+        return this.operandTypeInference;
     }
 }

@@ -18,6 +18,7 @@
 
 package com.alibaba.graphscope.common.ir.meta.function;
 
+import com.alibaba.graphscope.common.ir.meta.procedure.StoredProcedureMeta;
 import com.alibaba.graphscope.common.ir.tools.config.GraphOpt;
 import com.alibaba.graphscope.common.ir.type.GraphLabelType;
 import com.alibaba.graphscope.common.ir.type.GraphPathType;
@@ -138,6 +139,21 @@ public class GraphFunctions {
                                 typeFactory -> ImmutableList.of(),
                                 i -> "path",
                                 i -> false)));
+        String datetime = FUNCTION_PREFIX + "datetime";
+        this.functionMetaMap.put(
+                datetime,
+                new FunctionMeta(
+                        datetime,
+                        ReturnTypes.TIMESTAMP,
+                        GraphOperandTypes.operandMetadata(
+                                ImmutableList.of(SqlTypeFamily.INTEGER),
+                                typeFactory -> ImmutableList.of(),
+                                i -> "timestamp",
+                                i -> false),
+                        InferTypes.explicit(
+                                ImmutableList.of(
+                                        StoredProcedureMeta.typeFactory.createSqlType(
+                                                SqlTypeName.INTEGER)))));
     }
 
     public FunctionMeta getFunction(String functionName) {

@@ -16,7 +16,6 @@
 
 package org.apache.calcite.sql.type;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.apache.calcite.linq4j.function.Functions;
@@ -55,13 +54,16 @@ public class GraphOperandMetaDataImpl extends GraphFamilyOperandTypeChecker
     protected Collection<SqlTypeName> getAllowedTypeNames(
             RelDataTypeFactory typeFactory, SqlTypeFamily family, int iFormalOperand) {
         List<RelDataType> paramsAllowedTypes = paramTypes(typeFactory);
-        Preconditions.checkArgument(
-                paramsAllowedTypes.size() > iFormalOperand,
+        if (paramsAllowedTypes.size() > iFormalOperand) {
+            return ImmutableList.of(paramsAllowedTypes.get(iFormalOperand).getSqlTypeName());
+        } else if (expectedFamilies.get(iFormalOperand) instanceof SqlTypeFamily) {
+            return ((SqlTypeFamily) expectedFamilies.get(iFormalOperand)).getTypeNames();
+        }
+        throw new IllegalArgumentException(
                 "cannot find allowed type for type index="
                         + iFormalOperand
                         + " from the allowed types list="
                         + paramsAllowedTypes);
-        return ImmutableList.of(paramsAllowedTypes.get(iFormalOperand).getSqlTypeName());
     }
 
     @Override
