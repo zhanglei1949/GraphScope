@@ -921,4 +921,91 @@ public class LdbcTest {
                     + " uniqueKeyFilters=[=(_.id, 2199023382370)])",
                 after.explain().trim());
     }
+
+    @Test
+    public void ldbc14_test() {
+        GraphBuilder builder = Utils.mockGraphBuilder(optimizer, irMeta);
+        RelNode before =
+                com.alibaba.graphscope.cypher.antlr4.Utils.eval(
+                                "MATCH all ShortestPath((person1:PERSON { id: $person1Id"
+                                    + " })-[path:KNOWS*0..10]-(person2:PERSON { id: $person2Id"
+                                    + " }))\n"
+                                    + "WITH path, gs.function.relationships(path) as rels_in_path,"
+                                    + " gs.function.nodes(path) as nodes_in_path\n"
+                                    + "UNWIND rels_in_path as rel\n"
+                                    + "WITH path, rels_in_path, nodes_in_path,"
+                                    + " gs.function.startNode(rel) as rel0,"
+                                    + " gs.function.endNode(rel) as rel1\n"
+                                    + "OPTIONAL MATCH"
+                                    + " (rel0:PERSON)<-[:HASCREATOR]-(n)-[:REPLYOF]-(m)-[:HASCREATOR]->(rel1:PERSON)\n"
+                                    + "With path, nodes_in_path, rels_in_path,\n"
+                                    + "    CASE WHEN labels(m) <> labels(n) THEN 1 ELSE 0 END as"
+                                    + " ra,\n"
+                                    + "    CASE WHEN labels(m)  = labels(n) THEN 1 ELSE 0 END as"
+                                    + " rb\n"
+                                    + "With path, nodes_in_path, rels_in_path, SUM(ra) AS"
+                                    + " weight1Count, SUM(rb) as weight2Count\n"
+                                    + "UNWIND nodes_in_path as node\n"
+                                    + "WITH path, COLLECT(node.id) as personIdsInPath,"
+                                    + " weight1Count, weight2Count\n"
+                                    + "RETURN personIdsInPath, (weight1Count +"
+                                    + " gs.function.toFloat(weight2Count) / 2) AS pathWeight\n"
+                                    + "ORDER BY pathWeight DESC;",
+                                builder)
+                        .build();
+        RelNode after = optimizer.optimize(before, new GraphIOProcessor(builder, irMeta));
+        Assert.assertEquals(
+                "root:\n"
+                    + "GraphLogicalSort(sort0=[pathWeight], dir0=[DESC])\n"
+                    + "  GraphLogicalProject(personIdsInPath=[personIdsInPath],"
+                    + " pathWeight=[+(weight1Count, /(gs.function.toFloat(weight2Count), 2))],"
+                    + " isAppend=[false])\n"
+                    + "    GraphLogicalAggregate(keys=[{variables=[path, weight1Count,"
+                    + " weight2Count], aliases=[path, weight1Count, weight2Count]}],"
+                    + " values=[[{operands=[node.id], aggFunction=COLLECT, alias='personIdsInPath',"
+                    + " distinct=false}]])\n"
+                    + "      GraphLogicalUnfold(key=[nodes_in_path], alias=[node])\n"
+                    + "        GraphLogicalAggregate(keys=[{variables=[path, nodes_in_path,"
+                    + " rels_in_path], aliases=[path, nodes_in_path, rels_in_path]}],"
+                    + " values=[[{operands=[ra], aggFunction=SUM, alias='weight1Count',"
+                    + " distinct=false}, {operands=[rb], aggFunction=SUM, alias='weight2Count',"
+                    + " distinct=false}]])\n"
+                    + "          GraphLogicalProject(path=[path], nodes_in_path=[nodes_in_path],"
+                    + " rels_in_path=[rels_in_path], ra=[CASE(<>(m.~label, n.~label), 1, 0)],"
+                    + " rb=[CASE(=(m.~label, n.~label), 1, 0)], isAppend=[false])\n"
+                    + "            MultiJoin(joinFilter=[=(m, m)], isFullOuterJoin=[false],"
+                    + " joinTypes=[[INNER, INNER]], outerJoinConditions=[[NULL, NULL]],"
+                    + " projFields=[[ALL, ALL]])\n"
+                    + "              GraphPhysicalExpand(tableConfig=[[EdgeLabel(REPLYOF, COMMENT,"
+                    + " POST), EdgeLabel(REPLYOF, COMMENT, COMMENT)]], alias=[m], opt=[BOTH],"
+                    + " physicalOpt=[VERTEX], optional=[true])\n"
+                    + "                GraphPhysicalExpand(tableConfig=[{isAll=false,"
+                    + " tables=[HASCREATOR]}], alias=[n], startAlias=[rel0], opt=[IN],"
+                    + " physicalOpt=[VERTEX], optional=[true])\n"
+                    + "                  CommonTableScan(table=[[common#-1230129050]])\n"
+                    + "              GraphPhysicalExpand(tableConfig=[[EdgeLabel(HASCREATOR, POST,"
+                    + " PERSON), EdgeLabel(HASCREATOR, COMMENT, PERSON)]], alias=[m],"
+                    + " startAlias=[rel1], opt=[IN], physicalOpt=[VERTEX], optional=[true])\n"
+                    + "                CommonTableScan(table=[[common#-1230129050]])\n"
+                    + "common#-1230129050:\n"
+                    + "GraphLogicalProject(path=[path], rels_in_path=[rels_in_path],"
+                    + " nodes_in_path=[nodes_in_path], rel0=[gs.function.startNode(rel)],"
+                    + " rel1=[gs.function.endNode(rel)], isAppend=[false])\n"
+                    + "  GraphLogicalUnfold(key=[rels_in_path], alias=[rel])\n"
+                    + "    GraphLogicalProject(path=[path],"
+                    + " rels_in_path=[gs.function.relationships(path)],"
+                    + " nodes_in_path=[gs.function.nodes(path)], isAppend=[false])\n"
+                    + "      GraphLogicalGetV(tableConfig=[{isAll=false, tables=[PERSON]}],"
+                    + " alias=[person2], fusedFilter=[[=(_.id, ?1)]], opt=[END])\n"
+                    + "       "
+                    + " GraphLogicalPathExpand(expand=[GraphLogicalExpand(tableConfig=[{isAll=false,"
+                    + " tables=[KNOWS]}], alias=[_], opt=[BOTH])\n"
+                    + "], getV=[GraphLogicalGetV(tableConfig=[{isAll=false, tables=[PERSON]}],"
+                    + " alias=[_], opt=[OTHER])\n"
+                    + "], fetch=[10], path_opt=[ALL_SHORTEST], result_opt=[ALL_V_E], alias=[path],"
+                    + " start_alias=[person1])\n"
+                    + "          GraphLogicalSource(tableConfig=[{isAll=false, tables=[PERSON]}],"
+                    + " alias=[person1], opt=[VERTEX], uniqueKeyFilters=[=(_.id, ?0)])",
+                com.alibaba.graphscope.common.ir.tools.Utils.toString(after).trim());
+    }
 }

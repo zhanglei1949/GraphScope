@@ -76,10 +76,12 @@ public class FlatJoinToIntersectRule extends FlatJoinRule {
         getMatchBeforeJoin(join.getRight(), matches);
         if (matches.size() != 1) return false;
         RelNode sentence = matches.get(0).getSentence();
-        // currently, only when there are exactly 2 expand operators in the sentence, we can do the
+        // currently, only when there are 2 or 3 expand operators in the sentence, we can do the
         // transformation
         expandCount = getExpandCount(sentence);
-        if (hasNodeFilter(sentence) || hasPxdWithUntil(sentence) || expandCount != 2) return false;
+        if (hasNodeFilter(sentence)
+                || hasPxdWithUntil(sentence)
+                || !isValidExpandCount(expandCount)) return false;
         GraphLogicalSource source = getSource(sentence);
         List<Integer> startEndAliasIds =
                 Lists.newArrayList(getAliasId(source), getAliasId(sentence));
@@ -107,7 +109,8 @@ public class FlatJoinToIntersectRule extends FlatJoinRule {
     private class IntersectFlatter extends GraphShuttle {
         public IntersectFlatter() {
             Preconditions.checkArgument(
-                    expandCount == 2, "expand count in intersect flatter should be 2");
+                    isValidExpandCount(expandCount),
+                    "expand count in intersect flatter is invalid");
         }
 
         @Override
@@ -166,7 +169,7 @@ public class FlatJoinToIntersectRule extends FlatJoinRule {
         }
 
         private List<RelNode> splitByMiddle(RelNode top) {
-            // supposing expand count in the sentence is exact 2
+            // supposing expand count in the sentence is exact 2 or 3
             RelNode middleParent = top.getInput(0);
             RelNode middle = middleParent.getInput(0);
             String middleAlias = getAliasName(middle);
@@ -185,5 +188,9 @@ public class FlatJoinToIntersectRule extends FlatJoinRule {
             uniqueNameList.add(newAlias);
             return newAlias;
         }
+    }
+
+    private boolean isValidExpandCount(int count) {
+        return count == 2 || count == 3;
     }
 }
