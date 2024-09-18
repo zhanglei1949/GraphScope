@@ -410,6 +410,77 @@ public class LdbcTest {
     }
 
     @Test
+    public void ldbc5_2_test() {
+        GraphBuilder builder = Utils.mockGraphBuilder(optimizer, irMeta);
+        RelNode before =
+                com.alibaba.graphscope.cypher.antlr4.Utils.eval(
+                                "MATCH (person:PERSON { id: $personId })-[:KNOWS*1..3]-(friend)\n"
+                                    + "WITH DISTINCT friend\n"
+                                    + "WHERE\n"
+                                    + "    NOT friend.id = $personId\n"
+                                    + "MATCH (friend)<-[membership:HASMEMBER]-(forum)\n"
+                                    + "where membership.joinDate > $minDate\n"
+                                    + "WITH\n"
+                                    + "    friend AS friend, \n"
+                                    + "    collect(forum) as forums\n"
+                                    + "OPTIONAL MATCH"
+                                    + " (friend)<-[:HASCREATOR]-(post)<-[:CONTAINEROF]-(forum)\n"
+                                    + "WHERE forum in forums\n"
+                                    + "WITH\n"
+                                    + "    forum,\n"
+                                    + "    count(post) AS postCount\n"
+                                    + "ORDER BY\n"
+                                    + "    postCount DESC,\n"
+                                    + "    forum.id ASC\n"
+                                    + "LIMIT 20\n"
+                                    + "RETURN\n"
+                                    + "    forum.title AS forumName,\n"
+                                    + "    postCount;",
+                                builder)
+                        .build();
+        RelNode after = optimizer.optimize(before, new GraphIOProcessor(builder, irMeta));
+        Assert.assertEquals(
+                "GraphLogicalProject(forumName=[forum.title], postCount=[postCount],"
+                    + " isAppend=[false])\n"
+                    + "  GraphLogicalSort(sort0=[postCount], sort1=[forum.id], dir0=[DESC],"
+                    + " dir1=[ASC], fetch=[20])\n"
+                    + "    GraphLogicalAggregate(keys=[{variables=[forum], aliases=[forum]}],"
+                    + " values=[[{operands=[post], aggFunction=COUNT, alias='postCount',"
+                    + " distinct=false}]])\n"
+                    + "      LogicalFilter(condition=[IN(forum, forums)])\n"
+                    + "        GraphPhysicalExpand(tableConfig=[{isAll=false,"
+                    + " tables=[CONTAINEROF]}], alias=[forum], opt=[IN], physicalOpt=[VERTEX],"
+                    + " optional=[true])\n"
+                    + "          GraphPhysicalGetV(tableConfig=[{isAll=false, tables=[POST]}],"
+                    + " alias=[post], opt=[START], physicalOpt=[ITSELF])\n"
+                    + "            GraphPhysicalExpand(tableConfig=[[EdgeLabel(HASCREATOR, POST,"
+                    + " PERSON)]], alias=[_], startAlias=[friend], opt=[IN], physicalOpt=[VERTEX],"
+                    + " optional=[true])\n"
+                    + "              GraphLogicalAggregate(keys=[{variables=[friend],"
+                    + " aliases=[friend]}], values=[[{operands=[forum], aggFunction=COLLECT,"
+                    + " alias='forums', distinct=false}]])\n"
+                    + "                GraphLogicalGetV(tableConfig=[{isAll=false,"
+                    + " tables=[FORUM]}], alias=[forum], opt=[START])\n"
+                    + "                  GraphLogicalExpand(tableConfig=[{isAll=false,"
+                    + " tables=[HASMEMBER]}], alias=[membership], startAlias=[friend],"
+                    + " fusedFilter=[[>(_.joinDate, ?1)]], opt=[IN])\n"
+                    + "                    LogicalFilter(condition=[<>(friend.id, ?0)])\n"
+                    + "                      GraphLogicalAggregate(keys=[{variables=[friend],"
+                    + " aliases=[friend]}], values=[[]])\n"
+                    + "                        GraphLogicalGetV(tableConfig=[{isAll=false,"
+                    + " tables=[PERSON]}], alias=[friend], opt=[END])\n"
+                    + "                         "
+                    + " GraphLogicalPathExpand(fused=[GraphPhysicalExpand(tableConfig=[{isAll=false,"
+                    + " tables=[KNOWS]}], alias=[_], opt=[BOTH], physicalOpt=[VERTEX])\n"
+                    + "], offset=[1], fetch=[2], path_opt=[ARBITRARY], result_opt=[END_V],"
+                    + " alias=[_], start_alias=[person])\n"
+                    + "                            GraphLogicalSource(tableConfig=[{isAll=false,"
+                    + " tables=[PERSON]}], alias=[person], opt=[VERTEX], uniqueKeyFilters=[=(_.id,"
+                    + " ?0)])",
+                after.explain().trim());
+    }
+
+    @Test
     public void ldbc6_test() {
         GraphBuilder builder = Utils.mockGraphBuilder(optimizer, irMeta);
         RelNode before =
