@@ -194,7 +194,7 @@ static Context intersect_impl(Context&& ctx, std::vector<Context>&& ctxs,
       for (size_t k = 0; k < idx_col1.size(); ++k) {
         offsets1[k] = k;
       }
-      /**
+
       std::sort(offsets0.begin(), offsets0.end(),
                 [&idx_col0, &vlist0](size_t a, size_t b) {
                   if (idx_col0.get_value(a) == idx_col0.get_value(b)) {
@@ -208,7 +208,7 @@ static Context intersect_impl(Context&& ctx, std::vector<Context>&& ctxs,
                     return vlist1.get_vertex(a) < vlist1.get_vertex(b);
                   }
                   return idx_col1.get_value(a) < idx_col1.get_value(b);
-                });*/
+                });
       std::vector<size_t> shuffle_offsets;
       std::vector<size_t> shuffle_offsets_1;
       size_t idx0 = 0, idx1 = 0;

@@ -488,7 +488,7 @@ std::shared_ptr<IContextColumn> apply_reduce(
     if (var.type() == RTAnyType::kStringValue) {
       return string_to_set(var, to_aggregate);
     } else if (var.type() == RTAnyType::kVertex) {
-      return vertex_to_set(var, to_aggregate);
+      // return vertex_to_set(var, to_aggregate);
     } else {
       LOG(FATAL) << "not support" << (int) var.type().type_enum_;
     }
