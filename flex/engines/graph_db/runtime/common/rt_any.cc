@@ -72,6 +72,8 @@ RTAnyType parse_from_ir_data_type(const ::common::IrDataType& dt) {
       return RTAnyType::kDate32;
     case ::common::DataType::DOUBLE:
       return RTAnyType::kF64Value;
+    case ::common::DataType::NONE:
+      return RTAnyType::kUnknown;
     default:
       LOG(FATAL) << "unrecoginized data type - " << ddt;
       break;
@@ -576,23 +578,47 @@ RTAny RTAny::operator-(const RTAny& other) const {
 
 RTAny RTAny::operator/(const RTAny& other) const {
   // CHECK(type_ == other.type_);
-
-  if (type_ == RTAnyType::kI64Value && other.type_ == RTAnyType::kI32Value) {
-    return RTAny::from_int64(value_.i64_val / other.value_.i32_val);
-  } else if (type_ == RTAnyType::kI32Value &&
-             other.type_ == RTAnyType::kI64Value) {
-    return RTAny::from_int64(value_.i32_val * 1l / other.value_.i64_val);
+  bool has_i64 = false;
+  bool has_f64 = false;
+  double left_f64 = 0;
+  int64_t left_i64 = 0;
+  if (type_ == RTAnyType::kI64Value) {
+    left_i64 = value_.i64_val;
+    left_f64 = value_.i64_val;
+    has_i64 = true;
+  } else if (type_ == RTAnyType::kF64Value) {
+    left_f64 = value_.f64_val;
+    has_f64 = true;
+  } else if (type_ == RTAnyType::kI32Value) {
+    left_i64 = value_.i32_val;
+    left_f64 = value_.i32_val;
+  } else {
+    LOG(FATAL) << "not support" << static_cast<int>(type_.type_enum_);
   }
 
-  if (type_ == RTAnyType::kI64Value) {
-    return RTAny::from_int64(value_.i64_val / other.value_.i64_val);
-  } else if (type_ == RTAnyType::kF64Value) {
-    return RTAny::from_double(value_.f64_val / other.value_.f64_val);
-  } else if (type_ == RTAnyType::kI32Value) {
+  double right_f64 = 0;
+  int right_i64 = 0;
+  if (other.type_ == RTAnyType::kI64Value) {
+    right_i64 = other.value_.i64_val;
+    right_f64 = other.value_.i64_val;
+    has_i64 = true;
+  } else if (other.type_ == RTAnyType::kF64Value) {
+    right_f64 = other.value_.f64_val;
+    has_f64 = true;
+  } else if (other.type_ == RTAnyType::kI32Value) {
+    right_i64 = other.value_.i32_val;
+    right_f64 = other.value_.i32_val;
+  } else {
+    LOG(FATAL) << "not support" << static_cast<int>(other.type_.type_enum_);
+  }
+
+  if (has_f64) {
+    return RTAny::from_double(left_f64 / right_f64);
+  } else if (has_i64) {
+    return RTAny::from_int64(left_i64 / right_i64);
+  } else {
     return RTAny::from_int32(value_.i32_val / other.value_.i32_val);
   }
-  LOG(FATAL) << "not support";
-  return RTAny();
 }
 
 void RTAny::sink_impl(common::Value* value) const {

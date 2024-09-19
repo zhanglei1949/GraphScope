@@ -72,8 +72,25 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
         alias = m.alias().value();
       }
       alias_ids.push_back(alias);
-      auto col = build_column(data_types[i], expr, row_num);
-      ret.set(alias, col);
+      // compiler bug here, data_types[i] is none
+      if (data_types[i].type_case() == common::IrDataType::kDataType &&
+          data_types[i].data_type() == common::DataType::NONE) {
+        LOG(INFO) << "data type is none";
+        if (expr.type() == RTAnyType::kF64Value) {
+          common::IrDataType data_type;
+          data_type.set_data_type(common::DataType::DOUBLE);
+          auto col = build_column(data_type, expr, row_num);
+          ret.set(alias, col);
+        } else {
+          LOG(FATAL) << "not support for "
+                     << static_cast<int>(expr.type().type_enum_);
+        }
+      }
+
+      else {
+        auto col = build_column(data_types[i], expr, row_num);
+        ret.set(alias, col);
+      }
     }
   } else {
     for (int i = 0; i < mappings_size; ++i) {

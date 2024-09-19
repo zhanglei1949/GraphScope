@@ -433,8 +433,32 @@ std::shared_ptr<IContextColumn> vertex_to_list(
     for (auto idx : vec) {
       elem.push_back(var.get(idx).as_vertex());
     }
+
     auto impl =
         ListImpl<std::pair<label_t, vid_t>>::make_list_impl(std::move(elem));
+    auto list = List::make_list(impl);
+    impls.emplace_back(impl);
+    builder.push_back_opt(list);
+  }
+  builder.set_list_impls(impls);
+  return builder.finish();
+}
+
+template <typename NT>
+std::shared_ptr<IContextColumn> value_to_list(
+    const Var& var, const std::vector<std::vector<size_t>>& to_aggregate) {
+  ListValueColumnBuilder<NT> builder;
+  size_t col_size = to_aggregate.size();
+  builder.reserve(col_size);
+  std::vector<std::shared_ptr<ListImplBase>> impls;
+  for (size_t k = 0; k < col_size; ++k) {
+    auto& vec = to_aggregate[k];
+
+    std::vector<NT> elem;
+    for (auto idx : vec) {
+      elem.push_back(TypedConverter<NT>::to_typed(var.get(idx)));
+    }
+    auto impl = ListImpl<NT>::make_list_impl(std::move(elem));
     auto list = List::make_list(impl);
     impls.emplace_back(impl);
     builder.push_back_opt(list);
@@ -463,8 +487,10 @@ std::shared_ptr<IContextColumn> apply_reduce(
     const Var& var = func.vars[0];
     if (var.type() == RTAnyType::kStringValue) {
       return string_to_set(var, to_aggregate);
+    } else if (var.type() == RTAnyType::kVertex) {
+      return vertex_to_set(var, to_aggregate);
     } else {
-      LOG(FATAL) << "not support";
+      LOG(FATAL) << "not support" << (int) var.type().type_enum_;
     }
   } else if (func.aggregate == AggrKind::kCountDistinct) {
     if (func.vars.size() == 1 && func.vars[0].type() == RTAnyType::kVertex) {
@@ -520,6 +546,10 @@ std::shared_ptr<IContextColumn> apply_reduce(
       return string_to_list(var, to_aggregate);
     } else if (var.type() == RTAnyType::kVertex) {
       return vertex_to_list(var, to_aggregate);
+    } else if (var.type() == RTAnyType::kI64Value) {
+      return value_to_list<int64_t>(var, to_aggregate);
+    } else if (var.type() == RTAnyType::kI32Value) {
+      return value_to_list<int32_t>(var, to_aggregate);
     } else {
       LOG(FATAL) << "not support" << static_cast<int>(var.type().type_enum_);
     }

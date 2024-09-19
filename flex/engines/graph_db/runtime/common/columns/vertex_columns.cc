@@ -42,6 +42,35 @@ std::shared_ptr<IContextColumn> SLVertexColumn::optional_shuffle(
   return builder.finish();
 }
 
+std::shared_ptr<IContextColumn> MLVertexColumn::optional_shuffle(
+    const std::vector<size_t>& offsets) const {
+  OptionalMLVertexColumnBuilder builder;
+  builder.reserve(offsets.size());
+  for (auto offset : offsets) {
+    if (offset == std::numeric_limits<size_t>::max()) {
+      builder.push_back_null();
+    } else {
+      builder.push_back_opt(vertices_[offset]);
+    }
+  }
+  return builder.finish();
+}
+
+std::shared_ptr<IContextColumn> OptionalMLVertexColumn::shuffle(
+    const std::vector<size_t>& offsets) const {
+  OptionalMLVertexColumnBuilder builder;
+  builder.reserve(offsets.size());
+  for (auto offset : offsets) {
+    builder.push_back_vertex(vertices_[offset]);
+  }
+  return builder.finish();
+}
+std::shared_ptr<IContextColumn> OptionalMLVertexColumnBuilder::finish() {
+  auto ret = std::make_shared<OptionalMLVertexColumn>();
+  ret->vertices_.swap(vertices_);
+  ret->labels_.swap(labels_);
+  return ret;
+}
 void SLVertexColumn::generate_dedup_offset(std::vector<size_t>& offsets) const {
   offsets.clear();
 #if 0

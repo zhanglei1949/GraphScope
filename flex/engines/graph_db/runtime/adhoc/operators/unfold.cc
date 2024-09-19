@@ -27,7 +27,6 @@ Context eval_unfold(const physical::Unfold& opr, Context&& ctx) {
 
   ctx.set_with_reshuffle(alias, ptr, offsets);
 
-  LOG(INFO) << ctx.row_num() << " " << offsets.size();
   return ctx;
 }
 }  // namespace runtime

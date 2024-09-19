@@ -430,17 +430,17 @@ struct TypedConverter<int64_t> {
 
 template <>
 struct TypedConverter<double> {
-  static RTAnyType type() { return RTAnyType::kI64Value; }
+  static RTAnyType type() { return RTAnyType::kF64Value; }
   static double to_typed(const RTAny& val) { return val.as_double(); }
   static RTAny from_typed(double val) { return RTAny::from_double(val); }
-  static const std::string name() { return "int64"; }
+  static const std::string name() { return "double"; }
 };
 template <>
 struct TypedConverter<Date> {
   static RTAnyType type() { return RTAnyType::kDate32; }
   static Date to_typed(const RTAny& val) { return val.as_date32(); }
   static RTAny from_typed(Date val) { return RTAny::from_date32(val); }
-  static const std::string name() { return "int64"; }
+  static const std::string name() { return "date"; }
   static Date typed_from_string(const std::string& str) {
     int64_t val = std::stoll(str);
     return Date(val);

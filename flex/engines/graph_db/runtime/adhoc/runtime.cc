@@ -154,18 +154,123 @@ bool is_all_shortest_path(const physical::PhysicalPlan& plan, int i) {
   return false;
 }
 
+bool try_reuse_left_plan_column(const physical::Join& op, int& Tag,
+                                int& Alias) {
+  int left_key0 = op.left_keys(0).tag().id();
+  int left_key1 = op.left_keys(1).tag().id();
+  int right_key0 = op.right_keys(0).tag().id();
+  int right_key1 = op.right_keys(1).tag().id();
+  if (!op.right_keys(0).has_node_type() || !op.right_keys(1).has_node_type()) {
+    return false;
+  }
+  if (op.right_keys(0).node_type().type_case() !=
+          common::IrDataType::kGraphType ||
+      op.right_keys(1).node_type().type_case() !=
+          common::IrDataType::kGraphType) {
+    return false;
+  }
+
+  if ((op.right_keys(0).node_type().graph_type().element_opt() !=
+       common::GraphDataType::GraphElementOpt::
+           GraphDataType_GraphElementOpt_VERTEX) ||
+      (op.right_keys(1).node_type().graph_type().element_opt() !=
+       common::GraphDataType::GraphElementOpt::
+           GraphDataType_GraphElementOpt_VERTEX)) {
+    return false;
+  }
+  if (op.right_keys(1).node_type().graph_type().graph_data_type_size() != 1 ||
+      op.right_keys(0).node_type().graph_type().graph_data_type_size() != 1) {
+    return false;
+  }
+  if (op.right_keys(0)
+          .node_type()
+          .graph_type()
+          .graph_data_type(0)
+          .label()
+          .label() != op.right_keys(1)
+                          .node_type()
+                          .graph_type()
+                          .graph_data_type(0)
+                          .label()
+                          .label()) {
+    return false;
+  }
+  auto right_plan = op.right_plan();
+
+  if (right_plan.plan().at(0).opr().has_scan()) {
+    auto scan = right_plan.plan().at(0).opr().scan();
+    int alias = -1;
+    if (scan.has_alias()) {
+      alias = scan.alias().value();
+    }
+    if (!(alias == right_key0 || alias == right_key1)) {
+      return false;
+    }
+    if (alias == right_key0) {
+      Tag = left_key0;
+      Alias = alias;
+    } else {
+      Tag = left_key1;
+      Alias = alias;
+    }
+
+    if (scan.has_idx_predicate()) {
+      return false;
+    }
+    auto params = scan.params();
+    if (params.has_predicate()) {
+      return false;
+    }
+    if (params.tables_size() != 1) {
+      return false;
+    }
+    int num = right_plan.plan().size();
+    auto last_op = right_plan.plan().at(num - 1);
+
+    if (last_op.opr().has_edge()) {
+      auto edge = last_op.opr().edge();
+      int alias = -1;
+      if (edge.has_alias()) {
+        alias = edge.alias().value();
+      }
+      if (alias != right_key0 && alias != right_key1) {
+        return false;
+      }
+      if (edge.expand_opt() !=
+          physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_VERTEX) {
+        return false;
+      }
+      if (!edge.has_params()) {
+        return false;
+      }
+      if (edge.params().tables_size() != 1) {
+        return false;
+      }
+
+      if (edge.params().has_predicate()) {
+        return false;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
 Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
                           const ReadTransaction& txn,
                           const std::map<std::string, std::string>& params,
-                          int op_id_offset = 0,
-                          const std::string& prefix = "") {
+                          int op_id_offset = 0, const std::string& prefix = "",
+                          bool skip_scan = false) {
   Context ret = ctx;
 
   auto& op_cost = OpCost::get().table;
 
   int opr_num = plan.plan_size();
   bool terminate = false;
-  for (int i = 0; i < opr_num; ++i) {
+  // in this case, we skip the first scan opr as it is already extracted from
+  // the left plan
+  int start_idx = skip_scan ? 1 : 0;
+  for (int i = start_idx; i < opr_num; ++i) {
     const physical::PhysicalOpr& opr = plan.plan(i);
     double t = -grape::GetCurrentTime();
     assert(opr.has_opr());
@@ -309,6 +414,27 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kJoin: {
       auto op = opr.opr().join();
+      if (op.left_keys_size() == 2 && op.right_keys_size() == 2) {
+        int tag = -1;
+        int alias = -1;
+        if (try_reuse_left_plan_column(op, tag, alias)) {
+          LOG(INFO) << "reuse left plan column";
+          auto ctx =
+              runtime_eval_impl(op.left_plan(), std::move(ret), txn, params,
+                                op_id_offset + 100, op_name + "-left");
+          Context ctx2;
+          std::vector<size_t> offset;
+          ctx.get(tag)->generate_dedup_offset(offset);
+          ctx2.set(alias, ctx.get(tag));
+          ctx2.reshuffle(offset);
+
+          ctx2 =
+              runtime_eval_impl(op.right_plan(), std::move(ctx2), txn, params,
+                                op_id_offset + 200, op_name + "-right", true);
+          ret = eval_join(txn, params, op, std::move(ctx), std::move(ctx2));
+          break;
+        }
+      }
       Context ret_dup;
       auto ctx = runtime_eval_impl(op.left_plan(), std::move(ret), txn, params,
                                    op_id_offset + 100, op_name + "-left");

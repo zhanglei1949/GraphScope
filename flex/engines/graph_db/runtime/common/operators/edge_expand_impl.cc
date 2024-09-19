@@ -353,6 +353,10 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
       break;
     }
   }
+  if (ed_types.size() == 0) {
+    MLVertexColumnBuilder builder;
+    return std::make_pair(builder.finish(), std::vector<size_t>());
+  }
   if (sp) {
     const PropertyType& ed_type = ed_types[0];
     if (ed_type == PropertyType::Empty()) {

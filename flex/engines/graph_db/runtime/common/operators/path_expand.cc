@@ -502,7 +502,6 @@ static void all_shortest_path_with_given_source_and_dest_impl(
   int8_t src_dep = 0, dst_dep = 0;
 
   while (true) {
-    LOG(INFO) << "src_dep: " << (int) src_dep << ", dst_dep: " << (int) dst_dep;
     if (src_dep >= params.hop_upper || dst_dep >= params.hop_upper ||
         !vec.empty()) {
       break;
@@ -650,7 +649,6 @@ static void all_shortest_path_with_given_source_and_dest_impl(
       ie_iter.Next();
     }
   }
-  LOG(INFO) << "finish bfs";
   std::vector<vid_t> cur_path;
   dfs(txn, src, dst, visited, dist_from_src, params, paths, cur_path);
 }

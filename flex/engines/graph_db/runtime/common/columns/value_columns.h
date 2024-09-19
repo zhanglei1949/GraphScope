@@ -17,6 +17,7 @@
 #define RUNTIME_COMMON_COLUMNS_VALUE_COLUMNS_H_
 
 #include "flex/engines/graph_db/runtime/common/columns/i_context_column.h"
+#include "flex/engines/graph_db/runtime/common/columns/vertex_columns.h"
 #include "flex/engines/graph_db/runtime/common/rt_any.h"
 #include "flex/utils/top_n_generator.h"
 
@@ -42,7 +43,11 @@ class IValueColumn : public IContextColumn {
 template <typename T>
 class ValueColumn : public IValueColumn<T> {
  public:
-  ValueColumn() = default;
+  ValueColumn() {
+    if constexpr (std::is_same_v<T, std::pair<label_t, vid_t>>) {
+      LOG(FATAL) << "not implemented for " << this->column_info();
+    }
+  }
   ~ValueColumn() = default;
 
   size_t size() const override { return data_.size(); }
@@ -284,6 +289,19 @@ class ListValueColumn : public ListValueColumnBase {
     if constexpr (std::is_same_v<T, std::string>) {
       LOG(FATAL) << "not implemented for " << this->column_info();
       return {nullptr, {}};
+    } else if constexpr (std::is_same_v<T, std::pair<label_t, vid_t>>) {
+      std::vector<size_t> offsets;
+      auto builder = std::make_shared<MLVertexColumnBuilder>();
+      size_t i = 0;
+      for (const auto& list : data_) {
+        for (size_t j = 0; j < list.size(); ++j) {
+          auto elem = list.get(j);
+          builder->push_back_elem(elem);
+          offsets.push_back(i);
+        }
+        ++i;
+      }
+      return {builder->finish(), offsets};
     } else {
       std::vector<size_t> offsets;
       auto builder = std::make_shared<ValueColumnBuilder<T>>();

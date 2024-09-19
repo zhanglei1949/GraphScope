@@ -395,6 +395,8 @@ class MSVertexColumnBuilder : public IVertexColumnBuilder {
 #endif
 
 class MLVertexColumnBuilder;
+
+class OptionalMLVertexColumnBuilder;
 class MLVertexColumn : public IVertexColumn {
  public:
   MLVertexColumn() = default;
@@ -426,6 +428,8 @@ class MLVertexColumn : public IVertexColumn {
   std::shared_ptr<IContextColumn> dup() const override;
 
   std::shared_ptr<IContextColumn> shuffle(
+      const std::vector<size_t>& offsets) const override;
+  std::shared_ptr<IContextColumn> optional_shuffle(
       const std::vector<size_t>& offsets) const override;
 
   std::pair<label_t, vid_t> get_vertex(size_t idx) const override {
@@ -463,6 +467,97 @@ class MLVertexColumnBuilder : public IVertexColumnBuilder {
   void push_back_vertex(const std::pair<label_t, vid_t>& v) override {
     labels_.insert(v.first);
     vertices_.push_back(v);
+  }
+
+  std::shared_ptr<IContextColumn> finish() override;
+
+ private:
+  std::vector<std::pair<label_t, vid_t>> vertices_;
+  std::set<label_t> labels_;
+};
+
+class OptionalMLVertexColumn : public IVertexColumn {
+ public:
+  OptionalMLVertexColumn() = default;
+  ~OptionalMLVertexColumn() = default;
+
+  size_t size() const override { return vertices_.size(); }
+
+  std::shared_ptr<IContextColumnBuilder> builder() const override {
+    auto ptr = std::make_shared<OptionalMLVertexColumnBuilder>();
+    return std::dynamic_pointer_cast<IContextColumnBuilder>(ptr);
+  }
+
+  std::string column_info() const override {
+    std::string labels;
+    for (auto label : labels_) {
+      labels += std::to_string(label);
+      labels += ", ";
+    }
+    if (!labels.empty()) {
+      labels.resize(labels.size() - 2);
+    }
+    return "OptionalMLVertexColumn(" + labels + ")[" + std::to_string(size()) +
+           "]";
+  }
+
+  VertexColumnType vertex_column_type() const override {
+    return VertexColumnType::kMultiple;
+  }
+
+  std::shared_ptr<IContextColumn> shuffle(
+      const std::vector<size_t>& offsets) const override;
+
+  std::pair<label_t, vid_t> get_vertex(size_t idx) const override {
+    return vertices_[idx];
+  }
+
+  bool is_optional() const override { return true; }
+
+  bool has_value(size_t idx) const override {
+    return vertices_[idx].second != std::numeric_limits<vid_t>::max();
+  }
+
+  template <typename FUNC_T>
+  void foreach_vertex(const FUNC_T& func) const {
+    size_t index = 0;
+    for (auto& pair : vertices_) {
+      func(index++, pair.first, pair.second);
+    }
+  }
+
+  std::set<label_t> get_labels_set() const override { return labels_; }
+
+ private:
+  friend class OptionalMLVertexColumnBuilder;
+  std::vector<std::pair<label_t, vid_t>> vertices_;
+  std::set<label_t> labels_;
+};
+
+class OptionalMLVertexColumnBuilder : public IOptionalVertexColumnBuilder {
+ public:
+  OptionalMLVertexColumnBuilder() = default;
+  ~OptionalMLVertexColumnBuilder() = default;
+
+  void reserve(size_t size) override { vertices_.reserve(size); }
+
+  void push_back_opt(const std::pair<label_t, vid_t>& v) {
+    labels_.insert(v.first);
+    vertices_.push_back(v);
+  }
+
+  void push_back_vertex(const std::pair<label_t, vid_t>& v) override {
+    labels_.insert(v.first);
+    vertices_.push_back(v);
+  }
+
+  void push_back_null() override {
+    vertices_.emplace_back(std::numeric_limits<label_t>::max(),
+                           std::numeric_limits<vid_t>::max());
+  }
+
+  void push_back_elem(const RTAny& val) override {
+    this->push_back_opt(val.as_vertex());
   }
 
   std::shared_ptr<IContextColumn> finish() override;
