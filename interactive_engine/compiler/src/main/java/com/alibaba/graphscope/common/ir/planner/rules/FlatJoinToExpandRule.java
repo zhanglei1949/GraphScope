@@ -46,7 +46,7 @@ public class FlatJoinToExpandRule extends FlatJoinRule {
         getMatchBeforeJoin(join.getRight(), matches);
         if (matches.size() != 1) return false;
         RelNode sentence = matches.get(0).getSentence();
-        if (hasNodeFilter(sentence) || hasPxdWithUntil(sentence)) return false;
+        if (hasNodeEqualFilter(sentence) || hasPxdWithUntil(sentence)) return false;
         GraphLogicalSource source = getSource(sentence);
         List<Integer> startEndAliasIds =
                 Lists.newArrayList(getAliasId(source), getAliasId(sentence));

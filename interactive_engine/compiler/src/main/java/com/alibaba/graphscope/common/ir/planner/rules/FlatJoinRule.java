@@ -32,7 +32,9 @@ import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.lang3.ObjectUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
@@ -82,6 +84,23 @@ public abstract class FlatJoinRule extends GraphShuttle {
             if (ObjectUtils.isNotEmpty(getV.getFilters())) return true;
         }
         return top.getInputs().stream().anyMatch(k -> hasNodeFilter(k));
+    }
+
+    static boolean hasNodeEqualFilter(RelNode top) {
+        if (top instanceof GraphLogicalSource) {
+            GraphLogicalSource source = (GraphLogicalSource) top;
+            if (source.getUniqueKeyFilters() != null) return true;
+        }
+        if (top instanceof GraphLogicalSource || top instanceof GraphLogicalGetV) {
+            List<RexNode> filters = ((AbstractBindableTableScan) top).getFilters();
+            if (filters != null && filters.size() == 1) {
+                RexNode filter = filters.get(0);
+                if (filter instanceof RexCall
+                        && ((RexCall) filter).getOperator().getKind() == SqlKind.EQUALS)
+                    return true;
+            }
+        }
+        return top.getInputs().stream().anyMatch(k -> hasNodeEqualFilter(k));
     }
 
     static boolean hasPxdWithUntil(RelNode top) {
@@ -218,7 +237,9 @@ public abstract class FlatJoinRule extends GraphShuttle {
                     ((GraphLogicalGetV) top).getHints(),
                     GraphOpt.Source.VERTEX,
                     ((GraphLogicalGetV) top).getTableConfig(),
-                    ((GraphLogicalGetV) top).getAliasName());
+                    ((GraphLogicalGetV) top).getAliasName(),
+                    null,
+                    ((GraphLogicalGetV) top).getFilters());
         }
         throw new IllegalArgumentException("unable to convert rel = [" + top + "] to source");
     }
@@ -244,6 +265,13 @@ public abstract class FlatJoinRule extends GraphShuttle {
                 default:
                     reversedOpt = GraphOpt.GetV.START;
             }
+            ImmutableList.Builder<RexNode> filters = ImmutableList.builder();
+            if (((GraphLogicalSource) top).getUniqueKeyFilters() != null) {
+                filters.add(((GraphLogicalSource) top).getUniqueKeyFilters());
+            }
+            if (ObjectUtils.isNotEmpty(((GraphLogicalSource) top).getFilters())) {
+                filters.addAll(((GraphLogicalSource) top).getFilters());
+            }
             return GraphLogicalGetV.create(
                     (GraphOptCluster) top.getCluster(),
                     ((GraphLogicalSource) top).getHints(),
@@ -251,7 +279,8 @@ public abstract class FlatJoinRule extends GraphShuttle {
                     reversedOpt,
                     ((GraphLogicalSource) top).getTableConfig(),
                     ((GraphLogicalSource) top).getAliasName(),
-                    startAlias);
+                    startAlias,
+                    filters.build());
         }
         if (top instanceof GraphLogicalExpand) {
             GraphLogicalExpand expand = (GraphLogicalExpand) top;
