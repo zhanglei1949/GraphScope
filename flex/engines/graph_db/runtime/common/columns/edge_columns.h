@@ -132,8 +132,6 @@ class SDSLEdgeColumn : public IEdgeColumn {
   std::shared_ptr<IContextColumn> optional_shuffle(
       const std::vector<size_t>& offsets) const override;
 
-  std::shared_ptr<IContextColumn> dup() const override;
-
   template <typename FUNC_T>
   void foreach_edge(const FUNC_T& func) const {
     if (prop_type_ == PropertyType::kEmpty) {
@@ -235,8 +233,6 @@ class OptionalSDSLEdgeColumn : public IEdgeColumn {
 
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
-
-  std::shared_ptr<IContextColumn> dup() const override;
 
   template <typename FUNC_T>
   void foreach_edge(const FUNC_T& func) const {
@@ -368,8 +364,6 @@ class BDSLEdgeColumn : public IEdgeColumn {
   std::shared_ptr<IContextColumn> optional_shuffle(
       const std::vector<size_t>& offsets) const override;
 
-  std::shared_ptr<IContextColumn> dup() const override;
-
   template <typename FUNC_T>
   void foreach_edge(const FUNC_T& func) const {
     size_t idx = 0;
@@ -428,8 +422,6 @@ class OptionalBDSLEdgeColumn : public IEdgeColumn {
       const std::vector<size_t>& offsets) const override;
   std::shared_ptr<IContextColumn> optional_shuffle(
       const std::vector<size_t>& offsets) const override;
-
-  std::shared_ptr<IContextColumn> dup() const override;
 
   template <typename FUNC_T>
   void foreach_edge(const FUNC_T& func) const {
@@ -520,8 +512,6 @@ class SDMLEdgeColumn : public IEdgeColumn {
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
 
-  std::shared_ptr<IContextColumn> dup() const override;
-
   template <typename FUNC_T>
   void foreach_edge(const FUNC_T& func) const {
     size_t idx = 0;
@@ -608,8 +598,6 @@ class BDMLEdgeColumn : public IEdgeColumn {
 
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
-
-  std::shared_ptr<IContextColumn> dup() const override;
 
   template <typename FUNC_T>
   void foreach_edge(const FUNC_T& func) const {

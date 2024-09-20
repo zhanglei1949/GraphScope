@@ -185,11 +185,6 @@ class IContextColumn {
     return 0;
   }
 
-  virtual std::shared_ptr<IContextColumn> dup() const {
-    LOG(FATAL) << "not implemented for " << this->column_info();
-    return nullptr;
-  }
-
   virtual std::string column_info() const = 0;
   virtual ContextColumnType column_type() const = 0;
 

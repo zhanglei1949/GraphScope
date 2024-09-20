@@ -27,7 +27,6 @@ class IPathColumn : public IContextColumn {
   virtual size_t size() const = 0;
   virtual std::string column_info() const = 0;
   virtual ContextColumnType column_type() const = 0;
-  virtual std::shared_ptr<IContextColumn> dup() const = 0;
   virtual std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const = 0;
   virtual RTAnyType elem_type() const = 0;
@@ -53,7 +52,6 @@ class GeneralPathColumn : public IPathColumn {
   ContextColumnType column_type() const override {
     return ContextColumnType::kPath;
   }
-  std::shared_ptr<IContextColumn> dup() const override;
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
 
@@ -146,7 +144,6 @@ class OptionalGeneralPathColumn : public IPathColumn {
   ContextColumnType column_type() const override {
     return ContextColumnType::kPath;
   }
-  std::shared_ptr<IContextColumn> dup() const override;
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
   bool is_optional() const override { return true; }

@@ -143,7 +143,29 @@ class List {
   RTAny get(size_t idx) const;
   ListImplBase* impl_;
 };
+class SetImplBase {
+ public:
+  virtual ~SetImplBase() = default;
+  virtual bool operator<(const SetImplBase& p) const = 0;
+  virtual bool operator==(const SetImplBase& p) const = 0;
+  virtual size_t size() const = 0;
+  virtual void insert(const RTAny& val) = 0;
+  virtual bool exists(const RTAny& val) const = 0;
+};
 
+template <typename T>
+class SetImpl;
+
+class Set {
+ public:
+  Set() : impl_(nullptr) {}
+  Set(SetImplBase* impl) : impl_(impl) {}
+  void insert(const RTAny& val) { impl_->insert(val); }
+  bool operator<(const Set& p) const { return *impl_ < *(p.impl_); }
+  bool operator==(const Set& p) const { return *(impl_) == *(p.impl_); }
+  bool exists(const RTAny& val) const { return impl_->exists(val); }
+  SetImplBase* impl_;
+};
 class Tuple {
  public:
   ~Tuple() {
@@ -206,6 +228,7 @@ class RTAnyType {
     kList,
     kMap,
     kRelation,
+    kSet,
   };
   static const RTAnyType kVertex;
   static const RTAnyType kEdge;
@@ -225,6 +248,7 @@ class RTAnyType {
   static const RTAnyType kList;
   static const RTAnyType kMap;
   static const RTAnyType kRelation;
+  static const RTAnyType kSet;
 
   RTAnyType() : type_enum_(RTAnyTypeImpl::kUnknown) {}
   RTAnyType(const RTAnyType& other)
@@ -274,6 +298,7 @@ union RTAnyValue {
   Tuple t;
   List list;
   Map map;
+  Set set;
   bool b_val;
 };
 
@@ -311,6 +336,7 @@ class RTAny {
   static RTAny from_list(const List& list);
   static RTAny from_double(double v);
   static RTAny from_map(const Map& m);
+  static RTAny from_set(const Set& s);
 
   bool as_bool() const;
   int as_int32() const;
@@ -327,6 +353,7 @@ class RTAny {
   Tuple as_tuple() const;
   List as_list() const;
   Map as_map() const;
+  Set as_set() const;
   Relation as_relation() const;
 
   bool operator<(const RTAny& other) const;
@@ -576,6 +603,67 @@ class ListImpl<std::string_view> : public ListImplBase {
 
   std::vector<std::string> list_;
   std::vector<bool> is_valid_;
+};
+
+template <typename T>
+class SetImpl : public SetImplBase {
+ public:
+  SetImpl() = default;
+  ~SetImpl() {}
+  bool exists(const RTAny& val) const override {
+    return set_.find(TypedConverter<T>::to_typed(val)) != set_.end();
+  }
+  bool exists(const T& val) const { return set_.find(val) != set_.end(); }
+
+  bool operator<(const SetImplBase& p) const override {
+    return set_ < (dynamic_cast<const SetImpl<T>&>(p)).set_;
+  }
+
+  bool operator==(const SetImplBase& p) const override {
+    return set_ == (dynamic_cast<const SetImpl<T>&>(p)).set_;
+  }
+
+  void insert(const RTAny& val) {
+    set_.insert(TypedConverter<T>::to_typed(val));
+  }
+  void insert(const T& val) { set_.insert(val); }
+  size_t size() const override { return set_.size(); }
+  std::set<T> set_;
+};
+
+template <>
+class SetImpl<std::pair<label_t, vid_t>> : public SetImplBase {
+ public:
+  SetImpl() = default;
+  ~SetImpl() {}
+  bool exists(const RTAny& val) const override {
+    auto v = TypedConverter<std::pair<label_t, vid_t>>::to_typed(val);
+    return set_.find((1ll * v.second) << 8 | v.first) != set_.end();
+  }
+  bool exists(const std::pair<label_t, vid_t>& val) const {
+    return set_.find((1ll * val.second) << 8 | val.first) != set_.end();
+  }
+
+  bool operator<(const SetImplBase& p) const override {
+    LOG(ERROR) << "not support for set of pair";
+    return set_.size() <
+           (dynamic_cast<const SetImpl<std::pair<label_t, vid_t>>&>(p))
+               .set_.size();
+  }
+
+  bool operator==(const SetImplBase& p) const override {
+    return set_ ==
+           (dynamic_cast<const SetImpl<std::pair<label_t, vid_t>>&>(p)).set_;
+  }
+
+  void insert(const RTAny& val) {
+    insert(TypedConverter<std::pair<label_t, vid_t>>::to_typed(val));
+  }
+  void insert(const std::pair<label_t, vid_t>& val) {
+    set_.insert((1ll * val.second) << 8 | val.first);
+  }
+  size_t size() const override { return set_.size(); }
+  std::unordered_set<int64_t> set_;
 };
 }  // namespace runtime
 

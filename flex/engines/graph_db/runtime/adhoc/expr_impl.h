@@ -82,11 +82,56 @@ class ConstFalseExpr : public ExprBase {
   RTAnyType type() const override { return RTAnyType::kBoolValue; }
 };
 
-class VertexWithInExpr : public ExprBase {
+class VertexWithInSetExpr : public ExprBase {
  public:
-  VertexWithInExpr(const ReadTransaction& txn, const Context& ctx,
-                   std::unique_ptr<ExprBase>&& key,
-                   std::unique_ptr<ExprBase>&& val_list)
+  VertexWithInSetExpr(const ReadTransaction& txn, const Context& ctx,
+                      std::unique_ptr<ExprBase>&& key,
+                      std::unique_ptr<ExprBase>&& val_set)
+      : key_(std::move(key)), val_set_(std::move(val_set)) {
+    CHECK(key_->type() == RTAnyType::kVertex);
+    CHECK(val_set_->type() == RTAnyType::kSet);
+  }
+  RTAny eval_path(size_t idx) const override {
+    auto key = key_->eval_path(idx).as_vertex();
+    auto set = val_set_->eval_path(idx).as_set();
+    CHECK(set.impl_ != nullptr);
+    auto ptr = dynamic_cast<SetImpl<std::pair<label_t, vid_t>>*>(set.impl_);
+    CHECK(ptr != nullptr);
+    return RTAny::from_bool(
+        dynamic_cast<SetImpl<std::pair<label_t, vid_t>>*>(set.impl_)->exists(
+            key));
+  }
+
+  RTAny eval_vertex(label_t label, vid_t v, size_t idx) const override {
+    auto key = key_->eval_vertex(label, v, idx).as_vertex();
+    auto set = val_set_->eval_vertex(label, v, idx).as_set();
+    return RTAny::from_bool(
+        dynamic_cast<SetImpl<std::pair<label_t, vid_t>>*>(set.impl_)->exists(
+            key));
+  }
+
+  RTAny eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
+                  const Any& data, size_t idx) const override {
+    auto key = key_->eval_edge(label, src, dst, data, idx).as_vertex();
+    auto set = val_set_->eval_edge(label, src, dst, data, idx).as_set();
+    return RTAny::from_bool(
+        dynamic_cast<SetImpl<std::pair<label_t, vid_t>>*>(set.impl_)->exists(
+            key));
+  }
+
+  RTAnyType type() const override { return RTAnyType::kBoolValue; }
+
+  bool is_optional() const override { return key_->is_optional(); }
+
+ private:
+  std::unique_ptr<ExprBase> key_;
+  std::unique_ptr<ExprBase> val_set_;
+};
+class VertexWithInListExpr : public ExprBase {
+ public:
+  VertexWithInListExpr(const ReadTransaction& txn, const Context& ctx,
+                       std::unique_ptr<ExprBase>&& key,
+                       std::unique_ptr<ExprBase>&& val_list)
       : key_(std::move(key)), val_list_(std::move(val_list)) {
     CHECK(key_->type() == RTAnyType::kVertex);
     CHECK(val_list_->type() == RTAnyType::kList);

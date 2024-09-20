@@ -109,8 +109,6 @@ class SLVertexColumn : public IVertexColumn {
     return std::dynamic_pointer_cast<IOptionalContextColumnBuilder>(ptr);
   }
 
-  std::shared_ptr<IContextColumn> dup() const override;
-
   std::pair<label_t, vid_t> get_vertex(size_t idx) const override {
     return std::make_pair(label_, vertices_[idx]);
   }
@@ -194,8 +192,6 @@ class OptionalSLVertexColumn : public IVertexColumn {
       const std::vector<size_t>& offsets) const override;
   std::shared_ptr<IContextColumn> optional_shuffle(
       const std::vector<size_t>& offset) const override;
-
-  std::shared_ptr<IContextColumn> dup() const override;
 
   std::pair<label_t, vid_t> get_vertex(size_t idx) const override {
     return {label_, vertices_[idx]};
@@ -285,8 +281,6 @@ class MSVertexColumn : public IVertexColumn {
   VertexColumnType vertex_column_type() const override {
     return VertexColumnType::kMultiSegment;
   }
-
-  std::shared_ptr<IContextColumn> dup() const override;
 
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
@@ -424,8 +418,6 @@ class MLVertexColumn : public IVertexColumn {
   VertexColumnType vertex_column_type() const override {
     return VertexColumnType::kMultiple;
   }
-
-  std::shared_ptr<IContextColumn> dup() const override;
 
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;

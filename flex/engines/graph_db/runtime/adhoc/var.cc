@@ -149,7 +149,7 @@ Var::Var(const ReadTransaction& txn, const Context& ctx,
           LOG(FATAL) << "xxx, " << pt.item_case();
         }
       } else {
-        LOG(FATAL) << "not support";
+        getter_ = std::make_shared<VertexIdVertexAccessor<int64_t>>(txn);
       }
     } else if (var_type == VarType::kEdgeVar) {
       if (pb.has_property()) {

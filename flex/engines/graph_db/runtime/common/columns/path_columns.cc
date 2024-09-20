@@ -17,14 +17,6 @@
 
 namespace gs {
 namespace runtime {
-std::shared_ptr<IContextColumn> GeneralPathColumn::dup() const {
-  GeneralPathColumnBuilder builder;
-  for (const auto& path : data_) {
-    builder.push_back_opt(path);
-  }
-  builder.set_path_impls(path_impls_);
-  return builder.finish();
-}
 
 std::shared_ptr<IContextColumn> GeneralPathColumn::shuffle(
     const std::vector<size_t>& offsets) const {
@@ -56,19 +48,6 @@ std::shared_ptr<IContextColumnBuilder> GeneralPathColumn::builder() const {
   auto builder = std::make_shared<GeneralPathColumnBuilder>();
   builder->set_path_impls(path_impls_);
   return std::dynamic_pointer_cast<IContextColumnBuilder>(builder);
-}
-
-std::shared_ptr<IContextColumn> OptionalGeneralPathColumn::dup() const {
-  OptionalGeneralPathColumnBuilder builder;
-  for (size_t i = 0; i < valids_.size(); ++i) {
-    if (valids_[i]) {
-      builder.push_back_opt(data_[i], true);
-    } else {
-      builder.push_back_null();
-    }
-  }
-  builder.set_path_impls(path_impls_);
-  return builder.finish();
 }
 
 std::shared_ptr<IContextColumn> OptionalGeneralPathColumn::shuffle(

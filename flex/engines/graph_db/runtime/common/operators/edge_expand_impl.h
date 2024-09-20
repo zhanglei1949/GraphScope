@@ -77,7 +77,7 @@ expand_vertex_on_graph_view_optional(const GraphView<EDATA_T>& view,
                                      label_t nbr_label, label_t e_label,
                                      Direction dir, const PRED_T& pred) {
   label_t input_label = *input.get_labels_set().begin();
-  LOG(INFO) << "before expand size: " << input.size();
+  // LOG(INFO) << "before expand size: " << input.size();
   OptionalSLVertexColumnBuilder builder(nbr_label);
   std::vector<size_t> offsets;
   if (input.is_optional()) {
@@ -122,7 +122,7 @@ expand_vertex_on_graph_view_optional(const GraphView<EDATA_T>& view,
     });
   }
 
-  LOG(INFO) << "after expand size: " << offsets.size();
+  //  LOG(INFO) << "after expand size: " << offsets.size();
 
   return std::make_pair(builder.finish(), std::move(offsets));
 }

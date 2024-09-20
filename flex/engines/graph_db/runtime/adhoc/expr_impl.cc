@@ -586,9 +586,15 @@ static std::unique_ptr<ExprBase> build_expr(
           if (key->type() == RTAnyType::kVertex) {
             auto val =
                 std::make_unique<VariableExpr>(txn, ctx, rhs.var(), var_type);
-
-            return std::make_unique<VertexWithInExpr>(txn, ctx, std::move(key),
-                                                      std::move(val));
+            if (val->type() == RTAnyType::kList) {
+              return std::make_unique<VertexWithInListExpr>(
+                  txn, ctx, std::move(key), std::move(val));
+            } else if (val->type() == RTAnyType::kSet) {
+              return std::make_unique<VertexWithInSetExpr>(
+                  txn, ctx, std::move(key), std::move(val));
+            } else {
+              LOG(FATAL) << "not support";
+            }
           }
 
         } else {

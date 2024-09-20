@@ -376,6 +376,25 @@ std::shared_ptr<IContextColumn> string_to_set(
   return builder.finish();
 }
 
+std::shared_ptr<IContextColumn> vertex_to_set(
+    const Var& var, const std::vector<std::vector<size_t>>& to_aggregate) {
+  size_t col_size = to_aggregate.size();
+  SetValueColumnBuilder<std::pair<label_t, vid_t>> builder(col_size);
+  builder.reserve(col_size);
+
+  for (size_t k = 0; k < col_size; ++k) {
+    auto& vec = to_aggregate[k];
+    auto set = builder.allocate_set();
+    auto set_impl =
+        dynamic_cast<SetImpl<std::pair<label_t, vid_t>>*>(set.impl_);
+    for (auto idx : vec) {
+      set_impl->insert(var.get(idx));
+    }
+    builder.push_back_opt(set);
+  }
+  return builder.finish();
+}
+
 std::shared_ptr<IContextColumn> tuple_to_list(
     const Var& var, const std::vector<std::vector<size_t>>& to_aggregate) {
   ListValueColumnBuilder<Tuple> builder;
@@ -488,7 +507,7 @@ std::shared_ptr<IContextColumn> apply_reduce(
     if (var.type() == RTAnyType::kStringValue) {
       return string_to_set(var, to_aggregate);
     } else if (var.type() == RTAnyType::kVertex) {
-      // return vertex_to_set(var, to_aggregate);
+      return vertex_to_set(var, to_aggregate);
     } else {
       LOG(FATAL) << "not support" << (int) var.type().type_enum_;
     }

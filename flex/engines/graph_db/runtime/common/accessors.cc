@@ -49,6 +49,8 @@ std::shared_ptr<IAccessor> create_context_value_accessor(const Context& ctx,
     return std::make_shared<ContextValueAccessor<Relation>>(ctx, tag);
   case RTAnyType::RTAnyTypeImpl::kF64Value:
     return std::make_shared<ContextValueAccessor<double>>(ctx, tag);
+  case RTAnyType::RTAnyTypeImpl::kSet:
+    return std::make_shared<ContextValueAccessor<Set>>(ctx, tag);
   default:
     LOG(FATAL) << "not implemented - " << static_cast<int>(type.type_enum_);
   }

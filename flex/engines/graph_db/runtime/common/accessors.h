@@ -444,6 +444,13 @@ class VertexIdVertexAccessor : public IAccessor {
     return RTAny(Any(typed_eval_vertex(label, v, idx)));
   }
 
+  RTAny eval_vertex(label_t label, vid_t v, size_t idx, int) const override {
+    if (v == std::numeric_limits<vid_t>::max()) {
+      return RTAny(RTAnyType::kNull);
+    }
+    return RTAny(typed_eval_vertex(label, v, idx));
+  }
+
  private:
   const ReadTransaction& txn_;
 };

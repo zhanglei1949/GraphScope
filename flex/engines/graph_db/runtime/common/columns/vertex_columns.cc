@@ -127,14 +127,6 @@ std::shared_ptr<IContextColumn> SLVertexColumn::union_col(
   return nullptr;
 }
 
-std::shared_ptr<IContextColumn> SLVertexColumn::dup() const {
-  SLVertexColumnBuilder builder(label_);
-  for (auto v : vertices_) {
-    builder.push_back_opt(v);
-  }
-  return builder.finish();
-}
-
 std::shared_ptr<IContextColumn> SLVertexColumnBuilder::finish() {
   auto ret = std::make_shared<SLVertexColumn>(label_);
   ret->vertices_.swap(vertices_);
@@ -147,16 +139,6 @@ std::shared_ptr<IContextColumn> MSVertexColumn::shuffle(
   builder.reserve(offsets.size());
   for (auto offset : offsets) {
     builder.push_back_vertex(get_vertex(offset));
-  }
-  return builder.finish();
-}
-
-std::shared_ptr<IContextColumn> MSVertexColumn::dup() const {
-  MSVertexColumnBuilder builder;
-  for (auto& pair : vertices_) {
-    for (auto v : pair.second) {
-      builder.push_back_vertex(std::make_pair(pair.first, v));
-    }
   }
   return builder.finish();
 }
@@ -211,14 +193,6 @@ void MLVertexColumn::generate_dedup_offset(std::vector<size_t>& offsets) const {
   }
 }
 
-std::shared_ptr<IContextColumn> MLVertexColumn::dup() const {
-  MLVertexColumnBuilder builder(labels_);
-  for (auto& pair : vertices_) {
-    builder.push_back_vertex(pair);
-  }
-  return builder.finish();
-}
-
 std::shared_ptr<IContextColumn> MLVertexColumnBuilder::finish() {
   auto ret = std::make_shared<MLVertexColumn>();
   ret->vertices_.swap(vertices_);
@@ -257,14 +231,6 @@ void OptionalSLVertexColumn::generate_dedup_offset(
   if (flag) {
     offsets.push_back(idx);
   }
-}
-
-std::shared_ptr<IContextColumn> OptionalSLVertexColumn::dup() const {
-  OptionalSLVertexColumnBuilder builder(label_);
-  for (auto v : vertices_) {
-    builder.push_back_opt(v);
-  }
-  return builder.finish();
 }
 
 std::shared_ptr<IContextColumn> OptionalSLVertexColumn::shuffle(

@@ -69,7 +69,6 @@ class ValueColumn : public IValueColumn<T> {
     return std::dynamic_pointer_cast<IOptionalContextColumnBuilder>(
         std::make_shared<OptionalValueColumnBuilder<T>>());
   }
-  std::shared_ptr<IContextColumn> dup() const override;
 
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
@@ -153,7 +152,6 @@ class ValueColumn<std::string_view> : public IValueColumn<std::string_view> {
   RTAnyType elem_type() const override { return RTAnyType::kStringValue; }
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
-  std::shared_ptr<IContextColumn> dup() const override;
 
   RTAny get_elem(size_t idx) const override {
     return RTAny::from_string(data_[idx]);
@@ -244,7 +242,6 @@ class ListValueColumn : public ListValueColumnBase {
     return builder;
   }
 
-  std::shared_ptr<IContextColumn> dup() const override;
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
   RTAnyType elem_type() const override {
@@ -376,14 +373,128 @@ class ListValueColumnBuilder : public ListValueColumnBuilderBase {
   std::vector<std::shared_ptr<ListImplBase>> list_impls_;
   std::vector<std::shared_ptr<T>> list_data_;
 };
+
 template <typename T>
-std::shared_ptr<IContextColumn> ListValueColumn<T>::dup() const {
-  ListValueColumnBuilder<T> builder;
-  for (const auto& list : data_) {
-    builder.push_back_opt(list);
+class SetValueColumnBuilder;
+template <typename T>
+class SetValueColumn : public IValueColumn<Set> {
+ public:
+  SetValueColumn() = default;
+  ~SetValueColumn() = default;
+
+  size_t size() const override { return data_.size(); }
+
+  std::string column_info() const override {
+    return "SetValueColumn[" + std::to_string(size()) + "]";
   }
-  builder.set_list_data(list_data_);
-  builder.set_list_impls(list_impls_);
+  ContextColumnType column_type() const override {
+    return ContextColumnType::kValue;
+  }
+
+  std::shared_ptr<IContextColumnBuilder> builder() const override {
+    auto ptr = std::make_shared<SetValueColumnBuilder<T>>();
+    ptr->set_impl(impl_);
+    return ptr;
+  }
+
+  std::shared_ptr<IContextColumn> shuffle(
+      const std::vector<size_t>& offsets) const override;
+
+  RTAnyType elem_type() const override {
+    auto type = RTAnyType::kSet;
+    return type;
+  }
+  RTAny get_elem(size_t idx) const override {
+    return RTAny::from_set(data_[idx]);
+  }
+
+  Set get_value(size_t idx) const override { return data_[idx]; }
+
+  ISigColumn* generate_signature() const override {
+    LOG(FATAL) << "not implemented for " << this->column_info();
+    return nullptr;
+  }
+
+  void generate_dedup_offset(std::vector<size_t>& offsets) const override {
+    std::vector<size_t> origin_offsets(data_.size());
+    for (size_t i = 0; i < data_.size(); ++i) {
+      origin_offsets[i] = i;
+    }
+    std::sort(origin_offsets.begin(), origin_offsets.end(),
+              [this](size_t a, size_t b) {
+                // data_[a] == data_[b]
+                if (!(data_[a] < data_[b]) && !(data_[b] < data_[a])) {
+                  return a < b;
+                }
+                return data_[a] < data_[b];
+              });
+    for (size_t i = 0; i < data_.size(); ++i) {
+      if (i == 0 ||
+          ((data_[origin_offsets[i]] < data_[origin_offsets[i - 1]]) ||
+           (data_[origin_offsets[i - 1]] < data_[origin_offsets[i]]))) {
+        offsets.push_back(origin_offsets[i]);
+      }
+    }
+  }
+
+ private:
+  friend class SetValueColumnBuilder<T>;
+  std::vector<Set> data_;
+  std::shared_ptr<std::vector<SetImpl<T>>> impl_;
+};
+
+template <typename T>
+class SetValueColumnBuilder : public IContextColumnBuilder {
+ public:
+  SetValueColumnBuilder()
+      : impl_(std::make_shared<std::vector<SetImpl<T>>>()) {}
+
+  SetValueColumnBuilder(size_t size)
+      : impl_(std::make_shared<std::vector<SetImpl<T>>>()) {
+    (*impl_).reserve(size);
+  }
+  ~SetValueColumnBuilder() = default;
+
+  Set allocate_set() {
+    impl_->emplace_back();
+    return Set(&impl_->back());
+  }
+
+  void reserve(size_t size) override { data_.reserve(size); }
+
+  void push_back_elem(const RTAny& val) override {
+    CHECK(val.type() == RTAnyType::kSet);
+    data_.push_back(val.as_set());
+  }
+
+  void push_back_opt(const Set& val) { data_.push_back(val); }
+
+  std::shared_ptr<IContextColumn> finish() override {
+    auto ret = std::make_shared<SetValueColumn<T>>();
+    ret->data_.swap(data_);
+    ret->impl_ = impl_;
+    return ret;
+  }
+
+  void set_impl(const std::shared_ptr<std::vector<SetImpl<T>>>& impl) {
+    impl_ = impl;
+  }
+
+ private:
+  friend class SetValueColumn<T>;
+  std::vector<Set> data_;
+  std::shared_ptr<std::vector<SetImpl<T>>> impl_;
+};
+
+template <typename T>
+std::shared_ptr<IContextColumn> SetValueColumn<T>::shuffle(
+    const std::vector<size_t>& offsets) const {
+  SetValueColumnBuilder<T> builder;
+  builder.set_impl(impl_);
+  builder.reserve(offsets.size());
+  for (auto offset : offsets) {
+    builder.push_back_opt(data_[offset]);
+  }
   return builder.finish();
 }
 
@@ -418,8 +529,6 @@ class MapValueColumn : public IValueColumn<Map> {
   }
 
   std::shared_ptr<IContextColumnBuilder> builder() const override;
-
-  std::shared_ptr<IContextColumn> dup() const override;
 
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
@@ -507,14 +616,6 @@ class OptionalValueColumn : public IValueColumn<T> {
   }
   ContextColumnType column_type() const override {
     return ContextColumnType::kOptionalValue;
-  }
-
-  std::shared_ptr<IContextColumn> dup() const override {
-    OptionalValueColumnBuilder<T> builder;
-    for (size_t i = 0; i < data_.size(); ++i) {
-      builder.push_back_opt(data_[i], valid_[i]);
-    }
-    return builder.finish();
   }
 
   std::shared_ptr<IContextColumn> shuffle(
@@ -605,8 +706,6 @@ class OptionalValueColumn<std::string_view>
     return std::dynamic_pointer_cast<IContextColumnBuilder>(
         std::make_shared<OptionalValueColumnBuilder<std::string_view>>());
   }
-
-  std::shared_ptr<IContextColumn> dup() const override;
 
   std::shared_ptr<IContextColumn> shuffle(
       const std::vector<size_t>& offsets) const override;
@@ -778,15 +877,6 @@ std::shared_ptr<IContextColumn> ValueColumn<T>::optional_shuffle(
     } else {
       builder.push_back_opt(data_[offset], true);
     }
-  }
-  return builder.finish();
-}
-
-template <typename T>
-std::shared_ptr<IContextColumn> ValueColumn<T>::dup() const {
-  ValueColumnBuilder<T> builder;
-  for (auto v : data_) {
-    builder.push_back_opt(v);
   }
   return builder.finish();
 }

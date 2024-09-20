@@ -50,6 +50,7 @@ const RTAnyType RTAnyType::kList = RTAnyType(RTAnyType::RTAnyTypeImpl::kList);
 const RTAnyType RTAnyType::kMap = RTAnyType(RTAnyType::RTAnyTypeImpl::kMap);
 const RTAnyType RTAnyType::kRelation =
     RTAnyType(RTAnyType::RTAnyTypeImpl::kRelation);
+const RTAnyType RTAnyType::kSet = RTAnyType(RTAnyType::RTAnyTypeImpl::kSet);
 RTAny List::get(size_t idx) const { return impl_->get(idx); }
 RTAnyType parse_from_ir_data_type(const ::common::IrDataType& dt) {
   switch (dt.type_case()) {
@@ -316,6 +317,13 @@ RTAny RTAny::from_map(const Map& m) {
   return ret;
 }
 
+RTAny RTAny::from_set(const Set& s) {
+  RTAny ret;
+  ret.type_ = RTAnyType::kSet;
+  ret.value_.set = s;
+  return ret;
+}
+
 RTAny RTAny::from_relation(const Relation& r) {
   RTAny ret;
   ret.type_ = RTAnyType::kRelation;
@@ -367,6 +375,12 @@ const std::set<std::string>& RTAny::as_string_set() const {
   CHECK(type_ == RTAnyType::kStringSetValue);
   return *value_.str_set;
 }
+
+Set RTAny::as_set() const {
+  CHECK(type_ == RTAnyType::kSet);
+  return value_.set;
+}
+
 std::string_view RTAny::as_string() const {
   if (type_ == RTAnyType::kStringValue) {
     return value_.str_val;
