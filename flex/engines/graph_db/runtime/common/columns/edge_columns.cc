@@ -137,6 +137,7 @@ std::shared_ptr<IContextColumn> BDSLEdgeColumn::optional_shuffle(
 
 std::shared_ptr<IContextColumn> BDSLEdgeColumnBuilder::finish() {
   auto ret = std::make_shared<BDSLEdgeColumn>(label_, prop_type_);
+  prop_col_->resize(edges_.size());
   ret->edges_.swap(edges_);
   ret->prop_col_ = prop_col_;
   return ret;

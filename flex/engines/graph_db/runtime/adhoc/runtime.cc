@@ -418,7 +418,7 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
         int tag = -1;
         int alias = -1;
         if (try_reuse_left_plan_column(op, tag, alias)) {
-          LOG(INFO) << "reuse left plan column";
+          //          LOG(INFO) << "reuse left plan column";
           auto ctx =
               runtime_eval_impl(op.left_plan(), std::move(ret), txn, params,
                                 op_id_offset + 100, op_name + "-left");

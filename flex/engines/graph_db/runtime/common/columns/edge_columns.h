@@ -441,7 +441,7 @@ class OptionalBDSLEdgeColumn : public IEdgeColumn {
   }
 
   std::vector<LabelTriplet> get_labels() const override {
-    LOG(INFO) << "get_labels: " << label_.to_string() << std::endl;
+    //    LOG(INFO) << "get_labels: " << label_.to_string() << std::endl;
     return {label_};
   }
 
@@ -751,7 +751,9 @@ class BDSLEdgeColumnBuilder : public IContextColumnBuilder {
   void push_back_opt(vid_t src, vid_t dst, const Any& data, Direction dir) {
     edges_.emplace_back(src, dst, dir == Direction::kOut);
     size_t len = edges_.size();
-    prop_col_->resize(len);
+    if (len >= prop_col_->size()) {
+      prop_col_->resize(len * 2);
+    }
     prop_col_->set_any(len - 1, data);
   }
   void push_back_endpoints(vid_t src, vid_t dst, Direction dir) {

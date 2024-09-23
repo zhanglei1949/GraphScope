@@ -43,6 +43,191 @@ bool exchange_tag_alias(const physical::Project_ExprAlias& m, int& tag,
   return false;
 }
 
+bool is_extract_property(const common::Expression& expr, int& tag,
+                         std::string& name) {
+  if (expr.operators_size() == 1 &&
+      expr.operators(0).item_case() == common::ExprOpr::kVar) {
+    auto var = expr.operators(0).var();
+    if (var.has_tag() && var.has_property()) {
+      tag = var.tag().id();
+      name = var.property().key().name();
+      if (name == "id" || name == "label") {
+        return false;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+bool is_check_property_in_range(const common::Expression& expr,
+                                const std::map<std::string, std::string>& param,
+                                int& tag, std::string& name, std::string& lower,
+                                std::string& upper, common::Value& then_value,
+                                common::Value& else_value) {
+  if (expr.operators_size() == 1 &&
+      expr.operators(0).item_case() == common::ExprOpr::kCase) {
+    auto opr = expr.operators(0).case_();
+    if (opr.when_then_expressions_size() != 1) {
+      return false;
+    }
+    auto when = opr.when_then_expressions().at(0).when_expression();
+    if (when.operators_size() != 7) {
+      return false;
+    }
+    {
+      if (!when.operators(0).has_var()) {
+        return false;
+      }
+      auto var = when.operators(0).var();
+      if (!var.has_tag()) {
+        return false;
+      }
+      tag = var.tag().id();
+      if (!var.has_property()) {
+        return false;
+      }
+      if (!var.property().has_key()) {
+        return false;
+      }
+      name = var.property().key().name();
+    }
+    {
+      auto op = when.operators(1);
+      if (op.item_case() != common::ExprOpr::kLogical ||
+          op.logical() != common::GE) {
+        return false;
+      }
+    }
+    auto lower_param = when.operators(2);
+    if (lower_param.item_case() != common::ExprOpr::kParam) {
+      return false;
+    }
+    lower = param.at(lower_param.param().name());
+    {
+      auto op = when.operators(3);
+      if (op.item_case() != common::ExprOpr::kLogical ||
+          op.logical() != common::AND) {
+        return false;
+      }
+    }
+    {
+      if (!when.operators(4).has_var()) {
+        return false;
+      }
+      auto var = when.operators(4).var();
+      if (!var.has_tag()) {
+        return false;
+      }
+      if (var.tag().id() != tag) {
+        return false;
+      }
+      if (!var.has_property()) {
+        return false;
+      }
+      if (!var.property().has_key() && name != var.property().key().name()) {
+        return false;
+      }
+    }
+
+    auto op = when.operators(5);
+    if (op.item_case() != common::ExprOpr::kLogical ||
+        op.logical() != common::LT) {
+      return false;
+    }
+    auto upper_param = when.operators(6);
+    if (upper_param.item_case() != common::ExprOpr::kParam) {
+      return false;
+    }
+    upper = param.at(upper_param.param().name());
+    auto then = opr.when_then_expressions().at(0).then_result_expression();
+    if (then.operators_size() != 1) {
+      return false;
+    }
+    if (!then.operators(0).has_const_()) {
+      return false;
+    }
+    then_value = then.operators(0).const_();
+    auto else_expr = opr.else_result_expression();
+    if (else_expr.operators_size() != 1) {
+      return false;
+    }
+    if (!else_expr.operators(0).has_const_()) {
+      return false;
+    }
+    else_value = else_expr.operators(0).const_();
+
+    return true;
+  }
+  return false;
+}
+
+bool is_check_property_lt(const common::Expression& expr,
+                          const std::map<std::string, std::string>& param,
+                          int& tag, std::string& name, std::string& upper,
+                          common::Value& then_value,
+                          common::Value& else_value) {
+  if (expr.operators_size() == 1 &&
+      expr.operators(0).item_case() == common::ExprOpr::kCase) {
+    auto opr = expr.operators(0).case_();
+    if (opr.when_then_expressions_size() != 1) {
+      return false;
+    }
+    auto when = opr.when_then_expressions().at(0).when_expression();
+    if (when.operators_size() != 3) {
+      return false;
+    }
+    {
+      if (!when.operators(0).has_var()) {
+        return false;
+      }
+      auto var = when.operators(0).var();
+      if (!var.has_tag()) {
+        return false;
+      }
+      tag = var.tag().id();
+      if (!var.has_property()) {
+        return false;
+      }
+      if (!var.property().has_key()) {
+        return false;
+      }
+      name = var.property().key().name();
+    }
+    {
+      auto op = when.operators(1);
+      if (op.item_case() != common::ExprOpr::kLogical ||
+          op.logical() != common::LT) {
+        return false;
+      }
+    }
+    auto upper_param = when.operators(2);
+    if (upper_param.item_case() != common::ExprOpr::kParam) {
+      return false;
+    }
+    upper = param.at(upper_param.param().name());
+    auto then = opr.when_then_expressions().at(0).then_result_expression();
+    if (then.operators_size() != 1) {
+      return false;
+    }
+    if (!then.operators(0).has_const_()) {
+      return false;
+    }
+    then_value = then.operators(0).const_();
+    auto else_expr = opr.else_result_expression();
+    if (else_expr.operators_size() != 1) {
+      return false;
+    }
+    if (!else_expr.operators(0).has_const_()) {
+      return false;
+    }
+    else_value = else_expr.operators(0).const_();
+
+    return true;
+  }
+  return false;
+}
+
 Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
                      Context&& ctx,
                      const std::map<std::string, std::string>& params,
@@ -66,6 +251,256 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
           continue;
         }
       }
+
+      // has no effect here
+      /**
+      {
+        int tag;
+        std::string name;
+        bool flag = false;
+        if (is_extract_property(m.expr(), tag, name)) {
+          if (ctx.get(tag)->column_type() == ContextColumnType::kVertex) {
+            auto vertex_col =
+                std::dynamic_pointer_cast<IVertexColumn>(ctx.get(tag));
+
+            if (vertex_col->get_labels_set().size() == 1) {
+              CHECK(!vertex_col->is_optional());
+              auto label = *vertex_col->get_labels_set().begin();
+              if (data_types[i].type_case() == common::IrDataType::kDataType) {
+                switch (data_types[i].data_type()) {
+                case common::DataType::STRING: {
+                  auto col = txn.get_vertex_property_column(label, name);
+                  if (col == nullptr) {
+                    OptionalValueColumnBuilder<std::string_view> builder;
+                    builder.reserve(row_num);
+                    for (size_t k = 0; k < row_num; ++k) {
+                      builder.push_back_null();
+                    }
+                    ret.set(m.alias().value(), builder.finish());
+                    alias_ids.push_back(m.alias().value());
+                    flag = true;
+                    break;
+                  }
+                  ValueColumnBuilder<std::string_view> builder;
+                  builder.reserve(row_num);
+                  if (col->type() == PropertyType::kStringView) {
+                    auto typed_col =
+                        std::dynamic_pointer_cast<StringColumn>(col);
+                    for (size_t k = 0; k < row_num; ++k) {
+                      auto vertex = vertex_col->get_vertex(k);
+                      //                      LOG(INFO) << vertex.second;
+                      auto prop = typed_col->get_view(vertex.second);
+                      builder.push_back_opt(prop);
+                    }
+                    ret.set(m.alias().value(), builder.finish());
+                    alias_ids.push_back(m.alias().value());
+                    flag = true;
+                  }
+                } break;
+
+                case common::DataType::INT32: {
+                  ValueColumnBuilder<int32_t> builder;
+                  builder.reserve(row_num);
+                  auto col = txn.get_vertex_property_column(label, name);
+                  if (col->type() == PropertyType::kInt32) {
+                    auto typed_col = std::dynamic_pointer_cast<IntColumn>(col);
+                    for (size_t k = 0; k < row_num; ++k) {
+                      auto vertex = vertex_col->get_vertex(k);
+                      auto prop = typed_col->get_view(vertex.second);
+                      builder.push_back_opt(prop);
+                    }
+                    ret.set(m.alias().value(), builder.finish());
+                    alias_ids.push_back(m.alias().value());
+                    flag = true;
+                  }
+                } break;
+
+                case common::DataType::INT64: {
+                  ValueColumnBuilder<int64_t> builder;
+                  builder.reserve(row_num);
+                  // LOG(INFO) << (int) label << " " << name;
+                  auto col = txn.get_vertex_property_column(label, name);
+                  if (col->type() == PropertyType::kInt64) {
+                    auto typed_col = std::dynamic_pointer_cast<LongColumn>(col);
+                    for (size_t k = 0; k < row_num; ++k) {
+                      auto vertex = vertex_col->get_vertex(k);
+                      auto prop = typed_col->get_view(vertex.second);
+                      builder.push_back_opt(prop);
+                    }
+                    ret.set(m.alias().value(), builder.finish());
+                    alias_ids.push_back(m.alias().value());
+                    flag = true;
+                  } else if (col->type() == PropertyType::kDate) {
+                    auto typed_col =
+                        std::dynamic_pointer_cast<TypedColumn<Date>>(col);
+                    for (size_t k = 0; k < row_num; ++k) {
+                      auto vertex = vertex_col->get_vertex(k);
+                      auto prop =
+                          typed_col->get_view(vertex.second).milli_second;
+                      builder.push_back_opt(prop);
+                    }
+                    ret.set(m.alias().value(), builder.finish());
+                    alias_ids.push_back(m.alias().value());
+                    flag = true;
+                  }
+                } break;
+
+                case common::DataType::DOUBLE: {
+                  ValueColumnBuilder<double> builder;
+                  builder.reserve(row_num);
+                  auto col = txn.get_vertex_property_column(label, name);
+                  if (col->type() == PropertyType::kDouble) {
+                    auto typed_col =
+                        std::dynamic_pointer_cast<DoubleColumn>(col);
+                    for (size_t k = 0; k < row_num; ++k) {
+                      auto vertex = vertex_col->get_vertex(k);
+                      auto prop = typed_col->get_view(vertex.second);
+                      builder.push_back_opt(prop);
+                    }
+                    ret.set(m.alias().value(), builder.finish());
+                    alias_ids.push_back(m.alias().value());
+                    flag = true;
+                  }
+                } break;
+                case common::DataType::TIMESTAMP: {
+                  ValueColumnBuilder<int64_t> builder;
+                  builder.reserve(row_num);
+                  auto col = txn.get_vertex_property_column(label, name);
+                  //                  LOG(INFO) << (int) col->type().type_enum;
+                  if (col->type() == PropertyType::kDate) {
+                    auto typed_col =
+                        std::dynamic_pointer_cast<TypedColumn<Date>>(col);
+                    for (size_t k = 0; k < row_num; ++k) {
+                      auto vertex = vertex_col->get_vertex(k);
+                      auto prop =
+                          typed_col->get_view(vertex.second).milli_second;
+                      builder.push_back_opt(prop);
+                    }
+                    ret.set(m.alias().value(), builder.finish());
+                    alias_ids.push_back(m.alias().value());
+                    flag = true;
+                  } else if (col->type() == PropertyType::kDay) {
+                    auto typed_col =
+                        std::dynamic_pointer_cast<TypedColumn<Day>>(col);
+                    for (size_t k = 0; k < row_num; ++k) {
+                      auto vertex = vertex_col->get_vertex(k);
+                      auto prop =
+                          typed_col->get_view(vertex.second).to_timestamp();
+                      builder.push_back_opt(prop);
+                    }
+                    ret.set(m.alias().value(), builder.finish());
+                    alias_ids.push_back(m.alias().value());
+                    flag = true;
+                  }
+                } break;
+
+                default:
+                  LOG(FATAL) << "not support for "
+                             << static_cast<int>(data_types[i].data_type());
+                }
+              }
+            }
+          }
+        }
+        if (flag) {
+          continue;
+        }
+      }*/
+
+      {
+        // value with type int and check property in range
+        int tag;
+        std::string name, lower, upper;
+        common::Value then_value, else_value;
+        if (is_check_property_in_range(m.expr(), params, tag, name, lower,
+                                       upper, then_value, else_value)) {
+          if (ctx.get(tag)->column_type() == ContextColumnType::kVertex) {
+            auto vertex_col =
+                std::dynamic_pointer_cast<IVertexColumn>(ctx.get(tag));
+            if (vertex_col->get_labels_set().size() == 1) {
+              CHECK(!vertex_col->is_optional());
+              auto label = *vertex_col->get_labels_set().begin();
+              if (data_types[i].type_case() == common::IrDataType::kDataType &&
+                  data_types[i].data_type() == common::DataType::INT32) {
+                ValueColumnBuilder<int32_t> builder;
+                builder.reserve(row_num);
+
+                auto col = txn.get_vertex_property_column(label, name);
+                if (col->type() == PropertyType::kDate) {
+                  auto typed_col =
+                      std::dynamic_pointer_cast<TypedColumn<Date>>(col);
+
+                  auto lower_value = std::stoll(lower);
+                  auto upper_value = std::stoll(upper);
+
+                  int then_int = then_value.i32();
+                  int else_int = else_value.i32();
+
+                  for (size_t k = 0; k < row_num; ++k) {
+                    auto vertex = vertex_col->get_vertex(k);
+                    auto prop = typed_col->get_view(vertex.second).milli_second;
+                    if (prop >= lower_value && prop < upper_value) {
+                      builder.push_back_opt(then_int);
+                    } else {
+                      builder.push_back_opt(else_int);
+                    }
+                  }
+
+                  ret.set(m.alias().value(), builder.finish());
+                  alias_ids.push_back(m.alias().value());
+                  continue;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      {
+        int tag;
+        std::string name, upper;
+        common::Value then_value, else_value;
+
+        if (is_check_property_lt(m.expr(), params, tag, name, upper, then_value,
+                                 else_value)) {
+          if (ctx.get(tag)->column_type() == ContextColumnType::kVertex) {
+            auto vertex_col =
+                std::dynamic_pointer_cast<IVertexColumn>(ctx.get(tag));
+            if (vertex_col->get_labels_set().size() == 1) {
+              CHECK(!vertex_col->is_optional());
+              auto label = *vertex_col->get_labels_set().begin();
+              if (data_types[i].type_case() == common::IrDataType::kDataType &&
+                  data_types[i].data_type() == common::DataType::INT32) {
+                ValueColumnBuilder<int32_t> builder;
+                builder.reserve(row_num);
+
+                auto col = txn.get_vertex_property_column(label, name);
+                if (col->type() == PropertyType::kDate) {
+                  auto typed_col =
+                      std::dynamic_pointer_cast<TypedColumn<Date>>(col);
+                  auto upper_value = std::stoll(upper);
+
+                  int then_int = then_value.i32();
+                  int else_int = else_value.i32();
+                  for (size_t k = 0; k < row_num; ++k) {
+                    auto vertex = vertex_col->get_vertex(k);
+                    auto prop = typed_col->get_view(vertex.second).milli_second;
+                    if (prop < upper_value) {
+                      builder.push_back_opt(then_int);
+                    } else {
+                      builder.push_back_opt(else_int);
+                    }
+                  }
+
+                  ret.set(m.alias().value(), builder.finish());
+                  alias_ids.push_back(m.alias().value());
+                  continue;
+                }
+              }
+            }
+          }
+        }
+      }
       Expr expr(txn, ctx, params, m.expr(), VarType::kPathVar);
       int alias = -1;
       if (m.has_alias()) {
@@ -75,7 +510,7 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
       // compiler bug here, data_types[i] is none
       if (data_types[i].type_case() == common::IrDataType::kDataType &&
           data_types[i].data_type() == common::DataType::NONE) {
-        LOG(INFO) << "data type is none";
+        //        LOG(INFO) << "data type is none";
         if (expr.type() == RTAnyType::kF64Value) {
           common::IrDataType data_type;
           data_type.set_data_type(common::DataType::DOUBLE);

@@ -845,6 +845,8 @@ class ValueColumnBuilder<std::string_view> : public IContextColumnBuilder {
 
   void push_back_opt(const std::string& val) { data_.push_back(val); }
 
+  void push_back_opt(const std::string_view& val) { data_.emplace_back(val); }
+
   std::shared_ptr<IContextColumn> finish() override {
     auto ret = std::make_shared<ValueColumn<std::string_view>>();
     ret->data_.swap(data_);
