@@ -16,6 +16,8 @@
 
 package com.alibaba.graphscope.common.ir.planner.rules;
 
+import com.alibaba.graphscope.common.ir.meta.schema.CommonOptTable;
+import com.alibaba.graphscope.common.ir.rel.CommonTableScan;
 import com.alibaba.graphscope.common.ir.rel.GraphShuttle;
 import com.alibaba.graphscope.common.ir.rel.graph.*;
 import com.alibaba.graphscope.common.ir.rel.graph.match.GraphLogicalSingleMatch;
@@ -26,6 +28,7 @@ import com.alibaba.graphscope.common.ir.tools.AliasInference;
 import com.alibaba.graphscope.common.ir.tools.config.GraphOpt;
 import com.alibaba.graphscope.common.ir.type.GraphSchemaType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 
 import org.apache.calcite.plan.GraphOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
@@ -41,18 +44,37 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 public abstract class FlatJoinRule extends GraphShuttle {
     private static final Logger logger = LoggerFactory.getLogger(FlatJoinRule.class);
+
+    protected final Map<String, RelNode> optimizedCommonMap;
 
     protected abstract boolean matches(LogicalJoin join);
 
     protected abstract RelNode perform(LogicalJoin join);
 
+    public FlatJoinRule() {
+        this.optimizedCommonMap = Maps.newHashMap();
+    }
+
     @Override
     public RelNode visit(LogicalJoin join) {
         join = (LogicalJoin) visitChildren(join);
         return matches(join) ? perform(join) : join;
+    }
+
+    @Override
+    public RelNode visit(CommonTableScan tableScan) {
+        CommonOptTable optTable = (CommonOptTable) tableScan.getTable();
+        String tableName = optTable.getQualifiedName().get(0);
+        RelNode optimized = optimizedCommonMap.get(tableName);
+        if (optimized == null) {
+            optimized = optTable.getCommon().accept(this);
+        }
+        return new CommonTableScan(
+                tableScan.getCluster(), tableScan.getTraitSet(), new CommonOptTable(optimized));
     }
 
     static @Nullable RexGraphVariable joinByOneColumn(RexNode condition) {

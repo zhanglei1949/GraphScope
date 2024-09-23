@@ -266,7 +266,7 @@ public class GraphRelOptimizer {
                                 k.withRelBuilderFactory(relBuilderFactory).toRule());
                     });
         }
-        return new HepPlanner(hepBuilder.build());
+        return new GraphHepPlanner(hepBuilder.build());
     }
 
     private RelOptPlanner createMatchPlanner() {
