@@ -23,8 +23,19 @@ namespace gs {
 
 namespace runtime {
 
-using vertex_pair =
-    std::pair<std::pair<label_t, vid_t>, std::pair<label_t, vid_t>>;
+using vertex_pair = std::pair<VertexRecord, VertexRecord>;
+
+struct VertexRecordHash {
+  std::size_t operator()(const VertexRecord& v) const {
+    return std::hash<vid_t>()(v.vid_) ^ std::hash<label_t>()(v.label_);
+  }
+  std::size_t operator()(const vertex_pair& v) const {
+    return std::hash<vid_t>()(v.first.vid_) ^
+           std::hash<label_t>()(v.first.label_) ^
+           std::hash<vid_t>()(v.second.vid_) ^
+           std::hash<label_t>()(v.second.label_);
+  }
+};
 
 static Context default_semi_join(Context&& ctx, Context&& ctx2,
                                  const JoinParams& params) {
@@ -80,9 +91,9 @@ static Context single_vertex_column_inner_join(Context&& ctx, Context&& ctx2,
   size_t right_size = casted_right_col->size();
 
   if (left_size < right_size) {
-// std::map<std::pair<label_t, vid_t>, std::vector<size_t>> left_map;
+// std::map<VertexRecord, std::vector<size_t>> left_map;
 #if 0
-          phmap::flat_hash_map<std::pair<label_t, vid_t>, std::vector<size_t>>
+          phmap::flat_hash_map<VertexRecord, std::vector<size_t>, VertexRecordHash>
               left_map;
           for (size_t r_i = 0; r_i < left_size; ++r_i) {
             left_map[casted_left_col->get_vertex(r_i)].emplace_back(r_i);
@@ -97,8 +108,8 @@ static Context single_vertex_column_inner_join(Context&& ctx, Context&& ctx2,
             }
           }
 #else
-    phmap::flat_hash_set<std::pair<label_t, vid_t>> left_set;
-    phmap::flat_hash_map<std::pair<label_t, vid_t>, std::vector<size_t>>
+    phmap::flat_hash_set<VertexRecord, VertexRecordHash> left_set;
+    phmap::flat_hash_map<VertexRecord, std::vector<size_t>, VertexRecordHash>
         right_map;
     for (size_t r_i = 0; r_i < left_size; ++r_i) {
       left_set.emplace(casted_left_col->get_vertex(r_i));
@@ -120,8 +131,8 @@ static Context single_vertex_column_inner_join(Context&& ctx, Context&& ctx2,
     }
 #endif
   } else {
-    // std::map<std::pair<label_t, vid_t>, std::vector<size_t>> right_map;
-    phmap::flat_hash_map<std::pair<label_t, vid_t>, std::vector<size_t>>
+    // std::map<VertexRecord, std::vector<size_t>> right_map;
+    phmap::flat_hash_map<VertexRecord, std::vector<size_t>, VertexRecordHash>
         right_map;
     for (size_t r_i = 0; r_i < right_size; ++r_i) {
       right_map[casted_right_col->get_vertex(r_i)].emplace_back(r_i);
@@ -211,7 +222,7 @@ static Context single_vertex_column_left_outer_join(Context&& ctx,
 #if 0
   size_t left_size = casted_left_col->size();
   size_t right_size = casted_right_col->size();
-  std::map<std::pair<label_t, vid_t>, std::vector<vid_t>> right_map;
+  std::map<VertexRecord, std::vector<vid_t>> right_map;
   if (left_size > 0) {
     for (size_t r_i = 0; r_i < right_size; ++r_i) {
       right_map[casted_right_col->get_vertex(r_i)].emplace_back(r_i);
@@ -265,9 +276,9 @@ static Context single_vertex_column_left_outer_join(Context&& ctx,
   size_t left_size = casted_left_col->size();
   size_t right_size = casted_right_col->size();
   if (left_size < right_size) {
-    // std::map<std::pair<label_t, vid_t>, std::vector<vid_t>> left_map;
+    // std::map<VertexRecord, std::vector<vid_t>> left_map;
 #if 0
-    phmap::flat_hash_map<std::pair<label_t, vid_t>, std::vector<vid_t>>
+    phmap::flat_hash_map<VertexRecord, std::vector<vid_t>, VertexRecordHash>
         left_map;
     for (size_t r_i = 0; r_i < left_size; ++r_i) {
       left_map[casted_left_col->get_vertex(r_i)].emplace_back(r_i);
@@ -291,8 +302,8 @@ static Context single_vertex_column_left_outer_join(Context&& ctx,
       }
     }
 #else
-    phmap::flat_hash_set<std::pair<label_t, vid_t>> left_set;
-    phmap::flat_hash_map<std::pair<label_t, vid_t>, std::vector<size_t>>
+    phmap::flat_hash_set<VertexRecord, VertexRecordHash> left_set;
+    phmap::flat_hash_map<VertexRecord, std::vector<size_t>, VertexRecordHash>
         right_map;
     for (size_t r_i = 0; r_i < left_size; ++r_i) {
       left_set.emplace(casted_left_col->get_vertex(r_i));
@@ -318,8 +329,8 @@ static Context single_vertex_column_left_outer_join(Context&& ctx,
     }
 #endif
   } else {
-    // std::map<std::pair<label_t, vid_t>, std::vector<vid_t>> right_map;
-    phmap::flat_hash_map<std::pair<label_t, vid_t>, std::vector<vid_t>>
+    // std::map<VertexRecord, std::vector<vid_t>> right_map;
+    phmap::flat_hash_map<VertexRecord, std::vector<vid_t>, VertexRecordHash>
         right_map;
     if (left_size > 0) {
       for (size_t r_i = 0; r_i < right_size; ++r_i) {
@@ -371,7 +382,7 @@ static Context dual_vertex_column_left_outer_join(Context&& ctx, Context&& ctx2,
   if (left_size < right_size) {
     // std::map<vertex_pair, std::vector<vid_t>> left_map;
 #if 0
-    phmap::flat_hash_map<vertex_pair, std::vector<vid_t>> left_map;
+    phmap::flat_hash_map<vertex_pair, std::vector<vid_t>, VertexRecordHash> left_map;
     for (size_t r_i = 0; r_i < left_size; ++r_i) {
       vertex_pair cur(casted_left_col0->get_vertex(r_i),
                       casted_left_col1->get_vertex(r_i));
@@ -397,8 +408,9 @@ static Context dual_vertex_column_left_outer_join(Context&& ctx, Context&& ctx2,
       }
     }
 #else
-    phmap::flat_hash_set<vertex_pair> left_set;
-    phmap::flat_hash_map<vertex_pair, std::vector<size_t>> right_map;
+    phmap::flat_hash_set<vertex_pair, VertexRecordHash> left_set;
+    phmap::flat_hash_map<vertex_pair, std::vector<size_t>, VertexRecordHash>
+        right_map;
     for (size_t r_i = 0; r_i < left_size; ++r_i) {
       vertex_pair cur(casted_left_col0->get_vertex(r_i),
                       casted_left_col1->get_vertex(r_i));
@@ -428,7 +440,8 @@ static Context dual_vertex_column_left_outer_join(Context&& ctx, Context&& ctx2,
 #endif
   } else {
     // std::map<vertex_pair, std::vector<vid_t>> right_map;
-    phmap::flat_hash_map<vertex_pair, std::vector<vid_t>> right_map;
+    phmap::flat_hash_map<vertex_pair, std::vector<vid_t>, VertexRecordHash>
+        right_map;
     if (left_size > 0) {
       for (size_t r_i = 0; r_i < right_size; ++r_i) {
         vertex_pair cur(casted_right_col0->get_vertex(r_i),

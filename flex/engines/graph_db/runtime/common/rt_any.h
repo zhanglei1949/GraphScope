@@ -26,6 +26,24 @@
 namespace gs {
 
 namespace runtime {
+class VertexRecord {
+ public:
+  bool operator<(const VertexRecord& v) const {
+    if (label_ == v.label_) {
+      return vid_ < v.vid_;
+    } else {
+      return label_ < v.label_;
+    }
+  }
+  bool operator==(const VertexRecord& v) const {
+    return label_ == v.label_ && vid_ == v.vid_;
+  }
+
+  label_t label() const { return label_; }
+  vid_t vid() const { return vid_; }
+  label_t label_;
+  vid_t vid_;
+};
 
 struct Relation {
   label_t label;
@@ -37,37 +55,37 @@ struct Relation {
   bool operator==(const Relation& r) const {
     return std::tie(label, src, dst) == std::tie(r.label, r.src, r.dst);
   }
-  std::pair<label_t, vid_t> start_node() const { return {label, src}; }
-  std::pair<label_t, vid_t> end_node() const { return {label, dst}; }
+  VertexRecord start_node() const { return {label, src}; }
+  VertexRecord end_node() const { return {label, dst}; }
 };
 
 class PathImpl {
  public:
   static std::shared_ptr<PathImpl> make_path_impl(label_t label, vid_t v) {
     auto new_path = std::make_shared<PathImpl>();
-    new_path->path_.push_back(std::make_pair(label, v));
+    new_path->path_.push_back({label, v});
     return new_path;
   }
   static std::shared_ptr<PathImpl> make_path_impl(
       label_t label, std::vector<vid_t>& path_ids) {
     auto new_path = std::make_shared<PathImpl>();
     for (auto id : path_ids) {
-      new_path->path_.push_back(std::make_pair(label, id));
+      new_path->path_.push_back({label, id});
     }
     return new_path;
   }
   std::shared_ptr<PathImpl> expand(label_t label, vid_t v) const {
     auto new_path = std::make_shared<PathImpl>();
     new_path->path_ = path_;
-    new_path->path_.push_back(std::make_pair(label, v));
+    new_path->path_.push_back({label, v});
     return new_path;
   }
 
   std::string to_string() const {
     std::string str;
     for (size_t i = 0; i < path_.size(); ++i) {
-      str += "(" + std::to_string(static_cast<int>(path_[i].first)) + ", " +
-             std::to_string(path_[i].second) + ")";
+      str += "(" + std::to_string(static_cast<int>(path_[i].label_)) + ", " +
+             std::to_string(path_[i].vid_) + ")";
       if (i != path_.size() - 1) {
         str += "->";
       }
@@ -75,11 +93,11 @@ class PathImpl {
     return str;
   }
 
-  std::pair<label_t, vid_t> get_end() const { return path_.back(); }
-  std::pair<label_t, vid_t> get_start() const { return path_.front(); }
+  VertexRecord get_end() const { return path_.back(); }
+  VertexRecord get_start() const { return path_.front(); }
   bool operator<(const PathImpl& p) const { return path_ < p.path_; }
   bool operator==(const PathImpl& p) const { return path_ == p.path_; }
-  std::vector<std::pair<label_t, vid_t>> path_;
+  std::vector<VertexRecord> path_;
 };
 class Path {
  public:
@@ -93,23 +111,23 @@ class Path {
   std::string to_string() const { return impl_->to_string(); }
 
   int32_t len() const { return impl_->path_.size(); }
-  std::pair<label_t, vid_t> get_end() const { return impl_->get_end(); }
+  VertexRecord get_end() const { return impl_->get_end(); }
 
   std::vector<Relation> relationships() const {
     std::vector<Relation> relations;
     for (size_t i = 0; i < impl_->path_.size() - 1; ++i) {
       Relation r;
-      r.label = impl_->path_[i].first;
-      r.src = impl_->path_[i].second;
-      r.dst = impl_->path_[i + 1].second;
+      r.label = impl_->path_[i].label_;
+      r.src = impl_->path_[i].vid_;
+      r.dst = impl_->path_[i + 1].vid_;
       relations.push_back(r);
     }
     return relations;
   }
 
-  std::vector<std::pair<label_t, vid_t>> nodes() { return impl_->path_; }
+  std::vector<VertexRecord> nodes() { return impl_->path_; }
 
-  std::pair<label_t, vid_t> get_start() const { return impl_->get_start(); }
+  VertexRecord get_start() const { return impl_->get_start(); }
   bool operator<(const Path& p) const { return *impl_ < *(p.impl_); }
   bool operator==(const Path& p) const { return *(impl_) == *(p.impl_); }
 
@@ -278,20 +296,32 @@ class Map {
   MapImpl map_;
 };
 
+class EdgeRecordImpl {
+ public:
+  EdgeRecordImpl() = default;
+  LabelTriplet label_triplet;
+  vid_t src, dst;
+  Any prop;
+  Direction dir;
+};
+class EdgeRecord {
+ public:
+  EdgeRecordImpl* impl_;
+};
 RTAnyType parse_from_ir_data_type(const ::common::IrDataType& dt);
 
 union RTAnyValue {
-  RTAnyValue() : vset(NULL) {}
+  // TODO delete it later
+  RTAnyValue() {}
   ~RTAnyValue() {}
-
-  std::pair<label_t, vid_t> vertex;
+  VertexRecord vertex;
   std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction> edge;
   Relation relation;
   int64_t i64_val;
   uint64_t u64_val;
   int i32_val;
   double f64_val;
-  const std::vector<vid_t>* vset;
+  // const std::vector<vid_t>* vset;
   const std::set<std::string>* str_set;
   std::string_view str_val;
   Path p;
@@ -317,7 +347,7 @@ class RTAny {
   RTAny& operator=(const RTAny& rhs);
 
   static RTAny from_vertex(label_t l, vid_t v);
-  static RTAny from_vertex(const std::pair<label_t, vid_t>& v);
+  static RTAny from_vertex(VertexRecord v);
   static RTAny from_edge(
       const std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction>& v);
 
@@ -329,7 +359,6 @@ class RTAny {
   static RTAny from_string(const std::string& str);
   static RTAny from_string(const std::string_view& str);
   static RTAny from_string_set(const std::set<std::string>& str_set);
-  static RTAny from_vertex_list(const std::vector<vid_t>& v_set);
   static RTAny from_date32(Date v);
   static RTAny from_tuple(std::vector<RTAny>&& tuple);
   static RTAny from_tuple(const Tuple& tuple);
@@ -344,11 +373,10 @@ class RTAny {
   uint64_t as_uint64() const;
   int64_t as_date32() const;
   double as_double() const;
-  const std::pair<label_t, vid_t>& as_vertex() const;
+  VertexRecord as_vertex() const;
   const std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction>& as_edge() const;
   const std::set<std::string>& as_string_set() const;
   std::string_view as_string() const;
-  const std::vector<vid_t>& as_vertex_list() const;
   Path as_path() const;
   Tuple as_tuple() const;
   List as_list() const;
@@ -410,18 +438,6 @@ struct TypedConverter<std::set<std::string>> {
     return RTAny::from_string_set(val);
   }
   static const std::string name() { return "set<string>"; }
-};
-
-template <>
-struct TypedConverter<std::vector<vid_t>> {
-  static RTAnyType type() { return RTAnyType::kVertexSetValue; }
-  static const std::vector<vid_t>& to_typed(const RTAny& val) {
-    return val.as_vertex_list();
-  }
-  static RTAny from_typed(const std::vector<vid_t>& val) {
-    return RTAny::from_vertex_list(val);
-  }
-  static const std::string name() { return "vector<vid_t>"; }
 };
 
 template <>
@@ -504,14 +520,10 @@ struct TypedConverter<Relation> {
 };
 
 template <>
-struct TypedConverter<std::pair<label_t, vid_t>> {
+struct TypedConverter<VertexRecord> {
   static RTAnyType type() { return RTAnyType::kVertex; }
-  static std::pair<label_t, vid_t> to_typed(const RTAny& val) {
-    return val.as_vertex();
-  }
-  static RTAny from_typed(const std::pair<label_t, vid_t>& val) {
-    return RTAny::from_vertex(val);
-  }
+  static VertexRecord to_typed(const RTAny& val) { return val.as_vertex(); }
+  static RTAny from_typed(VertexRecord val) { return RTAny::from_vertex(val); }
   static const std::string name() { return "vertex"; }
 };
 template <typename T>
@@ -633,35 +645,33 @@ class SetImpl : public SetImplBase {
 };
 
 template <>
-class SetImpl<std::pair<label_t, vid_t>> : public SetImplBase {
+class SetImpl<VertexRecord> : public SetImplBase {
  public:
   SetImpl() = default;
   ~SetImpl() {}
   bool exists(const RTAny& val) const override {
-    auto v = TypedConverter<std::pair<label_t, vid_t>>::to_typed(val);
-    return set_.find((1ll * v.second) << 8 | v.first) != set_.end();
+    auto v = TypedConverter<VertexRecord>::to_typed(val);
+    return set_.find((1ll * v.vid_) << 8 | v.label_) != set_.end();
   }
-  bool exists(const std::pair<label_t, vid_t>& val) const {
-    return set_.find((1ll * val.second) << 8 | val.first) != set_.end();
+  bool exists(VertexRecord val) const {
+    return set_.find((1ll * val.vid_) << 8 | val.label_) != set_.end();
   }
 
   bool operator<(const SetImplBase& p) const override {
     LOG(ERROR) << "not support for set of pair";
     return set_.size() <
-           (dynamic_cast<const SetImpl<std::pair<label_t, vid_t>>&>(p))
-               .set_.size();
+           (dynamic_cast<const SetImpl<VertexRecord>&>(p)).set_.size();
   }
 
   bool operator==(const SetImplBase& p) const override {
-    return set_ ==
-           (dynamic_cast<const SetImpl<std::pair<label_t, vid_t>>&>(p)).set_;
+    return set_ == (dynamic_cast<const SetImpl<VertexRecord>&>(p)).set_;
   }
 
   void insert(const RTAny& val) {
-    insert(TypedConverter<std::pair<label_t, vid_t>>::to_typed(val));
+    insert(TypedConverter<VertexRecord>::to_typed(val));
   }
-  void insert(const std::pair<label_t, vid_t>& val) {
-    set_.insert((1ll * val.second) << 8 | val.first);
+  void insert(VertexRecord val) {
+    set_.insert((1ll * val.vid_) << 8 | val.label_);
   }
   size_t size() const override { return set_.size(); }
   std::unordered_set<int64_t> set_;

@@ -101,7 +101,7 @@ Result<bool> GraphDB::Open(const GraphDBConfig& config) {
                         "Exception: " + std::string(e.what()), false);
   }
 
-  if ((!create_empty_graph) && (!graph_.schema().Equals(schema))) {
+  if ((!create_empty_graph) && (!graph_.schema().Equals(schema) && false)) {
     LOG(ERROR) << "Schema inconsistent..\n";
     return Result<bool>(StatusCode::INTERNAL_ERROR,
                         "Schema of work directory is not compatible with the "

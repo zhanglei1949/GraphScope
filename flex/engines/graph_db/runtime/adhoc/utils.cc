@@ -358,7 +358,7 @@ std::shared_ptr<IContextColumn> build_column(
         SLVertexColumnBuilder builder(v_label);
         builder.reserve(row_num);
         for (size_t i = 0; i < row_num; ++i) {
-          builder.push_back_opt(expr.eval_path(i).as_vertex().second);
+          builder.push_back_opt(expr.eval_path(i).as_vertex().vid_);
         }
 
         return builder.finish();

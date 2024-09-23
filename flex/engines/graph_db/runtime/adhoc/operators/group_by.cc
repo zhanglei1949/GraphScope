@@ -215,7 +215,7 @@ std::shared_ptr<IContextColumn> vertex_count_distinct(
   builder.reserve(col_size);
   for (size_t k = 0; k < col_size; ++k) {
     auto& vec = to_aggregate[k];
-    std::set<std::pair<label_t, vid_t>> s;
+    std::set<VertexRecord> s;
     for (auto idx : vec) {
       s.insert(var.get(idx).as_vertex());
     }
@@ -379,14 +379,13 @@ std::shared_ptr<IContextColumn> string_to_set(
 std::shared_ptr<IContextColumn> vertex_to_set(
     const Var& var, const std::vector<std::vector<size_t>>& to_aggregate) {
   size_t col_size = to_aggregate.size();
-  SetValueColumnBuilder<std::pair<label_t, vid_t>> builder(col_size);
+  SetValueColumnBuilder<VertexRecord> builder(col_size);
   builder.reserve(col_size);
 
   for (size_t k = 0; k < col_size; ++k) {
     auto& vec = to_aggregate[k];
     auto set = builder.allocate_set();
-    auto set_impl =
-        dynamic_cast<SetImpl<std::pair<label_t, vid_t>>*>(set.impl_);
+    auto set_impl = dynamic_cast<SetImpl<VertexRecord>*>(set.impl_);
     for (auto idx : vec) {
       set_impl->insert(var.get(idx));
     }
@@ -441,20 +440,19 @@ std::shared_ptr<IContextColumn> string_to_list(
 
 std::shared_ptr<IContextColumn> vertex_to_list(
     const Var& var, const std::vector<std::vector<size_t>>& to_aggregate) {
-  ListValueColumnBuilder<std::pair<label_t, vid_t>> builder;
+  ListValueColumnBuilder<VertexRecord> builder;
   size_t col_size = to_aggregate.size();
   builder.reserve(col_size);
   std::vector<std::shared_ptr<ListImplBase>> impls;
   for (size_t k = 0; k < col_size; ++k) {
     auto& vec = to_aggregate[k];
 
-    std::vector<std::pair<label_t, vid_t>> elem;
+    std::vector<VertexRecord> elem;
     for (auto idx : vec) {
       elem.push_back(var.get(idx).as_vertex());
     }
 
-    auto impl =
-        ListImpl<std::pair<label_t, vid_t>>::make_list_impl(std::move(elem));
+    auto impl = ListImpl<VertexRecord>::make_list_impl(std::move(elem));
     auto list = List::make_list(impl);
     impls.emplace_back(impl);
     builder.push_back_opt(list);

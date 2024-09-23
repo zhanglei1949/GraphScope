@@ -438,7 +438,7 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
 
                   for (size_t k = 0; k < row_num; ++k) {
                     auto vertex = vertex_col->get_vertex(k);
-                    auto prop = typed_col->get_view(vertex.second).milli_second;
+                    auto prop = typed_col->get_view(vertex.vid_).milli_second;
                     if (prop >= lower_value && prop < upper_value) {
                       builder.push_back_opt(then_int);
                     } else {
@@ -484,7 +484,7 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
                   int else_int = else_value.i32();
                   for (size_t k = 0; k < row_num; ++k) {
                     auto vertex = vertex_col->get_vertex(k);
-                    auto prop = typed_col->get_view(vertex.second).milli_second;
+                    auto prop = typed_col->get_view(vertex.vid_).milli_second;
                     if (prop < upper_value) {
                       builder.push_back_opt(then_int);
                     } else {

@@ -80,11 +80,11 @@ Context Intersect::intersect(Context&& ctx,
             lhs_set.clear();
             size_t common_index = idx_col0.get_value(idx0);
             while (idx_col0.get_value(idx0) == common_index) {
-              lhs_set.insert(vlist0.get_vertex(idx0).second);
+              lhs_set.insert(vlist0.get_vertex(idx0).vid_);
               ++idx0;
             }
             while (idx_col1.get_value(idx1) == common_index) {
-              vid_t cur_v = vlist1.get_vertex(idx1).second;
+              vid_t cur_v = vlist1.get_vertex(idx1).vid_;
               if (lhs_set.find(cur_v) != lhs_set.end()) {
                 shuffle_offsets.push_back(common_index);
                 builder.push_back_opt(cur_v);

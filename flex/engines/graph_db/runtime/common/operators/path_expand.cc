@@ -58,8 +58,7 @@ Context PathExpand::edge_expand_v(const ReadTransaction& txn, Context&& ctx,
         std::swap(input, output);
         if (depth >= params.hop_lower) {
           for (auto& tuple : input) {
-            builder.push_back_vertex(
-                std::make_pair(std::get<0>(tuple), std::get<1>(tuple)));
+            builder.push_back_vertex({std::get<0>(tuple), std::get<1>(tuple)});
             shuffle_offset.push_back(std::get<2>(tuple));
           }
         }
@@ -112,8 +111,7 @@ Context PathExpand::edge_expand_v(const ReadTransaction& txn, Context&& ctx,
         std::swap(input, output);
         if (depth >= params.hop_lower) {
           for (auto& tuple : input) {
-            builder.push_back_vertex(
-                std::make_pair(std::get<0>(tuple), std::get<1>(tuple)));
+            builder.push_back_vertex({std::get<0>(tuple), std::get<1>(tuple)});
             shuffle_offset.push_back(std::get<2>(tuple));
           }
         }
@@ -197,8 +195,8 @@ Context PathExpand::edge_expand_p(const ReadTransaction& txn, Context&& ctx,
       for (auto& [path, index] : input) {
         auto end = path->get_end();
         for (auto& label_triplet : labels) {
-          if (label_triplet.src_label == end.first) {
-            auto oe_iter = txn.GetOutEdgeIterator(end.first, end.second,
+          if (label_triplet.src_label == end.label_) {
+            auto oe_iter = txn.GetOutEdgeIterator(end.label_, end.vid_,
                                                   label_triplet.dst_label,
                                                   label_triplet.edge_label);
             while (oe_iter.IsValid()) {
@@ -243,8 +241,8 @@ Context PathExpand::edge_expand_p(const ReadTransaction& txn, Context&& ctx,
       for (auto& [path, index] : input) {
         auto end = path->get_end();
         for (auto& label_triplet : labels) {
-          if (label_triplet.src_label == end.first) {
-            auto oe_iter = txn.GetOutEdgeIterator(end.first, end.second,
+          if (label_triplet.src_label == end.label_) {
+            auto oe_iter = txn.GetOutEdgeIterator(end.label_, end.vid_,
                                                   label_triplet.dst_label,
                                                   label_triplet.edge_label);
             while (oe_iter.IsValid()) {
@@ -254,8 +252,8 @@ Context PathExpand::edge_expand_p(const ReadTransaction& txn, Context&& ctx,
               oe_iter.Next();
             }
           }
-          if (label_triplet.dst_label == end.first) {
-            auto ie_iter = txn.GetInEdgeIterator(end.first, end.second,
+          if (label_triplet.dst_label == end.label_) {
+            auto ie_iter = txn.GetInEdgeIterator(end.label_, end.vid_,
                                                  label_triplet.src_label,
                                                  label_triplet.edge_label);
             while (ie_iter.IsValid()) {

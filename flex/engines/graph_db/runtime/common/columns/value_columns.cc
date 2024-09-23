@@ -57,7 +57,6 @@ std::shared_ptr<IContextColumnBuilder> MapValueColumn::builder() const {
 
 template class ValueColumn<int>;
 template class ValueColumn<std::set<std::string>>;
-template class ValueColumn<std::vector<vid_t>>;
 
 }  // namespace runtime
 

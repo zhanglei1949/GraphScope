@@ -144,7 +144,7 @@ class GetV {
       MLVertexColumnBuilder builder;
       input_path_list.foreach_path([&](size_t index, const Path& path) {
         auto [label, vid] = path.get_end();
-        builder.push_back_vertex(std::make_pair(label, vid));
+        builder.push_back_vertex({label, vid});
         shuffle_offset.push_back(index);
       });
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
@@ -229,27 +229,25 @@ class GetV {
       if (labels.size() > 1) {
         MLVertexColumnBuilder builder;
         if (opt == VOpt::kStart) {
-          input_edge_list.foreach_edge([&](size_t index,
-                                           const LabelTriplet& label, vid_t src,
-                                           vid_t dst, const Any& edata,
-                                           Direction dir) {
-            if (std::find(labels.begin(), labels.end(), label.src_label) !=
-                labels.end()) {
-              builder.push_back_vertex(std::make_pair(label.src_label, src));
-              shuffle_offset.push_back(index);
-            }
-          });
+          input_edge_list.foreach_edge(
+              [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
+                  const Any& edata, Direction dir) {
+                if (std::find(labels.begin(), labels.end(), label.src_label) !=
+                    labels.end()) {
+                  builder.push_back_vertex({label.src_label, src});
+                  shuffle_offset.push_back(index);
+                }
+              });
         } else if (opt == VOpt::kEnd) {
-          input_edge_list.foreach_edge([&](size_t index,
-                                           const LabelTriplet& label, vid_t src,
-                                           vid_t dst, const Any& edata,
-                                           Direction dir) {
-            if (std::find(labels.begin(), labels.end(), label.dst_label) !=
-                labels.end()) {
-              builder.push_back_vertex(std::make_pair(label.dst_label, dst));
-              shuffle_offset.push_back(index);
-            }
-          });
+          input_edge_list.foreach_edge(
+              [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
+                  const Any& edata, Direction dir) {
+                if (std::find(labels.begin(), labels.end(), label.dst_label) !=
+                    labels.end()) {
+                  builder.push_back_vertex({label.dst_label, dst});
+                  shuffle_offset.push_back(index);
+                }
+              });
         } else {
           LOG(FATAL) << "not support";
         }
@@ -264,17 +262,16 @@ class GetV {
         if (type.src_label != type.dst_label) {
           MLVertexColumnBuilder builder;
           CHECK(params.opt == VOpt::kOther);
-          input_edge_list.foreach_edge([&](size_t index,
-                                           const LabelTriplet& label, vid_t src,
-                                           vid_t dst, const Any& edata,
-                                           Direction dir) {
-            if (dir == Direction::kOut) {
-              builder.push_back_vertex(std::make_pair(label.dst_label, dst));
-            } else {
-              builder.push_back_vertex(std::make_pair(label.src_label, src));
-            }
-            shuffle_offset.push_back(index);
-          });
+          input_edge_list.foreach_edge(
+              [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
+                  const Any& edata, Direction dir) {
+                if (dir == Direction::kOut) {
+                  builder.push_back_vertex({label.dst_label, dst});
+                } else {
+                  builder.push_back_vertex({label.src_label, src});
+                }
+                shuffle_offset.push_back(index);
+              });
           ctx.set_with_reshuffle(params.alias, builder.finish(),
                                  shuffle_offset);
           return ctx;
@@ -325,24 +322,23 @@ class GetV {
           return ctx;
         } else {
           MLVertexColumnBuilder builder;
-          input_edge_list.foreach_edge([&](size_t index,
-                                           const LabelTriplet& label, vid_t src,
-                                           vid_t dst, const Any& edata,
-                                           Direction dir) {
-            if (dir == Direction::kOut) {
-              if (std::find(labels.begin(), labels.end(), label.dst_label) !=
-                  labels.end()) {
-                builder.push_back_vertex(std::make_pair(label.dst_label, dst));
-                shuffle_offset.push_back(index);
-              }
-            } else {
-              if (std::find(labels.begin(), labels.end(), label.src_label) !=
-                  labels.end()) {
-                builder.push_back_vertex(std::make_pair(label.src_label, src));
-                shuffle_offset.push_back(index);
-              }
-            }
-          });
+          input_edge_list.foreach_edge(
+              [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
+                  const Any& edata, Direction dir) {
+                if (dir == Direction::kOut) {
+                  if (std::find(labels.begin(), labels.end(),
+                                label.dst_label) != labels.end()) {
+                    builder.push_back_vertex({label.dst_label, dst});
+                    shuffle_offset.push_back(index);
+                  }
+                } else {
+                  if (std::find(labels.begin(), labels.end(),
+                                label.src_label) != labels.end()) {
+                    builder.push_back_vertex({label.src_label, src});
+                    shuffle_offset.push_back(index);
+                  }
+                }
+              });
           ctx.set_with_reshuffle(params.alias, builder.finish(),
                                  shuffle_offset);
           return ctx;
@@ -358,9 +354,9 @@ class GetV {
             [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
                 const Any& edata, Direction dir) {
               if (dir == Direction::kOut) {
-                builder.push_back_vertex(std::make_pair(label.dst_label, dst));
+                builder.push_back_vertex({label.dst_label, dst});
               } else {
-                builder.push_back_vertex(std::make_pair(label.src_label, src));
+                builder.push_back_vertex({label.src_label, src});
               }
               shuffle_offset.push_back(index);
             });
@@ -395,22 +391,21 @@ class GetV {
             labels[label] = true;
           }
           MLVertexColumnBuilder builder;
-          input_edge_list.foreach_edge([&](size_t index,
-                                           const LabelTriplet& label, vid_t src,
-                                           vid_t dst, const Any& edata,
-                                           Direction dir) {
-            if (dir == Direction::kOut) {
-              if (labels[label.dst_label]) {
-                builder.push_back_vertex(std::make_pair(label.dst_label, dst));
-                shuffle_offset.push_back(index);
-              }
-            } else {
-              if (labels[label.src_label]) {
-                builder.push_back_vertex(std::make_pair(label.src_label, src));
-                shuffle_offset.push_back(index);
-              }
-            }
-          });
+          input_edge_list.foreach_edge(
+              [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
+                  const Any& edata, Direction dir) {
+                if (dir == Direction::kOut) {
+                  if (labels[label.dst_label]) {
+                    builder.push_back_vertex({label.dst_label, dst});
+                    shuffle_offset.push_back(index);
+                  }
+                } else {
+                  if (labels[label.src_label]) {
+                    builder.push_back_vertex({label.src_label, src});
+                    shuffle_offset.push_back(index);
+                  }
+                }
+              });
           ctx.set_with_reshuffle(params.alias, builder.finish(),
                                  shuffle_offset);
         }
@@ -458,7 +453,7 @@ class GetV {
         foreach_vertex(input_vertex_list,
                        [&](size_t idx, label_t label, vid_t v) {
                          if (pred(label, v, idx)) {
-                           builder.push_back_vertex(std::make_pair(label, v));
+                           builder.push_back_vertex({label, v});
                            offset.push_back(idx);
                          }
                        });

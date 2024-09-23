@@ -102,7 +102,7 @@ RTAnyType parse_from_ir_data_type(const ::common::IrDataType& dt) {
   return RTAnyType::kUnknown;
 }
 
-RTAny::RTAny() : type_(RTAnyType::kUnknown), value_() {}
+RTAny::RTAny() : type_(RTAnyType::kUnknown) {}
 RTAny::RTAny(RTAnyType type) : type_(type) {}
 
 RTAny::RTAny(const Any& val) {
@@ -199,12 +199,12 @@ RTAnyType RTAny::type() const { return type_; }
 RTAny RTAny::from_vertex(label_t l, vid_t v) {
   RTAny ret;
   ret.type_ = RTAnyType::kVertex;
-  ret.value_.vertex.first = l;
-  ret.value_.vertex.second = v;
+  ret.value_.vertex.label_ = l;
+  ret.value_.vertex.vid_ = v;
   return ret;
 }
 
-RTAny RTAny::from_vertex(const std::pair<label_t, vid_t>& v) {
+RTAny RTAny::from_vertex(VertexRecord v) {
   RTAny ret;
   ret.type_ = RTAnyType::kVertex;
   ret.value_.vertex = v;
@@ -265,13 +265,6 @@ RTAny RTAny::from_string_set(const std::set<std::string>& str_set) {
   RTAny ret;
   ret.type_ = RTAnyType::kStringSetValue;
   ret.value_.str_set = &str_set;
-  return ret;
-}
-
-RTAny RTAny::from_vertex_list(const std::vector<vid_t>& v_set) {
-  RTAny ret;
-  ret.type_ = RTAnyType::kVertexSetValue;
-  ret.value_.vset = &v_set;
   return ret;
 }
 
@@ -362,7 +355,7 @@ double RTAny::as_double() const {
   return value_.f64_val;
 }
 
-const std::pair<label_t, vid_t>& RTAny::as_vertex() const {
+VertexRecord RTAny::as_vertex() const {
   CHECK(type_ == RTAnyType::kVertex);
   return value_.vertex;
 }
@@ -395,10 +388,6 @@ std::string_view RTAny::as_string() const {
 List RTAny::as_list() const {
   CHECK(type_ == RTAnyType::kList);
   return value_.list;
-}
-const std::vector<vid_t>& RTAny::as_vertex_list() const {
-  CHECK(type_ == RTAnyType::kVertexSetValue);
-  return *value_.vset;
 }
 
 Path RTAny::as_path() const {
@@ -713,17 +702,17 @@ static void sink_any(const Any& any, common::Value* value) {
   }
 }
 
-void sink_vertex(const gs::ReadTransaction& txn,
-                 const std::pair<label_t, vid_t>& vertex, results::Vertex* v) {
-  v->mutable_label()->set_id(vertex.first);
-  v->set_id(encode_unique_vertex_id(vertex.first, vertex.second));
+void sink_vertex(const gs::ReadTransaction& txn, const VertexRecord& vertex,
+                 results::Vertex* v) {
+  v->mutable_label()->set_id(vertex.label_);
+  v->set_id(encode_unique_vertex_id(vertex.label_, vertex.vid_));
   //  TODO: add properties
   const auto& names =
-      txn.graph().schema().get_vertex_property_names(vertex.first);
+      txn.graph().schema().get_vertex_property_names(vertex.label_);
   for (size_t i = 0; i < names.size(); ++i) {
     auto prop = v->add_properties();
     prop->mutable_key()->set_name(names[i]);
-    sink_any(txn.graph().get_vertex_table(vertex.first).at(vertex.second, i),
+    sink_any(txn.graph().get_vertex_table(vertex.label_).at(vertex.vid_, i),
              prop->mutable_value());
   }
 }
@@ -816,8 +805,8 @@ void RTAny::encode_sig(RTAnyType type, Encoder& encoder) const {
     encoder.put_int(this->as_int32());
   } else if (type == RTAnyType::kVertex) {
     const auto& v = this->value_.vertex;
-    encoder.put_byte(v.first);
-    encoder.put_int(v.second);
+    encoder.put_byte(v.label_);
+    encoder.put_int(v.vid_);
   } else if (type == RTAnyType::kEdge) {
     const auto& [label, src, dst, prop, dir] = this->as_edge();
 
@@ -851,8 +840,8 @@ void RTAny::encode_sig(RTAnyType type, Encoder& encoder) const {
     encoder.put_int(p.len() + 1);
     auto nodes = p.nodes();
     for (size_t i = 0; i < nodes.size(); ++i) {
-      encoder.put_byte(nodes[i].first);
-      encoder.put_int(nodes[i].second);
+      encoder.put_byte(nodes[i].label_);
+      encoder.put_int(nodes[i].vid_);
     }
   } else if (type == RTAnyType::kRelation) {
     Relation r = this->as_relation();
@@ -874,10 +863,10 @@ std::string RTAny::to_string() const {
   } else if (type_ == RTAnyType::kVertex) {
 #if 0
       return std::string("v") +
-             std::to_string(static_cast<int>(value_.vertex.first)) + "-" +
-             std::to_string(value_.vertex.second);
+             std::to_string(static_cast<int>(value_.vertex.label_)) + "-" +
+             std::to_string(value_.vertex.vid_);
 #else
-    return std::to_string(value_.vertex.second);
+    return std::to_string(value_.vertex.vid_);
 #endif
   } else if (type_ == RTAnyType::kStringSetValue) {
     std::string ret = "{";

@@ -69,21 +69,20 @@ class SigColumn<Date> : public ISigColumn {
 };
 
 template <>
-class SigColumn<std::pair<label_t, vid_t>> : public ISigColumn {
+class SigColumn<VertexRecord> : public ISigColumn {
  public:
-  SigColumn(const std::vector<std::pair<label_t, vid_t>>& data)
-      : data_(data.data()) {}
+  SigColumn(const std::vector<VertexRecord>& data) : data_(data.data()) {}
   ~SigColumn() = default;
   size_t get_sig(size_t idx) const override {
     const auto& v = data_[idx];
-    size_t ret = v.first;
+    size_t ret = v.label_;
     ret <<= 32;
-    ret += v.second;
+    ret += v.vid_;
     return ret;
   }
 
  private:
-  const std::pair<label_t, vid_t>* data_;
+  const VertexRecord* data_;
 };
 
 template <>

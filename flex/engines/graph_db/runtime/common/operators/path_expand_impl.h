@@ -504,8 +504,7 @@ default_single_source_shortest_path_impl(
               path_col_builder.push_back_opt(Path::make_path(impl));
               path_impls.emplace_back(impl);
 
-              dest_col_builder.push_back_vertex(
-                  std::make_pair(u.first, u.second));
+              dest_col_builder.push_back_vertex({u.first, u.second});
               offsets.push_back(idx);
             }
           }

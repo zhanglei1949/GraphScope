@@ -286,7 +286,7 @@ class ListValueColumn : public ListValueColumnBase {
     if constexpr (std::is_same_v<T, std::string>) {
       LOG(FATAL) << "not implemented for " << this->column_info();
       return {nullptr, {}};
-    } else if constexpr (std::is_same_v<T, std::pair<label_t, vid_t>>) {
+    } else if constexpr (std::is_same_v<T, VertexRecord>) {
       std::vector<size_t> offsets;
       auto builder = std::make_shared<MLVertexColumnBuilder>();
       size_t i = 0;

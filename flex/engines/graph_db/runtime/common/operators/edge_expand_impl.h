@@ -218,7 +218,7 @@ expand_vertex_np_me_sp(
         for (auto& e : es) {
           if (pred(input_label, v, nbr_label, e.neighbor, edge_label, dir,
                    e.data)) {
-            builder.push_back_vertex(std::make_pair(nbr_label, e.neighbor));
+            builder.push_back_vertex({nbr_label, e.neighbor});
             offsets.push_back(idx);
           }
         }
@@ -285,7 +285,7 @@ expand_vertex_np_me_mp(
         auto nbr = it.GetNeighbor();
         if (pred(input_label, v, nbr_label, nbr, edge_label, dir,
                  it.GetData())) {
-          builder.push_back_vertex(std::make_pair(nbr_label, nbr));
+          builder.push_back_vertex({nbr_label, nbr});
           offsets.push_back(idx);
         }
         it.Next();
@@ -375,7 +375,7 @@ expand_vertex_np_se(
         for (auto& e : es) {
           if (pred(l, vid, nbr_labels[l], e.neighbor, edge_labels[l], dirs[l],
                    e.data)) {
-            builder.push_back_vertex(std::make_pair(nbr_labels[l], e.neighbor));
+            builder.push_back_vertex({nbr_labels[l], e.neighbor});
             offsets.push_back(idx);
           }
         }
@@ -387,8 +387,7 @@ expand_vertex_np_se(
           for (auto& e : es) {
             if (pred(l, vid, nbr_labels[l], e.neighbor, edge_labels[l], dirs[l],
                      e.data)) {
-              builder.push_back_vertex(
-                  std::make_pair(nbr_labels[l], e.neighbor));
+              builder.push_back_vertex({nbr_labels[l], e.neighbor});
               offsets.push_back(idx);
             }
           }
@@ -574,7 +573,7 @@ expand_vertex_np_me_sp(
         auto es = view->get_edges(vid);
         for (auto& e : es) {
           if (pred(l, vid, nbr_label, e.neighbor, edge_label, dir, e.data)) {
-            builder.push_back_vertex(std::make_pair(nbr_label, e.neighbor));
+            builder.push_back_vertex({nbr_label, e.neighbor});
             offsets.push_back(idx);
           }
         }
@@ -660,7 +659,7 @@ expand_vertex_np_me_sp(
         auto es = view->get_edges(vid);
         for (auto& e : es) {
           if (pred(l, vid, nbr_label, e.neighbor, edge_label, dir, e.data)) {
-            builder.push_back_vertex(std::make_pair(nbr_label, e.neighbor));
+            builder.push_back_vertex({nbr_label, e.neighbor});
             offsets.push_back(idx);
           }
         }
@@ -698,7 +697,7 @@ expand_vertex_np_me_mp(
       while (it.IsValid()) {
         auto nbr = it.GetNeighbor();
         if (pred(label, v, nbr_label, nbr, edge_label, dir, it.GetData())) {
-          builder.push_back_vertex(std::make_pair(nbr_label, nbr));
+          builder.push_back_vertex({nbr_label, nbr});
           offsets.push_back(idx);
         }
         it.Next();
@@ -731,7 +730,7 @@ expand_vertex_np_me_mp(
       while (it.IsValid()) {
         auto nbr = it.GetNeighbor();
         if (pred(label, v, nbr_label, nbr, edge_label, dir, it.GetData())) {
-          builder.push_back_vertex(std::make_pair(nbr_label, nbr));
+          builder.push_back_vertex({nbr_label, nbr});
           offsets.push_back(idx);
         }
         it.Next();

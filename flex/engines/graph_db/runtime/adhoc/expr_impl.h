@@ -95,19 +95,17 @@ class VertexWithInSetExpr : public ExprBase {
     auto key = key_->eval_path(idx).as_vertex();
     auto set = val_set_->eval_path(idx).as_set();
     CHECK(set.impl_ != nullptr);
-    auto ptr = dynamic_cast<SetImpl<std::pair<label_t, vid_t>>*>(set.impl_);
+    auto ptr = dynamic_cast<SetImpl<VertexRecord>*>(set.impl_);
     CHECK(ptr != nullptr);
     return RTAny::from_bool(
-        dynamic_cast<SetImpl<std::pair<label_t, vid_t>>*>(set.impl_)->exists(
-            key));
+        dynamic_cast<SetImpl<VertexRecord>*>(set.impl_)->exists(key));
   }
 
   RTAny eval_vertex(label_t label, vid_t v, size_t idx) const override {
     auto key = key_->eval_vertex(label, v, idx).as_vertex();
     auto set = val_set_->eval_vertex(label, v, idx).as_set();
     return RTAny::from_bool(
-        dynamic_cast<SetImpl<std::pair<label_t, vid_t>>*>(set.impl_)->exists(
-            key));
+        dynamic_cast<SetImpl<VertexRecord>*>(set.impl_)->exists(key));
   }
 
   RTAny eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
@@ -115,8 +113,7 @@ class VertexWithInSetExpr : public ExprBase {
     auto key = key_->eval_edge(label, src, dst, data, idx).as_vertex();
     auto set = val_set_->eval_edge(label, src, dst, data, idx).as_set();
     return RTAny::from_bool(
-        dynamic_cast<SetImpl<std::pair<label_t, vid_t>>*>(set.impl_)->exists(
-            key));
+        dynamic_cast<SetImpl<VertexRecord>*>(set.impl_)->exists(key));
   }
 
   RTAnyType type() const override { return RTAnyType::kBoolValue; }
@@ -591,8 +588,7 @@ class NodesExpr : public ListExprBase {
     CHECK(args->type() == RTAnyType::kPath) << "invalid type";
     auto path = args->eval_path(idx).as_path();
     auto nodes = path.nodes();
-    auto ptr =
-        ListImpl<std::pair<label_t, vid_t>>::make_list_impl(std::move(nodes));
+    auto ptr = ListImpl<VertexRecord>::make_list_impl(std::move(nodes));
     impls.push_back(ptr);
     return RTAny::from_list(List::make_list(ptr));
   }
@@ -619,8 +615,7 @@ class NodesExpr : public ListExprBase {
   bool is_optional() const override { return args->is_optional(); }
 
   std::shared_ptr<IContextColumnBuilder> builder() const override {
-    return std::make_shared<
-        ListValueColumnBuilder<std::pair<label_t, vid_t>>>();
+    return std::make_shared<ListValueColumnBuilder<VertexRecord>>();
   }
 
   std::vector<std::shared_ptr<ListImplBase>> get_list_impls() const override {

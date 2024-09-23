@@ -63,7 +63,7 @@ class IAccessor {
 
 class VertexPathAccessor : public IAccessor {
  public:
-  using elem_t = std::pair<label_t, vid_t>;
+  using elem_t = VertexRecord;
 
   VertexPathAccessor(const Context& ctx, int tag)
       : vertex_col_(*std::dynamic_pointer_cast<IVertexColumn>(ctx.get(tag))) {}
@@ -105,7 +105,7 @@ class VertexIdPathAccessor : public IAccessor {
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& v = vertex_col_.get_vertex(idx);
-    return AnyConverter<KEY_T>::from_any(txn_.GetVertexId(v.first, v.second));
+    return AnyConverter<KEY_T>::from_any(txn_.GetVertexId(v.label_, v.vid_));
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -131,7 +131,7 @@ class VertexGIdPathAccessor : public IAccessor {
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& v = vertex_col_.get_vertex(idx);
-    return encode_unique_vertex_id(v.first, v.second);
+    return encode_unique_vertex_id(v.label_, v.vid_);
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -177,9 +177,9 @@ class VertexPropertyPathAccessor : public IAccessor {
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& v = vertex_col_.get_vertex(idx);
-    auto col_ptr = property_columns_[v.first];
+    auto col_ptr = property_columns_[v.label_];
     if (col_ptr != nullptr) {
-      return property_columns_[v.first]->get_view(v.second);
+      return property_columns_[v.label_]->get_view(v.vid_);
     } else {
       return elem_t();
     }
@@ -195,9 +195,9 @@ class VertexPropertyPathAccessor : public IAccessor {
       return RTAny(RTAnyType::kNull);
     }
     const auto& v = vertex_col_.get_vertex(idx);
-    auto col_ptr = property_columns_[v.first];
+    auto col_ptr = property_columns_[v.label_];
     if (col_ptr != nullptr) {
-      return TypedConverter<T>::from_typed(col_ptr->get_view(v.second));
+      return TypedConverter<T>::from_typed(col_ptr->get_view(v.vid_));
     } else {
       return RTAny(RTAnyType::kNull);
     }
@@ -248,13 +248,13 @@ class VertexPropertyPathAccessor<int64_t> : public IAccessor {
 
   int64_t typed_eval_path(size_t idx) const {
     const auto& v = vertex_col_.get_vertex(idx);
-    auto col_ptr = property_columns_[v.first];
+    auto col_ptr = property_columns_[v.label_];
     if (col_ptr != nullptr) {
-      return property_columns_[v.first]->get_view(v.second);
+      return property_columns_[v.label_]->get_view(v.vid_);
     } else {
-      auto date_col_ptr = date_property_columns_[v.first];
+      auto date_col_ptr = date_property_columns_[v.label_];
       if (date_col_ptr != nullptr) {
-        return date_col_ptr->get_view(v.second).milli_second;
+        return date_col_ptr->get_view(v.vid_).milli_second;
       } else {
         return int64_t();
       }
@@ -271,9 +271,9 @@ class VertexPropertyPathAccessor<int64_t> : public IAccessor {
       return RTAny(RTAnyType::kNull);
     }
     const auto& v = vertex_col_.get_vertex(idx);
-    auto col_ptr = property_columns_[v.first];
+    auto col_ptr = property_columns_[v.label_];
     if (col_ptr != nullptr) {
-      return TypedConverter<int64_t>::from_typed(col_ptr->get_view(v.second));
+      return TypedConverter<int64_t>::from_typed(col_ptr->get_view(v.vid_));
     } else {
       return RTAny(RTAnyType::kNull);
     }
@@ -324,13 +324,13 @@ class VertexPropertyPathAccessor<Date> : public IAccessor {
 
   Date typed_eval_path(size_t idx) const {
     const auto& v = vertex_col_.get_vertex(idx);
-    auto col_ptr = property_columns_[v.first];
+    auto col_ptr = property_columns_[v.label_];
     if (col_ptr != nullptr) {
-      return property_columns_[v.first]->get_view(v.second);
+      return property_columns_[v.label_]->get_view(v.vid_);
     } else {
-      auto day_col_ptr = day_property_columns_[v.first];
+      auto day_col_ptr = day_property_columns_[v.label_];
       if (day_col_ptr != nullptr) {
-        return Date(day_col_ptr->get_view(v.second).to_timestamp());
+        return Date(day_col_ptr->get_view(v.vid_).to_timestamp());
       } else {
         return Date();
       }
@@ -347,9 +347,9 @@ class VertexPropertyPathAccessor<Date> : public IAccessor {
       return RTAny(RTAnyType::kNull);
     }
     const auto& v = vertex_col_.get_vertex(idx);
-    auto col_ptr = property_columns_[v.first];
+    auto col_ptr = property_columns_[v.label_];
     if (col_ptr != nullptr) {
-      return TypedConverter<Date>::from_typed(col_ptr->get_view(v.second));
+      return TypedConverter<Date>::from_typed(col_ptr->get_view(v.vid_));
     } else {
       return RTAny(RTAnyType::kNull);
     }
@@ -368,7 +368,7 @@ class VertexLabelPathAccessor : public IAccessor {
       : vertex_col_(*std::dynamic_pointer_cast<IVertexColumn>(ctx.get(tag))) {}
 
   elem_t typed_eval_path(size_t idx) const {
-    return static_cast<int32_t>(vertex_col_.get_vertex(idx).first);
+    return static_cast<int32_t>(vertex_col_.get_vertex(idx).label_);
   }
 
   RTAny eval_path(size_t idx) const override {

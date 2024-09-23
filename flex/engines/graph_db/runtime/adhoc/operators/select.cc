@@ -56,14 +56,13 @@ Context eval_select_vertex_within_set(
   std::vector<size_t> offsets;
   auto& vertex_col =
       *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(vertex_tag));
-  auto& set_col =
-      *std::dynamic_pointer_cast<SetValueColumn<std::pair<label_t, vid_t>>>(
-          ctx.get(set_tag));
+  auto& set_col = *std::dynamic_pointer_cast<SetValueColumn<VertexRecord>>(
+      ctx.get(set_tag));
   size_t row_num = ctx.row_num();
   for (size_t i = 0; i < row_num; ++i) {
     auto vertex = vertex_col.get_vertex(i);
     auto set = set_col.get_value(i);
-    auto ptr = dynamic_cast<SetImpl<std::pair<label_t, vid_t>>*>(set.impl_);
+    auto ptr = dynamic_cast<SetImpl<VertexRecord>*>(set.impl_);
     if (ptr->exists(vertex)) {
       offsets.push_back(i);
     }
@@ -122,7 +121,7 @@ Context eval_select_vertex_ne_id(
   size_t row_num = ctx.row_num();
   for (size_t i = 0; i < row_num; ++i) {
     auto vertex = vertex_col.get_vertex(i);
-    if (vertex.second != vid) {
+    if (vertex.vid_ != vid) {
       offsets.push_back(i);
     }
   }

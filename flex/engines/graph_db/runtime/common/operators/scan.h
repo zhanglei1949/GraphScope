@@ -124,7 +124,7 @@ class Scan {
         for (auto gid : gids) {
           vid_t vid = GlobalId::get_vid(gid);
           if (GlobalId::get_label_id(gid) == label && predicate(label, vid)) {
-            builder.push_back_vertex(std::make_pair(label, vid));
+            builder.push_back_vertex({label, vid});
           }
         }
       }
@@ -183,7 +183,7 @@ class Scan {
       } else {
         MLVertexColumnBuilder builder;
         for (auto& pair : vids) {
-          builder.push_back_vertex(pair);
+          builder.push_back_vertex({pair.first, pair.second});
         }
         ctx.set(params.alias, builder.finish());
       }
