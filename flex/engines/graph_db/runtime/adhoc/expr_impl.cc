@@ -236,6 +236,8 @@ RTAny ArithExpr::eval_path(size_t idx) const {
     return lhs_->eval_path(idx) - rhs_->eval_path(idx);
   case common::Arithmetic::DIV:
     return lhs_->eval_path(idx) / rhs_->eval_path(idx);
+  case common::Arithmetic::MOD:
+    return lhs_->eval_path(idx) % rhs_->eval_path(idx);
   default:
     LOG(FATAL) << "not support" << static_cast<int>(arith_);
   }

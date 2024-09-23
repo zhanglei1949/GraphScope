@@ -363,6 +363,7 @@ class RTAny {
 
   RTAny operator-(const RTAny& other) const;
   RTAny operator/(const RTAny& other) const;
+  RTAny operator%(const RTAny& other) const;
 
   void sink(const gs::ReadTransaction& txn, int id,
             results::Column* column) const;

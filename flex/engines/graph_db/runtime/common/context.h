@@ -64,6 +64,8 @@ class Context {
 
   void set_prev_context(Context* prev_context);
 
+  Context union_ctx(const Context& ctx) const;
+
   std::vector<std::shared_ptr<IContextColumn>> columns;
   std::shared_ptr<IContextColumn> head;
 

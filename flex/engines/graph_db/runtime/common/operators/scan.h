@@ -164,19 +164,29 @@ class Scan {
       }
       ctx.set(params.alias, builder.finish());
     } else if (params.tables.size() > 1) {
-      MLVertexColumnBuilder builder;
+      std::vector<std::pair<label_t, vid_t>> vids;
 
       for (auto label : params.tables) {
         for (auto oid : oids) {
           vid_t vid;
           if (txn.GetVertexIndex(label, oid, vid)) {
             if (predicate(label, vid)) {
-              builder.push_back_vertex(std::make_pair(label, vid));
+              vids.emplace_back(label, vid);
             }
           }
         }
       }
-      ctx.set(params.alias, builder.finish());
+      if (vids.size() == 1) {
+        SLVertexColumnBuilder builder(vids[0].first);
+        builder.push_back_opt(vids[0].second);
+        ctx.set(params.alias, builder.finish());
+      } else {
+        MLVertexColumnBuilder builder;
+        for (auto& pair : vids) {
+          builder.push_back_vertex(pair);
+        }
+        ctx.set(params.alias, builder.finish());
+      }
     }
     return ctx;
   }

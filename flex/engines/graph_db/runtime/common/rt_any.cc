@@ -635,6 +635,34 @@ RTAny RTAny::operator/(const RTAny& other) const {
   }
 }
 
+RTAny RTAny::operator%(const RTAny& other) const {
+  bool has_i64 = false;
+  int64_t left_i64 = 0;
+  if (type_ == RTAnyType::kI64Value) {
+    left_i64 = value_.i64_val;
+    has_i64 = true;
+  } else if (type_ == RTAnyType::kI32Value) {
+    left_i64 = value_.i32_val;
+  } else {
+    LOG(FATAL) << "not support" << static_cast<int>(type_.type_enum_);
+  }
+
+  int64_t right_i64 = 0;
+  if (other.type_ == RTAnyType::kI64Value) {
+    right_i64 = other.value_.i64_val;
+    has_i64 = true;
+  } else if (other.type_ == RTAnyType::kI32Value) {
+    right_i64 = other.value_.i32_val;
+  } else {
+    LOG(FATAL) << "not support" << static_cast<int>(other.type_.type_enum_);
+  }
+  if (has_i64) {
+    return RTAny::from_int64(left_i64 % right_i64);
+  } else {
+    return RTAny::from_int32(value_.i32_val % other.value_.i32_val);
+  }
+}
+
 void RTAny::sink_impl(common::Value* value) const {
   if (type_ == RTAnyType::kI64Value) {
     value->set_i64(value_.i64_val);

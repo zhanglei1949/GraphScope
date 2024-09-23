@@ -298,6 +298,27 @@ void Context::set_prev_context(Context* prev_context) {
   offset_ptr = std::dynamic_pointer_cast<ValueColumn<size_t>>(builder.finish());
 }
 
+Context Context::union_ctx(const Context& other) const {
+  Context ctx;
+  CHECK(columns.size() == other.columns.size());
+  for (size_t i = 0; i < col_num(); ++i) {
+    if (columns[i] != nullptr) {
+      if (head == columns[i]) {
+        auto col = columns[i]->union_col(other.get(i));
+        ctx.set(i, col);
+        ctx.head = col;
+      } else {
+        ctx.set(i, columns[i]->union_col(other.get(i)));
+      }
+    }
+  }
+  if (offset_ptr != nullptr) {
+    CHECK(other.offset_ptr != nullptr);
+    ctx.offset_ptr = std::dynamic_pointer_cast<ValueColumn<size_t>>(
+        offset_ptr->union_col(other.offset_ptr));
+  }
+  return ctx;
+}
 const ValueColumn<size_t>& Context::get_offsets() const { return *offset_ptr; }
 size_t Context::col_num() const { return columns.size(); }
 
