@@ -112,6 +112,13 @@ class VertexIdPathAccessor : public IAccessor {
     return RTAny(typed_eval_path(idx));
   }
 
+  RTAny eval_path(size_t idx, int) const override {
+    if (!vertex_col_.has_value(idx)) {
+      return RTAny(RTAnyType::kNull);
+    }
+    return RTAny(typed_eval_path(idx));
+  }
+
   std::shared_ptr<IContextColumnBuilder> builder() const override {
     return vertex_col_.builder();
   }
