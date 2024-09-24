@@ -198,8 +198,7 @@ std::shared_ptr<IContextColumn> OptionalBDSLEdgeColumn::shuffle(
   for (size_t idx = 0; idx < new_row_num; ++idx) {
     size_t off = offsets[idx];
     const auto& e = get_edge(off);
-    builder.push_back_opt(std::get<1>(e), std::get<2>(e), std::get<3>(e),
-                          std::get<4>(e));
+    builder.push_back_opt(e.src_, e.dst_, e.prop_, e.dir_);
   }
   return builder.finish();
 }
@@ -216,8 +215,7 @@ std::shared_ptr<IContextColumn> OptionalBDSLEdgeColumn::optional_shuffle(
       continue;
     }
     const auto& e = get_edge(off);
-    builder.push_back_opt(std::get<1>(e), std::get<2>(e), std::get<3>(e),
-                          std::get<4>(e));
+    builder.push_back_opt(e.src_, e.dst_, e.prop_, e.dir_);
   }
   return builder.finish();
 }
@@ -239,7 +237,7 @@ std::shared_ptr<IContextColumn> OptionalSDSLEdgeColumn::shuffle(
   for (size_t idx = 0; idx < new_row_num; ++idx) {
     size_t off = offsets[idx];
     const auto& e = get_edge(off);
-    builder.push_back_opt(std::get<1>(e), std::get<2>(e), std::get<3>(e));
+    builder.push_back_opt(e.src_, e.dst_, e.prop_);
   }
   return builder.finish();
 }

@@ -672,7 +672,7 @@ class VertexPropertyVertexAccessor<Date> : public IAccessor {
 
 class EdgeIdPathAccessor : public IAccessor {
  public:
-  using elem_t = std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction>;
+  using elem_t = EdgeRecord;
   EdgeIdPathAccessor(const Context& ctx, int tag)
       : edge_col_(*std::dynamic_pointer_cast<IEdgeColumn>(ctx.get(tag))) {}
 
@@ -710,13 +710,12 @@ class EdgePropertyPathAccessor : public IAccessor {
 
   RTAny eval_path(size_t idx) const override {
     const auto& e = col_.get_edge(idx);
-    return RTAny(std::get<3>(e));
+    return RTAny(e.prop_);
   }
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& e = col_.get_edge(idx);
-    elem_t ret;
-    ConvertAny<T>::to(std::get<3>(e), ret);
+    elem_t ret = e.prop_.as<elem_t>();
     return ret;
   }
 
@@ -767,13 +766,13 @@ class MultiPropsEdgePropertyPathAccessor : public IAccessor {
 
   RTAny eval_path(size_t idx) const override {
     const auto& e = col_.get_edge(idx);
-    auto val = std::get<3>(e);
-    auto id = get_index(std::get<0>(e));
-    if (std::get<3>(e).type != PropertyType::RecordView()) {
+    auto val = e.prop_;
+    auto id = get_index(e.label_triplet_);
+    if (e.prop_.type.type_enum_ != RTAnyType::RTAnyTypeImpl::kRecordView) {
       CHECK(id == 0);
       return RTAny(val);
     } else {
-      auto rv = val.AsRecordView();
+      auto rv = val.as<RecordView>();
       CHECK(id != std::numeric_limits<size_t>::max());
       return RTAny(rv[id]);
     }
@@ -781,16 +780,17 @@ class MultiPropsEdgePropertyPathAccessor : public IAccessor {
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& e = col_.get_edge(idx);
-    auto val = std::get<3>(e);
-    auto id = get_index(std::get<0>(e));
-    if (std::get<3>(e).type != PropertyType::RecordView()) {
+    auto val = e.prop_;
+    auto id = get_index(e.label_triplet_);
+
+    if (e.prop_.type.type_enum_ != RTAnyType::RTAnyTypeImpl::kRecordView) {
       CHECK(id == 0);
-      elem_t ret;
-      ConvertAny<T>::to(val, ret);
+      elem_t ret = e.prop_.as<elem_t>();
+
       return ret;
 
     } else {
-      auto rv = val.AsRecordView();
+      auto rv = val.as<RecordView>();
       CHECK(id != std::numeric_limits<size_t>::max());
       auto tmp = rv[id];
       elem_t ret;
@@ -833,12 +833,12 @@ class EdgeLabelPathAccessor : public IAccessor {
 
   RTAny eval_path(size_t idx) const override {
     const auto& e = col_.get_edge(idx);
-    return RTAny(static_cast<int32_t>(std::get<0>(e).edge_label));
+    return RTAny(static_cast<int32_t>(e.label_triplet_.edge_label));
   }
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& e = col_.get_edge(idx);
-    return static_cast<int32_t>(std::get<0>(e).edge_label);
+    return static_cast<int32_t>(e.label_triplet_.edge_label);
   }
 
   std::shared_ptr<IContextColumnBuilder> builder() const override {

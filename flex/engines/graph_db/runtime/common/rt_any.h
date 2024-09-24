@@ -176,7 +176,7 @@ class SetImpl;
 
 class Set {
  public:
-  Set() : impl_(nullptr) {}
+  Set() = default;
   Set(SetImplBase* impl) : impl_(impl) {}
   void insert(const RTAny& val) { impl_->insert(val); }
   bool operator<(const Set& p) const { return *impl_ < *(p.impl_); }
@@ -247,6 +247,8 @@ class RTAnyType {
     kMap,
     kRelation,
     kSet,
+    kEmpty,
+    kRecordView,
   };
   static const RTAnyType kVertex;
   static const RTAnyType kEdge;
@@ -267,10 +269,11 @@ class RTAnyType {
   static const RTAnyType kMap;
   static const RTAnyType kRelation;
   static const RTAnyType kSet;
+  static const RTAnyType kEmpty;
+  static const RTAnyType kRecordView;
 
-  RTAnyType() : type_enum_(RTAnyTypeImpl::kUnknown) {}
-  RTAnyType(const RTAnyType& other)
-      : type_enum_(other.type_enum_), null_able_(other.null_able_) {}
+  RTAnyType() = default;
+  RTAnyType(const RTAnyType& other) = default;
   RTAnyType(RTAnyTypeImpl type) : type_enum_(type), null_able_(false) {}
   RTAnyType(RTAnyTypeImpl type, bool null_able)
       : type_enum_(type), null_able_(null_able) {}
@@ -280,6 +283,8 @@ class RTAnyType {
   RTAnyTypeImpl type_enum_;
   bool null_able_;
 };
+
+PropertyType rt_type_to_property_type(RTAnyType type);
 
 class Map {
  public:
@@ -296,18 +301,173 @@ class Map {
   MapImpl map_;
 };
 
-class EdgeRecordImpl {
- public:
-  EdgeRecordImpl() = default;
-  LabelTriplet label_triplet;
-  vid_t src, dst;
-  Any prop;
-  Direction dir;
+struct pod_string_view {
+  const char* data_;
+  size_t size_;
+  pod_string_view() = default;
+  pod_string_view(const pod_string_view& other) = default;
+  pod_string_view(const char* data) : data_(data), size_(strlen(data_)) {}
+  pod_string_view(const char* data, size_t size) : data_(data), size_(size) {}
+  pod_string_view(const std::string& str)
+      : data_(str.data()), size_(str.size()) {}
+  pod_string_view(const std::string_view& str)
+      : data_(str.data()), size_(str.size()) {}
+  const char* data() const { return data_; }
+  size_t size() const { return size_; }
+
+  std::string to_string() const { return std::string(data_, size_); }
+};
+// only for pod type
+struct EdgeData {
+  // PropertyType type;
+
+  template <typename T>
+  T as() const {
+    if constexpr (std::is_same_v<T, int32_t>) {
+      return value.i32_val;
+    } else if constexpr (std::is_same_v<T, int64_t>) {
+      return value.i64_val;
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
+      return value.u64_val;
+    } else if constexpr (std::is_same_v<T, double>) {
+      return value.f64_val;
+    } else if constexpr (std::is_same_v<T, bool>) {
+      return value.b_val;
+    } else if constexpr (std::is_same_v<T, std::string_view>) {
+      return value.str_val;
+    } else if constexpr (std::is_same_v<T, grape::EmptyType>) {
+      return grape::EmptyType();
+    } else {
+      LOG(FATAL) << "not support for " << typeid(T).name();
+    }
+  }
+
+  std::string to_string() const {
+    if (type == RTAnyType::kI32Value) {
+      return std::to_string(value.i32_val);
+    } else if (type == RTAnyType::kI64Value) {
+      return std::to_string(value.i64_val);
+    } else if (type == RTAnyType::kStringValue) {
+      return std::string(value.str_val.data(), value.str_val.size());
+      return value.str_val.to_string();
+    } else if (type == RTAnyType::kNull) {
+      return "NULL";
+    } else if (type == RTAnyType::kF64Value) {
+      return std::to_string(value.f64_val);
+    } else if (type == RTAnyType::kBoolValue) {
+      return value.b_val ? "true" : "false";
+    } else if (type == RTAnyType::kEmpty) {
+      return "";
+    } else {
+      LOG(FATAL) << "Unexpected property type: "
+                 << static_cast<int>(type.type_enum_);
+      return "";
+    }
+  }
+
+  EdgeData() = default;
+
+  EdgeData(const Any& any) {
+    switch (any.type.type_enum) {
+    case impl::PropertyTypeImpl::kInt64:
+      type = RTAnyType::kI64Value;
+      value.i64_val = any.value.l;
+      break;
+    case impl::PropertyTypeImpl::kInt32:
+      type = RTAnyType::kI32Value;
+      value.i32_val = any.value.i;
+      break;
+    case impl::PropertyTypeImpl::kStringView:
+      type = RTAnyType::kStringValue;
+      value.str_val = any.value.s;
+      break;
+    case impl::PropertyTypeImpl::kDouble:
+      type = RTAnyType::kF64Value;
+      value.f64_val = any.value.db;
+      break;
+    case impl::PropertyTypeImpl::kBool:
+      type = RTAnyType::kBoolValue;
+      value.b_val = any.value.b;
+      break;
+    case impl::PropertyTypeImpl::kEmpty:
+      type = RTAnyType::kEmpty;
+      break;
+    default:
+      LOG(FATAL) << "Unexpected property type: "
+                 << static_cast<int>(any.type.type_enum);
+    }
+  }
+
+  bool operator<(const EdgeData& e) const {
+    if (type == RTAnyType::kI64Value) {
+      return value.i64_val < e.value.i64_val;
+    } else if (type == RTAnyType::kI32Value) {
+      return value.i32_val < e.value.i32_val;
+    } else if (type == RTAnyType::kF64Value) {
+      return value.f64_val < e.value.f64_val;
+    } else if (type == RTAnyType::kBoolValue) {
+      return value.b_val < e.value.b_val;
+    } else if (type == RTAnyType::kStringValue) {
+      return std::string_view(value.str_val.data(), value.str_val.size()) <
+             std::string_view(e.value.str_val.data(), e.value.str_val.size());
+    } else {
+      return false;
+    }
+  }
+
+  bool operator==(const EdgeData& e) const {
+    if (type == RTAnyType::kI64Value) {
+      return value.i64_val == e.value.i64_val;
+    } else if (type == RTAnyType::kI32Value) {
+      return value.i32_val == e.value.i32_val;
+    } else if (type == RTAnyType::kF64Value) {
+      return value.f64_val == e.value.f64_val;
+    } else if (type == RTAnyType::kBoolValue) {
+      return value.b_val == e.value.b_val;
+    } else if (type == RTAnyType::kStringValue) {
+      return std::string_view(value.str_val.data(), value.str_val.size()) ==
+             std::string_view(e.value.str_val.data(), e.value.str_val.size());
+    } else {
+      return false;
+    }
+  }
+  RTAnyType type;
+
+  union {
+    int32_t i32_val;
+    int64_t i64_val;
+    uint64_t u64_val;
+    double f64_val;
+    bool b_val;
+    pod_string_view str_val;
+
+    // todo: make recordview as a pod type
+    // Date date_val;
+    // RecordView record;
+  } value;
 };
 class EdgeRecord {
  public:
-  EdgeRecordImpl* impl_;
+  bool operator<(const EdgeRecord& e) const {
+    return std::tie(src_, dst_, label_triplet_, prop_, dir_) <
+           std::tie(e.src_, e.dst_, e.label_triplet_, prop_, dir_);
+  }
+  bool operator==(const EdgeRecord& e) const {
+    return std::tie(src_, dst_, label_triplet_, prop_, dir_) ==
+           std::tie(e.src_, e.dst_, e.label_triplet_, prop_, dir_);
+  }
+  vid_t src() const { return src_; }
+  vid_t dst() const { return dst_; }
+  LabelTriplet label_triplet() const { return label_triplet_; }
+  EdgeData prop() const { return prop_; }
+  Direction dir() const { return dir_; }
+
+  LabelTriplet label_triplet_;
+  vid_t src_, dst_;
+  EdgeData prop_;
+  Direction dir_;
 };
+
 RTAnyType parse_from_ir_data_type(const ::common::IrDataType& dt);
 
 union RTAnyValue {
@@ -315,7 +475,7 @@ union RTAnyValue {
   RTAnyValue() {}
   ~RTAnyValue() {}
   VertexRecord vertex;
-  std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction> edge;
+  EdgeRecord edge;
   Relation relation;
   int64_t i64_val;
   uint64_t u64_val;
@@ -337,6 +497,7 @@ class RTAny {
   RTAny();
   RTAny(RTAnyType type);
   RTAny(const Any& val);
+  RTAny(const EdgeData& val);
   RTAny(const RTAny& rhs);
   RTAny(const Path& p);
   ~RTAny() = default;
@@ -348,8 +509,7 @@ class RTAny {
 
   static RTAny from_vertex(label_t l, vid_t v);
   static RTAny from_vertex(VertexRecord v);
-  static RTAny from_edge(
-      const std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction>& v);
+  static RTAny from_edge(const EdgeRecord& v);
 
   static RTAny from_relation(const Relation& r);
   static RTAny from_bool(bool v);
@@ -374,7 +534,7 @@ class RTAny {
   int64_t as_date32() const;
   double as_double() const;
   VertexRecord as_vertex() const;
-  const std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction>& as_edge() const;
+  const EdgeRecord& as_edge() const;
   const std::set<std::string>& as_string_set() const;
   std::string_view as_string() const;
   Path as_path() const;

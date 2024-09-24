@@ -23,6 +23,62 @@ namespace gs {
 namespace runtime {
 
 enum class EdgeColumnType { kSDSL, kSDML, kBDSL, kBDML, kUnKnown };
+static inline void get_edge_data(ColumnBase* prop, size_t idx,
+                                 EdgeData& edge_data) {
+  if (prop->type() == PropertyType::kEmpty) {
+    edge_data.type = RTAnyType::kEmpty;
+  } else if (prop->type() == PropertyType::kInt64) {
+    edge_data.type = RTAnyType::kI64Value;
+    edge_data.value.i64_val =
+        dynamic_cast<TypedColumn<int64_t>*>(prop)->get_view(idx);
+  } else if (prop->type() == PropertyType::kInt32) {
+    edge_data.type = RTAnyType::kI32Value;
+    edge_data.value.i32_val =
+        dynamic_cast<TypedColumn<int32_t>*>(prop)->get_view(idx);
+  } else if (prop->type() == PropertyType::kDouble) {
+    edge_data.type = RTAnyType::kF64Value;
+    edge_data.value.f64_val =
+        dynamic_cast<TypedColumn<double>*>(prop)->get_view(idx);
+  } else if (prop->type() == PropertyType::kBool) {
+    edge_data.type = RTAnyType::kBoolValue;
+    edge_data.value.b_val =
+        dynamic_cast<TypedColumn<bool>*>(prop)->get_view(idx);
+  } else if (prop->type() == PropertyType::kString) {
+    edge_data.type = RTAnyType::kStringValue;
+    edge_data.value.str_val =
+        dynamic_cast<TypedColumn<std::string_view>*>(prop)->get_view(idx);
+
+  } else if (prop->type() == PropertyType::kRecordView) {
+    // edge_data.type = RTAnyType::kRecordView;
+  } else {
+    edge_data.type = RTAnyType::kUnknown;
+  }
+}
+
+static inline void set_edge_data(ColumnBase* col, size_t idx,
+                                 const EdgeData& edge_data) {
+  if (edge_data.type == RTAnyType::kEmpty) {
+    return;
+  } else if (edge_data.type == RTAnyType::kI64Value) {
+    dynamic_cast<TypedColumn<int64_t>*>(col)->set_value(
+        idx, edge_data.value.i64_val);
+  } else if (edge_data.type == RTAnyType::kI32Value) {
+    dynamic_cast<TypedColumn<int32_t>*>(col)->set_value(
+        idx, edge_data.value.i32_val);
+  } else if (edge_data.type == RTAnyType::kF64Value) {
+    dynamic_cast<TypedColumn<double>*>(col)->set_value(idx,
+                                                       edge_data.value.f64_val);
+  } else if (edge_data.type == RTAnyType::kBoolValue) {
+    dynamic_cast<TypedColumn<bool>*>(col)->set_value(idx,
+                                                     edge_data.value.b_val);
+  } else if (edge_data.type == RTAnyType::kStringValue) {
+    dynamic_cast<TypedColumn<std::string_view>*>(col)->set_value(
+        idx, std::string_view(edge_data.value.str_val.data(),
+                              edge_data.value.str_val.size()));
+  } else {
+    // LOG(FATAL) << "not support for " << edge_data.type;
+  }
+}
 class IEdgeColumn : public IContextColumn {
  public:
   IEdgeColumn() = default;
@@ -32,8 +88,7 @@ class IEdgeColumn : public IContextColumn {
     return ContextColumnType::kEdge;
   }
 
-  virtual std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction> get_edge(
-      size_t idx) const = 0;
+  virtual EdgeRecord get_edge(size_t idx) const = 0;
 
   RTAny get_elem(size_t idx) const override {
     return RTAny::from_edge(this->get_edge(idx));
@@ -61,10 +116,14 @@ class SDSLEdgeColumn : public IEdgeColumn {
     prop_col_->open_in_memory("");
   }
 
-  std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction> get_edge(
-      size_t idx) const override {
-    return std::make_tuple(label_, edges_[idx].first, edges_[idx].second,
-                           prop_col_->get(idx), dir_);
+  EdgeRecord get_edge(size_t idx) const override {
+    EdgeRecord ret;
+    ret.label_triplet_ = label_;
+    ret.src_ = edges_[idx].first;
+    ret.dst_ = edges_[idx].second;
+    get_edge_data(prop_col_.get(), idx, ret.prop_);
+    ret.dir_ = dir_;
+    return ret;
   }
 
   size_t size() const override { return edges_.size(); }
@@ -176,10 +235,14 @@ class OptionalSDSLEdgeColumn : public IEdgeColumn {
     prop_col_->open_in_memory("");
   }
 
-  std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction> get_edge(
-      size_t idx) const override {
-    return std::make_tuple(label_, edges_[idx].first, edges_[idx].second,
-                           prop_col_->get(idx), dir_);
+  EdgeRecord get_edge(size_t idx) const override {
+    EdgeRecord ret;
+    ret.label_triplet_ = label_;
+    ret.src_ = edges_[idx].first;
+    ret.dst_ = edges_[idx].second;
+    get_edge_data(prop_col_.get(), idx, ret.prop_);
+    ret.dir_ = dir_;
+    return ret;
   }
 
   size_t size() const override { return edges_.size(); }
@@ -290,15 +353,15 @@ class OptionalSDSLEdgeColumnBuilder : public IOptionalContextColumnBuilder {
   void reserve(size_t size) override { edges_.reserve(size); }
   void push_back_elem(const RTAny& val) override {
     const auto& e = val.as_edge();
-    push_back_opt(std::get<1>(e), std::get<2>(e), std::get<3>(e));
+    push_back_opt(e.src_, e.dst_, e.prop_);
   }
-  void push_back_opt(vid_t src, vid_t dst, const Any& data) {
+  void push_back_opt(vid_t src, vid_t dst, const EdgeData& data) {
     edges_.emplace_back(src, dst);
     size_t len = edges_.size();
     if (prop_col_->size() <= len) {
       prop_col_->resize(len * 2);
     }
-    prop_col_->set_any(len - 1, data);
+    set_edge_data(prop_col_.get(), len - 1, data);
   }
 
   void push_back_null() override {
@@ -333,13 +396,17 @@ class BDSLEdgeColumn : public IEdgeColumn {
     prop_col_->open_in_memory("");
   }
 
-  std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction> get_edge(
-      size_t idx) const override {
+  EdgeRecord get_edge(size_t idx) const override {
     auto src = std::get<0>(edges_[idx]);
     auto dst = std::get<1>(edges_[idx]);
     auto dir = std::get<2>(edges_[idx]);
-    return std::make_tuple(label_, src, dst, prop_col_->get(idx),
-                           (dir ? Direction::kOut : Direction::kIn));
+    EdgeRecord ret;
+    ret.label_triplet_ = label_;
+    ret.src_ = src;
+    ret.dst_ = dst;
+    get_edge_data(prop_col_.get(), idx, ret.prop_);
+    ret.dir_ = (dir ? Direction::kOut : Direction::kIn);
+    return ret;
   }
 
   size_t size() const override { return edges_.size(); }
@@ -397,13 +464,17 @@ class OptionalBDSLEdgeColumn : public IEdgeColumn {
     prop_col_->open_in_memory("");
   }
 
-  std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction> get_edge(
-      size_t idx) const override {
+  EdgeRecord get_edge(size_t idx) const override {
     auto src = std::get<0>(edges_[idx]);
     auto dst = std::get<1>(edges_[idx]);
     auto dir = std::get<2>(edges_[idx]);
-    return std::make_tuple(label_, src, dst, prop_col_->get(idx),
-                           (dir ? Direction::kOut : Direction::kIn));
+    EdgeRecord ret;
+    ret.label_triplet_ = label_;
+    ret.src_ = src;
+    ret.dst_ = dst;
+    get_edge_data(prop_col_.get(), idx, ret.prop_);
+    ret.dir_ = (dir ? Direction::kOut : Direction::kIn);
+    return ret;
   }
 
   size_t size() const override { return edges_.size(); }
@@ -476,15 +547,18 @@ class SDMLEdgeColumn : public IEdgeColumn {
     }
   }
 
-  std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction> get_edge(
-      size_t idx) const override {
+  EdgeRecord get_edge(size_t idx) const override {
     auto& e = edges_[idx];
     auto index = std::get<0>(e);
     auto label = edge_labels_[index].first;
     auto offset = std::get<3>(e);
-    return std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction>(
-        label, std::get<1>(e), std::get<2>(e), prop_cols_[index]->get(offset),
-        dir_);
+    EdgeRecord ret;
+    ret.label_triplet_ = label;
+    ret.src_ = std::get<1>(e);
+    ret.dst_ = std::get<2>(e);
+    get_edge_data(prop_cols_[index].get(), offset, ret.prop_);
+    ret.dir_ = dir_;
+    return ret;
   }
 
   size_t size() const override { return edges_.size(); }
@@ -564,15 +638,18 @@ class BDMLEdgeColumn : public IEdgeColumn {
     }
   }
 
-  std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction> get_edge(
-      size_t idx) const override {
+  EdgeRecord get_edge(size_t idx) const override {
     auto& e = edges_[idx];
     auto index = std::get<0>(e);
     auto label = labels_[index].first;
     auto offset = std::get<3>(e);
-    return std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction>(
-        label, std::get<1>(e), std::get<2>(e), prop_cols_[index]->get(offset),
-        (std::get<4>(e) ? Direction::kOut : Direction::kIn));
+    EdgeRecord ret;
+    ret.label_triplet_ = label;
+    ret.src_ = std::get<1>(e);
+    ret.dst_ = std::get<2>(e);
+    get_edge_data(prop_cols_[index].get(), offset, ret.prop_);
+    ret.dir_ = (std::get<4>(e) ? Direction::kOut : Direction::kIn);
+    return ret;
   }
 
   size_t size() const override { return edges_.size(); }
@@ -651,9 +728,9 @@ class SDSLEdgeColumnBuilder : public IContextColumnBuilder {
   void reserve(size_t size) override { edges_.reserve(size); }
   void push_back_elem(const RTAny& val) override {
     const auto& e = val.as_edge();
-    push_back_opt(std::get<1>(e), std::get<2>(e), std::get<3>(e));
+    push_back_opt(e.src_, e.dst_, e.prop_);
   }
-  void push_back_opt(vid_t src, vid_t dst, const Any& data) {
+  void push_back_opt(vid_t src, vid_t dst, const EdgeData& data) {
     edges_.emplace_back(src, dst);
 
     size_t len = edges_.size();
@@ -665,7 +742,7 @@ class SDSLEdgeColumnBuilder : public IContextColumnBuilder {
       prop_col_->resize(len * 2);
       cap_ = len * 2;
     }
-    prop_col_->set_any(len - 1, data);
+    set_edge_data(prop_col_.get(), len - 1, data);
   }
   void push_back_endpoints(vid_t src, vid_t dst) {
     edges_.emplace_back(src, dst);
@@ -701,9 +778,8 @@ class SDSLEdgeColumnBuilderBeta : public IContextColumnBuilder {
   void reserve(size_t size) override { edges_.reserve(size); }
   void push_back_elem(const RTAny& val) override {
     const auto& e = val.as_edge();
-    Any any_edata(std::get<3>(e));
-    push_back_opt(std::get<1>(e), std::get<2>(e),
-                  AnyConverter<T>::from_any(any_edata));
+
+    push_back_opt(e.src_, e.dst_, e.prop_.as<T>());
   }
   void push_back_opt(vid_t src, vid_t dst, const T& data) {
     size_t len = edges_.size();
@@ -745,16 +821,16 @@ class BDSLEdgeColumnBuilder : public IContextColumnBuilder {
   void reserve(size_t size) override { edges_.reserve(size); }
   void push_back_elem(const RTAny& val) override {
     const auto& e = val.as_edge();
-    push_back_opt(std::get<1>(e), std::get<2>(e), std::get<3>(e),
-                  std::get<4>(e));
+    push_back_opt(e.src_, e.dst_, e.prop_, e.dir_);
   }
-  void push_back_opt(vid_t src, vid_t dst, const Any& data, Direction dir) {
+  void push_back_opt(vid_t src, vid_t dst, const EdgeData& data,
+                     Direction dir) {
     edges_.emplace_back(src, dst, dir == Direction::kOut);
     size_t len = edges_.size();
     if (len >= prop_col_->size()) {
       prop_col_->resize(len * 2);
     }
-    prop_col_->set_any(len - 1, data);
+    set_edge_data(prop_col_.get(), len - 1, data);
   }
   void push_back_endpoints(vid_t src, vid_t dst, Direction dir) {
     edges_.emplace_back(src, dst, dir == Direction::kOut);
@@ -794,18 +870,18 @@ class SDMLEdgeColumnBuilder : public IContextColumnBuilder {
   void reserve(size_t size) override { edges_.reserve(size); }
   void push_back_elem(const RTAny& val) override {
     const auto& e = val.as_edge();
-    auto label = std::get<0>(e);
+    auto label = e.label_triplet_;
     auto index = index_[label];
-    push_back_opt(index, std::get<1>(e), std::get<2>(e), std::get<3>(e));
+    push_back_opt(index, e.src_, e.dst_, e.prop_);
   }
-  void push_back_opt(int8_t index, vid_t src, vid_t dst, const Any& data) {
+  void push_back_opt(int8_t index, vid_t src, vid_t dst, const EdgeData& data) {
     edges_.emplace_back(index, src, dst, prop_cols_[index]->size());
     prop_cols_[index]->resize(prop_cols_[index]->size() + 1);
-    prop_cols_[index]->set_any(prop_cols_[index]->size() - 1, data);
+    set_edge_data(prop_cols_[index].get(), prop_cols_[index]->size() - 1, data);
   }
 
   void push_back_opt(LabelTriplet label, vid_t src, vid_t dst,
-                     const Any& data) {
+                     const EdgeData& data) {
     auto index = index_[label];
     push_back_opt(index, src, dst, data);
   }
@@ -845,28 +921,28 @@ class BDMLEdgeColumnBuilder : public IContextColumnBuilder {
   void reserve(size_t size) override { edges_.reserve(size); }
   void push_back_elem(const RTAny& val) override {
     const auto& e = val.as_edge();
-    auto label = std::get<0>(e);
+    auto label = e.label_triplet_;
     if (index_.find(label) == index_.end()) {
       index_[label] = labels_.size();
-      auto data = std::get<3>(e);
-      labels_.emplace_back(label, data.type);
-      prop_cols_.emplace_back(CreateColumn(data.type, StorageStrategy::kMem));
+      auto data = e.prop_;
+      auto type = rt_type_to_property_type(data.type);
+      labels_.emplace_back(label, type);
+      prop_cols_.emplace_back(CreateColumn(type, StorageStrategy::kMem));
       prop_cols_.back()->open_in_memory("");
     }
     auto index = index_[label];
-    push_back_opt(index, std::get<1>(e), std::get<2>(e), std::get<3>(e),
-                  std::get<4>(e));
+    push_back_opt(index, e.src_, e.dst_, e.prop_, e.dir_);
   }
-  void push_back_opt(int8_t index, vid_t src, vid_t dst, const Any& data,
+  void push_back_opt(int8_t index, vid_t src, vid_t dst, const EdgeData& data,
                      Direction dir) {
     edges_.emplace_back(index, src, dst, prop_cols_[index]->size(),
                         dir == Direction::kOut);
     prop_cols_[index]->resize(prop_cols_[index]->size() + 1);
-    prop_cols_[index]->set_any(prop_cols_[index]->size() - 1, data);
+    set_edge_data(prop_cols_[index].get(), prop_cols_[index]->size() - 1, data);
   }
 
-  void push_back_opt(LabelTriplet label, vid_t src, vid_t dst, const Any& data,
-                     Direction dir) {
+  void push_back_opt(LabelTriplet label, vid_t src, vid_t dst,
+                     const EdgeData& data, Direction dir) {
     auto index = index_[label];
     push_back_opt(index, src, dst, data, dir);
   }
@@ -905,16 +981,16 @@ class OptionalBDSLEdgeColumnBuilder : public IOptionalContextColumnBuilder {
   void reserve(size_t size) override { edges_.reserve(size); }
   void push_back_elem(const RTAny& val) override {
     const auto& e = val.as_edge();
-    push_back_opt(std::get<1>(e), std::get<2>(e), std::get<3>(e),
-                  std::get<4>(e));
+    push_back_opt(e.src_, e.dst_, e.prop_, e.dir_);
   }
-  void push_back_opt(vid_t src, vid_t dst, const Any& data, Direction dir) {
+  void push_back_opt(vid_t src, vid_t dst, const EdgeData& data,
+                     Direction dir) {
     edges_.emplace_back(src, dst, dir == Direction::kOut);
     size_t len = edges_.size();
     if (len >= prop_col_->size()) {
       prop_col_->resize(len * 2);
     }
-    prop_col_->set_any(len - 1, data);
+    set_edge_data(prop_col_.get(), len - 1, data);
   }
   void push_back_endpoints(vid_t src, vid_t dst, Direction dir) {
     edges_.emplace_back(src, dst, dir == Direction::kOut);
