@@ -23,11 +23,11 @@ import com.alibaba.graphscope.common.ir.rel.graph.*;
 import com.alibaba.graphscope.common.ir.rel.graph.match.GraphLogicalSingleMatch;
 import com.alibaba.graphscope.common.ir.rel.type.AliasNameWithId;
 import com.alibaba.graphscope.common.ir.rex.RexGraphVariable;
-import com.alibaba.graphscope.common.ir.rex.RexVariableAliasCollector;
 import com.alibaba.graphscope.common.ir.tools.AliasInference;
 import com.alibaba.graphscope.common.ir.tools.config.GraphOpt;
 import com.alibaba.graphscope.common.ir.type.GraphSchemaType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import org.apache.calcite.plan.GraphOptCluster;
@@ -77,22 +77,46 @@ public abstract class FlatJoinRule extends GraphShuttle {
                 tableScan.getCluster(), tableScan.getTraitSet(), new CommonOptTable(optimized));
     }
 
-    static @Nullable RexGraphVariable joinByOneColumn(RexNode condition) {
-        List<RexGraphVariable> vars =
-                condition.accept(new RexVariableAliasCollector<>(true, var -> var));
-        return (vars.size() == 2 && vars.get(0).getAliasId() == vars.get(1).getAliasId())
-                ? vars.get(0)
-                : null;
+    static @Nullable RexGraphVariable joinByOneColumn(RexNode condition, List<RexNode> others) {
+        List<RexGraphVariable> joinVars = Lists.newArrayList();
+        classifyJoinCondition(condition, joinVars, others);
+        return joinVars.size() == 1 ? joinVars.get(0) : null;
     }
 
-    static List<RexGraphVariable> joinByTwoColumns(RexNode condition) {
+    static List<RexGraphVariable> joinByTwoColumns(RexNode condition, List<RexNode> others) {
+        List<RexGraphVariable> joinVars = Lists.newArrayList();
+        classifyJoinCondition(condition, joinVars, others);
+        return joinVars.size() == 2 ? joinVars : ImmutableList.of();
+    }
+
+    /**
+     * analyze the join condition, separate the join condition by the same tag and other conditions
+     * @param joinVars
+     * @param others
+     */
+    static void classifyJoinCondition(
+            RexNode condition, List<RexGraphVariable> joinVars, List<RexNode> others) {
         List<RexNode> conditions = RelOptUtil.conjunctions(condition);
-        if (conditions.size() != 2) return ImmutableList.of();
-        RexGraphVariable var1 = joinByOneColumn(conditions.get(0));
-        RexGraphVariable var2 = joinByOneColumn(conditions.get(1));
-        return (var1 != null && var2 != null && var1.getAliasId() != var2.getAliasId())
-                ? ImmutableList.of(var1, var2)
-                : ImmutableList.of();
+        conditions.forEach(
+                c -> {
+                    boolean added = false;
+                    if (c.getKind() == SqlKind.EQUALS) {
+                        List<RexNode> operands = ((RexCall) c).getOperands();
+                        if (operands.size() == 2
+                                && operands.get(0) instanceof RexGraphVariable
+                                && operands.get(1) instanceof RexGraphVariable) {
+                            RexGraphVariable var1 = (RexGraphVariable) operands.get(0);
+                            RexGraphVariable var2 = (RexGraphVariable) operands.get(1);
+                            if (var1.getName().equals(var2.getName())) {
+                                joinVars.add(var1);
+                                added = true;
+                            }
+                        }
+                    }
+                    if (!added) {
+                        others.add(c);
+                    }
+                });
     }
 
     static boolean hasNodeFilter(RelNode top) {

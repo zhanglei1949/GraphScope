@@ -70,7 +70,8 @@ public class FlatJoinToIntersectRule extends FlatJoinRule {
     @Override
     protected boolean matches(LogicalJoin join) {
         // join by two column
-        List<RexGraphVariable> vars = joinByTwoColumns(join.getCondition());
+        // todo: add other join conditions
+        List<RexGraphVariable> vars = joinByTwoColumns(join.getCondition(), Lists.newArrayList());
         if (vars.size() != 2) return false;
         List<GraphLogicalSingleMatch> matches = Lists.newArrayList();
         getMatchBeforeJoin(join.getRight(), matches);

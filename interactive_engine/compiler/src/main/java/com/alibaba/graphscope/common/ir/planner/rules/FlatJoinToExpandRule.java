@@ -24,8 +24,10 @@ import com.google.common.collect.Lists;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 
 import java.util.List;
 
@@ -36,11 +38,13 @@ public class FlatJoinToExpandRule extends FlatJoinRule {
     private AliasNameWithId leftAlias;
     // whether the 'MatchOpt' in the right plan is optional
     private boolean optional;
+    private List<RexNode> otherJoinConditions;
 
     @Override
     protected boolean matches(LogicalJoin join) {
         RexNode condition = join.getCondition();
-        RexGraphVariable var = joinByOneColumn(condition);
+        List<RexNode> others = Lists.newArrayList();
+        RexGraphVariable var = joinByOneColumn(condition, others);
         if (var == null) return false;
         List<GraphLogicalSingleMatch> matches = Lists.newArrayList();
         getMatchBeforeJoin(join.getRight(), matches);
@@ -56,6 +60,7 @@ public class FlatJoinToExpandRule extends FlatJoinRule {
             left = join.getLeft();
             leftAlias = new AliasNameWithId(var.getName().split("\\.")[0], var.getAliasId());
             optional = join.getJoinType() == JoinRelType.LEFT;
+            otherJoinConditions = others;
         }
         return contains;
     }
@@ -83,7 +88,17 @@ public class FlatJoinToExpandRule extends FlatJoinRule {
                 sentence = sentence.accept(new SetOptional());
             }
             // replace the source operator of the sentence with the left plan
-            return sentence.accept(new ReplaceInput(leftAlias, left));
+            RelNode expand = sentence.accept(new ReplaceInput(leftAlias, left));
+            // if there are other join conditions, add a filter operator on top of the expand
+            // operator
+            if (!otherJoinConditions.isEmpty()) {
+                RexNode otherJoinCondition =
+                        RexUtil.composeConjunction(
+                                match.getCluster().getRexBuilder(), otherJoinConditions);
+                LogicalFilter filter = LogicalFilter.create(expand, otherJoinCondition);
+                expand = filter;
+            }
+            return expand;
         }
     }
 }
