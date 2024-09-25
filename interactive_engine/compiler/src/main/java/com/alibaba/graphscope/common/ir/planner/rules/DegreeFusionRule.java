@@ -21,6 +21,7 @@ import com.alibaba.graphscope.common.ir.rel.graph.GraphLogicalExpand;
 import com.alibaba.graphscope.common.ir.rel.graph.GraphLogicalGetV;
 import com.alibaba.graphscope.common.ir.rel.graph.GraphPhysicalExpand;
 import com.alibaba.graphscope.common.ir.rel.type.group.GraphAggCall;
+import com.alibaba.graphscope.common.ir.rex.RexGraphVariable;
 import com.alibaba.graphscope.common.ir.tools.GraphBuilder;
 import com.alibaba.graphscope.common.ir.tools.config.GraphOpt;
 import com.google.common.base.Preconditions;
@@ -257,6 +258,163 @@ public abstract class DegreeFusionRule<C extends RelRule.Config> extends RelRule
             @Override
             public ExpandGetVDegreeFusionRule toRule() {
                 return new ExpandGetVDegreeFusionRule(this);
+            }
+
+            @Override
+            public RelBuilderFactory relBuilderFactory() {
+                return this.builderFactory;
+            }
+        }
+    }
+
+    // transform expand + getV + groupCount to expandDegree
+    public static class ExpandGetVDegreeFusionRule2
+            extends DegreeFusionRule<ExpandGetVDegreeFusionRule2.Config> {
+        protected ExpandGetVDegreeFusionRule2(Config config) {
+            super(config);
+        }
+
+        @Override
+        public void onMatch(RelOptRuleCall call) {
+            GraphLogicalAggregate count = call.rel(0);
+            GraphLogicalExpand expand = call.rel(2);
+            GraphLogicalAggregate dedup = call.rel(3);
+            GraphBuilder builder = (GraphBuilder) call.builder();
+            call.transformTo(transform(count, expand, dedup, builder));
+        }
+
+        private RelNode transform(
+                GraphLogicalAggregate count,
+                GraphLogicalExpand expand,
+                GraphLogicalAggregate dedup,
+                GraphBuilder builder) {
+            int groupKeyCount = count.getGroupKey().groupKeyCount();
+            if (groupKeyCount != 1) return count;
+            RexGraphVariable key = (RexGraphVariable) count.getGroupKey().getVariables().get(0);
+            if (key.getProperty() != null
+                    || key.getAliasId() != expand.getStartAlias().getAliasId()) {
+                return count;
+            }
+            if (!dedupByKey(dedup, key.getAliasId())) {
+                return count;
+            }
+            Preconditions.checkArgument(
+                    !count.getAggCalls().isEmpty(),
+                    "there should be at least one aggregate call in count");
+            String countAlias = count.getAggCalls().get(0).getAlias();
+            RelNode expandDegree =
+                    GraphPhysicalExpand.create(
+                            expand.getCluster(),
+                            ImmutableList.of(),
+                            expand.getInput(0),
+                            expand,
+                            null,
+                            GraphOpt.PhysicalExpandOpt.DEGREE,
+                            countAlias);
+            builder.push(expandDegree);
+            return builder.project(
+                            ImmutableList.of(
+                                    builder.variable(expand.getStartAlias().getAliasName()),
+                                    builder.variable(countAlias)))
+                    .build();
+        }
+
+        private boolean dedupByKey(GraphLogicalAggregate dedup, int keyAliasId) {
+            if (dedup.getAggCalls().isEmpty() && dedup.getGroupKey().groupKeyCount() == 1) {
+                RexGraphVariable key = (RexGraphVariable) dedup.getGroupKey().getVariables().get(0);
+                return key.getAliasId() == keyAliasId;
+            }
+            return false;
+        }
+
+        public static class Config implements RelRule.Config {
+            public static ExpandGetVDegreeFusionRule2.Config DEFAULT =
+                    new ExpandGetVDegreeFusionRule2.Config()
+                            .withOperandSupplier(
+                                    b0 ->
+                                            b0.operand(GraphLogicalAggregate.class)
+                                                    // should be global count and is not distinct
+                                                    .predicate(
+                                                            (GraphLogicalAggregate aggregate) -> {
+                                                                List<GraphAggCall> calls =
+                                                                        aggregate.getAggCalls();
+                                                                return calls.size() == 1
+                                                                        && calls.get(0)
+                                                                                        .getAggFunction()
+                                                                                        .getKind()
+                                                                                == SqlKind.COUNT
+                                                                        && !calls.get(0)
+                                                                                .isDistinct();
+                                                            })
+                                                    .oneInput(
+                                                            b1 ->
+                                                                    // should be getV which opt is
+                                                                    // not BOTH and without any
+                                                                    // filters
+                                                                    b1.operand(
+                                                                                    GraphLogicalGetV
+                                                                                            .class)
+                                                                            .predicate(
+                                                                                    (GraphLogicalGetV
+                                                                                                    getV) ->
+                                                                                            getV
+                                                                                                                    .getOpt()
+                                                                                                            != GraphOpt
+                                                                                                                    .GetV
+                                                                                                                    .BOTH
+                                                                                                    && ObjectUtils
+                                                                                                            .isEmpty(
+                                                                                                                    getV
+                                                                                                                            .getFilters()))
+                                                                            .oneInput(
+                                                                                    b2 ->
+                                                                                            b2.operand(
+                                                                                                            GraphLogicalExpand
+                                                                                                                    .class)
+                                                                                                    .oneInput(
+                                                                                                            b3 ->
+                                                                                                                    b3.operand(
+                                                                                                                                    GraphLogicalAggregate
+                                                                                                                                            .class)
+                                                                                                                            .anyInputs()))));
+            private RelRule.OperandTransform operandSupplier;
+            private @Nullable String description;
+            private RelBuilderFactory builderFactory;
+
+            @Override
+            public ExpandGetVDegreeFusionRule2.Config withRelBuilderFactory(
+                    RelBuilderFactory relBuilderFactory) {
+                this.builderFactory = relBuilderFactory;
+                return this;
+            }
+
+            @Override
+            public ExpandGetVDegreeFusionRule2.Config withDescription(
+                    @org.checkerframework.checker.nullness.qual.Nullable String s) {
+                this.description = s;
+                return this;
+            }
+
+            @Override
+            public ExpandGetVDegreeFusionRule2.Config withOperandSupplier(
+                    OperandTransform operandTransform) {
+                this.operandSupplier = operandTransform;
+                return this;
+            }
+
+            @Override
+            public OperandTransform operandSupplier() {
+                return this.operandSupplier;
+            }
+
+            @Override
+            public @org.checkerframework.checker.nullness.qual.Nullable String description() {
+                return this.description;
+            }
+
+            @Override
+            public ExpandGetVDegreeFusionRule2 toRule() {
+                return new ExpandGetVDegreeFusionRule2(this);
             }
 
             @Override

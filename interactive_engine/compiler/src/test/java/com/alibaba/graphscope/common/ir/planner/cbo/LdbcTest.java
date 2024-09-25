@@ -29,8 +29,9 @@ public class LdbcTest {
                                 "CBO",
                                 "graph.planner.rules",
                                 "NotMatchToAntiJoinRule, FilterIntoJoinRule, FilterMatchRule,"
-                                        + " FlatJoinToExpandRule, FlatJoinToIntersectRule,"
-                                        + " ExtendIntersectRule, ExpandGetVFusionRule"));
+                                        + " DegreeFusionRule, FlatJoinToExpandRule,"
+                                        + " FlatJoinToIntersectRule, ExtendIntersectRule,"
+                                        + " ExpandGetVFusionRule"));
         optimizer = new GraphRelOptimizer(configs);
         irMeta =
                 Utils.mockIrMeta(
@@ -897,6 +898,50 @@ public class LdbcTest {
                     + " tables=[PERSON]}], alias=[person], opt=[VERTEX], uniqueKeyFilters=[=(_.id,"
                     + " ?0)])",
                 after.explain().trim());
+    }
+
+    @Test
+    public void ldbc10_2_test() {
+        GraphBuilder builder = Utils.mockGraphBuilder(optimizer, irMeta);
+        RelNode before =
+                com.alibaba.graphscope.cypher.antlr4.Utils.eval(
+                                "MATCH (person:PERSON {id: $personId})-[:KNOWS*2..3]-(friend:"
+                                    + " PERSON)\n"
+                                    + "WHERE \n"
+                                    + "        NOT friend=person \n"
+                                    + "        AND NOT (friend:PERSON)-[:KNOWS]-(person :PERSON"
+                                    + " {id: $personId})\n"
+                                    + "WITH \n"
+                                    + "        person,  \n"
+                                    + "        friend, \n"
+                                    + "        friend.birthday as birthday\n"
+                                    + "WITH DISTINCT friend\n"
+                                    + "\n"
+                                    + "OPTIONAL MATCH (friend :"
+                                    + " PERSON)<-[:HASCREATOR]-(post:POST)\n"
+                                    + "WITH friend, count(post) as postCount\n"
+                                    + "\n"
+                                    + "OPTIONAL MATCH"
+                                    + " (friend)<-[:HASCREATOR]-(post1:POST)-[:HASTAG]->(tag:TAG)<-[:HASINTEREST]-(person:"
+                                    + " PERSON {id: $personId})\n"
+                                    + "WITH friend, postCount, count(distinct post1) as"
+                                    + " commonPostCount\n"
+                                    + "WITH friend, commonPostCount - (postCount - commonPostCount)"
+                                    + " AS commonInterestScore\n"
+                                    + "ORDER BY commonInterestScore DESC, friend.id ASC\n"
+                                    + "LIMIT 10\n"
+                                    + "\n"
+                                    + "MATCH (friend:PERSON)-[:ISLOCATEDIN]->(city:PLACE)\n"
+                                    + "\n"
+                                    + "RETURN friend.id AS personId,\n"
+                                    + "       friend.firstName AS personFirstName,\n"
+                                    + "       friend.lastName AS personLastName,\n"
+                                    + "       commonInterestScore,\n"
+                                    + "       friend.gender AS personGender,\n"
+                                    + "       city.name AS personCityName;",
+                                builder)
+                        .build();
+        RelNode after = optimizer.optimize(before, new GraphIOProcessor(builder, irMeta));
     }
 
     @Test

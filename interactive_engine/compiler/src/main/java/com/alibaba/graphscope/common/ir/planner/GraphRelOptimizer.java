@@ -316,6 +316,10 @@ public class GraphRelOptimizer {
                                     ruleConfigs.add(
                                             ExpandGetVFusionRule.PathBaseExpandGetVFusionRule.Config
                                                     .DEFAULT);
+                                } else if (k.equals(DegreeFusionRule.class.getSimpleName())) {
+                                    ruleConfigs.add(
+                                            DegreeFusionRule.ExpandGetVDegreeFusionRule2.Config
+                                                    .DEFAULT);
                                 }
                             });
             ruleConfigs.forEach(
