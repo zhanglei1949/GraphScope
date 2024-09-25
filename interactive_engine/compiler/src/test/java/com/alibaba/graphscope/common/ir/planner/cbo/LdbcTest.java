@@ -29,9 +29,9 @@ public class LdbcTest {
                                 "CBO",
                                 "graph.planner.rules",
                                 "NotMatchToAntiJoinRule, FilterIntoJoinRule, FilterMatchRule,"
-                                        + " DegreeFusionRule, FlatJoinToExpandRule,"
-                                        + " FlatJoinToIntersectRule, ExtendIntersectRule,"
-                                        + " ExpandGetVFusionRule"));
+                                    + " FlatJoinToExpandRule, FlatJoinToIntersectRule,"
+                                    + " ExtendIntersectRule, DegreeFusionRule, "
+                                    + " ExpandGetVFusionRule"));
         optimizer = new GraphRelOptimizer(configs);
         irMeta =
                 Utils.mockIrMeta(
