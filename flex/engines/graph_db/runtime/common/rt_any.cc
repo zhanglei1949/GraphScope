@@ -169,6 +169,9 @@ RTAny::RTAny(const EdgeData& val) {
   } else if (val.type == RTAnyType::kBoolValue) {
     type_ = RTAnyType::kBoolValue;
     value_.b_val = val.value.b_val;
+  } else if (val.type == RTAnyType::kDate32) {
+    type_ = RTAnyType::kDate32;
+    value_.i64_val = val.value.i64_val;
   } else {
     LOG(FATAL) << "Any value: " << val.to_string()
                << ", type = " << static_cast<int>(val.type.type_enum_);
@@ -382,7 +385,8 @@ int RTAny::as_int32() const {
   return value_.i32_val;
 }
 int64_t RTAny::as_int64() const {
-  CHECK(type_ == RTAnyType::kI64Value);
+  CHECK(type_ == RTAnyType::kI64Value || type_ == RTAnyType::kDate32)
+      << "type_ = " << static_cast<int>(type_.type_enum_);
   return value_.i64_val;
 }
 uint64_t RTAny::as_uint64() const {

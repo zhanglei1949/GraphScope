@@ -337,6 +337,8 @@ struct EdgeData {
       return value.str_val;
     } else if constexpr (std::is_same_v<T, grape::EmptyType>) {
       return grape::EmptyType();
+    } else if constexpr (std::is_same_v<T, Date>) {
+      return Date(value.i64_val);
     } else {
       LOG(FATAL) << "not support for " << typeid(T).name();
     }
@@ -358,6 +360,8 @@ struct EdgeData {
       return value.b_val ? "true" : "false";
     } else if (type == RTAnyType::kEmpty) {
       return "";
+    } else if (type == RTAnyType::kDate32) {
+      return std::to_string(value.i64_val);
     } else {
       LOG(FATAL) << "Unexpected property type: "
                  << static_cast<int>(type.type_enum_);
@@ -392,6 +396,10 @@ struct EdgeData {
     case impl::PropertyTypeImpl::kEmpty:
       type = RTAnyType::kEmpty;
       break;
+    case impl::PropertyTypeImpl::kDate:
+      type = RTAnyType::kDate32;
+      value.i64_val = any.value.d.milli_second;
+      break;
     default:
       LOG(FATAL) << "Unexpected property type: "
                  << static_cast<int>(any.type.type_enum);
@@ -410,6 +418,8 @@ struct EdgeData {
     } else if (type == RTAnyType::kStringValue) {
       return std::string_view(value.str_val.data(), value.str_val.size()) <
              std::string_view(e.value.str_val.data(), e.value.str_val.size());
+    } else if (type == RTAnyType::kDate32) {
+      return value.i64_val < e.value.i64_val;
     } else {
       return false;
     }
@@ -427,6 +437,8 @@ struct EdgeData {
     } else if (type == RTAnyType::kStringValue) {
       return std::string_view(value.str_val.data(), value.str_val.size()) ==
              std::string_view(e.value.str_val.data(), e.value.str_val.size());
+    } else if (type == RTAnyType::kDate32) {
+      return value.i64_val == e.value.i64_val;
     } else {
       return false;
     }
@@ -440,9 +452,9 @@ struct EdgeData {
     double f64_val;
     bool b_val;
     pod_string_view str_val;
+    Date date_val;
 
     // todo: make recordview as a pod type
-    // Date date_val;
     // RecordView record;
   } value;
 };

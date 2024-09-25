@@ -48,6 +48,10 @@ static inline void get_edge_data(ColumnBase* prop, size_t idx,
     edge_data.value.str_val =
         dynamic_cast<TypedColumn<std::string_view>*>(prop)->get_view(idx);
 
+  } else if (prop->type() == PropertyType::kDate) {
+    edge_data.type = RTAnyType::kDate32;
+    edge_data.value.i64_val =
+        dynamic_cast<TypedColumn<Date>*>(prop)->get_view(idx).milli_second;
   } else if (prop->type() == PropertyType::kRecordView) {
     // edge_data.type = RTAnyType::kRecordView;
   } else {
@@ -75,6 +79,9 @@ static inline void set_edge_data(ColumnBase* col, size_t idx,
     dynamic_cast<TypedColumn<std::string_view>*>(col)->set_value(
         idx, std::string_view(edge_data.value.str_val.data(),
                               edge_data.value.str_val.size()));
+  } else if (edge_data.type == RTAnyType::kDate32) {
+    dynamic_cast<TypedColumn<Date>*>(col)->set_value(
+        idx, Date(edge_data.value.i64_val));
   } else {
     // LOG(FATAL) << "not support for " << edge_data.type;
   }
