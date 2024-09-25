@@ -118,6 +118,9 @@ class SLVertexColumn : public IVertexColumn {
 
   void generate_dedup_offset(std::vector<size_t>& offsets) const override;
 
+  std::pair<std::shared_ptr<IContextColumn>, std::vector<std::vector<size_t>>>
+  generate_aggregate_offset() const override;
+
   template <typename FUNC_T>
   void foreach_vertex(const FUNC_T& func) const {
     size_t num = vertices_.size();
@@ -204,6 +207,9 @@ class OptionalSLVertexColumn : public IVertexColumn {
   }
 
   void generate_dedup_offset(std::vector<size_t>& offsets) const override;
+
+  std::pair<std::shared_ptr<IContextColumn>, std::vector<std::vector<size_t>>>
+  generate_aggregate_offset() const override;
 
   template <typename FUNC_T>
   void foreach_vertex(const FUNC_T& func) const {

@@ -169,13 +169,14 @@ int main(int argc, char** argv) {
   }
   t1 += grape::GetCurrentTime();
 
+  // gs::runtime::OpCost::get().clear();
   // double t2 = -grape::GetCurrentTime();
   // for (int i = 0; i < query_num; ++i) {
   //   auto& m = map[i % params_num];
   //   auto ctx = gs::runtime::runtime_eval(pb, txn, m);
   //   outputs[i].clear();
   //   gs::Encoder output(outputs[i]);
-  //   gs::runtime::eval_sink(ctx, txn, output);
+  //   gs::runtime::eval_sink_beta(ctx, txn, output);
   // }
   // t2 += grape::GetCurrentTime();
 

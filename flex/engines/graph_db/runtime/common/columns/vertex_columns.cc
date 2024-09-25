@@ -14,6 +14,7 @@
  */
 
 #include "flex/engines/graph_db/runtime/common/columns/vertex_columns.h"
+#include "parallel_hashmap/phmap.h"
 
 namespace gs {
 namespace runtime {
@@ -102,6 +103,31 @@ void SLVertexColumn::generate_dedup_offset(std::vector<size_t>& offsets) const {
     }
   }
 #endif
+}
+
+std::pair<std::shared_ptr<IContextColumn>, std::vector<std::vector<size_t>>>
+SLVertexColumn::generate_aggregate_offset() const {
+  std::vector<std::vector<size_t>> offsets;
+  SLVertexColumnBuilder builder(label());
+
+  // std::unordered_map<vid_t, size_t> vertex_to_offset;
+  phmap::flat_hash_map<vid_t, size_t> vertex_to_offset;
+  size_t idx = 0;
+  for (auto v : vertices_) {
+    auto iter = vertex_to_offset.find(v);
+    if (iter == vertex_to_offset.end()) {
+      builder.push_back_opt(v);
+      vertex_to_offset.emplace(v, offsets.size());
+      std::vector<size_t> tmp;
+      tmp.push_back(idx);
+      offsets.emplace_back(std::move(tmp));
+    } else {
+      offsets[iter->second].push_back(idx);
+    }
+    ++idx;
+  }
+
+  return std::make_pair(builder.finish(), std::move(offsets));
 }
 
 std::shared_ptr<IContextColumn> SLVertexColumn::union_col(
@@ -231,6 +257,31 @@ void OptionalSLVertexColumn::generate_dedup_offset(
   if (flag) {
     offsets.push_back(idx);
   }
+}
+
+std::pair<std::shared_ptr<IContextColumn>, std::vector<std::vector<size_t>>>
+OptionalSLVertexColumn::generate_aggregate_offset() const {
+  std::vector<std::vector<size_t>> offsets;
+  OptionalSLVertexColumnBuilder builder(label_);
+
+  // std::unordered_map<vid_t, size_t> vertex_to_offset;
+  phmap::flat_hash_map<vid_t, size_t> vertex_to_offset;
+  size_t idx = 0;
+  for (auto v : vertices_) {
+    auto iter = vertex_to_offset.find(v);
+    if (iter == vertex_to_offset.end()) {
+      builder.push_back_opt(v);
+      vertex_to_offset.emplace(v, offsets.size());
+      std::vector<size_t> tmp;
+      tmp.push_back(idx);
+      offsets.emplace_back(std::move(tmp));
+    } else {
+      offsets[iter->second].push_back(idx);
+    }
+    ++idx;
+  }
+
+  return std::make_pair(builder.finish(), std::move(offsets));
 }
 
 std::shared_ptr<IContextColumn> OptionalSLVertexColumn::shuffle(

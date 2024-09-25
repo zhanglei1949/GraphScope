@@ -14,6 +14,7 @@
  */
 
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
+#include "flex/engines/graph_db/runtime/adhoc/runtime.h"
 #include "flex/engines/graph_db/runtime/adhoc/utils.h"
 #include "flex/engines/graph_db/runtime/adhoc/var.h"
 #include "flex/engines/graph_db/runtime/common/columns/value_columns.h"
@@ -63,7 +64,9 @@ AggrKind parse_aggregate(physical::GroupBy_AggFunc::Aggregate v) {
 struct AggFunc {
   AggFunc(const physical::GroupBy_AggFunc& opr, const ReadTransaction& txn,
           const Context& ctx)
-      : aggregate(parse_aggregate(opr.aggregate())), alias(-1) {
+      : aggregate(parse_aggregate(opr.aggregate())),
+        alias(-1),
+        single_tag(false) {
     if (opr.has_alias()) {
       alias = opr.alias().value();
     }
@@ -71,36 +74,73 @@ struct AggFunc {
     for (int i = 0; i < var_num; ++i) {
       vars.emplace_back(txn, ctx, opr.vars(i), VarType::kPathVar);
     }
+
+    if (var_num == 1) {
+      const auto& v = opr.vars(0);
+      if (v.has_tag() && !v.has_property() && v.tag().has_id()) {
+        tag_id = v.tag().id();
+        if (ctx.exist(tag_id) &&
+            ctx.get(tag_id)->elem_type() == vars[0].type()) {
+          single_tag = true;
+        }
+      }
+    }
   }
 
   std::vector<Var> vars;
   AggrKind aggregate;
   int alias;
+
+  bool single_tag;
+  int tag_id;
 };
 
 struct AggKey {
   AggKey(const physical::GroupBy_KeyAlias& opr, const ReadTransaction& txn,
          const Context& ctx)
-      : key(txn, ctx, opr.key(), VarType::kPathVar), alias(-1) {
+      : key(txn, ctx, opr.key(), VarType::kPathVar), alias(-1), is_tag(false) {
     if (opr.has_alias()) {
       alias = opr.alias().value();
+    }
+    if (opr.key().has_tag() && opr.key().tag().has_id() &&
+        !opr.key().has_property()) {
+      is_tag = true;
+      tag_id = opr.key().tag().id();
     }
   }
 
   Var key;
   int alias;
-  std::shared_ptr<IContextColumnBuilder> column_builder;
+
+  bool is_tag;
+  int tag_id;
 };
 
 std::pair<std::vector<std::vector<size_t>>, Context> generate_aggregate_indices(
-    const std::vector<AggKey>& keys, size_t row_num,
+    const Context& ctx, const std::vector<AggKey>& keys, size_t row_num,
     const std::vector<AggFunc>& functions) {
+  size_t keys_num = keys.size();
+#if 1
+  if (keys_num == 1 && keys[0].is_tag) {
+    auto key_column = ctx.get(keys[0].tag_id);
+    if (key_column != nullptr) {
+      auto ret = key_column->generate_aggregate_offset();
+      if (ret.first != nullptr) {
+        Context ret_ctx;
+        ret_ctx.set(keys[0].alias, ret.first);
+        ret_ctx.append_tag_id(keys[0].alias);
+
+        // LOG(INFO) << "hit generate...";
+        return std::make_pair(std::move(ret.second), std::move(ret_ctx));
+      }
+    }
+  }
+#endif
+
+  std::vector<std::vector<size_t>> ret;
+  std::vector<std::shared_ptr<IContextColumnBuilder>> keys_columns;
   std::unordered_map<std::string_view, size_t> sig_to_root;
   std::vector<std::vector<char>> root_list;
-  std::vector<std::vector<size_t>> ret;
-
-  size_t keys_num = keys.size();
-  std::vector<std::shared_ptr<IContextColumnBuilder>> keys_columns;
   std::vector<RTAny> keys_row(keys_num);
   for (size_t k_i = 0; k_i < keys_num; ++k_i) {
     auto type = keys[k_i].key.type();
@@ -167,7 +207,8 @@ std::pair<std::vector<std::vector<size_t>>, Context> generate_aggregate_indices(
 
   Context ret_ctx;
   for (size_t k_i = 0; k_i < keys_num; ++k_i) {
-    ret_ctx.set(keys[k_i].alias, keys_columns[k_i]->finish());
+    auto col = keys_columns[k_i]->finish();
+    ret_ctx.set(keys[k_i].alias, col);
     ret_ctx.append_tag_id(keys[k_i].alias);
   }
 
@@ -185,6 +226,32 @@ std::shared_ptr<IContextColumn> numeric_sum(
     NT s = 0;
     for (auto idx : vec) {
       s += TypedConverter<NT>::to_typed(var.get(idx));
+    }
+    builder.push_back_opt(s);
+  }
+  return builder.finish();
+}
+
+template <typename NT>
+std::shared_ptr<IContextColumn> typed_numeric_sum(
+    std::shared_ptr<IContextColumn> input_column,
+    const std::vector<std::vector<size_t>>& to_aggregate) {
+  if (input_column == nullptr) {
+    return nullptr;
+  }
+  ValueColumnBuilder<NT> builder;
+  size_t col_size = to_aggregate.size();
+  builder.reserve(col_size);
+  auto casted_column = std::dynamic_pointer_cast<ValueColumn<NT>>(input_column);
+  if (casted_column == nullptr) {
+    return nullptr;
+  }
+  const auto& input_vec = casted_column->data();
+  for (size_t k = 0; k < col_size; ++k) {
+    auto& vec = to_aggregate[k];
+    NT s = 0;
+    for (auto idx : vec) {
+      s += input_vec[idx];
     }
     builder.push_back_opt(s);
   }
@@ -252,10 +319,10 @@ std::shared_ptr<IContextColumn> general_count_distinct(
 std::shared_ptr<IContextColumn> general_count(
     const std::vector<Var>& vars,
     const std::vector<std::vector<size_t>>& to_aggregate) {
+  double tx = -grape::GetCurrentTime();
   ValueColumnBuilder<int64_t> builder;
   if (vars.size() == 1) {
     if (vars[0].is_optional()) {
-      //      LOG(INFO) << "count optional";
       size_t col_size = to_aggregate.size();
       builder.reserve(col_size);
       for (size_t k = 0; k < col_size; ++k) {
@@ -269,7 +336,10 @@ std::shared_ptr<IContextColumn> general_count(
         }
         builder.push_back_opt(s);
       }
-      return builder.finish();
+      auto ret = builder.finish();
+      tx += grape::GetCurrentTime();
+      OpCost::get().table["general_count_optional"] += tx;
+      return ret;
     }
   }
   size_t col_size = to_aggregate.size();
@@ -278,7 +348,10 @@ std::shared_ptr<IContextColumn> general_count(
     auto& vec = to_aggregate[k];
     builder.push_back_opt(vec.size());
   }
-  return builder.finish();
+  auto ret = builder.finish();
+  tx += grape::GetCurrentTime();
+  OpCost::get().table["general_count"] += tx;
+  return ret;
 }
 
 std::shared_ptr<IContextColumn> vertex_first(
@@ -372,6 +445,35 @@ std::shared_ptr<IContextColumn> string_to_set(
       elem.insert(std::string(var.get(idx).as_string()));
     }
     builder.push_back_opt(std::move(elem));
+  }
+  return builder.finish();
+}
+
+std::shared_ptr<IContextColumn> typed_vertex_to_set(
+    std::shared_ptr<IContextColumn> input,
+    const std::vector<std::vector<size_t>>& to_aggregate) {
+  auto vertex_col = std::dynamic_pointer_cast<IVertexColumn>(input);
+  if (vertex_col == nullptr) {
+    return nullptr;
+  }
+  auto sl_vertex_col = std::dynamic_pointer_cast<SLVertexColumn>(vertex_col);
+  if (sl_vertex_col == nullptr) {
+    return nullptr;
+  }
+  const auto& vertex_col_ref = *sl_vertex_col;
+  size_t col_size = to_aggregate.size();
+  SetValueColumnBuilder<VertexRecord> builder(col_size);
+
+  builder.reserve(col_size);
+
+  for (size_t k = 0; k < col_size; ++k) {
+    auto& vec = to_aggregate[k];
+    auto set = builder.allocate_set();
+    auto set_impl = dynamic_cast<SetImpl<VertexRecord>*>(set.impl_);
+    for (auto idx : vec) {
+      set_impl->insert(vertex_col_ref.get_vertex(idx));
+    }
+    builder.push_back_opt(set);
   }
   return builder.finish();
 }
@@ -485,13 +587,22 @@ std::shared_ptr<IContextColumn> value_to_list(
 }
 
 std::shared_ptr<IContextColumn> apply_reduce(
-    const AggFunc& func, const std::vector<std::vector<size_t>>& to_aggregate) {
+    const Context& ctx, const AggFunc& func,
+    const std::vector<std::vector<size_t>>& to_aggregate) {
+  // LOG(INFO) << "enter reduce...";
   if (func.aggregate == AggrKind::kSum) {
     if (func.vars.size() != 1) {
       LOG(FATAL) << "only 1 variable to sum is allowed";
     }
     const Var& var = func.vars[0];
     if (var.type() == RTAnyType::kI32Value) {
+      if (func.single_tag) {
+        auto ret = typed_numeric_sum<int>(ctx.get(func.tag_id), to_aggregate);
+        if (ret != nullptr) {
+          // LOG(INFO) << "hit reduce...";
+          return ret;
+        }
+      }
       return numeric_sum<int>(var, to_aggregate);
     } else {
       LOG(FATAL) << "reduce on " << static_cast<int>(var.type().type_enum_)
@@ -505,6 +616,13 @@ std::shared_ptr<IContextColumn> apply_reduce(
     if (var.type() == RTAnyType::kStringValue) {
       return string_to_set(var, to_aggregate);
     } else if (var.type() == RTAnyType::kVertex) {
+      if (func.single_tag) {
+        auto ret = typed_vertex_to_set(ctx.get(func.tag_id), to_aggregate);
+        if (ret != nullptr) {
+          // LOG(INFO) << "hit reduce...";
+          return ret;
+        }
+      }
       return vertex_to_set(var, to_aggregate);
     } else {
       LOG(FATAL) << "not support" << (int) var.type().type_enum_;
@@ -601,7 +719,7 @@ std::shared_ptr<IContextColumn> apply_reduce(
 
 Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
                       Context&& ctx) {
-  //  LOG(INFO) << ctx.row_num() << " " << opr.DebugString();
+  double t0 = -grape::GetCurrentTime();
   std::vector<AggFunc> functions;
   std::vector<AggKey> mappings;
   int func_num = opr.functions_size();
@@ -610,6 +728,7 @@ Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
   }
 
   int mappings_num = opr.mappings_size();
+  t0 += grape::GetCurrentTime();
   // return ctx;
   if (mappings_num == 0) {
     Context ret;
@@ -618,20 +737,26 @@ Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
       for (size_t _i = 0; _i < ctx.row_num(); ++_i) {
         tmp.emplace_back(_i);
       }
-      auto new_col = apply_reduce(functions[i], {tmp});
+      auto new_col = apply_reduce(ctx, functions[i], {tmp});
       ret.set(functions[i].alias, new_col);
       ret.append_tag_id(functions[i].alias);
     }
 
     return ret;
   } else {
+    double t1 = -grape::GetCurrentTime();
     for (int i = 0; i < mappings_num; ++i) {
       mappings.emplace_back(opr.mappings(i), txn, ctx);
     }
+    t1 += grape::GetCurrentTime();
 
+    double t2 = -grape::GetCurrentTime();
     auto keys_ret =
-        generate_aggregate_indices(mappings, ctx.row_num(), functions);
+        generate_aggregate_indices(ctx, mappings, ctx.row_num(), functions);
     std::vector<std::vector<size_t>>& to_aggregate = keys_ret.first;
+    t2 += grape::GetCurrentTime();
+
+    double t3 = -grape::GetCurrentTime();
 
     Context& ret = keys_ret.second;
 
@@ -654,11 +779,17 @@ Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
     }
 
     for (int i = 0; i < func_num; ++i) {
-      auto new_col = apply_reduce(functions[i], to_aggregate);
+      auto new_col = apply_reduce(ctx, functions[i], to_aggregate);
       ret.set(functions[i].alias, new_col);
       ret.append_tag_id(functions[i].alias);
     }
-    //    LOG(INFO) << "group by done" << ret.row_num();
+    t3 += grape::GetCurrentTime();
+
+    auto& table = OpCost::get().table;
+    table["group_by_t0"] += t0;
+    table["group_by_t1"] += t1;
+    table["group_by_t2"] += t2;
+    table["group_by_t3"] += t3;
     return ret;
   }
 }

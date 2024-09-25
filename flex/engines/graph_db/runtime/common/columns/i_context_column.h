@@ -233,6 +233,14 @@ class IContextColumn {
     LOG(FATAL) << "not implemented for " << this->column_info();
   }
 
+  virtual std::pair<std::shared_ptr<IContextColumn>,
+                    std::vector<std::vector<size_t>>>
+  generate_aggregate_offset() const {
+    LOG(INFO) << "not implemented for " << this->column_info();
+    std::shared_ptr<IContextColumn> col(nullptr);
+    return std::make_pair(col, std::vector<std::vector<size_t>>());
+  }
+
   virtual bool order_by_limit(bool asc, size_t limit,
                               std::vector<size_t>& offsets) const {
     LOG(INFO) << "order by limit not implemented for " << this->column_info();

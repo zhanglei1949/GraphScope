@@ -49,6 +49,11 @@ class OpCost {
     fout.flush();
   }
 
+  void clear() {
+    total = 0;
+    table.clear();
+  }
+
   std::map<std::string, double> table;
   double total = 0;
 };
