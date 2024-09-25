@@ -26,8 +26,12 @@ Context eval_union(std::vector<Context>&& ctxs) {
 
   auto tmp = ctx0.union_ctx(ctx1);
   auto ctx = Context();
-  ctx.set(0, tmp.get(3));
-  ctx.set(1, tmp.get(4));
+  size_t idx = 0;
+  for (size_t i = 0; i < tmp.columns.size(); i++) {
+    if (tmp.columns[i] != nullptr) {
+      ctx.set(idx++, tmp.columns[i]);
+    }
+  }
   return ctx;
 }
 }  // namespace runtime
