@@ -476,8 +476,8 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
       size_t num = op.sub_plans_size();
       std::vector<Context> ctxs;
       for (size_t i = 0; i < num; ++i) {
-        Context n_ctx;
-        n_ctx.set_prev_context(&ret);
+        Context n_ctx = ret;
+
         ctxs.emplace_back(runtime_eval_impl(op.sub_plans(i), std::move(n_ctx),
                                             txn, params, op_id_offset + i * 200,
                                             op_name + "-sub[" +
