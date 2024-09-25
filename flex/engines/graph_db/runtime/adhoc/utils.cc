@@ -497,6 +497,48 @@ bool vertex_property_topN_impl(
   return success;
 }
 
+template <typename T>
+bool vertex_id_topN_impl(bool asc, size_t limit,
+                         const std::shared_ptr<IVertexColumn>& col,
+                         const ReadTransaction& txn,
+                         std::vector<size_t>& offsets) {
+  if (asc) {
+    TopNGenerator<T, TopNAscCmp<T>> gen(limit);
+    foreach_vertex(*col, [&](size_t idx, label_t label, vid_t v) {
+      auto oid = AnyConverter<T>::from_any(txn.GetVertexId(label, v));
+      gen.push(oid, idx);
+    });
+    gen.generate_indices(offsets);
+  } else {
+    TopNGenerator<T, TopNDescCmp<T>> gen(limit);
+    foreach_vertex(*col, [&](size_t idx, label_t label, vid_t v) {
+      auto oid = AnyConverter<T>::from_any(txn.GetVertexId(label, v));
+      gen.push(oid, idx);
+    });
+    gen.generate_indices(offsets);
+  }
+  return true;
+}
+bool vertex_id_topN(bool asc, size_t limit,
+                    const std::shared_ptr<IVertexColumn>& col,
+                    const ReadTransaction& txn, std::vector<size_t>& offsets) {
+  if (col->get_labels_set().size() != 1) {
+    return false;
+  }
+  auto& vec =
+      txn.schema().get_vertex_primary_key(*col->get_labels_set().begin());
+  if (vec.size() != 1) {
+    return false;
+  }
+  auto type = std::get<0>(vec[0]);
+  if (type == PropertyType::Int64()) {
+    return vertex_id_topN_impl<int64_t>(asc, limit, col, txn, offsets);
+  } else if (type == PropertyType::StringView()) {
+    return vertex_id_topN_impl<std::string_view>(asc, limit, col, txn, offsets);
+  } else {
+    return false;
+  }
+}
 bool vertex_property_topN(bool asc, size_t limit,
                           const std::shared_ptr<IVertexColumn>& col,
                           const ReadTransaction& txn,

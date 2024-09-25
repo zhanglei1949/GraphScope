@@ -146,7 +146,7 @@ void Context::optional_reshuffle(const std::vector<size_t>& offsets) {
   }
   std::swap(new_cols, columns);
   if (offset_ptr != nullptr) {
-    offset_ptr = offset_ptr = std::dynamic_pointer_cast<ValueColumn<size_t>>(
+    offset_ptr = std::dynamic_pointer_cast<ValueColumn<size_t>>(
         offset_ptr->optional_shuffle(offsets));
   }
 }
@@ -239,6 +239,10 @@ size_t Context::row_num() const {
   if (head != nullptr) {
     return head->size();
   }
+  if (prev_context != nullptr) {
+    return prev_context->row_num();
+  }
+
   return 0;
 }
 

@@ -17,20 +17,17 @@
 
 namespace gs {
 namespace runtime {
-Context eval_union(Context&& ctx, std::vector<Context>&& ctxs) {
+Context eval_union(std::vector<Context>&& ctxs) {
   CHECK(ctxs.size() == 2);
   auto& ctx0 = ctxs[0];
   auto& ctx1 = ctxs[1];
+  //  CHECK(ctx1.row_num() == 0);
   CHECK(ctx0.columns.size() == ctx1.columns.size());
 
-  Context tmp = ctx0.union_ctx(ctx1);
-  ctx.reshuffle(tmp.get_offsets().data());
-  for (size_t i = 0; i < tmp.col_num(); i++) {
-    auto col = tmp.get(i);
-    if (col != nullptr) {
-      ctx.set(i, col);
-    }
-  }
+  auto tmp = ctx0.union_ctx(ctx1);
+  auto ctx = Context();
+  ctx.set(0, tmp.get(3));
+  ctx.set(1, tmp.get(4));
   return ctx;
 }
 }  // namespace runtime

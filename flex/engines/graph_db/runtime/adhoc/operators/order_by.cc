@@ -101,9 +101,15 @@ Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
             } else if (col->column_type() == ContextColumnType::kVertex) {
               std::string prop_name =
                   opr.pairs(0).key().property().key().name();
-              staged_order_by = vertex_property_topN(
-                  asc, upper, std::dynamic_pointer_cast<IVertexColumn>(col),
-                  txn, prop_name, picked_indices);
+              if (prop_name == "id") {
+                staged_order_by = vertex_id_topN(
+                    asc, upper, std::dynamic_pointer_cast<IVertexColumn>(col),
+                    txn, picked_indices);
+              } else {
+                staged_order_by = vertex_property_topN(
+                    asc, upper, std::dynamic_pointer_cast<IVertexColumn>(col),
+                    txn, prop_name, picked_indices);
+              }
             } else {
               LOG(INFO) << "first key is property of not vertex, fallback";
             }

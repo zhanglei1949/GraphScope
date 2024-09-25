@@ -60,6 +60,9 @@ static std::string get_opr_name(const physical::PhysicalOpr& opr) {
   case physical::PhysicalOpr_Operator::OpKindCase::kIntersect: {
     return "intersect";
   }
+  case physical::PhysicalOpr_Operator::OpKindCase::kUnion: {
+    return "union";
+  }
   default:
     return "unknown - " +
            std::to_string(static_cast<int>(opr.opr().op_kind_case()));
@@ -467,6 +470,21 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
 
     case physical::PhysicalOpr_Operator::OpKindCase::kUnfold: {
       ret = eval_unfold(opr.opr().unfold(), std::move(ret));
+    } break;
+    case physical::PhysicalOpr_Operator::OpKindCase::kUnion: {
+      auto op = opr.opr().union_();
+      size_t num = op.sub_plans_size();
+      std::vector<Context> ctxs;
+      for (size_t i = 0; i < num; ++i) {
+        Context n_ctx;
+        n_ctx.set_prev_context(&ret);
+        ctxs.emplace_back(runtime_eval_impl(op.sub_plans(i), std::move(n_ctx),
+                                            txn, params, op_id_offset + i * 200,
+                                            op_name + "-sub[" +
+                                                std::to_string(i) + "/" +
+                                                std ::to_string(num) + "]"));
+      }
+      ret = eval_union(std::move(ctxs));
     } break;
 
     default:

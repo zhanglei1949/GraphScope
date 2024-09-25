@@ -549,6 +549,8 @@ std::shared_ptr<IContextColumn> apply_reduce(
     const Var& var = func.vars[0];
     if (var.type() == RTAnyType::kI32Value) {
       return general_max<int>(var, to_aggregate);
+    } else if (var.type() == RTAnyType::kI64Value) {
+      return general_max<int64_t>(var, to_aggregate);
     } else if (var.type() == RTAnyType::kStringValue) {
       return general_max<std::string_view>(var, to_aggregate);
     }
@@ -599,6 +601,7 @@ std::shared_ptr<IContextColumn> apply_reduce(
 
 Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
                       Context&& ctx) {
+  //  LOG(INFO) << ctx.row_num() << " " << opr.DebugString();
   std::vector<AggFunc> functions;
   std::vector<AggKey> mappings;
   int func_num = opr.functions_size();
@@ -655,6 +658,7 @@ Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
       ret.set(functions[i].alias, new_col);
       ret.append_tag_id(functions[i].alias);
     }
+    //    LOG(INFO) << "group by done" << ret.row_num();
     return ret;
   }
 }

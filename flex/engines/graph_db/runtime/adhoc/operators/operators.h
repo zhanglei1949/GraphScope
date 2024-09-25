@@ -114,7 +114,7 @@ Context eval_limit(const algebra::Limit& opr, Context&& ctx);
 
 Context eval_unfold(const physical::Unfold& opr, Context&& ctx);
 
-Context eval_union(Context&& ctx, std::vector<Context>&& ctxs);
+Context eval_union(std::vector<Context>&& ctxs);
 
 void eval_sink(const Context& ctx, const ReadTransaction& txn, Encoder& output);
 
