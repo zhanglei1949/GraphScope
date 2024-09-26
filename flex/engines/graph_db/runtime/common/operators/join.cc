@@ -25,18 +25,6 @@ namespace runtime {
 
 using vertex_pair = std::pair<VertexRecord, VertexRecord>;
 
-struct VertexRecordHash {
-  std::size_t operator()(const VertexRecord& v) const {
-    return std::hash<vid_t>()(v.vid_) ^ std::hash<label_t>()(v.label_);
-  }
-  std::size_t operator()(const vertex_pair& v) const {
-    return std::hash<vid_t>()(v.first.vid_) ^
-           std::hash<label_t>()(v.first.label_) ^
-           std::hash<vid_t>()(v.second.vid_) ^
-           std::hash<label_t>()(v.second.label_);
-  }
-};
-
 static Context default_semi_join(Context&& ctx, Context&& ctx2,
                                  const JoinParams& params) {
   size_t right_size = ctx2.row_num();
@@ -139,6 +127,88 @@ static Context single_vertex_column_inner_join(Context&& ctx, Context&& ctx2,
     }
     for (size_t r_i = 0; r_i < left_size; ++r_i) {
       auto iter = right_map.find(casted_left_col->get_vertex(r_i));
+      if (iter != right_map.end()) {
+        for (auto idx : iter->second) {
+          left_offset.emplace_back(r_i);
+          right_offset.emplace_back(idx);
+        }
+      }
+    }
+  }
+  ctx.reshuffle(left_offset);
+  ctx2.reshuffle(right_offset);
+  Context ret;
+  for (size_t i = 0; i < ctx.col_num(); i++) {
+    ret.set(i, ctx.get(i));
+  }
+  for (size_t i = 0; i < ctx2.col_num(); i++) {
+    if (i >= ret.col_num() || ret.get(i) == nullptr) {
+      ret.set(i, ctx2.get(i));
+    }
+  }
+  return ret;
+}
+
+static Context dual_vertex_column_inner_join(Context&& ctx, Context&& ctx2,
+                                             const JoinParams& params) {
+  std::vector<size_t> left_offset, right_offset;
+  auto casted_left_col =
+      std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.left_columns[0]));
+  auto casted_left_col2 =
+      std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.left_columns[1]));
+  auto casted_right_col = std::dynamic_pointer_cast<IVertexColumn>(
+      ctx2.get(params.right_columns[0]));
+  auto casted_right_col2 = std::dynamic_pointer_cast<IVertexColumn>(
+      ctx2.get(params.right_columns[1]));
+
+  size_t left_size = casted_left_col->size();
+  size_t right_size = casted_right_col->size();
+
+  if (left_size < right_size) {
+    // std::map<VertexRecord, std::vector<size_t>> left_map;
+    phmap::flat_hash_set<vertex_pair, VertexRecordHash> left_set;
+    phmap::flat_hash_map<vertex_pair, std::vector<size_t>, VertexRecordHash>
+        right_map;
+    for (size_t r_i = 0; r_i < left_size; ++r_i) {
+      left_set.emplace(casted_left_col->get_vertex(r_i),
+                       casted_left_col2->get_vertex(r_i));
+    }
+    for (size_t r_i = 0; r_i < right_size; ++r_i) {
+      auto cur1 = casted_right_col->get_vertex(r_i);
+      auto cur2 = casted_right_col2->get_vertex(r_i);
+      auto cur = std::make_pair(cur1, cur2);
+      if (left_set.find(cur) != left_set.end()) {
+        right_map[cur].emplace_back(r_i);
+      }
+    }
+    for (size_t r_i = 0; r_i < left_size; ++r_i) {
+      auto cur1 = casted_left_col->get_vertex(r_i);
+      auto cur2 = casted_left_col2->get_vertex(r_i);
+      auto cur = std::make_pair(cur1, cur2);
+      auto iter = right_map.find(cur);
+      if (iter != right_map.end()) {
+        for (auto idx : iter->second) {
+          left_offset.emplace_back(r_i);
+          right_offset.emplace_back(idx);
+        }
+      }
+    }
+  } else {
+    // std::map<VertexRecord, std::vector<size_t>> right_map;
+    phmap::flat_hash_map<vertex_pair, std::vector<size_t>, VertexRecordHash>
+        right_map;
+    for (size_t r_i = 0; r_i < right_size; ++r_i) {
+      auto cur1 = casted_right_col->get_vertex(r_i);
+      auto cur2 = casted_right_col2->get_vertex(r_i);
+      auto cur = std::make_pair(cur1, cur2);
+      right_map[cur].emplace_back(r_i);
+    }
+    for (size_t r_i = 0; r_i < left_size; ++r_i) {
+      auto cur1 = casted_left_col->get_vertex(r_i);
+      auto cur2 = casted_left_col2->get_vertex(r_i);
+      auto cur = std::make_pair(cur1, cur2);
+
+      auto iter = right_map.find(cur);
       if (iter != right_map.end()) {
         for (auto idx : iter->second) {
           left_offset.emplace_back(r_i);
@@ -572,6 +642,13 @@ Context Join::join(Context&& ctx, Context&& ctx2, const JoinParams& params) {
             ContextColumnType::kVertex) {
       return single_vertex_column_inner_join(std::move(ctx), std::move(ctx2),
                                              params);
+    } else if (params.right_columns.size() == 2 &&
+               ctx.get(params.right_columns[0])->column_type() ==
+                   ContextColumnType::kVertex &&
+               ctx.get(params.right_columns[1])->column_type() ==
+                   ContextColumnType::kVertex) {
+      return dual_vertex_column_inner_join(std::move(ctx), std::move(ctx2),
+                                           params);
     } else {
       return default_inner_join(std::move(ctx), std::move(ctx2), params);
     }

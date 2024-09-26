@@ -45,6 +45,17 @@ class VertexRecord {
   vid_t vid_;
 };
 
+struct VertexRecordHash {
+  std::size_t operator()(const VertexRecord& v) const {
+    return std::hash<vid_t>()(v.vid_) ^ std::hash<label_t>()(v.label_);
+  }
+  std::size_t operator()(const std::pair<VertexRecord, VertexRecord>& v) const {
+    return std::hash<vid_t>()(v.first.vid_) ^
+           std::hash<label_t>()(v.first.label_) ^
+           std::hash<vid_t>()(v.second.vid_) ^
+           std::hash<label_t>()(v.second.label_);
+  }
+};
 struct Relation {
   label_t label;
   vid_t src;

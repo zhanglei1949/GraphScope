@@ -63,6 +63,9 @@ static std::string get_opr_name(const physical::PhysicalOpr& opr) {
   case physical::PhysicalOpr_Operator::OpKindCase::kUnion: {
     return "union";
   }
+  case physical::PhysicalOpr_Operator::OpKindCase::kUnfold: {
+    return "unfold";
+  }
   default:
     return "unknown - " +
            std::to_string(static_cast<int>(opr.opr().op_kind_case()));
@@ -421,7 +424,6 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
         int tag = -1;
         int alias = -1;
         if (try_reuse_left_plan_column(op, tag, alias)) {
-          //          LOG(INFO) << "reuse left plan column";
           auto ctx =
               runtime_eval_impl(op.left_plan(), std::move(ret), txn, params,
                                 op_id_offset + 100, op_name + "-left");
@@ -430,7 +432,6 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
           ctx.get(tag)->generate_dedup_offset(offset);
           ctx2.set(alias, ctx.get(tag));
           ctx2.reshuffle(offset);
-
           ctx2 =
               runtime_eval_impl(op.right_plan(), std::move(ctx2), txn, params,
                                 op_id_offset + 200, op_name + "-right", true);

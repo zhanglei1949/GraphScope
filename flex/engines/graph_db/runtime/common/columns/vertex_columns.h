@@ -76,7 +76,10 @@ class IOptionalVertexColumnBuilder : public IOptionalContextColumnBuilder {
 class SLVertexColumnBuilder;
 class OptionalSLVertexColumnBuilder;
 
-class SLVertexColumn : public IVertexColumn {
+class SLVertexColumnBase : public IVertexColumn {};
+
+class MLVertexColumnBase : public IVertexColumn {};
+class SLVertexColumn : public SLVertexColumnBase {
  public:
   SLVertexColumn(label_t label) : label_(label) {}
   ~SLVertexColumn() = default;
@@ -171,7 +174,7 @@ class SLVertexColumnBuilder : public IVertexColumnBuilder {
   label_t label_;
 };
 
-class OptionalSLVertexColumn : public IVertexColumn {
+class OptionalSLVertexColumn : public SLVertexColumnBase {
  public:
   OptionalSLVertexColumn(label_t label) : label_(label) {}
   ~OptionalSLVertexColumn() = default;
@@ -398,7 +401,7 @@ class MSVertexColumnBuilder : public IVertexColumnBuilder {
 class MLVertexColumnBuilder;
 
 class OptionalMLVertexColumnBuilder;
-class MLVertexColumn : public IVertexColumn {
+class MLVertexColumn : public MLVertexColumnBase {
  public:
   MLVertexColumn() = default;
   ~MLVertexColumn() = default;
@@ -473,7 +476,7 @@ class MLVertexColumnBuilder : public IVertexColumnBuilder {
   std::set<label_t> labels_;
 };
 
-class OptionalMLVertexColumn : public IVertexColumn {
+class OptionalMLVertexColumn : public MLVertexColumnBase {
  public:
   OptionalMLVertexColumn() = default;
   ~OptionalMLVertexColumn() = default;
@@ -503,6 +506,9 @@ class OptionalMLVertexColumn : public IVertexColumn {
   }
 
   std::shared_ptr<IContextColumn> shuffle(
+      const std::vector<size_t>& offsets) const override;
+
+  std::shared_ptr<IContextColumn> optional_shuffle(
       const std::vector<size_t>& offsets) const override;
 
   VertexRecord get_vertex(size_t idx) const override { return vertices_[idx]; }
@@ -565,11 +571,23 @@ class OptionalMLVertexColumnBuilder : public IOptionalVertexColumnBuilder {
 template <typename FUNC_T>
 void foreach_vertex(const IVertexColumn& col, const FUNC_T& func) {
   if (col.vertex_column_type() == VertexColumnType::kSingle) {
-    const SLVertexColumn& ref = dynamic_cast<const SLVertexColumn&>(col);
-    ref.foreach_vertex(func);
+    if (!col.is_optional()) {
+      const SLVertexColumn& ref = dynamic_cast<const SLVertexColumn&>(col);
+      ref.foreach_vertex(func);
+    } else {
+      const OptionalSLVertexColumn& ref =
+          dynamic_cast<const OptionalSLVertexColumn&>(col);
+      ref.foreach_vertex(func);
+    }
   } else if (col.vertex_column_type() == VertexColumnType::kMultiple) {
-    const MLVertexColumn& ref = dynamic_cast<const MLVertexColumn&>(col);
-    ref.foreach_vertex(func);
+    if (!col.is_optional()) {
+      const MLVertexColumn& ref = dynamic_cast<const MLVertexColumn&>(col);
+      ref.foreach_vertex(func);
+    } else {
+      const OptionalMLVertexColumn& ref =
+          dynamic_cast<const OptionalMLVertexColumn&>(col);
+      ref.foreach_vertex(func);
+    }
   } else {
     const MSVertexColumn& ref = dynamic_cast<const MSVertexColumn&>(col);
     ref.foreach_vertex(func);

@@ -506,7 +506,7 @@ Context EdgeExpand::expand_vertex_without_predicate(
     //    LOG(INFO) << "input vertex size: " << input_vertex_list->size();
     if (input_vertex_list->is_optional()) {
       auto casted_input_vertex_list =
-          std::dynamic_pointer_cast<OptionalSLVertexColumn>(input_vertex_list);
+          std::dynamic_pointer_cast<SLVertexColumnBase>(input_vertex_list);
       auto pair = expand_vertex_without_predicate_optional_impl(
           txn, *casted_input_vertex_list, params.labels, params.dir);
       ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
@@ -516,8 +516,10 @@ Context EdgeExpand::expand_vertex_without_predicate(
           std::dynamic_pointer_cast<SLVertexColumn>(input_vertex_list);
       // optional edge expand
       if (params.is_optional) {
+        auto casted_input_vertex_list =
+            std::dynamic_pointer_cast<SLVertexColumnBase>(input_vertex_list);
         auto pair = expand_vertex_without_predicate_optional_impl(
-            txn, *input_vertex_list, params.labels, params.dir);
+            txn, *casted_input_vertex_list, params.labels, params.dir);
         ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
         return ctx;
       } else {
@@ -532,7 +534,14 @@ Context EdgeExpand::expand_vertex_without_predicate(
     }
   } else if (input_vertex_list_type == VertexColumnType::kMultiple) {
     if (input_vertex_list->is_optional() || params.is_optional) {
-      LOG(FATAL) << "not support optional vertex column as input currently";
+      auto casted_input_vertex_list =
+          std::dynamic_pointer_cast<MLVertexColumnBase>(input_vertex_list);
+      auto pair = expand_vertex_without_predicate_optional_impl(
+          txn, *casted_input_vertex_list, params.labels, params.dir);
+      ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
+      return ctx;
+      // LOG(FATAL) << "not support optional vertex column as input currently";
+      // return ctx;
     }
     auto casted_input_vertex_list =
         std::dynamic_pointer_cast<MLVertexColumn>(input_vertex_list);

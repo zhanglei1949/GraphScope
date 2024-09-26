@@ -74,7 +74,6 @@ class GeneralPathColumn : public IPathColumn {
     }
     std::sort(origin_offsets.begin(), origin_offsets.end(),
               [this](size_t a, size_t b) {
-                // data_[a] == data_[b]
                 if (!(data_[a] < data_[b]) && !(data_[b] < data_[a])) {
                   return a < b;
                 }

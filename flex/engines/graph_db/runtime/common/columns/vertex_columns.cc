@@ -308,6 +308,20 @@ std::shared_ptr<IContextColumn> OptionalSLVertexColumn::optional_shuffle(
   return builder.finish();
 }
 
+std::shared_ptr<IContextColumn> OptionalMLVertexColumn::optional_shuffle(
+    const std::vector<size_t>& offsets) const {
+  OptionalMLVertexColumnBuilder builder;
+  builder.reserve(offsets.size());
+  for (auto offset : offsets) {
+    if (offset == std::numeric_limits<size_t>::max()) {
+      builder.push_back_null();
+    } else {
+      builder.push_back_opt(vertices_[offset]);
+    }
+  }
+  return builder.finish();
+}
+
 ISigColumn* OptionalSLVertexColumn::generate_signature() const {
   return new SigColumn<vid_t>(vertices_);
 }

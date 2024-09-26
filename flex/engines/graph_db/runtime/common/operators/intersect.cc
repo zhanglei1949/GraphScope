@@ -17,6 +17,7 @@
 #include "flex/engines/graph_db/runtime/common/columns/edge_columns.h"
 #include "flex/engines/graph_db/runtime/common/columns/value_columns.h"
 #include "flex/engines/graph_db/runtime/common/columns/vertex_columns.h"
+#include "parallel_hashmap/phmap.h"
 
 namespace gs {
 
@@ -161,8 +162,80 @@ static Context left_outer_intersect(Context&& ctx, Context&& ctx0,
       return ctx;
     }
   }
+  std::vector<size_t> shuffle_offsets, shuffle_offsets_1;
+  std::vector<std::vector<size_t>> vec0(ctx.row_num() + 1),
+      vec1(ctx.row_num() + 1);
+  for (size_t i = 0; i < idx_col0.size(); ++i) {
+    vec0[idx_col0.get_value(i)].push_back(i);
+  }
+  for (size_t i = 0; i < idx_col1.size(); ++i) {
+    vec1[idx_col1.get_value(i)].push_back(i);
+  }
+  size_t len = vec0.size();
+  for (size_t i = 0; i < len; ++i) {
+    if (vec1[i].empty()) {
+      if (!vec0[i].empty()) {
+        for (auto& j : vec0[i]) {
+          shuffle_offsets.push_back(j);
+          shuffle_offsets_1.push_back(std::numeric_limits<size_t>::max());
+        }
+      }
+      continue;
+    }
 
-  LOG(FATAL) << "not support";
+    if (vec0.size() < vec1.size()) {
+      phmap::flat_hash_map<VertexRecord, std::vector<size_t>, VertexRecordHash>
+          left_map;
+      for (auto& j : vec0[i]) {
+        left_map[vlist0.get_vertex(j)].push_back(j);
+      }
+      for (auto& k : vec1[i]) {
+        auto iter = left_map.find(vlist1.get_vertex(k));
+        if (iter != left_map.end()) {
+          for (auto& idx : iter->second) {
+            shuffle_offsets.push_back(idx);
+            shuffle_offsets_1.push_back(k);
+          }
+        }
+      }
+    } else {
+      phmap::flat_hash_map<VertexRecord, std::vector<size_t>, VertexRecordHash>
+          right_map;
+      for (auto& k : vec1[i]) {
+        right_map[vlist1.get_vertex(k)].push_back(k);
+      }
+      for (auto& j : vec0[i]) {
+        auto iter = right_map.find(vlist0.get_vertex(j));
+        if (iter != right_map.end()) {
+          for (auto& idx : iter->second) {
+            shuffle_offsets.push_back(j);
+            shuffle_offsets_1.push_back(idx);
+          }
+        } else {
+          shuffle_offsets.push_back(j);
+          shuffle_offsets_1.push_back(std::numeric_limits<size_t>::max());
+        }
+      }
+    }
+  }
+  ctx0.reshuffle(shuffle_offsets);
+  ctx1.optional_reshuffle(shuffle_offsets_1);
+  ctx.reshuffle(ctx0.get_offsets().data());
+  for (size_t i = 0; i < ctx0.col_num() || i < ctx1.col_num(); ++i) {
+    if (i < ctx0.col_num()) {
+      if (ctx0.columns[i] != nullptr) {
+        ctx.set(i, ctx0.get(i));
+      }
+    }
+    if (i < ctx1.col_num()) {
+      if ((i >= ctx.col_num() || ctx.get(i) == nullptr) &&
+          ctx1.columns[i] != nullptr) {
+        ctx.set(i, ctx1.get(i));
+      }
+    } else if (i >= ctx.col_num()) {
+      ctx.set(i, nullptr);
+    }
+  }
   return ctx;
 }
 static Context intersect_impl(Context&& ctx, std::vector<Context>&& ctxs,
@@ -188,56 +261,67 @@ static Context intersect_impl(Context&& ctx, std::vector<Context>&& ctxs,
       auto& idx_col0 = ctxs[0].get_offsets();
       auto& idx_col1 = ctxs[1].get_offsets();
       std::vector<size_t> offsets0(idx_col0.size()), offsets1(idx_col1.size());
-      for (size_t k = 0; k < idx_col0.size(); ++k) {
-        offsets0[k] = k;
-      }
-      for (size_t k = 0; k < idx_col1.size(); ++k) {
-        offsets1[k] = k;
-      }
+      size_t maxi = ctx.row_num();
+      std::vector<std::vector<size_t>> vec0(maxi + 1), vec1(maxi + 1);
 
-      std::sort(offsets0.begin(), offsets0.end(),
-                [&idx_col0, &vlist0](size_t a, size_t b) {
-                  if (idx_col0.get_value(a) == idx_col0.get_value(b)) {
-                    return vlist0.get_vertex(a) < vlist0.get_vertex(b);
-                  }
-                  return idx_col0.get_value(a) < idx_col0.get_value(b);
-                });
-      std::sort(offsets1.begin(), offsets1.end(),
-                [&idx_col1, &vlist1](size_t a, size_t b) {
-                  if (idx_col1.get_value(a) == idx_col1.get_value(b)) {
-                    return vlist1.get_vertex(a) < vlist1.get_vertex(b);
-                  }
-                  return idx_col1.get_value(a) < idx_col1.get_value(b);
-                });
       std::vector<size_t> shuffle_offsets;
       std::vector<size_t> shuffle_offsets_1;
-      size_t idx0 = 0, idx1 = 0;
-      while (idx0 < idx_col0.size() && idx1 < idx_col1.size()) {
-        if (idx_col0.get_value(offsets0[idx0]) <
-            idx_col1.get_value(offsets1[idx1])) {
-          ++idx0;
-        } else if (idx_col0.get_value(offsets0[idx0]) >
-                   idx_col1.get_value(offsets1[idx1])) {
-          ++idx1;
-        } else {
-          auto v0 = vlist0.get_vertex(offsets0[idx0]);
-          size_t pre_idx1 = idx1;
-          while (idx1 < idx_col1.size() &&
-                 idx_col1.get_value(offsets1[idx1]) ==
-                     idx_col0.get_value(offsets0[idx0])) {
-            auto v1 = vlist1.get_vertex(offsets1[idx1]);
-            if (v0 == v1) {
-              shuffle_offsets.push_back(offsets0[idx0]);
-              shuffle_offsets_1.push_back(offsets1[idx1]);
-            } else if (v0 < v1) {
-              break;
-            } else {
-              pre_idx1 = idx1;
+
+      for (size_t i = 0; i < idx_col0.size(); ++i) {
+        vec0[idx_col0.get_value(i)].push_back(i);
+      }
+      for (size_t i = 0; i < idx_col1.size(); ++i) {
+        vec1[idx_col1.get_value(i)].push_back(i);
+      }
+      size_t len = vec0.size();
+      for (size_t i = 0; i < len; ++i) {
+        if (vec1[i].empty() || vec0[i].empty()) {
+          continue;
+        }
+        if (((vec0.size() < 4 && vec1.size() < 4) || vec0.size() <= 2 ||
+             vec1.size() <= 2)) {
+          for (auto& j : vec0[i]) {
+            for (auto& k : vec1[i]) {
+              if (vlist0.get_vertex(j) == vlist1.get_vertex(k)) {
+                shuffle_offsets.push_back(j);
+                shuffle_offsets_1.push_back(k);
+              }
             }
-            ++idx1;
           }
-          ++idx0;
-          idx1 = pre_idx1;
+        } else {
+          if (vec0.size() < vec1.size()) {
+            phmap::flat_hash_map<VertexRecord, std::vector<size_t>,
+                                 VertexRecordHash>
+                left_map;
+            for (auto& j : vec0[i]) {
+              left_map[vlist0.get_vertex(j)].push_back(j);
+            }
+            for (auto& k : vec1[i]) {
+              auto iter = left_map.find(vlist1.get_vertex(k));
+              if (iter != left_map.end()) {
+                for (auto& idx : iter->second) {
+                  shuffle_offsets.push_back(idx);
+                  shuffle_offsets_1.push_back(k);
+                }
+              }
+            }
+          } else {
+            phmap::flat_hash_map<VertexRecord, std::vector<size_t>,
+                                 VertexRecordHash>
+                right_map;
+            for (auto& k : vec1[i]) {
+              right_map[vlist1.get_vertex(k)].push_back(k);
+            }
+            for (auto& j : vec0[i]) {
+              auto iter = right_map.find(vlist0.get_vertex(j));
+              if (iter != right_map.end()) {
+                for (auto& idx : iter->second) {
+                  shuffle_offsets.push_back(j);
+                  shuffle_offsets_1.push_back(idx);
+                }
+              }
+            }
+          }
         }
       }
 
@@ -247,12 +331,12 @@ static Context intersect_impl(Context&& ctx, std::vector<Context>&& ctxs,
 
       for (size_t i = 0; i < ctxs[0].col_num() || i < ctxs[1].col_num(); ++i) {
         if (i < ctxs[0].col_num()) {
-          if (ctxs[0].get(i) != nullptr) {
+          if (ctxs[0].columns[i] != nullptr) {
             ctx.set(i, ctxs[0].get(i));
           }
         }
         if (i < ctxs[1].col_num()) {
-          if (ctxs[1].get(i) != nullptr) {
+          if (ctxs[1].columns[i] != nullptr) {
             ctx.set(i, ctxs[1].get(i));
           }
         } else if (i > ctx.col_num()) {
