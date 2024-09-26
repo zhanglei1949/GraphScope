@@ -77,7 +77,8 @@ struct AggFunc {
 
     if (var_num == 1) {
       const auto& v = opr.vars(0);
-      if (v.has_tag() && !v.has_property() && v.tag().has_id()) {
+      if (v.has_tag() && !v.has_property() &&
+          v.tag().item_case() == common::NameOrId::kId) {
         tag_id = v.tag().id();
         if (ctx.exist(tag_id) &&
             ctx.get(tag_id)->elem_type() == vars[0].type()) {
@@ -102,7 +103,8 @@ struct AggKey {
     if (opr.has_alias()) {
       alias = opr.alias().value();
     }
-    if (opr.key().has_tag() && opr.key().tag().has_id() &&
+    if (opr.key().has_tag() &&
+        opr.key().tag().item_case() == common::NameOrId::kId &&
         !opr.key().has_property()) {
       is_tag = true;
       tag_id = opr.key().tag().id();
