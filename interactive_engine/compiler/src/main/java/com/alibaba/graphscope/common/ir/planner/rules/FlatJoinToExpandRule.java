@@ -15,6 +15,8 @@
  */
 package com.alibaba.graphscope.common.ir.planner.rules;
 
+import com.alibaba.graphscope.common.config.Configs;
+import com.alibaba.graphscope.common.config.PlannerConfig;
 import com.alibaba.graphscope.common.ir.rel.GraphShuttle;
 import com.alibaba.graphscope.common.ir.rel.graph.GraphLogicalSource;
 import com.alibaba.graphscope.common.ir.rel.graph.match.GraphLogicalSingleMatch;
@@ -40,6 +42,12 @@ public class FlatJoinToExpandRule extends FlatJoinRule {
     private boolean optional;
     private List<RexNode> otherJoinConditions;
 
+    private final Configs configs;
+
+    public FlatJoinToExpandRule(Configs configs) {
+        this.configs = configs;
+    }
+
     @Override
     protected boolean matches(LogicalJoin join) {
         RexNode condition = join.getCondition();
@@ -50,7 +58,9 @@ public class FlatJoinToExpandRule extends FlatJoinRule {
         getMatchBeforeJoin(join.getRight(), matches);
         if (matches.size() != 1) return false;
         RelNode sentence = matches.get(0).getSentence();
-        if (hasNodeEqualFilter(sentence) || hasPxdWithUntil(sentence)) return false;
+        if (hasPxdWithUntil(sentence)) return false;
+        if (PlannerConfig.FLAT_JOIN_TO_EXPAND_NO_FILTER.get(configs)
+                && hasNodeEqualFilter(sentence)) return false;
         GraphLogicalSource source = getSource(sentence);
         List<Integer> startEndAliasIds =
                 Lists.newArrayList(getAliasId(source), getAliasId(sentence));

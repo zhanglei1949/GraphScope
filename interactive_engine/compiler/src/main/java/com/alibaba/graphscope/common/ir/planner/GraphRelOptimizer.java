@@ -65,6 +65,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Optimize graph relational tree which consists of match and other relational operators
  */
 public class GraphRelOptimizer {
+    private final Configs graphConfig;
     private final PlannerConfig config;
     private final RelOptPlanner relPlanner;
     private final RelOptPlanner matchPlanner;
@@ -73,6 +74,7 @@ public class GraphRelOptimizer {
     private final GlogueHolder glogueHolder;
 
     public GraphRelOptimizer(Configs graphConfig) {
+        this.graphConfig = graphConfig;
         this.config = new PlannerConfig(graphConfig);
         this.relBuilderFactory = new GraphBuilderFactory(graphConfig);
         this.relPlanner = createRelPlanner();
@@ -113,7 +115,7 @@ public class GraphRelOptimizer {
             relPlanner.setRoot(before);
             RelNode relOptimized = relPlanner.findBestExp();
             if (config.getRules().contains(FlatJoinToExpandRule.class.getSimpleName())) {
-                relOptimized = relOptimized.accept(new FlatJoinToExpandRule());
+                relOptimized = relOptimized.accept(new FlatJoinToExpandRule(graphConfig));
             }
             if (config.getRules().contains(FlatJoinToIntersectRule.class.getSimpleName())) {
                 relOptimized =

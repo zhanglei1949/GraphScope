@@ -21,6 +21,9 @@ public class PlannerConfig {
     public static final Config<Integer> JOIN_COST_FACTOR_2 =
             Config.intConfig("graph.planner.join.cost.factor.2", 1);
 
+    public static final Config<Boolean> FLAT_JOIN_TO_EXPAND_NO_FILTER =
+            Config.boolConfig("graph.planner.flat.join.to.expand.no.filter", true);
+
     private final Configs configs;
     private final List<String> rules;
 

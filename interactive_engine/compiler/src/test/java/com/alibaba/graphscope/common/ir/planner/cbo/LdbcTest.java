@@ -27,6 +27,8 @@ public class LdbcTest {
                                 "true",
                                 "graph.planner.opt",
                                 "CBO",
+                                "graph.planner.flat.join.to.expand.no.filter",
+                                "true",
                                 "graph.planner.rules",
                                 "NotMatchToAntiJoinRule, FilterIntoJoinRule, FilterMatchRule,"
                                         + " FlatJoinToExpandRule, FlatJoinToIntersectRule,"
@@ -615,6 +617,34 @@ public class LdbcTest {
                     + " tables=[PERSON]}], alias=[person], opt=[VERTEX], uniqueKeyFilters=[=(_.id,"
                     + " 2199023382370)])",
                 after.explain().trim());
+    }
+
+    @Test
+    public void ldbc6_2_test() {
+        GraphBuilder builder = Utils.mockGraphBuilder(optimizer, irMeta);
+        RelNode before =
+                com.alibaba.graphscope.cypher.antlr4.Utils.eval(
+                                "MATCH (p_:PERSON {id: $personId})-[:KNOWS*1..3]-(other:PERSON)\n"
+                                    + "WITH distinct other\n"
+                                    + "WHERE other.id <> $personId\n"
+                                    + "\n"
+                                    + "MATCH (other)<-[:HASCREATOR]-(p:POST)-[:HASTAG]->(t:TAG"
+                                    + " {name: $tagName})\n"
+                                    + "\n"
+                                    + "Match (p:POST)-[:HASTAG]->(otherTag:TAG)\n"
+                                    + "WHERE \n"
+                                    + "    otherTag <> t \n"
+                                    + "RETURN\n"
+                                    + "    otherTag.name as name,\n"
+                                    + "    count(distinct p) as postCnt \n"
+                                    + "ORDER BY \n"
+                                    + "    postCnt desc, \n"
+                                    + "    name asc \n"
+                                    + "LIMIT 10;",
+                                builder)
+                        .build();
+        RelNode after = optimizer.optimize(before, new GraphIOProcessor(builder, irMeta));
+        //        System.out.println(after.explain());
     }
 
     // todo: fix issues in ldbc7: expand (with alias) + getV cannot be fused thus causing the
