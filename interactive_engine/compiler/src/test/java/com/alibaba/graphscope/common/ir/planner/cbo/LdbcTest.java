@@ -625,22 +625,22 @@ public class LdbcTest {
         RelNode before =
                 com.alibaba.graphscope.cypher.antlr4.Utils.eval(
                                 "MATCH (p_:PERSON {id: $personId})-[:KNOWS*1..3]-(other:PERSON)\n"
-                                    + "WITH distinct other\n"
-                                    + "WHERE other.id <> $personId\n"
-                                    + "\n"
-                                    + "MATCH (other)<-[:HASCREATOR]-(p:POST)-[:HASTAG]->(t:TAG"
-                                    + " {name: $tagName})\n"
-                                    + "\n"
-                                    + "Match (p:POST)-[:HASTAG]->(otherTag:TAG)\n"
-                                    + "WHERE \n"
-                                    + "    otherTag <> t \n"
-                                    + "RETURN\n"
-                                    + "    otherTag.name as name,\n"
-                                    + "    count(distinct p) as postCnt \n"
-                                    + "ORDER BY \n"
-                                    + "    postCnt desc, \n"
-                                    + "    name asc \n"
-                                    + "LIMIT 10;",
+                                        + "WITH distinct other\n"
+                                        + "WHERE other.id <> $personId\n"
+                                        + "\n"
+                                        + "MATCH (other)<-[:HASCREATOR]-(p:POST)-[:HASTAG]->(t:TAG"
+                                        + " {name: $tagName})\n"
+                                        + "\n"
+                                        + "Match (p:POST)-[:HASTAG]->(otherTag:TAG)\n"
+                                        + "WHERE \n"
+                                        + "    otherTag <> t \n"
+                                        + "RETURN\n"
+                                        + "    otherTag.name as name,\n"
+                                        + "    count(distinct p) as postCnt \n"
+                                        + "ORDER BY \n"
+                                        + "    postCnt desc, \n"
+                                        + "    name asc \n"
+                                        + "LIMIT 10;",
                                 builder)
                         .build();
         RelNode after = optimizer.optimize(before, new GraphIOProcessor(builder, irMeta));
