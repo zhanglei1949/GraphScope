@@ -384,9 +384,19 @@ class EdgeExpand {
                   dynamic_cast<const VertexPropertyEQPredicateBeta<int64_t>&>(
                       pred)));
         }
+      } else if (pred.data_type() == RTAnyType::kStringValue) {
+        if (pred.type() == SPVertexPredicateType::kPropertyEQ) {
+          return expand_vertex<
+              SPVPWrapper<VertexPropertyEQPredicateBeta<std::string_view>>>(
+              txn, std::move(ctx), params,
+              SPVPWrapper(
+                  dynamic_cast<
+                      const VertexPropertyEQPredicateBeta<std::string_view>&>(
+                      pred)));
+        }
       }
     }
-    LOG(FATAL) << "not impl";
+    LOG(FATAL) << static_cast<int>(pred.type()) << "not impl";
     return ctx;
   }
 

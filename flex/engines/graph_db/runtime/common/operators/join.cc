@@ -120,17 +120,26 @@ static Context single_vertex_column_inner_join(Context&& ctx, Context&& ctx2,
 #endif
   } else {
     // std::map<VertexRecord, std::vector<size_t>> right_map;
+    phmap::flat_hash_set<VertexRecord, VertexRecordHash> right_set;
     phmap::flat_hash_map<VertexRecord, std::vector<size_t>, VertexRecordHash>
-        right_map;
-    for (size_t r_i = 0; r_i < right_size; ++r_i) {
-      right_map[casted_right_col->get_vertex(r_i)].emplace_back(r_i);
-    }
-    for (size_t r_i = 0; r_i < left_size; ++r_i) {
-      auto iter = right_map.find(casted_left_col->get_vertex(r_i));
-      if (iter != right_map.end()) {
-        for (auto idx : iter->second) {
-          left_offset.emplace_back(r_i);
-          right_offset.emplace_back(idx);
+        left_map;
+    if (right_size != 0) {
+      for (size_t r_i = 0; r_i < right_size; ++r_i) {
+        right_set.emplace(casted_right_col->get_vertex(r_i));
+      }
+      for (size_t r_i = 0; r_i < left_size; ++r_i) {
+        auto cur = casted_left_col->get_vertex(r_i);
+        if (right_set.find(cur) != right_set.end()) {
+          left_map[cur].emplace_back(r_i);
+        }
+      }
+      for (size_t r_i = 0; r_i < right_size; ++r_i) {
+        auto iter = left_map.find(casted_right_col->get_vertex(r_i));
+        if (iter != left_map.end()) {
+          for (auto idx : iter->second) {
+            right_offset.emplace_back(r_i);
+            left_offset.emplace_back(idx);
+          }
         }
       }
     }

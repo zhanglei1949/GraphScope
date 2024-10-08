@@ -24,15 +24,7 @@ Context eval_union(std::vector<Context>&& ctxs) {
   //  CHECK(ctx1.row_num() == 0);
   CHECK(ctx0.columns.size() == ctx1.columns.size());
 
-  auto tmp = ctx0.union_ctx(ctx1);
-  auto ctx = Context();
-  size_t idx = 0;
-  for (size_t i = 0; i < tmp.columns.size(); i++) {
-    if (tmp.columns[i] != nullptr) {
-      ctx.set(idx++, tmp.columns[i]);
-    }
-  }
-  return ctx;
+  return ctx0.union_ctx(ctx1);
 }
 }  // namespace runtime
 }  // namespace gs
