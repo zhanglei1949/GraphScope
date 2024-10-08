@@ -23,6 +23,7 @@
 
 #include "flex/engines/graph_db/runtime/common/columns/i_context_column.h"
 #include "flex/engines/graph_db/runtime/common/columns/path_columns.h"
+#include "flex/engines/graph_db/runtime/common/columns/value_columns.h"
 #include "flex/engines/graph_db/runtime/common/columns/vertex_columns.h"
 
 namespace gs {
@@ -336,6 +337,110 @@ void sssp_both_dir(const GraphView<EDATA_T>& view0,
     cur.clear();
     std::swap(cur, next);
   }
+}
+
+template <typename EDATA_T, typename PRED_T>
+void sssp_both_dir_with_order_by_length_limit(
+    const GraphView<EDATA_T>& view0, const GraphView<EDATA_T>& view1,
+    label_t v_label, vid_t v, vid_t vnum, size_t idx, int lower, int upper,
+    SLVertexColumnBuilder& dest_col_builder,
+    ValueColumnBuilder<int>& path_len_builder, std::vector<size_t>& offsets,
+    const PRED_T& pred, int limit_upper) {
+  std::vector<vid_t> cur;
+  std::vector<vid_t> next;
+  cur.push_back(v);
+  int depth = 0;
+  std::vector<bool> vis(vnum, false);
+  vis[v] = true;
+
+  while (depth < upper && !cur.empty()) {
+    if (offsets.size() >= static_cast<size_t>(limit_upper)) {
+      break;
+    }
+    if (depth >= lower) {
+      if (depth == upper - 1) {
+        for (auto u : cur) {
+          if (pred(v_label, u)) {
+            dest_col_builder.push_back_opt(u);
+
+            path_len_builder.push_back_opt(depth);
+            offsets.push_back(idx);
+          }
+        }
+      } else {
+        for (auto u : cur) {
+          if (pred(v_label, u)) {
+            dest_col_builder.push_back_opt(u);
+
+            path_len_builder.push_back_opt(depth);
+            offsets.push_back(idx);
+          }
+          for (auto& e : view0.get_edges(u)) {
+            auto nbr = e.neighbor;
+            if (!vis[nbr]) {
+              vis[nbr] = true;
+              next.push_back(nbr);
+            }
+          }
+          for (auto& e : view1.get_edges(u)) {
+            auto nbr = e.neighbor;
+            if (!vis[nbr]) {
+              vis[nbr] = true;
+              next.push_back(nbr);
+            }
+          }
+        }
+      }
+    } else {
+      for (auto u : cur) {
+        for (auto& e : view0.get_edges(u)) {
+          auto nbr = e.neighbor;
+          if (!vis[nbr]) {
+            vis[nbr] = true;
+            next.push_back(nbr);
+          }
+        }
+        for (auto& e : view1.get_edges(u)) {
+          auto nbr = e.neighbor;
+          if (!vis[nbr]) {
+            vis[nbr] = true;
+            next.push_back(nbr);
+          }
+        }
+      }
+    }
+    ++depth;
+    cur.clear();
+    std::swap(cur, next);
+  }
+}
+template <typename EDATA_T, typename PRED_T>
+std::tuple<std::shared_ptr<IContextColumn>, std::shared_ptr<IContextColumn>,
+           std::vector<size_t>>
+single_source_shortest_path_with_order_by_length_limit_impl(
+    const ReadTransaction& txn, const IVertexColumn& input, label_t e_label,
+    Direction dir, int lower, int upper, const PRED_T& pred, int limit_upper) {
+  label_t v_label = *input.get_labels_set().begin();
+  vid_t vnum = txn.GetVertexNum(v_label);
+  SLVertexColumnBuilder dest_col_builder(v_label);
+  ValueColumnBuilder<int32_t> path_len_builder;
+
+  std::vector<size_t> offsets;
+  {
+    CHECK(dir == Direction::kBoth);
+    GraphView<EDATA_T> oe_view =
+        txn.GetOutgoingGraphView<EDATA_T>(v_label, v_label, e_label);
+    GraphView<EDATA_T> ie_view =
+        txn.GetIncomingGraphView<EDATA_T>(v_label, v_label, e_label);
+    foreach_vertex(input, [&](size_t idx, label_t label, vid_t v) {
+      sssp_both_dir_with_order_by_length_limit(
+          oe_view, ie_view, v_label, v, vnum, idx, lower, upper,
+          dest_col_builder, path_len_builder, offsets, pred, limit_upper);
+    });
+  }
+
+  return std::make_tuple(dest_col_builder.finish(), path_len_builder.finish(),
+                         std::move(offsets));
 }
 
 template <typename EDATA_T, typename PRED_T>

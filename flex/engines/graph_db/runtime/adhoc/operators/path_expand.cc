@@ -103,6 +103,47 @@ Context eval_path_expand_p(const physical::PathExpand& opr,
   return ctx;
 }
 
+Context eval_shortest_path_with_order_by_length_limit(
+    const physical::PathExpand& opr, const ReadTransaction& txn, Context&& ctx,
+    const std::map<std::string, std::string>& params,
+    const physical::PhysicalOpr_MetaData& meta, const physical::GetV& get_v_opr,
+    int v_alias, int path_len_alias, int limit) {
+  CHECK(opr.has_start_tag());
+  int start_tag = opr.start_tag().value();
+  CHECK(!opr.is_optional());
+  ShortestPathParams spp;
+  spp.start_tag = start_tag;
+  spp.dir = parse_direction(opr.base().edge_expand().direction());
+  spp.v_alias = v_alias;
+  spp.alias = path_len_alias;
+  spp.hop_lower = opr.hop_range().lower();
+  spp.hop_upper = opr.hop_range().upper();
+  spp.labels = parse_label_triplets(meta);
+  CHECK(spp.labels.size() == 1) << "only support one label triplet";
+  if (get_v_opr.has_params() && get_v_opr.params().has_predicate()) {
+    auto sp_vertex_pred = parse_special_vertex_predicate(
+        get_v_opr.params().predicate(), txn, params);
+    if (sp_vertex_pred == nullptr) {
+      LOG(FATAL) << "not support"
+                 << get_v_opr.params().predicate().DebugString();
+    } else {
+      auto pred = get_v_opr.params().predicate();
+      if (sp_vertex_pred->data_type() == RTAnyType::kStringValue) {
+        if (sp_vertex_pred->type() == SPVertexPredicateType::kPropertyEQ) {
+          auto casted_pred = dynamic_cast<
+              const VertexPropertyEQPredicateBeta<std::string_view>&>(
+              *sp_vertex_pred);
+          return PathExpand::
+              single_source_shortest_path_with_order_by_length_limit(
+                  txn, std::move(ctx), spp, casted_pred, limit);
+        }
+      }
+    }
+  }
+  LOG(FATAL) << "not support";
+  return Context();
+}
+
 Context eval_shortest_path(const physical::PathExpand& opr,
                            const ReadTransaction& txn, Context&& ctx,
                            const std::map<std::string, std::string>& params,

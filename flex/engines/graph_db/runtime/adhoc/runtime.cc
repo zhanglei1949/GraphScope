@@ -72,6 +72,157 @@ static std::string get_opr_name(const physical::PhysicalOpr& opr) {
   }
 }
 
+static bool is_shortest_path_with_order_by_limit(
+    const physical::PhysicalPlan& plan, int i, int& path_len_alias,
+    int& vertex_alias, int& limit_upper) {
+  int opr_num = plan.plan_size();
+  const auto& opr = plan.plan(i).opr();
+  int start_tag = opr.path().start_tag().value();
+  // must be any shortest path
+  if (opr.path().path_opt() !=
+          physical::PathExpand_PathOpt::PathExpand_PathOpt_ANY_SHORTEST ||
+      opr.path().result_opt() !=
+          physical::PathExpand_ResultOpt::PathExpand_ResultOpt_ALL_V_E) {
+    return false;
+  }
+  if (i + 4 < opr_num) {
+    const auto& get_v_opr = plan.plan(i + 1).opr();
+    const auto& get_v_filter_opr = plan.plan(i + 2).opr();
+    const auto& select_opr = plan.plan(i + 3).opr();
+    const auto& project_opr = plan.plan(i + 4).opr();
+    const auto& order_by_opr = plan.plan(i + 5).opr();
+    if (!get_v_opr.has_vertex() || !get_v_filter_opr.has_vertex() ||
+        !project_opr.has_project() || !order_by_opr.has_order_by()) {
+      return false;
+    }
+    if (get_v_opr.vertex().opt() != physical::GetV::END) {
+      return false;
+    }
+
+    if (get_v_filter_opr.vertex().opt() != physical::GetV::ITSELF) {
+      return false;
+    }
+
+    int path_alias = opr.path().has_alias() ? opr.path().alias().value() : -1;
+    int get_v_tag =
+        get_v_opr.vertex().has_tag() ? get_v_opr.vertex().tag().value() : -1;
+    int get_v_alias = get_v_opr.vertex().has_alias()
+                          ? get_v_opr.vertex().alias().value()
+                          : -1;
+    if (path_alias != get_v_tag && get_v_tag != -1) {
+      return false;
+    }
+    int get_v_filter_tag = get_v_filter_opr.vertex().has_tag()
+                               ? get_v_filter_opr.vertex().tag().value()
+                               : -1;
+    if (get_v_filter_tag != get_v_alias && get_v_filter_tag != -1) {
+      return false;
+    }
+    if (!select_opr.has_select()) {
+      return false;
+    }
+    if (!select_opr.select().has_predicate()) {
+      return false;
+    }
+    auto pred = select_opr.select().predicate();
+    if (pred.operators_size() != 3) {
+      return false;
+    }
+    if (!pred.operators(0).has_var() ||
+        !(pred.operators(1).item_case() == common::ExprOpr::kLogical) ||
+        pred.operators(1).logical() != common::Logical::NE ||
+        !pred.operators(2).has_var()) {
+      return false;
+    }
+
+    if (!pred.operators(0).var().has_tag() ||
+        !pred.operators(2).var().has_tag()) {
+      return false;
+    }
+    if (pred.operators(0).var().tag().id() != get_v_alias &&
+        pred.operators(2).var().tag().id() != get_v_alias) {
+      return false;
+    }
+
+    if (pred.operators(0).var().tag().id() != start_tag &&
+        pred.operators(2).var().tag().id() != start_tag) {
+      return false;
+    }
+
+    // only vertex and length(path)
+    if (project_opr.project().mappings_size() != 2 ||
+        project_opr.project().is_append()) {
+      return false;
+    }
+
+    auto mapping = project_opr.project().mappings();
+    if (!mapping.at(0).has_expr() || !mapping.at(1).has_expr()) {
+      return false;
+    }
+    if (mapping.at(0).expr().operators_size() != 1 ||
+        mapping.at(1).expr().operators_size() != 1) {
+      return false;
+    }
+    if (!mapping.at(0).expr().operators(0).has_var() ||
+        !mapping.at(1).expr().operators(0).has_var()) {
+      return false;
+    }
+    if (!mapping.at(0).expr().operators(0).var().has_tag() ||
+        !mapping.at(1).expr().operators(0).var().has_tag()) {
+      return false;
+    }
+    common::Variable path_len_var0;
+    common::Variable vertex_var;
+    if (mapping.at(0).expr().operators(0).var().tag().id() == path_alias) {
+      path_len_var0 = mapping.at(0).expr().operators(0).var();
+      vertex_var = mapping.at(1).expr().operators(0).var();
+      path_len_alias = mapping.at(0).alias().value();
+      vertex_alias = mapping.at(1).alias().value();
+
+    } else if (mapping.at(1).expr().operators(0).var().tag().id() ==
+               path_alias) {
+      path_len_var0 = mapping.at(1).expr().operators(0).var();
+      vertex_var = mapping.at(0).expr().operators(0).var();
+      path_len_alias = mapping.at(1).alias().value();
+      vertex_alias = mapping.at(0).alias().value();
+    } else {
+      return false;
+    }
+    if (!path_len_var0.has_property() || !path_len_var0.property().has_len()) {
+      return false;
+    }
+
+    if (vertex_var.has_property()) {
+      return false;
+    }
+
+    // must has order by limit
+    if (!order_by_opr.order_by().has_limit()) {
+      return false;
+    }
+    limit_upper = order_by_opr.order_by().limit().upper();
+    if (order_by_opr.order_by().pairs_size() < 0) {
+      return false;
+    }
+    if (!order_by_opr.order_by().pairs().at(0).has_key()) {
+      return false;
+    }
+    if (!order_by_opr.order_by().pairs().at(0).key().has_tag()) {
+      return false;
+    }
+    if (order_by_opr.order_by().pairs().at(0).key().tag().id() !=
+        path_len_alias) {
+      return false;
+    }
+    if (order_by_opr.order_by().pairs().at(0).order() !=
+        algebra::OrderBy_OrderingPair_Order::OrderBy_OrderingPair_Order_ASC) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
 static bool is_shortest_path(const physical::PhysicalPlan& plan, int i) {
   int opr_num = plan.plan_size();
   const auto& opr = plan.plan(i).opr();
@@ -355,6 +506,18 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kPath: {
       if ((i + 2) < opr_num) {
+        int path_len_alias = -1;
+        int vertex_alias = -1;
+        int limit_upper = -1;
+        if (is_shortest_path_with_order_by_limit(plan, i, path_len_alias,
+                                                 vertex_alias, limit_upper)) {
+          ret = eval_shortest_path_with_order_by_length_limit(
+              opr.opr().path(), txn, std::move(ret), params, opr.meta_data(0),
+              plan.plan(i + 2).opr().vertex(), vertex_alias, path_len_alias,
+              limit_upper);
+          i += 4;
+          break;
+        }
         if (is_shortest_path(plan, i)) {
           auto vertex = plan.plan(i + 2).opr().vertex();
           int v_alias = -1;

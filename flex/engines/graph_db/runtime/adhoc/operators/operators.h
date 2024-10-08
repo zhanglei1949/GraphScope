@@ -52,6 +52,12 @@ bool project_order_by_fusable(
     const physical::Project& project_opr, const algebra::OrderBy& order_by_opr,
     const Context& ctx, const std::vector<common::IrDataType>& data_types);
 
+Context eval_shortest_path_with_order_by_length_limit(
+    const physical::PathExpand& opr, const ReadTransaction& txn, Context&& ctx,
+    const std::map<std::string, std::string>& params,
+    const physical::PhysicalOpr_MetaData& meta, const physical::GetV& get_v_opr,
+    int v_alias, int path_len_alias, int limit);
+
 Context eval_shortest_path(const physical::PathExpand& opr,
                            const ReadTransaction& txn, Context&& ctx,
                            const std::map<std::string, std::string>& params,

@@ -68,6 +68,70 @@ class PathExpand {
       const ShortestPathParams& params, std::pair<label_t, vid_t>& dest);
 
   template <typename PRED_T>
+  static Context single_source_shortest_path_with_order_by_length_limit(
+      const ReadTransaction& txn, Context&& ctx,
+      const ShortestPathParams& params, const PRED_T& pred, int limit_upper) {
+    std::vector<size_t> shuffle_offset;
+    auto input_vertex_col =
+        std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.start_tag));
+    if (params.labels.size() == 1 &&
+        params.labels[0].src_label == params.labels[0].dst_label &&
+        params.dir == Direction::kBoth &&
+        input_vertex_col->get_labels_set().size() == 1) {
+      const auto& properties = txn.schema().get_edge_properties(
+          params.labels[0].src_label, params.labels[0].dst_label,
+          params.labels[0].edge_label);
+      if (properties.empty()) {
+        auto tup = single_source_shortest_path_with_order_by_length_limit_impl<
+            grape::EmptyType, PRED_T>(
+            txn, *input_vertex_col, params.labels[0].edge_label, params.dir,
+            params.hop_lower, params.hop_upper, pred, limit_upper);
+        ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
+                               std::get<2>(tup));
+        ctx.set(params.alias, std::get<1>(tup));
+        return ctx;
+      } else if (properties.size() == 1) {
+        if (properties[0] == PropertyType::Int32()) {
+          auto tup =
+              single_source_shortest_path_with_order_by_length_limit_impl<
+                  int, PRED_T>(txn, *input_vertex_col,
+                               params.labels[0].edge_label, params.dir,
+                               params.hop_lower, params.hop_upper, pred,
+                               limit_upper);
+          ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
+                                 std::get<2>(tup));
+          ctx.set(params.alias, std::get<1>(tup));
+          return ctx;
+        } else if (properties[0] == PropertyType::Int64()) {
+          auto tup =
+              single_source_shortest_path_with_order_by_length_limit_impl<
+                  int64_t, PRED_T>(txn, *input_vertex_col,
+                                   params.labels[0].edge_label, params.dir,
+                                   params.hop_lower, params.hop_upper, pred,
+                                   limit_upper);
+          ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
+                                 std::get<2>(tup));
+          ctx.set(params.alias, std::get<1>(tup));
+          return ctx;
+        } else if (properties[0] == PropertyType::Date()) {
+          auto tup =
+              single_source_shortest_path_with_order_by_length_limit_impl<
+                  Date, PRED_T>(txn, *input_vertex_col,
+                                params.labels[0].edge_label, params.dir,
+                                params.hop_lower, params.hop_upper, pred,
+                                limit_upper);
+          ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
+                                 std::get<2>(tup));
+          ctx.set(params.alias, std::get<1>(tup));
+          return ctx;
+        }
+      }
+    }
+    LOG(FATAL) << "not support edge property type ";
+    return ctx;
+  }
+
+  template <typename PRED_T>
   static Context single_source_shortest_path(const ReadTransaction& txn,
                                              Context&& ctx,
                                              const ShortestPathParams& params,
