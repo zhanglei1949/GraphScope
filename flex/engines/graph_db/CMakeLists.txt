@@ -30,5 +30,7 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/app/hqps_app.h
         DESTINATION include/flex/engines/graph_db/app)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/app/adhoc_app.h
         DESTINATION include/flex/engines/graph_db/app)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/app/cypher_app.h
+        DESTINATION include/flex/engines/graph_db/app)
 
 

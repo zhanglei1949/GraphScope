@@ -781,7 +781,41 @@ void sink_vertex(const gs::ReadTransaction& txn, const VertexRecord& vertex,
              prop->mutable_value());
   }
 }
-
+void RTAny::sink(const ReadTransaction& txn, Encoder& encoder) const {
+  if (type_ == RTAnyType::kList) {
+    encoder.put_int(value_.list.size());
+    for (size_t i = 0; i < value_.list.size(); ++i) {
+      value_.list.get(i).sink(txn, encoder);
+    }
+  } else if (type_ == RTAnyType::kTuple) {
+    for (size_t i = 0; i < value_.t.size(); ++i) {
+      value_.t.get(i).sink(txn, encoder);
+    }
+  } else if (type_ == RTAnyType::kStringValue) {
+    encoder.put_string_view(value_.str_val);
+  } else if (type_ == RTAnyType::kI64Value) {
+    encoder.put_long(value_.i64_val);
+  } else if (type_ == RTAnyType::kDate32) {
+    encoder.put_long(value_.i64_val);
+  } else if (type_ == RTAnyType::kI32Value) {
+    encoder.put_int(value_.i32_val);
+  } else if (type_ == RTAnyType::kF64Value) {
+    int64_t long_value;
+    std::memcpy(&long_value, &value_.f64_val, sizeof(long_value));
+    encoder.put_long(long_value);
+  } else if (type_ == RTAnyType::kBoolValue) {
+    encoder.put_byte(value_.b_val ? static_cast<uint8_t>(1)
+                                  : static_cast<uint8_t>(0));
+  } else if (type_ == RTAnyType::kStringSetValue) {
+    // fix me
+    encoder.put_int(value_.str_set->size());
+    for (auto& s : *value_.str_set) {
+      encoder.put_string_view(s);
+    }
+  } else {
+    LOG(FATAL) << "not support for " << static_cast<int>(type_.type_enum_);
+  }
+}
 void RTAny::sink(const gs::ReadTransaction& txn, int id,
                  results::Column* col) const {
   col->mutable_name_or_id()->set_id(id);
@@ -861,6 +895,7 @@ void RTAny::sink(const gs::ReadTransaction& txn, int id,
   }
 }
 
+// just for ldbc snb interactive queries
 void RTAny::encode_sig(RTAnyType type, Encoder& encoder) const {
   if (type == RTAnyType::kI64Value) {
     encoder.put_long(this->as_int64());

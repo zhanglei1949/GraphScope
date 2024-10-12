@@ -66,6 +66,23 @@ void eval_sink_beta(const Context& ctx, const ReadTransaction& txn,
   output.put_bytes(res.data(), res.size());
 }
 
+void eval_sink_encoder(const Context& ctx, const ReadTransaction& txn,
+                       Encoder& encoder) {
+  size_t row_num = ctx.row_num();
+  for (size_t i = 0; i < row_num; ++i) {
+    for (size_t j : ctx.tag_ids) {
+      auto col = ctx.get(j);
+      if (col == nullptr) {
+        continue;
+      }
+
+      auto val = col->get_elem(i);
+      val.sink(txn, encoder);
+    }
+    std::cout << std::endl;
+  }
+}
+
 }  // namespace runtime
 
 }  // namespace gs

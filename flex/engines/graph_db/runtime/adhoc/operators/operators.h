@@ -124,6 +124,9 @@ Context eval_union(std::vector<Context>&& ctxs);
 
 void eval_sink(const Context& ctx, const ReadTransaction& txn, Encoder& output);
 
+void eval_sink_encoder(const Context& ctx, const ReadTransaction& txn,
+                       Encoder& output);
+
 void eval_sink_beta(const Context& ctx, const ReadTransaction& txn,
                     Encoder& output);
 

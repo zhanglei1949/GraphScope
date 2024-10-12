@@ -578,6 +578,7 @@ class RTAny {
 
   void sink(const gs::ReadTransaction& txn, int id,
             results::Column* column) const;
+  void sink(const ReadTransaction& txn, Encoder& encoder) const;
   void encode_sig(RTAnyType type, Encoder& encoder) const;
 
   std::string to_string() const;

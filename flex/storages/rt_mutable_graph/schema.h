@@ -35,6 +35,7 @@ class Schema {
   static constexpr uint8_t HQPS_ADHOC_READ_PLUGIN_ID = 254;
   static constexpr uint8_t HQPS_ADHOC_WRITE_PLUGIN_ID = 255;
   static constexpr uint8_t ADHOC_READ_PLUGIN_ID = 253;
+  static constexpr uint8_t CYPHER_PLUGIN_ID = 252;
   static constexpr const char* HQPS_ADHOC_READ_PLUGIN_ID_STR = "\xFE";
   static constexpr const char* HQPS_ADHOC_WRITE_PLUGIN_ID_STR = "\xFF";
   static constexpr const char* ADHOC_READ_PLUGIN_ID_STR = "\xFD";
