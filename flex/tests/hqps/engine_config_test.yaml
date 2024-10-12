@@ -25,6 +25,8 @@ compiler:
       - NotMatchToAntiJoinRule
       - ExtendIntersectRule
       - ExpandGetVFusionRule
+      - FlatJoinToExpandRule
+      #- FlatJoinToIntersectRule
       #- JoinDecompositionRule
     join_min_pattern_size: 15
   meta:
