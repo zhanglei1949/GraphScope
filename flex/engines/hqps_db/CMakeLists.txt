@@ -15,6 +15,7 @@ set(CODE_GEN_PROTOBUF_FILES
         ${GIE_COMPILER_PROTO_DIR}/schema.proto
         ${GIE_COMPILER_PROTO_DIR}/type.proto
         ${GIE_COMPILER_PROTO_DIR}/stored_procedure.proto
+        ${GIE_COMPILER_PROTO_DIR}/cypher_write.proto
         ${GIE_COMPILER_PROTO_JOB_DIR}/job_service.proto
 )
 

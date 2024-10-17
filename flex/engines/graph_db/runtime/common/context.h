@@ -77,6 +77,177 @@ class Context {
   std::shared_ptr<ValueColumn<size_t>> offset_ptr;
 };
 
+class WriteContext {
+ public:
+  struct WriteParams {
+    WriteParams() = default;
+    WriteParams(const std::string& val) : value(val) {}
+    WriteParams(std::string_view val) : value(val) {}
+    bool operator<(const WriteParams& rhs) const { return value < rhs.value; }
+    bool operator==(const WriteParams& rhs) const { return value == rhs.value; }
+    std::vector<WriteParams> unfold() const {
+      std::vector<WriteParams> res;
+      size_t start = 0;
+      for (size_t i = 0; i < value.size(); ++i) {
+        if (value[i] == ';') {
+          res.emplace_back(value.substr(start, i - start));
+          start = i + 1;
+        }
+      }
+      if (start < value.size()) {
+        res.emplace_back(value.substr(start));
+      }
+      return res;
+    }
+
+    std::pair<WriteParams, WriteParams> pairs() const {
+      size_t pos = value.find_first_of(',');
+      if (pos == std::string::npos) {
+        LOG(FATAL) << "Invalid pair value: " << value;
+      }
+      LOG(INFO) << "pair: " << value.substr(0, pos) << " "
+                << value.substr(pos + 1);
+      return std::make_pair(WriteParams(value.substr(0, pos)),
+                            WriteParams(value.substr(pos + 1)));
+    }
+    Any to_any(PropertyType type) const {
+      if (type == PropertyType::kInt32) {
+        return Any(std::stoi(std::string(value)));
+      } else if (type == PropertyType::kInt64) {
+        return Any(static_cast<int64_t>(std::stoll(std::string(value))));
+      } else if (type == PropertyType::kDouble) {
+        return Any(std::stod(std::string(value)));
+      } else if (type == PropertyType::kString) {
+        return Any(value);
+      } else if (type == PropertyType::kBool) {
+        return Any(value == "true");
+      } else if (type == PropertyType::kDate) {
+        return Any(Date(std::stoll(std::string(value))));
+      } else if (type == PropertyType::kDay) {
+        return Any(Day(std::stoll(std::string(value))));
+      } else {
+        LOG(FATAL) << "Unsupported type: " << type;
+        return Any();
+      }
+    }
+
+    std::string_view value;
+  };
+
+  struct WriteParamsColumn {
+    WriteParamsColumn() : is_set(false) {}
+    WriteParamsColumn(std::vector<WriteParams>&& col)
+        : values(std::move(col)), is_set(true) {}
+    int size() const { return values.size(); }
+    const WriteParams& get(int idx) const { return values[idx]; }
+    std::pair<WriteParamsColumn, std::vector<size_t>> unfold() {
+      std::vector<WriteParams> res;
+      std::vector<size_t> offsets;
+      for (size_t i = 0; i < values.size(); ++i) {
+        auto unfolded = values[i].unfold();
+        for (size_t j = 0; j < unfolded.size(); ++j) {
+          res.push_back(unfolded[j]);
+          offsets.push_back(i);
+        }
+      }
+      return std::make_pair(WriteParamsColumn(std::move(res)),
+                            std::move(offsets));
+    }
+
+    std::pair<WriteParamsColumn, WriteParamsColumn> pairs() {
+      WriteParamsColumn res;
+      WriteParamsColumn res2;
+      LOG(INFO) << "pairs: " << values.size();
+      for (size_t i = 0; i < values.size(); ++i) {
+        auto [left, right] = values[i].pairs();
+        res.push_back(left);
+        res2.push_back(right);
+      }
+      return std::make_pair(WriteParamsColumn(std::move(res)), std::move(res2));
+    }
+    void push_back(WriteParams&& val) {
+      is_set = true;
+      values.push_back(std::move(val));
+    }
+    void push_back(const WriteParams& val) {
+      is_set = true;
+      values.push_back(val);
+    }
+    void clear() {
+      is_set = false;
+      values.clear();
+    }
+    std::vector<WriteParams> values;
+    bool is_set;
+  };
+
+  WriteContext() = default;
+  ~WriteContext() = default;
+
+  int col_num() const { return vals.size(); }
+
+  void set(int alias, WriteParamsColumn&& col) {
+    if (alias >= static_cast<int>(vals.size())) {
+      vals.resize(alias + 1);
+    }
+    vals[alias] = std::move(col);
+  }
+  void reshuffle(const std::vector<size_t>& offsets) {
+    for (size_t i = 0; i < vals.size(); ++i) {
+      if (vals[i].is_set) {
+        WriteParamsColumn new_col;
+        for (size_t j = 0; j < offsets.size(); ++j) {
+          new_col.push_back(vals[i].get(offsets[j]));
+        }
+        vals[i] = std::move(new_col);
+      }
+    }
+  }
+
+  void set_with_reshuffle(int alias, WriteParamsColumn&& col,
+                          const std::vector<size_t>& offsets) {
+    if (alias >= static_cast<int>(vals.size())) {
+      vals.resize(alias + 1);
+    }
+    if (vals[alias].is_set) {
+      vals[alias].clear();
+    }
+    reshuffle(offsets);
+    vals[alias] = std::move(col);
+  }
+
+  const WriteParamsColumn& get(int alias) const {
+    if (alias >= static_cast<int>(vals.size())) {
+      LOG(FATAL) << "Alias " << alias << " not found in WriteContext";
+    }
+    return vals[alias];
+  }
+
+  WriteParamsColumn& get(int alias) {
+    if (alias >= static_cast<int>(vals.size())) {
+      LOG(FATAL) << "Alias " << alias << " not found in WriteContext";
+    }
+    return vals[alias];
+  }
+
+  void clear() { vals.clear(); }
+
+  int row_num() const {
+    if (vals.empty()) {
+      return 0;
+    }
+    for (size_t i = 0; i < vals.size(); ++i) {
+      if (vals[i].is_set) {
+        return vals[i].size();
+      }
+    }
+    return 0;
+  }
+
+ private:
+  std::vector<WriteParamsColumn> vals;
+};
+
 }  // namespace runtime
 
 }  // namespace gs

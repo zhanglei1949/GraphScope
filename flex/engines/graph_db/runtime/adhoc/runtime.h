@@ -61,6 +61,9 @@ class OpCost {
 Context runtime_eval(const physical::PhysicalPlan& plan,
                      const ReadTransaction& txn,
                      const std::map<std::string, std::string>& params);
+WriteContext runtime_eval(const physical::PhysicalPlan& plan,
+                          InsertTransaction& txn,
+                          const std::map<std::string, std::string>& params);
 
 }  // namespace runtime
 

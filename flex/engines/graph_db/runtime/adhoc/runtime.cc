@@ -677,6 +677,56 @@ Context runtime_eval(const physical::PhysicalPlan& plan,
   return ret;
 }
 
+WriteContext runtime_eval_impl(
+    const physical::PhysicalPlan& plan, WriteContext&& ctx,
+    InsertTransaction& txn, const std::map<std::string, std::string>& params) {
+  int opr_num = plan.plan_size();
+  LOG(INFO) << plan.DebugString();
+  WriteContext ret = ctx;
+  for (int i = 0; i < opr_num; ++i) {
+    const physical::PhysicalOpr& opr = plan.plan(i);
+    assert(opr.has_opr());
+    switch (opr.opr().op_kind_case()) {
+    case physical::PhysicalOpr_Operator::OpKindCase::kProject: {
+      ret = eval_project(opr.opr().project(), txn, std::move(ret), params);
+      break;
+    }
+    case physical::PhysicalOpr_Operator::OpKindCase::kLoad: {
+      ret = eval_load(opr.opr().load(), txn, std::move(ret), params);
+      break;
+    }
+    case physical::PhysicalOpr_Operator::OpKindCase::kSink: {
+      txn.Commit();
+      break;
+    }
+    case physical::PhysicalOpr_Operator::OpKindCase::kUnfold: {
+      ret = eval_unfold(opr.opr().unfold(), std::move(ret));
+      break;
+    }
+    case physical::PhysicalOpr_Operator::OpKindCase::kDedup: {
+      ret = eval_dedup(opr.opr().dedup(), txn, std::move(ret));
+      break;
+    }
+    default: {
+      LOG(FATAL) << "opr not support..." << opr.DebugString();
+      break;
+    }
+    }
+  }
+
+  return ctx;
+}
+// for insert transaction
+WriteContext runtime_eval(const physical::PhysicalPlan& plan,
+                          InsertTransaction& txn,
+                          const std::map<std::string, std::string>& params) {
+  double t = -grape::GetCurrentTime();
+  auto ret = runtime_eval_impl(plan, WriteContext(), txn, params);
+  t += grape::GetCurrentTime();
+  OpCost::get().add_total(t);
+  return ret;
+}
+
 }  // namespace runtime
 
 }  // namespace gs

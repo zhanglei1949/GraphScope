@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
   LOG(INFO) << "Finished loading graph, elapsed " << t0 << " s";
   std::string req_file = vm["query-file"].as<std::string>();
   std::string query = read_pb(req_file);
-  auto txn = db.GetReadTransaction();
+  auto txn = db.GetInsertTransaction();
   std::vector<std::map<std::string, std::string>> map;
   load_params(vm["params_file"].as<std::string>(), map);
   size_t params_num = map.size();
@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
     auto& m = map[i % params_num];
     auto ctx = gs::runtime::runtime_eval(pb, txn, m);
     gs::Encoder output(outputs[i]);
-    gs::runtime::eval_sink_beta(ctx, txn, output);
+    // gs::runtime::eval_sink_beta(ctx, txn, output);
   }
   t1 += grape::GetCurrentTime();
 
