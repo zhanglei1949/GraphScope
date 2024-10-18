@@ -24,6 +24,7 @@ import com.alibaba.graphscope.common.ir.rel.graph.GraphPhysicalExpand;
 import com.alibaba.graphscope.common.ir.rel.graph.GraphPhysicalGetV;
 import com.alibaba.graphscope.common.ir.rel.graph.match.GraphLogicalMultiMatch;
 import com.alibaba.graphscope.common.ir.rel.graph.match.GraphLogicalSingleMatch;
+import com.alibaba.graphscope.common.ir.rel.ddl.GraphTableModify;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelShuttleImpl;
@@ -43,6 +44,26 @@ public abstract class GraphShuttle extends RelShuttleImpl {
 
     public RelNode visit(GraphLogicalGetV getV) {
         return visitChildren(getV);
+    }
+
+    public RelNode visit(LoadCSVTableScan scan) {
+        return scan;
+    }
+
+    public RelNode visit(GraphTableModify.Insert insert) {
+        return visitChildren(insert);
+    }
+
+    public RelNode visit(GraphTableModify.Update update) {
+        return visitChildren(update);
+    }
+
+    public RelNode visit(GraphTableModify.Delete delete) {
+        return visitChildren(delete);
+    }
+
+    public RelNode visit(DataSourceTableScan scan) {
+        return visitChildren(scan);
     }
 
     public RelNode visit(GraphLogicalPathExpand expand) {
@@ -103,6 +124,10 @@ public abstract class GraphShuttle extends RelShuttleImpl {
 
     public RelNode visit(GraphLogicalUnfold unfold) {
         return visitChildren(unfold);
+    }
+
+    public RelNode visit(DummyTableScan scan) {
+        return scan;
     }
 
     @Override

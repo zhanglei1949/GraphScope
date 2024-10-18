@@ -26,19 +26,14 @@ compiler:
       - ExtendIntersectRule
       - ExpandGetVFusionRule
       - FlatJoinToExpandRule
-      #- FlatJoinToIntersectRule
-      #- JoinDecompositionRule
     join_min_pattern_size: 15
   meta:
     reader:
       schema:
-        #uri: /root/0819/GraphScope/interactive_engine/executor/ir/core/resource/ldbc_schema.json
-        #uri: /root/0819/GraphScope/interactive_engine/executor/ir/core/resource/ldbc_schema.json
-        uri: /root/0819/data/sf10_validation/graph.yaml
+        uri: /root/0819/flex_ldbc_snb/configs/graph_for_compiler.yaml
         interval: 1000 # ms
       statistics:
-        #uri: /root/0819/GraphScope/interactive_engine/compiler/src/test/resources/statistics/ldbc30_statistics.json
-        uri: /root/0819/data/sf10_validation/ldbc_30_statistics.json
+        uri: /root/0819/flex_ldbc_snb/configs/ldbc_30_statistics.json
         interval: 86400000 # ms
   endpoint:
     default_listen_address: localhost
@@ -49,7 +44,6 @@ compiler:
       disabled: false
       port: 8182
   query_timeout: 40000
-  #gremlin_script_language_name: antlr_gremlin_calcite
   physical.opt.config: proto
 http_service:
   default_listen_address: localhost

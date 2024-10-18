@@ -120,6 +120,11 @@ public class RexGraphVariable extends RexInputRef {
         return aliasId;
     }
 
+    public String getAliasName() {
+        String splits[] = this.digest.split("\\.");
+        return splits[0];
+    }
+    
     public @Nullable GraphProperty getProperty() {
         return property;
     }

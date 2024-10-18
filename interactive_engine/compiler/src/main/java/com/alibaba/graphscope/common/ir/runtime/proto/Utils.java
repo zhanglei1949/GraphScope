@@ -280,6 +280,7 @@ public abstract class Utils {
         switch (basicType.getSqlTypeName()) {
             case NULL:
             case ANY:
+            case UNKNOWN:
                 return Common.DataType.NONE;
             case BOOLEAN:
                 return Common.DataType.BOOLEAN;

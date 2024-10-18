@@ -17,6 +17,7 @@
 package com.alibaba.graphscope.common.ir.tools;
 
 import com.alibaba.graphscope.common.ir.rex.RexGraphDynamicParam;
+import com.alibaba.graphscope.common.ir.rex.RexGraphVariable;
 import com.google.common.collect.Lists;
 
 import org.apache.calcite.rel.type.RelDataType;
@@ -114,5 +115,33 @@ public class GraphRexBuilder extends RexBuilder {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+
+    @Override
+    public RexNode makeCast(RelDataType type, RexNode exp) {
+        if (!exp.getType().equals(type)) {
+            if (exp instanceof RexGraphVariable) {
+                RexGraphVariable original = (RexGraphVariable) exp;
+                return original.getProperty() == null
+                        ? RexGraphVariable.of(
+                                original.getAliasId(),
+                                original.getIndex(),
+                                original.getName(),
+                                type)
+                        : RexGraphVariable.of(
+                                original.getAliasId(),
+                                original.getProperty(),
+                                original.getIndex(),
+                                original.getName(),
+                                type);
+            } else if (exp instanceof RexGraphDynamicParam) {
+                return makeGraphDynamicParam(
+                        type,
+                        ((RexGraphDynamicParam) exp).getName(),
+                        ((RexGraphDynamicParam) exp).getIndex());
+            }
+        }
+        return super.makeCast(type, exp);
     }
 }

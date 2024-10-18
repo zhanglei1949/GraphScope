@@ -478,6 +478,24 @@ public class GraphBuilder extends RelBuilder {
         }
     }
 
+     /**
+     * Get Field from the given alias (denoted by `row[0]` in cypher syntax), the type of {@code RelNode} attached with the alias should be a struct type which consists of multiple fields
+     * @param alias
+     * @param fieldIdx
+     * @return
+     */
+    public RexGraphVariable field(@Nullable String alias, int fieldIdx) {
+        RexGraphVariable var = variable(alias);
+        RelDataTypeField targetField = getField(var.getType(), new GraphNameOrId(fieldIdx));
+        String name = alias + "[" + fieldIdx + "]";
+        return RexGraphVariable.of(
+                var.getAliasId(),
+                new GraphProperty(new GraphNameOrId(targetField.getIndex())),
+                var.getIndex(),
+                name,
+                targetField.getType());
+    }
+
     /**
      * validate and build {@link RexGraphVariable} from a given variable containing fieldName (i.e. "a.name" or "name")
      *
@@ -517,16 +535,15 @@ public class GraphBuilder extends RelBuilder {
                         varName,
                         getTypeFactory().createSqlType(SqlTypeName.INTEGER));
             }
-        }
-        if (!(aliasField.getType() instanceof GraphSchemaType)) {
-            throw new ClassCastException(
-                    "cannot get property=['id', 'label', 'all', 'key'] from type class ["
-                            + aliasField.getType().getClass()
-                            + "], should be ["
-                            + GraphSchemaType.class
-                            + "]");
-        }
-        if (property.equals(GraphProperty.LABEL_KEY)) {
+        } else if (property.equals(GraphProperty.LABEL_KEY)) {
+            if (!(aliasField.getType() instanceof GraphSchemaType)) {
+                throw new ClassCastException(
+                        "cannot get property=['label'] from type class ["
+                                + aliasField.getType().getClass()
+                                + "], should be ["
+                                + GraphSchemaType.class
+                                + "]");
+            }
             GraphSchemaType schemaType = (GraphSchemaType) aliasField.getType();
             return RexGraphVariable.of(
                     aliasField.getIndex(),
@@ -535,6 +552,15 @@ public class GraphBuilder extends RelBuilder {
                     varName,
                     schemaType.getLabelType());
         } else if (property.equals(GraphProperty.ID_KEY)) {
+            if (!(aliasField.getType() instanceof GraphSchemaType)) {
+                throw new ClassCastException(
+                        
+                        "cannot get property=['id'] from type class ["
+                                + aliasField.getType().getClass()
+                                + "], should be ["
+                                + GraphSchemaType.class
+                                + "]");
+            }
             return RexGraphVariable.of(
                     aliasField.getIndex(),
                     new GraphProperty(GraphProperty.Opt.ID),
@@ -542,6 +568,14 @@ public class GraphBuilder extends RelBuilder {
                     varName,
                     getTypeFactory().createSqlType(SqlTypeName.BIGINT));
         } else if (property.equals(GraphProperty.ALL_KEY)) {
+            if (!(aliasField.getType() instanceof GraphSchemaType)) {
+                throw new ClassCastException(
+                        "cannot get property=['all'] from type class ["
+                                + aliasField.getType().getClass()
+                                + "], should be ["
+                                + GraphSchemaType.class
+                                + "]");
+            }
             return RexGraphVariable.of(
                     aliasField.getIndex(),
                     new GraphProperty(GraphProperty.Opt.ALL),
@@ -588,25 +622,58 @@ public class GraphBuilder extends RelBuilder {
                         pathType.getComponentType().getGetVType());
             }
         }
-        GraphSchemaType graphType = (GraphSchemaType) aliasField.getType();
-        List<String> properties = new ArrayList<>();
+        RelDataTypeField targetField = getField(aliasField.getType(), new GraphNameOrId(property));
         boolean isColumnId =
-                (relOptSchema instanceof GraphOptSchema)
+                (targetField.getIndex() != -1 && relOptSchema instanceof GraphOptSchema)
                         ? ((GraphOptSchema) relOptSchema).getRootSchema().isColumnId()
                         : false;
-        for (RelDataTypeField pField : graphType.getFieldList()) {
-            if (pField.getName().equals(property)) {
-                return RexGraphVariable.of(
-                        aliasField.getIndex(),
-                        isColumnId
-                                ? new GraphProperty(new GraphNameOrId(pField.getIndex()))
-                                : new GraphProperty(new GraphNameOrId(pField.getName())),
-                        columnField.left,
-                        varName,
-                        pField.getType());
-            }
-            properties.add(pField.getName());
+        return RexGraphVariable.of(
+                aliasField.getIndex(),
+                isColumnId
+                        ? new GraphProperty(new GraphNameOrId(targetField.getIndex()))
+                        : new GraphProperty(new GraphNameOrId(targetField.getName())),
+                columnField.left,
+                varName,
+                targetField.getType());
+    }
+
+    private RelDataTypeField getField(RelDataType type, GraphNameOrId property) {
+        if (type.getFieldList() == null) {
+            throw new ClassCastException(
+                    "cannot get property=["
+                            + property
+                            + "] from type ["
+                            + type
+                            + "] with null field list");
         }
+        if (type instanceof ExplicitRecordType) {
+            switch (property.getOpt()) {
+                case ID:
+                    return new RelDataTypeFieldImpl(
+                            "", property.getId(), ((ExplicitRecordType) type).getExplicitType());
+                case NAME:
+                default:
+                    return new RelDataTypeFieldImpl(
+                            property.getName(), -1, ((ExplicitRecordType) type).getExplicitType());
+            }
+        }
+        List<Object> properties = new ArrayList<>();
+        for (RelDataTypeField pField : type.getFieldList()) {
+            switch (property.getOpt()) {
+                case ID:
+                    if (pField.getIndex() == property.getId()) {
+                        return new RelDataTypeFieldImpl("", property.getId(), pField.getType());
+                    }
+                    properties.add(pField.getIndex());
+                    break;
+                case NAME:
+                default:
+                    if (pField.getName().equals(property.getName())) {
+                        return new RelDataTypeFieldImpl(property.getName(), -1, pField.getType());
+                    }
+                    properties.add(pField.getName());
+            }
+        } 
         throw new IllegalArgumentException(
                 "{property="
                         + property
@@ -713,7 +780,8 @@ public class GraphBuilder extends RelBuilder {
             RelNode topNode, RelDataTypeField targetField, Set<String> uniqueFieldNames) {
         if (!(AliasInference.removeAlias(topNode)
                 || topNode instanceof Join
-                || topNode instanceof AbstractLogicalMatch)) {
+                || topNode instanceof AbstractLogicalMatch
+                || topNode instanceof DataSourceOperation)) {
             for (RelNode child : topNode.getInputs()) {
                 if (visitField(child, targetField, uniqueFieldNames)) {
                     return true;

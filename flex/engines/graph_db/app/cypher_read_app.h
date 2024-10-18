@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef ENGINES_GRAPH_DB_CYPHER_APP_H_
-#define ENGINES_GRAPH_DB_CYPHER_APP_H_
+#ifndef ENGINES_GRAPH_DB_CYPHER_READ_APP_H_
+#define ENGINES_GRAPH_DB_CYPHER_READ_APP_H_
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
 
@@ -31,9 +31,7 @@ class CypherReadApp : public ReadAppBase {
              Encoder& output) override;
 
  private:
-  bool generate_plan(const std::string& query);
-
-  std::unordered_map<std::string, physical::PhysicalPlan> plan_cache_;
+   std::unordered_map<std::string, physical::PhysicalPlan> plan_cache_;
 };
 
 class CypherReadAppFactory : public AppFactoryBase {
@@ -45,4 +43,4 @@ class CypherReadAppFactory : public AppFactoryBase {
 };
 
 }  // namespace gs
-#endif  // ENGINES_GRAPH_DB_CYPHER_APP_H_
+#endif  // ENGINES_GRAPH_DB_CYPHER_READ_APP_H_
