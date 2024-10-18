@@ -186,6 +186,15 @@ expand_vertex_without_predicate_optional_impl(
             grape::EmptyType, DummyPredicate<grape::EmptyType>>(
             txn, input, label_dirs, DummyPredicate<grape::EmptyType>());
       }
+    } else if (ed_type == PropertyType::Date()) {
+      if (se) {
+        return expand_vertex_np_se_optional<Date, DummyPredicate<Date>>(
+            txn, input, std::get<0>(label_dirs[0]), std::get<1>(label_dirs[0]),
+            std::get<2>(label_dirs[0]), DummyPredicate<Date>());
+      } else {
+        return expand_vertex_np_me_sp_optional<Date, DummyPredicate<Date>>(
+            txn, input, label_dirs, DummyPredicate<Date>());
+      }
     }
   }
   LOG(INFO) << "ed_types.size() " << se << " " << sp;

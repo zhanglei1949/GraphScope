@@ -156,35 +156,34 @@ static bool is_shortest_path_with_order_by_limit(
     }
 
     auto mapping = project_opr.project().mappings();
-    if (!mapping.at(0).has_expr() || !mapping.at(1).has_expr()) {
+    if (!mapping[0].has_expr() || !mapping[1].has_expr()) {
       return false;
     }
-    if (mapping.at(0).expr().operators_size() != 1 ||
-        mapping.at(1).expr().operators_size() != 1) {
+    if (mapping[0].expr().operators_size() != 1 ||
+        mapping[1].expr().operators_size() != 1) {
       return false;
     }
-    if (!mapping.at(0).expr().operators(0).has_var() ||
-        !mapping.at(1).expr().operators(0).has_var()) {
+    if (!mapping[0].expr().operators(0).has_var() ||
+        !mapping[1].expr().operators(0).has_var()) {
       return false;
     }
-    if (!mapping.at(0).expr().operators(0).var().has_tag() ||
-        !mapping.at(1).expr().operators(0).var().has_tag()) {
+    if (!mapping[0].expr().operators(0).var().has_tag() ||
+        !mapping[1].expr().operators(0).var().has_tag()) {
       return false;
     }
     common::Variable path_len_var0;
     common::Variable vertex_var;
-    if (mapping.at(0).expr().operators(0).var().tag().id() == path_alias) {
-      path_len_var0 = mapping.at(0).expr().operators(0).var();
-      vertex_var = mapping.at(1).expr().operators(0).var();
-      path_len_alias = mapping.at(0).alias().value();
-      vertex_alias = mapping.at(1).alias().value();
+    if (mapping[0].expr().operators(0).var().tag().id() == path_alias) {
+      path_len_var0 = mapping[0].expr().operators(0).var();
+      vertex_var = mapping[1].expr().operators(0).var();
+      path_len_alias = mapping[0].alias().value();
+      vertex_alias = mapping[1].alias().value();
 
-    } else if (mapping.at(1).expr().operators(0).var().tag().id() ==
-               path_alias) {
-      path_len_var0 = mapping.at(1).expr().operators(0).var();
-      vertex_var = mapping.at(0).expr().operators(0).var();
-      path_len_alias = mapping.at(1).alias().value();
-      vertex_alias = mapping.at(0).alias().value();
+    } else if (mapping[1].expr().operators(0).var().tag().id() == path_alias) {
+      path_len_var0 = mapping[1].expr().operators(0).var();
+      vertex_var = mapping[0].expr().operators(0).var();
+      path_len_alias = mapping[1].alias().value();
+      vertex_alias = mapping[0].alias().value();
     } else {
       return false;
     }
@@ -204,17 +203,16 @@ static bool is_shortest_path_with_order_by_limit(
     if (order_by_opr.order_by().pairs_size() < 0) {
       return false;
     }
-    if (!order_by_opr.order_by().pairs().at(0).has_key()) {
+    if (!order_by_opr.order_by().pairs()[0].has_key()) {
       return false;
     }
-    if (!order_by_opr.order_by().pairs().at(0).key().has_tag()) {
+    if (!order_by_opr.order_by().pairs()[0].key().has_tag()) {
       return false;
     }
-    if (order_by_opr.order_by().pairs().at(0).key().tag().id() !=
-        path_len_alias) {
+    if (order_by_opr.order_by().pairs()[0].key().tag().id() != path_len_alias) {
       return false;
     }
-    if (order_by_opr.order_by().pairs().at(0).order() !=
+    if (order_by_opr.order_by().pairs()[0].order() !=
         algebra::OrderBy_OrderingPair_Order::OrderBy_OrderingPair_Order_ASC) {
       return false;
     }
@@ -354,8 +352,8 @@ bool try_reuse_left_plan_column(const physical::Join& op, int& Tag,
   }
   auto right_plan = op.right_plan();
 
-  if (right_plan.plan().at(0).opr().has_scan()) {
-    auto scan = right_plan.plan().at(0).opr().scan();
+  if (right_plan.plan(0).opr().has_scan()) {
+    auto scan = right_plan.plan(0).opr().scan();
     int alias = -1;
     if (scan.has_alias()) {
       alias = scan.alias().value();
@@ -382,7 +380,7 @@ bool try_reuse_left_plan_column(const physical::Join& op, int& Tag,
       return false;
     }
     int num = right_plan.plan().size();
-    auto last_op = right_plan.plan().at(num - 1);
+    auto last_op = right_plan.plan(num - 1);
 
     if (last_op.opr().has_edge()) {
       auto edge = last_op.opr().edge();

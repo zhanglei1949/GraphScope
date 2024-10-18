@@ -71,7 +71,7 @@ bool is_check_property_in_range(const common::Expression& expr,
     if (opr.when_then_expressions_size() != 1) {
       return false;
     }
-    auto when = opr.when_then_expressions().at(0).when_expression();
+    auto when = opr.when_then_expressions(0).when_expression();
     if (when.operators_size() != 7) {
       return false;
     }
@@ -140,7 +140,7 @@ bool is_check_property_in_range(const common::Expression& expr,
       return false;
     }
     upper = param.at(upper_param.param().name());
-    auto then = opr.when_then_expressions().at(0).then_result_expression();
+    auto then = opr.when_then_expressions(0).then_result_expression();
     if (then.operators_size() != 1) {
       return false;
     }
@@ -173,7 +173,7 @@ bool is_check_property_lt(const common::Expression& expr,
     if (opr.when_then_expressions_size() != 1) {
       return false;
     }
-    auto when = opr.when_then_expressions().at(0).when_expression();
+    auto when = opr.when_then_expressions(0).when_expression();
     if (when.operators_size() != 3) {
       return false;
     }
@@ -206,7 +206,7 @@ bool is_check_property_lt(const common::Expression& expr,
       return false;
     }
     upper = param.at(upper_param.param().name());
-    auto then = opr.when_then_expressions().at(0).then_result_expression();
+    auto then = opr.when_then_expressions(0).then_result_expression();
     if (then.operators_size() != 1) {
       return false;
     }

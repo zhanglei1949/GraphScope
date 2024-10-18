@@ -679,8 +679,8 @@ static std::unique_ptr<ExprBase> build_expr(
     case common::ExprOpr::kUdfFunc: {
       auto op = opr.udf_func();
       std::string name = op.name();
-      auto expr = parse_expression_impl(txn, ctx, params, op.parameters().at(0),
-                                        var_type);
+      auto expr =
+          parse_expression_impl(txn, ctx, params, op.parameters(0), var_type);
       if (name == "gs.function.relationships") {
         return std::make_unique<RelationshipsExpr>(std::move(expr));
       } else if (name == "gs.function.nodes") {
