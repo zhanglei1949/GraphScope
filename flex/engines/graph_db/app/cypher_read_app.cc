@@ -11,9 +11,9 @@ bool CypherReadApp::Query(const GraphDBSession& graph, Decoder& input,
   auto txn = graph.GetReadTransaction();
   std::string_view bytes = input.get_bytes();
 
-  size_t sep = bytes.find_first_of('?');
+  size_t sep = bytes.find_first_of("&?");
   auto query_str = bytes.substr(0, sep);
-  auto params_str = bytes.substr(sep + 1);
+  auto params_str = bytes.substr(sep + 2);
   std::map<std::string, std::string> params;
   parse_params(params_str, params);
   auto query = std::string(query_str.data(), query_str.size());

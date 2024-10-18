@@ -53,7 +53,6 @@ WriteContext eval_load(const cypher::Load& opr, InsertTransaction& txn,
       }
 
       /// const auto& prop_name = prop.name();
-      LOG(INFO) << "Load property: " << prop_name << " " << prop.DebugString();
     }
     for (int i = 0; i < ctx.row_num(); ++i) {
       std::vector<Any> props;
@@ -74,8 +73,6 @@ WriteContext eval_load(const cypher::Load& opr, InsertTransaction& txn,
     const auto src_label_id = schema.get_vertex_label_id(src_label);
     const auto dst_label_id = schema.get_vertex_label_id(dst_label);
     const auto edge_label_id = schema.get_edge_label_id(edge_label);
-    LOG(INFO) << "Load edge: " << src_label << " -> " << edge_label << " -> "
-              << dst_label << " ";
     const auto& prop_names = schema.get_edge_property_names(
         src_label_id, dst_label_id, edge_label_id);
     const auto& prop_types =
@@ -119,8 +116,6 @@ WriteContext eval_load(const cypher::Load& opr, InsertTransaction& txn,
                     prop_value.get(i).to_any(prop_type));
       }
     }
-    LOG(INFO) << "Load edge: " << src_label << " -> " << edge_label << " -> "
-              << dst_label << " ";
 
     // LOG(FATAL) << opr.DebugString();
   }

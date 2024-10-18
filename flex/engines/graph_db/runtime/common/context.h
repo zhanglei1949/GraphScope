@@ -105,8 +105,6 @@ class WriteContext {
       if (pos == std::string::npos) {
         LOG(FATAL) << "Invalid pair value: " << value;
       }
-      LOG(INFO) << "pair: " << value.substr(0, pos) << " "
-                << value.substr(pos + 1);
       return std::make_pair(WriteParams(value.substr(0, pos)),
                             WriteParams(value.substr(pos + 1)));
     }
@@ -157,7 +155,6 @@ class WriteContext {
     std::pair<WriteParamsColumn, WriteParamsColumn> pairs() {
       WriteParamsColumn res;
       WriteParamsColumn res2;
-      LOG(INFO) << "pairs: " << values.size();
       for (size_t i = 0; i < values.size(); ++i) {
         auto [left, right] = values[i].pairs();
         res.push_back(left);

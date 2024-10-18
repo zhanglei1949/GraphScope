@@ -754,18 +754,17 @@ WriteContext eval_project(const physical::Project& opr,
   std::unordered_map<int, std::pair<WriteContext::WriteParamsColumn,
                                     WriteContext::WriteParamsColumn>>
       pairs_cache;
-  LOG(INFO) << ctx.row_num() << " " << opr.DebugString();
   for (int i = 0; i < mappings_size; ++i) {
     const physical::Project_ExprAlias& m = opr.mappings(i);
     // LOG(INFO) << "eval project: " << m.expr().DebugString();
     CHECK(m.has_alias());
     CHECK(m.has_expr());
     CHECK(m.expr().operators_size() == 1);
+
     if (m.expr().operators(0).item_case() == common::ExprOpr::kParam) {
       auto param = m.expr().operators(0).param();
       CHECK(params.find(param.name()) != params.end());
       const auto& value = params.at(param.name());
-      LOG(INFO) << param.name() << " " << value;
       WriteContext::WriteParams p(value);
       ret.set(m.alias().value(), WriteContext::WriteParamsColumn({p}));
     } else if (m.expr().operators(0).item_case() == common::ExprOpr::kVar) {

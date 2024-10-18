@@ -56,6 +56,10 @@ WriteContext eval_dedup(const algebra::Dedup& opr, const InsertTransaction& txn,
   std::vector<size_t> keys;
 
   int keys_num = opr.keys_size();
+  int row_num = ctx.row_num();
+  if (row_num == 0) {
+    return ctx;
+  }
 
   for (int k_i = 0; k_i < keys_num; ++k_i) {
     const common::Variable& key = opr.keys(k_i);
@@ -83,7 +87,6 @@ WriteContext eval_dedup(const algebra::Dedup& opr, const InsertTransaction& txn,
       }
     }
     ctx.reshuffle(offsets);
-    LOG(INFO) << "dedup row num:" << ctx.row_num();
     return ctx;
   } else if (keys.size() == 3) {
     std::vector<std::tuple<WriteContext::WriteParams, WriteContext::WriteParams,
@@ -104,7 +107,6 @@ WriteContext eval_dedup(const algebra::Dedup& opr, const InsertTransaction& txn,
       }
     }
     ctx.reshuffle(offsets);
-    LOG(INFO) << "dedup row num:" << ctx.row_num();
 
     return ctx;
   } else {

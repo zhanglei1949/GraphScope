@@ -681,7 +681,6 @@ WriteContext runtime_eval_impl(
     const physical::PhysicalPlan& plan, WriteContext&& ctx,
     InsertTransaction& txn, const std::map<std::string, std::string>& params) {
   int opr_num = plan.plan_size();
-  LOG(INFO) << plan.DebugString();
   WriteContext ret = ctx;
   for (int i = 0; i < opr_num; ++i) {
     const physical::PhysicalOpr& opr = plan.plan(i);

@@ -35,9 +35,6 @@ WriteContext eval_unfold(const physical::Unfold& opr, WriteContext&& ctx) {
   int value = opr.alias().value();
   auto col = ctx.get(key);
   auto [new_col, offset] = col.unfold();
-  LOG(INFO) << "unfold " << key << " to " << value << " with offset "
-            << col.size() << " " << offset.size();
-  LOG(INFO) << ctx.row_num();
   ctx.set_with_reshuffle(value, std::move(new_col), offset);
   return ctx;
 }
