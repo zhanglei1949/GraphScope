@@ -104,6 +104,7 @@ bool generate_plan(
   const std::string djna_path =
       std::string("-Djna.library.path=") + std::string(GRAPHSCOPE_DIR) +
       "/interactive_engine/executor/ir/target/release/";
+  auto raw_query = query;  // decompress(query);
   {
     std::ofstream out(query_file);
     out << query;
