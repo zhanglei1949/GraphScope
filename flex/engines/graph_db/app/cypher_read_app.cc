@@ -1,6 +1,7 @@
 #include "flex/engines/graph_db/app/cypher_read_app.h"
 #include "flex/engines/graph_db/app/cypher_app_utils.h"
 
+#include "flex/engines/graph_db/database/graph_db.h"
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
 #include "flex/engines/graph_db/runtime/adhoc/runtime.h"
 
@@ -20,11 +21,22 @@ bool CypherReadApp::Query(const GraphDBSession& graph, Decoder& input,
   if (plan_cache_.count(query)) {
     // LOG(INFO) << "Hit cache for query ";
   } else {
-    for (int i = 0; i < 3; ++i) {
-      if (!generate_plan(query, plan_cache_)) {
-        LOG(ERROR) << "Generate plan failed for query: " << query;
-      } else {
-        break;
+    auto& query_cache = db_.getQueryCache();
+    std::string_view plan_str;
+    if (query_cache.get(query, plan_str)) {
+      physical::PhysicalPlan plan;
+      if (!plan.ParseFromString(std::string(plan_str))) {
+        return false;
+      }
+      plan_cache_[query] = plan;
+    } else {
+      for (int i = 0; i < 3; ++i) {
+        if (!generate_plan(query, plan_cache_)) {
+          LOG(ERROR) << "Generate plan failed for query: " << query;
+        } else {
+          query_cache.put(query, plan_cache_[query].SerializeAsString());
+          break;
+        }
       }
     }
   }
@@ -39,6 +51,6 @@ bool CypherReadApp::Query(const GraphDBSession& graph, Decoder& input,
   return true;
 }
 AppWrapper CypherReadAppFactory::CreateApp(const GraphDB& db) {
-  return AppWrapper(new CypherReadApp(), NULL);
+  return AppWrapper(new CypherReadApp(db), NULL);
 }
 }  // namespace gs

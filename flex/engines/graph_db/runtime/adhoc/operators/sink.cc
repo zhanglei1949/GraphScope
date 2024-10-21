@@ -79,7 +79,6 @@ void eval_sink_encoder(const Context& ctx, const ReadTransaction& txn,
       auto val = col->get_elem(i);
       val.sink(txn, encoder);
     }
-    std::cout << std::endl;
   }
 }
 

@@ -486,4 +486,6 @@ size_t GraphDB::getExecutedQueryNum() const {
   return ret;
 }
 
+QueryCache& GraphDB::getQueryCache() const { return query_cache_; }
+
 }  // namespace gs

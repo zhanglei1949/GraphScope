@@ -23,7 +23,7 @@
 namespace gs {
 class CypherReadApp : public ReadAppBase {
  public:
-  CypherReadApp() = default;
+  CypherReadApp(const GraphDB& db) : db_(db) {}
 
   AppType type() const override { return AppType::kCypherAdhoc; }
 
@@ -31,7 +31,8 @@ class CypherReadApp : public ReadAppBase {
              Encoder& output) override;
 
  private:
-   std::unordered_map<std::string, physical::PhysicalPlan> plan_cache_;
+  const GraphDB& db_;
+  std::unordered_map<std::string, physical::PhysicalPlan> plan_cache_;
 };
 
 class CypherReadAppFactory : public AppFactoryBase {

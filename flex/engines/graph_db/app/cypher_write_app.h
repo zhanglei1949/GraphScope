@@ -23,14 +23,15 @@
 namespace gs {
 class CypherWriteApp : public WriteAppBase {
  public:
-  CypherWriteApp() = default;
+  CypherWriteApp(const GraphDB& db) : db_(db) {}
 
   AppType type() const override { return AppType::kCypherAdhoc; }
 
   bool Query(GraphDBSession& graph, Decoder& input, Encoder& output) override;
 
  private:
-   std::unordered_map<std::string, physical::PhysicalPlan> plan_cache_;
+  const GraphDB& db_;
+  std::unordered_map<std::string, physical::PhysicalPlan> plan_cache_;
 };
 
 class CypherWriteAppFactory : public AppFactoryBase {
