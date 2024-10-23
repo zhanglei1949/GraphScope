@@ -89,7 +89,7 @@ bool InsertTransaction::AddEdge(label_t src_label, const Any& src,
     if (added_vertices_.find(std::make_pair(dst_label, dst)) ==
         added_vertices_.end()) {
       std::string label_name = graph_.schema().get_vertex_label_name(dst_label);
-      LOG(ERROR) << "Destination vertex " << label_name << "["
+      VLOG(1) << "Destination vertex " << label_name << "["
                  << dst.to_string() << "] not found...";
       return false;
     }

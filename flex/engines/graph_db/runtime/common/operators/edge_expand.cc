@@ -161,7 +161,9 @@ Context EdgeExpand::expand_edge_without_predicate(
                                                        params);
   }
   std::vector<size_t> shuffle_offset;
+#ifdef SINGLE_THREAD
   auto& op_cost = OpCost::get().table;
+#endif
 
   if (params.labels.size() == 1) {
     if (params.dir == Direction::kIn) {
@@ -203,7 +205,9 @@ Context EdgeExpand::expand_edge_without_predicate(
                        }
                      });
       t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
       op_cost["EEP-01"] += t;
+#endif
 
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       return ctx;
@@ -246,7 +250,9 @@ Context EdgeExpand::expand_edge_without_predicate(
                        }
                      });
       t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
       op_cost["EEP-02"] += t;
+#endif
 
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       return ctx;
@@ -288,7 +294,9 @@ Context EdgeExpand::expand_edge_without_predicate(
         }
       });
       t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
       op_cost["EEP-03"] += t;
+#endif
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       return ctx;
     }
@@ -336,7 +344,9 @@ Context EdgeExpand::expand_edge_without_predicate(
                 }
               });
           t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
           op_cost["EEP-04"] += t;
+#endif
           ctx.set_with_reshuffle(params.alias, builder.finish(),
                                  shuffle_offset);
           return ctx;
@@ -359,7 +369,9 @@ Context EdgeExpand::expand_edge_without_predicate(
                 }
               });
           t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
           op_cost["EEP-05"] += t;
+#endif
           ctx.set_with_reshuffle(params.alias, builder.finish(),
                                  shuffle_offset);
           return ctx;
@@ -389,7 +401,9 @@ Context EdgeExpand::expand_edge_without_predicate(
             }
           });
           t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
           op_cost["EEP-06"] += t;
+#endif
         } else {
           double t = -grape::GetCurrentTime();
           foreach_vertex(input_vertex_list, [&](size_t index, label_t label,
@@ -410,7 +424,9 @@ Context EdgeExpand::expand_edge_without_predicate(
             }
           });
           t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
           op_cost["EEP-07"] += t;
+#endif
         }
 
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
@@ -446,7 +462,9 @@ Context EdgeExpand::expand_edge_without_predicate(
           }
         });
         t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
         op_cost["EEP-08"] += t;
+#endif
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
         return ctx;
 
@@ -483,7 +501,9 @@ Context EdgeExpand::expand_edge_without_predicate(
               }
             });
         t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
         op_cost["EEP-09"] += t;
+#endif
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
         return ctx;
       }
@@ -496,7 +516,9 @@ Context EdgeExpand::expand_edge_without_predicate(
 
 Context EdgeExpand::expand_vertex_without_predicate(
     const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params) {
+#ifdef SINGLE_THREAD
   auto& op_cost = OpCost::get().table;
+#endif
 
   std::shared_ptr<IVertexColumn> input_vertex_list =
       std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
@@ -527,7 +549,9 @@ Context EdgeExpand::expand_vertex_without_predicate(
         auto pair = expand_vertex_without_predicate_impl(
             txn, *casted_input_vertex_list, params.labels, params.dir);
         t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
         op_cost["VENP[1-7,12]"] += t;
+#endif
         ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
         return ctx;
       }
@@ -549,7 +573,9 @@ Context EdgeExpand::expand_vertex_without_predicate(
     auto pair = expand_vertex_without_predicate_impl(
         txn, *casted_input_vertex_list, params.labels, params.dir);
     t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
     op_cost["VENP[8-9]"] += t;
+#endif
     ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
     return ctx;
   } else if (input_vertex_list_type == VertexColumnType::kMultiSegment) {

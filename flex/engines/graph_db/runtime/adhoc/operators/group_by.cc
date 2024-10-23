@@ -340,7 +340,9 @@ std::shared_ptr<IContextColumn> general_count(
       }
       auto ret = builder.finish();
       tx += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
       OpCost::get().table["general_count_optional"] += tx;
+#endif
       return ret;
     }
   }
@@ -352,7 +354,9 @@ std::shared_ptr<IContextColumn> general_count(
   }
   auto ret = builder.finish();
   tx += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
   OpCost::get().table["general_count"] += tx;
+#endif
   return ret;
 }
 
@@ -786,12 +790,13 @@ Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
       ret.append_tag_id(functions[i].alias);
     }
     t3 += grape::GetCurrentTime();
-
+#ifdef SINGLE_THREAD
     auto& table = OpCost::get().table;
     table["group_by_t0"] += t0;
     table["group_by_t1"] += t1;
     table["group_by_t2"] += t2;
     table["group_by_t3"] += t3;
+#endif
     return ret;
   }
 }

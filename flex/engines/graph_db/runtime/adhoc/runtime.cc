@@ -418,7 +418,9 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
                           bool skip_scan = false) {
   Context ret = ctx;
 
+#ifdef SINGLE_THREAD
   auto& op_cost = OpCost::get().table;
+#endif
 
   int opr_num = plan.plan_size();
   bool terminate = false;
@@ -609,7 +611,9 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
       double tj = -grape::GetCurrentTime();
       ret = eval_join(txn, params, op, std::move(ctx), std::move(ctx2));
       tj += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
       op_cost[op_name + "-impl"] += tj;
+#endif
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kIntersect: {
       auto op = opr.opr().intersect();
@@ -655,7 +659,9 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
       break;
     }
     t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
     op_cost[op_name] += t;
+#endif
     // LOG(INFO) << "after op - " << op_name;
     // ret.desc();
     if (terminate) {
@@ -671,7 +677,9 @@ Context runtime_eval(const physical::PhysicalPlan& plan,
   double t = -grape::GetCurrentTime();
   auto ret = runtime_eval_impl(plan, Context(), txn, params);
   t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
   OpCost::get().add_total(t);
+#endif
   return ret;
 }
 
@@ -720,7 +728,9 @@ WriteContext runtime_eval(const physical::PhysicalPlan& plan,
   double t = -grape::GetCurrentTime();
   auto ret = runtime_eval_impl(plan, WriteContext(), txn, params);
   t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
   OpCost::get().add_total(t);
+#endif
   return ret;
 }
 

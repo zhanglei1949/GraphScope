@@ -61,7 +61,9 @@ class GeneralComparer {
 
 Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
                       Context&& ctx, bool enable_staged) {
+#ifdef SINGLE_THREAD
   auto& op_cost = OpCost::get().table;
+#endif
   int lower = 0;
   int upper = std::numeric_limits<int>::max();
   if (opr.has_limit()) {
@@ -126,7 +128,9 @@ Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
   }
 #endif
   t0 += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
   op_cost["order_by:preprocess"] += t0;
+#endif
   for (int i = 0; i < keys_num; ++i) {
     const algebra::OrderBy_OrderingPair& pair = opr.pairs(i);
     Var v(txn, ctx, pair.key(), VarType::kPathVar);
@@ -144,14 +148,18 @@ Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
     double t1 = -grape::GetCurrentTime();
     OrderBy::order_by_with_limit<GeneralComparer>(txn, ctx, cmp, lower, upper);
     t1 += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
     op_cost["order_by:order_by"] += t0;
+#endif
   } else {
     double t1 = -grape::GetCurrentTime();
     CHECK_GE(picked_indices.size(), upper);
     OrderBy::staged_order_by_with_limit<GeneralComparer>(txn, ctx, cmp, lower,
                                                          upper, picked_indices);
     t1 += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
     op_cost["order_by:staged_order_by"] += t1;
+#endif
   }
   return ctx;
 }

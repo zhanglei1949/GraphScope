@@ -736,11 +736,12 @@ Context eval_project_order_by(
   }
   ret.update_tag_ids(tags);
   t2 += grape::GetCurrentTime();
-
+#ifdef SINGLE_THREAD
   auto& op_cost = OpCost::get().table;
   op_cost["project_order_by:partial_project"] += t0;
   op_cost["project_order_by:order_by"] += t1;
   op_cost["project_order_by:project"] += t2;
+#endif
 
   return ret;
 }
