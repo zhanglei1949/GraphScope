@@ -860,6 +860,66 @@ class SetImpl<VertexRecord> : public SetImplBase {
   size_t size() const override { return set_.size(); }
   std::unordered_set<int64_t> set_;
 };
+
+class EdgePropVecBase {
+ public:
+  static std::shared_ptr<EdgePropVecBase> make_edge_prop_vec(PropertyType type);
+  virtual ~EdgePropVecBase() = default;
+  virtual void push_back(const RTAny& val) = 0;
+  virtual void emplace_back(RTAny&& val) = 0;
+  virtual size_t size() const = 0;
+  virtual void resize(size_t size) = 0;
+  virtual void reserve(size_t size) = 0;
+  virtual void clear() = 0;
+  virtual RTAny get(size_t idx) const = 0;
+  virtual Any get_any(size_t idx) const = 0;
+
+  virtual PropertyType type() const = 0;
+  virtual void set_any(size_t idx, EdgePropVecBase* other,
+                       size_t other_idx) = 0;
+};
+template <typename T>
+class EdgePropVec : public EdgePropVecBase {
+ public:
+  ~EdgePropVec() {}
+  void push_back(const RTAny& val) override {
+    prop_data_.push_back(TypedConverter<T>::to_typed(val));
+  }
+  void emplace_back(RTAny&& val) override {
+    prop_data_.emplace_back(TypedConverter<T>::to_typed(val));
+  }
+
+  void push_back(const T& val) { prop_data_.push_back(val); }
+  void emplace_back(T&& val) { prop_data_.emplace_back(std::move(val)); }
+  size_t size() const override { return prop_data_.size(); }
+  RTAny get(size_t idx) const override {
+    return TypedConverter<T>::from_typed(prop_data_[idx]);
+  }
+
+  Any get_any(size_t idx) const override { return Any(prop_data_[idx]); }
+  T get_view(size_t idx) const { return prop_data_[idx]; }
+  void resize(size_t size) override { prop_data_.resize(size); }
+  void clear() override { prop_data_.clear(); }
+  void reserve(size_t size) override { prop_data_.reserve(size); }
+  T operator[](size_t idx) const { return prop_data_[idx]; }
+  void set(size_t idx, const T& val) {
+    if (prop_data_.size() <= idx) {
+      prop_data_.resize(idx + 1);
+    }
+    prop_data_[idx] = val;
+  }
+
+  PropertyType type() const override { return AnyConverter<T>::type(); }
+
+  void set_any(size_t idx, EdgePropVecBase* other, size_t other_idx) override {
+    CHECK(dynamic_cast<EdgePropVec<T>*>(other) != nullptr);
+    set(idx, dynamic_cast<EdgePropVec<T>*>(other)->get_view(other_idx));
+  }
+
+ private:
+  std::vector<T> prop_data_;
+};
+
 }  // namespace runtime
 
 }  // namespace gs

@@ -23,6 +23,41 @@ namespace gs {
 namespace runtime {
 
 enum class EdgeColumnType { kSDSL, kSDML, kBDSL, kBDML, kUnKnown };
+static inline void get_edge_data(EdgePropVecBase* prop, size_t idx,
+                                 EdgeData& edge_data) {
+  if (prop->type() == PropertyType::kEmpty) {
+    edge_data.type = RTAnyType::kEmpty;
+  } else if (prop->type() == PropertyType::kInt64) {
+    edge_data.type = RTAnyType::kI64Value;
+    edge_data.value.i64_val =
+        dynamic_cast<EdgePropVec<int64_t>*>(prop)->get_view(idx);
+  } else if (prop->type() == PropertyType::kInt32) {
+    edge_data.type = RTAnyType::kI32Value;
+    edge_data.value.i32_val =
+        dynamic_cast<EdgePropVec<int32_t>*>(prop)->get_view(idx);
+  } else if (prop->type() == PropertyType::kDouble) {
+    edge_data.type = RTAnyType::kF64Value;
+    edge_data.value.f64_val =
+        dynamic_cast<EdgePropVec<double>*>(prop)->get_view(idx);
+  } else if (prop->type() == PropertyType::kBool) {
+    edge_data.type = RTAnyType::kBoolValue;
+    edge_data.value.b_val =
+        dynamic_cast<EdgePropVec<bool>*>(prop)->get_view(idx);
+  } else if (prop->type() == PropertyType::kString) {
+    edge_data.type = RTAnyType::kStringValue;
+    edge_data.value.str_val =
+        dynamic_cast<EdgePropVec<std::string_view>*>(prop)->get_view(idx);
+
+  } else if (prop->type() == PropertyType::kDate) {
+    edge_data.type = RTAnyType::kDate32;
+    edge_data.value.i64_val =
+        dynamic_cast<EdgePropVec<Date>*>(prop)->get_view(idx).milli_second;
+  } else if (prop->type() == PropertyType::kRecordView) {
+    // edge_data.type = RTAnyType::kRecordView;
+  } else {
+    edge_data.type = RTAnyType::kUnknown;
+  }
+}
 static inline void get_edge_data(ColumnBase* prop, size_t idx,
                                  EdgeData& edge_data) {
   if (prop->type() == PropertyType::kEmpty) {
@@ -56,6 +91,30 @@ static inline void get_edge_data(ColumnBase* prop, size_t idx,
     // edge_data.type = RTAnyType::kRecordView;
   } else {
     edge_data.type = RTAnyType::kUnknown;
+  }
+}
+
+static inline void set_edge_data(EdgePropVecBase* col, size_t idx,
+                                 const EdgeData& edge_data) {
+  if (edge_data.type == RTAnyType::kEmpty) {
+    return;
+  } else if (edge_data.type == RTAnyType::kI64Value) {
+    dynamic_cast<EdgePropVec<int64_t>*>(col)->set(idx, edge_data.value.i64_val);
+  } else if (edge_data.type == RTAnyType::kI32Value) {
+    dynamic_cast<EdgePropVec<int32_t>*>(col)->set(idx, edge_data.value.i32_val);
+  } else if (edge_data.type == RTAnyType::kF64Value) {
+    dynamic_cast<EdgePropVec<double>*>(col)->set(idx, edge_data.value.f64_val);
+  } else if (edge_data.type == RTAnyType::kBoolValue) {
+    dynamic_cast<EdgePropVec<bool>*>(col)->set(idx, edge_data.value.b_val);
+  } else if (edge_data.type == RTAnyType::kStringValue) {
+    dynamic_cast<EdgePropVec<std::string_view>*>(col)->set(
+        idx, std::string_view(edge_data.value.str_val.data(),
+                              edge_data.value.str_val.size()));
+  } else if (edge_data.type == RTAnyType::kDate32) {
+    dynamic_cast<EdgePropVec<Date>*>(col)->set(idx,
+                                               Date(edge_data.value.i64_val));
+  } else {
+    // LOG(FATAL) << "not support for " << edge_data.type;
   }
 }
 
@@ -399,9 +458,7 @@ class BDSLEdgeColumn : public IEdgeColumn {
   BDSLEdgeColumn(const LabelTriplet& label, PropertyType prop_type)
       : label_(label),
         prop_type_(prop_type),
-        prop_col_(CreateColumn(prop_type, StorageStrategy::kMem)) {
-    prop_col_->open_in_memory("");
-  }
+        prop_col_(EdgePropVecBase::make_edge_prop_vec(prop_type)) {}
 
   EdgeRecord get_edge(size_t idx) const override {
     auto src = std::get<0>(edges_[idx]);
@@ -442,7 +499,7 @@ class BDSLEdgeColumn : public IEdgeColumn {
   void foreach_edge(const FUNC_T& func) const {
     size_t idx = 0;
     for (auto& e : edges_) {
-      func(idx, label_, std::get<0>(e), std::get<1>(e), prop_col_->get(idx),
+      func(idx, label_, std::get<0>(e), std::get<1>(e), prop_col_->get_any(idx),
            (std::get<2>(e) ? Direction::kOut : Direction::kIn));
       ++idx;
     }
@@ -459,7 +516,7 @@ class BDSLEdgeColumn : public IEdgeColumn {
   LabelTriplet label_;
   std::vector<std::tuple<vid_t, vid_t, bool>> edges_;
   PropertyType prop_type_;
-  std::shared_ptr<ColumnBase> prop_col_;
+  std::shared_ptr<EdgePropVecBase> prop_col_;
 };
 
 class OptionalBDSLEdgeColumn : public IEdgeColumn {
@@ -467,9 +524,7 @@ class OptionalBDSLEdgeColumn : public IEdgeColumn {
   OptionalBDSLEdgeColumn(const LabelTriplet& label, PropertyType prop_type)
       : label_(label),
         prop_type_(prop_type),
-        prop_col_(CreateColumn(prop_type, StorageStrategy::kMem)) {
-    prop_col_->open_in_memory("");
-  }
+        prop_col_(EdgePropVecBase::make_edge_prop_vec(prop_type)) {}
 
   EdgeRecord get_edge(size_t idx) const override {
     auto src = std::get<0>(edges_[idx]);
@@ -505,7 +560,7 @@ class OptionalBDSLEdgeColumn : public IEdgeColumn {
   void foreach_edge(const FUNC_T& func) const {
     size_t idx = 0;
     for (auto& e : edges_) {
-      func(idx, label_, std::get<0>(e), std::get<1>(e), prop_col_->get(idx),
+      func(idx, label_, std::get<0>(e), std::get<1>(e), prop_col_->get_any(idx),
            (std::get<2>(e) ? Direction::kOut : Direction::kIn));
       ++idx;
     }
@@ -532,7 +587,7 @@ class OptionalBDSLEdgeColumn : public IEdgeColumn {
   LabelTriplet label_;
   std::vector<std::tuple<vid_t, vid_t, bool>> edges_;
   PropertyType prop_type_;
-  std::shared_ptr<ColumnBase> prop_col_;
+  std::shared_ptr<EdgePropVecBase> prop_col_;
 };
 
 class SDMLEdgeColumnBuilder;
@@ -820,9 +875,7 @@ class BDSLEdgeColumnBuilder : public IContextColumnBuilder {
   BDSLEdgeColumnBuilder(const LabelTriplet& label, PropertyType prop_type)
       : label_(label),
         prop_type_(prop_type),
-        prop_col_(CreateColumn(prop_type, StorageStrategy::kMem)) {
-    prop_col_->open_in_memory("");
-  }
+        prop_col_(EdgePropVecBase::make_edge_prop_vec(prop_type)) {}
   ~BDSLEdgeColumnBuilder() = default;
 
   void reserve(size_t size) override { edges_.reserve(size); }
@@ -834,9 +887,6 @@ class BDSLEdgeColumnBuilder : public IContextColumnBuilder {
                      Direction dir) {
     edges_.emplace_back(src, dst, dir == Direction::kOut);
     size_t len = edges_.size();
-    if (len >= prop_col_->size()) {
-      prop_col_->resize(len * 2);
-    }
     set_edge_data(prop_col_.get(), len - 1, data);
   }
   void push_back_endpoints(vid_t src, vid_t dst, Direction dir) {
@@ -854,7 +904,7 @@ class BDSLEdgeColumnBuilder : public IContextColumnBuilder {
   LabelTriplet label_;
   std::vector<std::tuple<vid_t, vid_t, bool>> edges_;
   PropertyType prop_type_;
-  std::shared_ptr<ColumnBase> prop_col_;
+  std::shared_ptr<EdgePropVecBase> prop_col_;
 };
 class SDMLEdgeColumnBuilder : public IContextColumnBuilder {
  public:
@@ -980,9 +1030,7 @@ class OptionalBDSLEdgeColumnBuilder : public IOptionalContextColumnBuilder {
                                 PropertyType prop_type)
       : label_(label),
         prop_type_(prop_type),
-        prop_col_(CreateColumn(prop_type, StorageStrategy::kMem)) {
-    prop_col_->open_in_memory("");
-  }
+        prop_col_(EdgePropVecBase::make_edge_prop_vec(prop_type)) {}
   ~OptionalBDSLEdgeColumnBuilder() = default;
 
   void reserve(size_t size) override { edges_.reserve(size); }
@@ -994,9 +1042,6 @@ class OptionalBDSLEdgeColumnBuilder : public IOptionalContextColumnBuilder {
                      Direction dir) {
     edges_.emplace_back(src, dst, dir == Direction::kOut);
     size_t len = edges_.size();
-    if (len >= prop_col_->size()) {
-      prop_col_->resize(len * 2);
-    }
     set_edge_data(prop_col_.get(), len - 1, data);
   }
   void push_back_endpoints(vid_t src, vid_t dst, Direction dir) {
@@ -1023,7 +1068,7 @@ class OptionalBDSLEdgeColumnBuilder : public IOptionalContextColumnBuilder {
   LabelTriplet label_;
   std::vector<std::tuple<vid_t, vid_t, bool>> edges_;
   PropertyType prop_type_;
-  std::shared_ptr<ColumnBase> prop_col_;
+  std::shared_ptr<EdgePropVecBase> prop_col_;
 };
 
 }  // namespace runtime

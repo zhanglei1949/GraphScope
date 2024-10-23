@@ -106,7 +106,7 @@ std::shared_ptr<IContextColumn> BDSLEdgeColumn::shuffle(
     size_t off = offsets[idx];
     const auto& e = edges_[off];
     builder.push_back_endpoints(std::get<0>(e), std::get<1>(e), std::get<2>(e));
-    ret_props.set_any(idx, prop_col_->get(off));
+    ret_props.set_any(idx, prop_col_.get(), off);
   }
 
   return builder.finish();
@@ -128,7 +128,7 @@ std::shared_ptr<IContextColumn> BDSLEdgeColumn::optional_shuffle(
       const auto& e = edges_[off];
       builder.push_back_endpoints(std::get<0>(e), std::get<1>(e),
                                   std::get<2>(e));
-      ret_props.set_any(idx, prop_col_->get(off));
+      ret_props.set_any(idx, prop_col_.get(), off);
     }
   }
 

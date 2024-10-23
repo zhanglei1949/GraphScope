@@ -1015,6 +1015,25 @@ std::string RTAny::to_string() const {
   }
 }
 
+std::shared_ptr<EdgePropVecBase> EdgePropVecBase::make_edge_prop_vec(
+    PropertyType type) {
+  if (type == PropertyType::Int64()) {
+    return std::make_shared<EdgePropVec<int64_t>>();
+  } else if (type == PropertyType::StringView()) {
+    return std::make_shared<EdgePropVec<std::string_view>>();
+  } else if (type == PropertyType::Date()) {
+    return std::make_shared<EdgePropVec<Date>>();
+  } else if (type == PropertyType::Int32()) {
+    return std::make_shared<EdgePropVec<int32_t>>();
+  } else if (type == PropertyType::Double()) {
+    return std::make_shared<EdgePropVec<double>>();
+  } else if (type == PropertyType::Bool()) {
+    return std::make_shared<EdgePropVec<bool>>();
+  } else {
+    LOG(FATAL) << "not support for " << type;
+    return nullptr;
+  }
+}
 }  // namespace runtime
 
 }  // namespace gs
