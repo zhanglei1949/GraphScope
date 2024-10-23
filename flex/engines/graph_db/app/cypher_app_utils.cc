@@ -86,11 +86,11 @@ bool generate_plan(
     const std::string& query,
     std::unordered_map<std::string, physical::PhysicalPlan>& plan_cache) {
   // dump query to file
-  static const char* const GRAPHSCOPE_DIR = "/root/0819/GraphScope/";
+  static const char* const GRAPHSCOPE_DIR = "/data/GraphScope/";
   static const char* const COMPILER_CONFIG_PATH =
-      "/root/0819/GraphScope/flex/tests/hqps/engine_config_test.yaml";
+      "/data/GraphScope/flex/tests/hqps/engine_config_test.yaml";
   static const char* const COMPILER_GRAPH_SCHEMA =
-      "/root/0819/flex_ldbc_snb/configs/graph_for_compiler.yaml";
+      "/data/flex_ldbc_snb/configs/graph_for_compiler.yaml";
 
   auto id = std::this_thread::get_id();
   std::stringstream ss;

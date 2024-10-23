@@ -30,10 +30,10 @@ compiler:
   meta:
     reader:
       schema:
-        uri: /root/0819/flex_ldbc_snb/configs/graph_for_compiler.yaml
+        uri: /data/flex_ldbc_snb/configs/graph_for_compiler.yaml
         interval: 1000 # ms
       statistics:
-        uri: /root/0819/flex_ldbc_snb/configs/ldbc_30_statistics.json
+        uri: /data/flex_ldbc_snb/configs/ldbc_30_statistics.json
         interval: 86400000 # ms
   endpoint:
     default_listen_address: localhost
