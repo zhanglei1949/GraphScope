@@ -318,7 +318,170 @@ class EdgeExpand {
       return ctx;
     }
   }
+  static Context expand_vertex_ep_gt(const ReadTransaction& txn, Context&& ctx,
+                                     const EdgeExpandParams& params,
+                                     const std::string& ep_val) {
+    if (params.is_optional) {
+      LOG(FATAL) << "not support optional edge expand";
+    }
+    std::shared_ptr<IVertexColumn> input_vertex_list =
+        std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
+    VertexColumnType input_vertex_list_type =
+        input_vertex_list->vertex_column_type();
 
+    if (input_vertex_list_type == VertexColumnType::kSingle) {
+      auto casted_input_vertex_list =
+          std::dynamic_pointer_cast<SLVertexColumn>(input_vertex_list);
+      label_t input_label = casted_input_vertex_list->label();
+      std::vector<std::tuple<label_t, label_t, Direction>> label_dirs;
+      std::vector<PropertyType> ed_types;
+      for (auto& triplet : params.labels) {
+        if (!txn.schema().exist(triplet.src_label, triplet.dst_label,
+                                triplet.edge_label)) {
+          continue;
+        }
+        if (triplet.src_label == input_label &&
+            ((params.dir == Direction::kOut) ||
+             (params.dir == Direction::kBoth))) {
+          label_dirs.emplace_back(triplet.dst_label, triplet.edge_label,
+                                  Direction::kOut);
+          const auto& properties = txn.schema().get_edge_properties(
+              triplet.src_label, triplet.dst_label, triplet.edge_label);
+          if (properties.empty()) {
+            ed_types.push_back(PropertyType::Empty());
+          } else {
+            CHECK_EQ(properties.size(), 1);
+            ed_types.push_back(properties[0]);
+          }
+        }
+        if (triplet.dst_label == input_label &&
+            ((params.dir == Direction::kIn) ||
+             (params.dir == Direction::kBoth))) {
+          label_dirs.emplace_back(triplet.src_label, triplet.edge_label,
+                                  Direction::kIn);
+          const auto& properties = txn.schema().get_edge_properties(
+              triplet.src_label, triplet.dst_label, triplet.edge_label);
+          if (properties.empty()) {
+            ed_types.push_back(PropertyType::Empty());
+          } else {
+            CHECK_EQ(properties.size(), 1);
+            ed_types.push_back(properties[0]);
+          }
+        }
+      }
+      grape::DistinctSort(label_dirs);
+      bool se = (label_dirs.size() == 1);
+      bool sp = true;
+      if (!se) {
+        for (size_t k = 1; k < ed_types.size(); ++k) {
+          if (ed_types[k] != ed_types[0]) {
+            sp = false;
+            break;
+          }
+        }
+      }
+      if (!sp) {
+        LOG(FATAL) << "not support multiple edge types";
+      }
+      const PropertyType& ed_type = ed_types[0];
+      if (se) {
+        if (ed_type == PropertyType::Date()) {
+          Date max_value(std::stoll(ep_val));
+          std::vector<GraphView<Date>*> views;
+          for (auto& t : label_dirs) {
+            label_t nbr_label = std::get<0>(t);
+            label_t edge_label = std::get<1>(t);
+            Direction dir = std::get<2>(t);
+            if (dir == Direction::kOut) {
+              views.emplace_back(new GraphView(txn.GetOutgoingGraphView<Date>(
+                  input_label, nbr_label, edge_label)));
+            } else {
+              CHECK(dir == Direction::kIn);
+              views.emplace_back(new GraphView(txn.GetIncomingGraphView<Date>(
+                  input_label, nbr_label, edge_label)));
+            }
+          }
+          SLVertexColumnBuilder builder(std::get<0>(label_dirs[0]));
+          size_t csr_idx = 0;
+          std::vector<size_t> offsets;
+          // LOG(INFO) << "hit!!!";
+          for (auto csr : views) {
+            // label_t nbr_label = std::get<0>(label_dirs[csr_idx]);
+            // label_t edge_label = std::get<1>(label_dirs[csr_idx]);
+            // Direction dir = std::get<2>(label_dirs[csr_idx]);
+            size_t idx = 0;
+            for (auto v : casted_input_vertex_list->vertices()) {
+              csr->foreach_edges_gt(v, max_value,
+                                    [&](const MutableNbr<Date>& e, Date& val) {
+                                      builder.push_back_opt(e.neighbor);
+                                      offsets.push_back(idx);
+                                    });
+              ++idx;
+            }
+            ++csr_idx;
+          }
+          std::shared_ptr<IContextColumn> col = builder.finish();
+          for (auto ptr : views) {
+            delete ptr;
+          }
+          ctx.set_with_reshuffle(params.alias, col, offsets);
+          return ctx;
+        } else {
+          LOG(FATAL) << "not support edge type";
+        }
+      } else {
+        if (ed_type == PropertyType::Date()) {
+          Date max_value(std::stoll(ep_val));
+          std::vector<GraphView<Date>*> views;
+          for (auto& t : label_dirs) {
+            label_t nbr_label = std::get<0>(t);
+            label_t edge_label = std::get<1>(t);
+            Direction dir = std::get<2>(t);
+            if (dir == Direction::kOut) {
+              views.emplace_back(new GraphView(txn.GetOutgoingGraphView<Date>(
+                  input_label, nbr_label, edge_label)));
+            } else {
+              CHECK(dir == Direction::kIn);
+              views.emplace_back(new GraphView(txn.GetIncomingGraphView<Date>(
+                  input_label, nbr_label, edge_label)));
+            }
+          }
+          MSVertexColumnBuilder builder;
+          size_t csr_idx = 0;
+          std::vector<size_t> offsets;
+          // LOG(INFO) << "hit!!!";
+          for (auto csr : views) {
+            label_t nbr_label = std::get<0>(label_dirs[csr_idx]);
+            // label_t edge_label = std::get<1>(label_dirs[csr_idx]);
+            // Direction dir = std::get<2>(label_dirs[csr_idx]);
+            size_t idx = 0;
+            builder.start_label(nbr_label);
+            LOG(INFO) << "start label: " << static_cast<int>(nbr_label);
+            for (auto v : casted_input_vertex_list->vertices()) {
+              csr->foreach_edges_gt(v, max_value,
+                                    [&](const MutableNbr<Date>& e, Date& val) {
+                                      builder.push_back_opt(e.neighbor);
+                                      offsets.push_back(idx);
+                                    });
+              ++idx;
+            }
+            ++csr_idx;
+          }
+          std::shared_ptr<IContextColumn> col = builder.finish();
+          for (auto ptr : views) {
+            delete ptr;
+          }
+          ctx.set_with_reshuffle(params.alias, col, offsets);
+          return ctx;
+        } else {
+          LOG(FATAL) << "not support edge type";
+        }
+      }
+    } else {
+      LOG(FATAL) << "unexpected to reach here...";
+      return ctx;
+    }
+  }
   template <typename PRED_T>
   struct SPVPWrapper {
     SPVPWrapper(const PRED_T& pred) : pred_(pred) {}

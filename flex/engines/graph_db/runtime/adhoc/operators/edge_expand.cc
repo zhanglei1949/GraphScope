@@ -197,6 +197,24 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
   return ctx;
 }
 
+bool is_ep_gt(const common::Expression& expr) {
+  if (expr.operators_size() != 3) {
+    return false;
+  }
+  if (!(expr.operators(0).has_var() &&
+        expr.operators(0).var().has_property())) {
+    return false;
+  }
+  if (!(expr.operators(1).has_logical() &&
+        expr.operators(1).logical() == common::Logical::GT)) {
+    return false;
+  }
+  if (!expr.operators(2).has_param()) {
+    return false;
+  }
+  return true;
+}
+
 bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
                                const physical::GetV& v_opr, const Context& ctx,
                                const physical::PhysicalOpr_MetaData& meta) {
@@ -207,24 +225,24 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
     // LOG(INFO) << "not edge expand, fallback";
     return false;
   }
-  if (ee_opr.params().has_predicate()) {
-    // LOG(INFO) << "edge expand has predicate, fallback";
-    return false;
-  }
+  // if (ee_opr.params().has_predicate()) {
+  //   // LOG(INFO) << "edge expand has predicate, fallback";
+  //   return false;
+  // }
   int alias = -1;
   if (ee_opr.has_alias()) {
     alias = ee_opr.alias().value();
   }
-  if (alias != -1) {
-    // LOG(INFO) << "alias of edge expand is not -1, fallback";
-    return false;
-  }
+  // if (alias != -1) {
+  //   // LOG(INFO) << "alias of edge expand is not -1, fallback";
+  //   return false;
+  // }
 
   int tag = -1;
   if (v_opr.has_tag()) {
     tag = v_opr.tag().value();
   }
-  if (tag != -1) {
+  if (tag != -1 && tag != alias) {
     LOG(INFO) << "the input of get_v is -1, fallback";
     return false;
   }
@@ -250,6 +268,16 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
 
   LOG(INFO) << "direction of edge_expand is not consistent with vopt of get_v";
   return false;
+}
+
+bool tc_fusable(const physical::EdgeExpand& ee_opr0,
+                const physical::GetV& v_opr0,
+                const physical::GroupBy& group_by_opr,
+                const physical::EdgeExpand& ee_opr1,
+                const physical::GetV& v_opr1,
+                const physical::EdgeExpand& ee_opr2,
+                const algebra::Select& select_opr, const Context& ctx) {
+  return true;
 }
 
 Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
@@ -285,7 +313,7 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
             physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE ||
         ee_opr.expand_opt() ==
             physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_VERTEX);
-  CHECK(!query_params.has_predicate());
+  // CHECK(!query_params.has_predicate());
 
   EdgeExpandParams eep;
   eep.v_tag = v_tag;
@@ -297,16 +325,30 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
 
   if (!v_opr.params().has_predicate()) {
     if (query_params.has_predicate()) {
-      // LOG(INFO) << "##### 0 " << op_id;
-      GeneralEdgePredicate pred(txn, ctx, params, query_params.predicate());
-      double t = -grape::GetCurrentTime();
-      auto ret = EdgeExpand::expand_vertex<GeneralEdgePredicate>(
-          txn, std::move(ctx), eep, pred);
-      t += grape::GetCurrentTime();
+      if (is_ep_gt(query_params.predicate())) {
+        double t = -grape::GetCurrentTime();
+        std::string param_name =
+            query_params.predicate().operators(2).param().name();
+        std::string param_value = params.at(param_name);
+        auto ret = EdgeExpand::expand_vertex_ep_gt(txn, std::move(ctx), eep,
+                                                   param_value);
+        t += grape::GetCurrentTime();
 #ifdef SINGLE_THREAD
-      op_cost.table["#### 0-" + std::to_string(op_id)] += t;
+        op_cost.table["#### ep gt-" + std::to_string(op_id)] += t;
 #endif
-      return ret;
+        return ret;
+      } else {
+        // LOG(INFO) << "##### 0 " << op_id;
+        GeneralEdgePredicate pred(txn, ctx, params, query_params.predicate());
+        double t = -grape::GetCurrentTime();
+        auto ret = EdgeExpand::expand_vertex<GeneralEdgePredicate>(
+            txn, std::move(ctx), eep, pred);
+        t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
+        op_cost.table["#### 0-" + std::to_string(op_id)] += t;
+#endif
+        return ret;
+      }
     } else {
       // LOG(INFO) << "##### 1 " << op_id;
       double t = -grape::GetCurrentTime();
@@ -458,6 +500,187 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
       }
     }
   }
+}
+
+Context eval_tc(const physical::EdgeExpand& ee_opr0,
+                const physical::GetV& v_opr0,
+                const physical::GroupBy& group_by_opr,
+                const physical::EdgeExpand& ee_opr1,
+                const physical::GetV& v_opr1,
+                const physical::EdgeExpand& ee_opr2,
+                const algebra::Select& select_opr, const ReadTransaction& txn,
+                Context&& ctx, const std::map<std::string, std::string>& params,
+                const physical::PhysicalOpr_MetaData& meta0,
+                const physical::PhysicalOpr_MetaData& meta1,
+                const physical::PhysicalOpr_MetaData& meta2, int op_id) {
+  // LOG(INFO) << "hit tc!!!";
+  CHECK(!ee_opr0.is_optional());
+  CHECK(!ee_opr1.is_optional());
+  CHECK(!ee_opr2.is_optional());
+
+  int input_tag = -1;
+  if (ee_opr0.has_v_tag()) {
+    input_tag = ee_opr0.v_tag().value();
+  }
+
+  Direction dir0 = parse_direction(ee_opr0.direction());
+  Direction dir1 = parse_direction(ee_opr1.direction());
+  Direction dir2 = parse_direction(ee_opr2.direction());
+
+  std::shared_ptr<IVertexColumn> input_vertex_list =
+      std::dynamic_pointer_cast<IVertexColumn>(ctx.get(input_tag));
+  CHECK(input_vertex_list->vertex_column_type() == VertexColumnType::kSingle);
+  auto casted_input_vertex_list =
+      std::dynamic_pointer_cast<SLVertexColumn>(input_vertex_list);
+  label_t input_label = casted_input_vertex_list->label();
+
+  label_t d0_nbr_label, d0_e_label, d1_nbr_label, d1_e_label, d2_nbr_label,
+      d2_e_label;
+  PropertyType d0_ep, d1_ep, d2_ep;
+  {
+    auto labels0 = parse_label_triplets(meta0);
+    CHECK_EQ(labels0.size(), 1);
+    d0_e_label = labels0[0].edge_label;
+    if (dir0 == Direction::kOut) {
+      CHECK_EQ(labels0[0].src_label, input_label);
+      d0_nbr_label = labels0[0].dst_label;
+    } else if (dir0 == Direction::kIn) {
+      CHECK_EQ(labels0[0].dst_label, input_label);
+      d0_nbr_label = labels0[0].src_label;
+    } else {
+      LOG(FATAL) << "both direction not supported";
+    }
+
+    const auto& properties0 = txn.schema().get_edge_properties(
+        labels0[0].src_label, labels0[0].dst_label, labels0[0].edge_label);
+    if (properties0.empty()) {
+      d0_ep = PropertyType::Empty();
+    } else {
+      CHECK_EQ(1, properties0.size());
+      d0_ep = properties0[0];
+    }
+
+    auto labels1 = parse_label_triplets(meta1);
+    CHECK_EQ(labels1.size(), 1);
+    d1_e_label = labels1[0].edge_label;
+    if (dir1 == Direction::kOut) {
+      CHECK_EQ(labels1[0].src_label, input_label);
+      d1_nbr_label = labels1[0].dst_label;
+    } else if (dir1 == Direction::kIn) {
+      CHECK_EQ(labels1[0].dst_label, input_label);
+      d1_nbr_label = labels1[0].src_label;
+    } else {
+      LOG(FATAL) << "both direction not supported";
+    }
+
+    const auto& properties1 = txn.schema().get_edge_properties(
+        labels1[0].src_label, labels1[0].dst_label, labels1[0].edge_label);
+    if (properties1.empty()) {
+      d1_ep = PropertyType::Empty();
+    } else {
+      CHECK_EQ(1, properties1.size());
+      d1_ep = properties1[0];
+    }
+
+    auto labels2 = parse_label_triplets(meta2);
+    CHECK_EQ(labels2.size(), 1);
+    d2_e_label = labels2[0].edge_label;
+    if (dir2 == Direction::kOut) {
+      CHECK_EQ(labels2[0].src_label, d1_nbr_label);
+      d2_nbr_label = labels2[0].dst_label;
+    } else if (dir1 == Direction::kIn) {
+      CHECK_EQ(labels2[0].dst_label, d1_nbr_label);
+      d2_nbr_label = labels2[0].src_label;
+    } else {
+      LOG(FATAL) << "both direction not supported";
+    }
+
+    const auto& properties2 = txn.schema().get_edge_properties(
+        labels2[0].src_label, labels2[0].dst_label, labels2[0].edge_label);
+    if (properties2.empty()) {
+      d2_ep = PropertyType::Empty();
+    } else {
+      CHECK_EQ(1, properties2.size());
+      d2_ep = properties2[0];
+    }
+  }
+  CHECK(d0_ep == PropertyType::Date());
+  CHECK(d1_ep == PropertyType::Date());
+  CHECK(d2_ep == PropertyType::Empty());
+  auto csr0 = (dir0 == Direction::kOut)
+                  ? txn.GetOutgoingGraphView<Date>(input_label, d0_nbr_label,
+                                                   d0_e_label)
+                  : txn.GetIncomingGraphView<Date>(input_label, d0_nbr_label,
+                                                   d0_e_label);
+  auto csr1 = (dir1 == Direction::kOut)
+                  ? txn.GetOutgoingGraphView<Date>(input_label, d1_nbr_label,
+                                                   d1_e_label)
+                  : txn.GetIncomingGraphView<Date>(input_label, d1_nbr_label,
+                                                   d1_e_label);
+  auto csr2 = (dir2 == Direction::kOut)
+                  ? txn.GetOutgoingGraphView<grape::EmptyType>(
+                        d1_nbr_label, d2_nbr_label, d2_e_label)
+                  : txn.GetIncomingGraphView<grape::EmptyType>(
+                        d1_nbr_label, d2_nbr_label, d2_e_label);
+
+  const algebra::QueryParams& ee_opr0_qp = ee_opr0.params();
+  std::string param_name = ee_opr0_qp.predicate().operators(2).param().name();
+  std::string param_value = params.at(param_name);
+
+  Date min_date(std::stoll(param_value));
+
+  SLVertexColumnBuilder builder1(d1_nbr_label);
+  SLVertexColumnBuilder builder2(d2_nbr_label);
+  std::vector<size_t> offsets;
+
+  size_t idx = 0;
+  static thread_local std::vector<bool> d0_set;
+  static thread_local std::vector<vid_t> d0_vec;
+
+  d0_set.resize(txn.GetVertexNum(d0_nbr_label), false);
+  for (auto v : casted_input_vertex_list->vertices()) {
+    csr0.foreach_edges_gt(v, min_date,
+                          [&](const MutableNbr<Date>& e, Date& val) {
+                            auto u = e.neighbor;
+                            d0_set[u] = true;
+                            d0_vec.push_back(u);
+                          });
+    for (auto& e1 : csr1.get_edges(v)) {
+      auto nbr1 = e1.neighbor;
+      for (auto& e2 : csr2.get_edges(nbr1)) {
+        auto nbr2 = e2.neighbor;
+        // if (d0_set.find(nbr2) != d0_set.end()) {
+        if (d0_set[nbr2]) {
+          builder1.push_back_opt(nbr1);
+          builder2.push_back_opt(nbr2);
+          offsets.push_back(idx);
+        }
+      }
+    }
+    for (auto u : d0_vec) {
+      d0_set[u] = false;
+    }
+    d0_vec.clear();
+    ++idx;
+  }
+
+  int alias1 = -1;
+  if (ee_opr1.has_alias()) {
+    alias1 = ee_opr1.alias().value();
+  }
+  if (v_opr1.has_alias()) {
+    alias1 = v_opr1.alias().value();
+  }
+  int alias2 = -1;
+  if (ee_opr2.has_alias()) {
+    alias2 = ee_opr2.alias().value();
+  }
+
+  std::shared_ptr<IContextColumn> col1 = builder1.finish();
+  std::shared_ptr<IContextColumn> col2 = builder2.finish();
+  ctx.set_with_reshuffle(alias1, col1, offsets);
+  ctx.set(alias2, col2);
+  return ctx;
 }
 
 }  // namespace runtime
