@@ -126,7 +126,7 @@ public class GraphRelOptimizer {
             }
             // apply rules of 'FieldTrim' after the match optimization
             if (config.getRules().contains(FieldTrimRule.class.getSimpleName())) {
-                relOptimized = FieldTrimRule.trim(ioProcessor.getBuilder(), relOptimized);
+                relOptimized = FieldTrimRule.trim(ioProcessor.getBuilder(), relOptimized, config);
             }
             physicalPlanner.setRoot(relOptimized);
             RelNode physicalOptimized = physicalPlanner.findBestExp();

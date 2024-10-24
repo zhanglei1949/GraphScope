@@ -17,7 +17,6 @@
 package com.alibaba.graphscope.common.config;
 
 import com.alibaba.graphscope.common.utils.FileUtils;
-
 import org.apache.calcite.plan.Context;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;

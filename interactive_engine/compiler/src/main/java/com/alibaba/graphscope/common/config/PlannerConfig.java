@@ -24,12 +24,17 @@ public class PlannerConfig {
     public static final Config<Boolean> FLAT_JOIN_TO_EXPAND_NO_FILTER =
             Config.boolConfig("graph.planner.flat.join.to.expand.no.filter", true);
 
+    public static final Config<String> TRIM_CLASS_NAMES =
+            Config.stringConfig("graph.planner.trim.class.names", "");
+
     private final Configs configs;
     private final List<String> rules;
+    private final List<String> trimClasses;
 
     public PlannerConfig(Configs configs) {
         this.configs = configs;
         this.rules = Utils.convertDotString(GRAPH_PLANNER_RULES.get(configs));
+        this.trimClasses = Utils.convertDotString(TRIM_CLASS_NAMES.get(configs));
     }
 
     public enum Opt {
@@ -63,6 +68,10 @@ public class PlannerConfig {
 
     public int getJoinCostFactor2() {
         return JOIN_COST_FACTOR_2.get(configs);
+    }
+
+    public List<String> getTrimClassNames() {
+        return Collections.unmodifiableList(trimClasses);
     }
 
     @Override

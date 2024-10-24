@@ -828,6 +828,70 @@ public class LdbcTest {
     }
 
     @Test
+    public void ldbc9_2_test() {
+        Configs configs =
+                new Configs(
+                        ImmutableMap.of(
+                                "graph.planner.is.on",
+                                "true",
+                                "graph.planner.opt",
+                                "CBO",
+                                "graph.planner.flat.join.to.expand.no.filter",
+                                "true",
+                                "graph.planner.trim.class.names",
+                                "GraphLogicalExpand",
+                                "graph.planner.rules",
+                                "NotMatchToAntiJoinRule, FilterIntoJoinRule, FilterMatchRule,"
+                                        + " FlatJoinToExpandRule, FlatJoinToIntersectRule,"
+                                        + " ExtendIntersectRule, DegreeFusionRule, "
+                                        + " FieldTrimRule, ExpandGetVFusionRule"));
+        GraphRelOptimizer optimizer = new GraphRelOptimizer(configs);
+        IrMeta irMeta =
+                Utils.mockIrMeta(
+                        "schema/ldbc.json",
+                        "statistics/ldbc30_statistics.json",
+                        optimizer.getGlogueHolder());
+        GraphBuilder builder = Utils.mockGraphBuilder(optimizer, irMeta);
+        RelNode before =
+                com.alibaba.graphscope.cypher.antlr4.Utils.eval(
+                                "MATCH (p:PERSON {id: $personId})-[:KNOWS*1..3]-(friend:PERSON)\n"
+                                        + "WITH distinct friend\n"
+                                        + "where friend.id <> $personId\n"
+                                        + "MATCH "
+                                        + " (message:POST|COMMENT)-[h:HASCREATOR]->(friend:PERSON)\n"
+                                        + "where h.creationDate < $maxDate\n"
+                                        + "WITH friend, message\n"
+                                        + "\n"
+                                        + "RETURN \n"
+                                        + "    friend.id AS personId, \n"
+                                        + "    friend.firstName AS personFirstName, \n"
+                                        + "    friend.lastName AS personLastName, \n"
+                                        + "    message.id AS commentOrPostId, \n"
+                                        + "    message.content AS messageContent, \n"
+                                        + "    message.imageFile AS messageImageFile, \n"
+                                        + "    message.creationDate AS commentOrPostCreationDate\n"
+                                        + "ORDER BY \n"
+                                        + "    commentOrPostCreationDate DESC, \n"
+                                        + "    commentOrPostId ASC \n"
+                                        + "LIMIT 20",
+                                builder)
+                        .build();
+        RelNode after = optimizer.optimize(before, new GraphIOProcessor(builder, irMeta));
+        Assert.assertEquals(
+                "GraphLogicalSort(sort0=[commentOrPostCreationDate], sort1=[commentOrPostId], dir0=[DESC], dir1=[ASC], fetch=[20])\n" +
+                        "  GraphLogicalProject(personId=[friend.id], personFirstName=[friend.firstName], personLastName=[friend.lastName], commentOrPostId=[message.id], messageContent=[message.content], messageImageFile=[message.imageFile], commentOrPostCreationDate=[message.creationDate], isAppend=[false])\n" +
+                        "    GraphLogicalProject(friend=[friend], message=[message], isAppend=[false])\n" +
+                        "      GraphPhysicalExpand(tableConfig=[{isAll=false, tables=[HASCREATOR]}], alias=[message], startAlias=[friend], fusedFilter=[[<(_.creationDate, ?1)]], opt=[IN], physicalOpt=[VERTEX])\n" +
+                        "        LogicalFilter(condition=[<>(friend.id, ?0)])\n" +
+                        "          GraphLogicalAggregate(keys=[{variables=[friend], aliases=[friend]}], values=[[]])\n" +
+                        "            GraphLogicalGetV(tableConfig=[{isAll=false, tables=[PERSON]}], alias=[friend], opt=[END])\n" +
+                        "              GraphLogicalPathExpand(fused=[GraphPhysicalExpand(tableConfig=[{isAll=false, tables=[KNOWS]}], alias=[_], opt=[BOTH], physicalOpt=[VERTEX])\n" +
+                        "], offset=[1], fetch=[2], path_opt=[ARBITRARY], result_opt=[END_V], alias=[_], start_alias=[p])\n" +
+                        "                GraphLogicalSource(tableConfig=[{isAll=false, tables=[PERSON]}], alias=[p], opt=[VERTEX], uniqueKeyFilters=[=(_.id, ?0)])",
+                after.explain().trim());
+    }
+
+    @Test
     public void ldbc10_test() {
         GraphBuilder builder = Utils.mockGraphBuilder(optimizer, irMeta);
         RelNode before =
