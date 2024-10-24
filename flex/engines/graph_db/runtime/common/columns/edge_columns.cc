@@ -154,7 +154,7 @@ std::shared_ptr<IContextColumn> SDMLEdgeColumn::shuffle(
     auto index = std::get<0>(e);
     auto offset = std::get<3>(e);
     builder.push_back_opt(index, std::get<1>(e), std::get<2>(e),
-                          prop_cols_[index]->get_edge_data(offset));
+                          prop_cols_[index]->get(offset));
   }
   return builder.finish();
 }
@@ -178,7 +178,7 @@ std::shared_ptr<IContextColumn> BDMLEdgeColumn::shuffle(
     auto offset = std::get<3>(e);
     auto dir = std::get<4>(e) ? Direction::kOut : Direction::kIn;
     builder.push_back_opt(index, std::get<1>(e), std::get<2>(e),
-                          prop_cols_[index]->get_edge_data(offset), dir);
+                          prop_cols_[index]->get(offset), dir);
   }
   return builder.finish();
 }

@@ -69,8 +69,8 @@ class GetV {
       auto& input_edge_list =
           *std::dynamic_pointer_cast<OptionalBDSLEdgeColumn>(column);
       input_edge_list.foreach_edge([&](size_t index, const LabelTriplet& label,
-                                       vid_t src, vid_t dst, const Any& edata,
-                                       Direction dir) {
+                                       vid_t src, vid_t dst,
+                                       const EdgeData& edata, Direction dir) {
         if (!input_edge_list.has_value(index)) {
           if (pred(label.src_label, src, index, 0)) {
             builder.push_back_opt(src);
@@ -109,7 +109,7 @@ class GetV {
       if (params.opt == VOpt::kEnd) {
         input_edge_list.foreach_edge(
             [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
-                const Any& edata, Direction dir) {
+                const EdgeData& edata, Direction dir) {
               if (!input_edge_list.has_value(index)) {
                 if (pred(label.src_label, src, index, 0)) {
                   builder.push_back_opt(src);
@@ -187,7 +187,7 @@ class GetV {
       if (opt == VOpt::kStart) {
         input_edge_list.foreach_edge(
             [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
-                const Any& edata, Direction dir) {
+                const EdgeData& edata, Direction dir) {
               if (pred(label.src_label, src, index)) {
                 builder.push_back_opt(src);
                 shuffle_offset.push_back(index);
@@ -196,7 +196,7 @@ class GetV {
       } else if (opt == VOpt::kEnd) {
         input_edge_list.foreach_edge(
             [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
-                const Any& edata, Direction dir) {
+                const EdgeData& edata, Direction dir) {
               if (pred(label.dst_label, dst, index)) {
                 builder.push_back_opt(dst);
                 shuffle_offset.push_back(index);
@@ -231,7 +231,7 @@ class GetV {
         if (opt == VOpt::kStart) {
           input_edge_list.foreach_edge(
               [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
-                  const Any& edata, Direction dir) {
+                  const EdgeData& edata, Direction dir) {
                 if (std::find(labels.begin(), labels.end(), label.src_label) !=
                     labels.end()) {
                   builder.push_back_vertex({label.src_label, src});
@@ -241,7 +241,7 @@ class GetV {
         } else if (opt == VOpt::kEnd) {
           input_edge_list.foreach_edge(
               [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
-                  const Any& edata, Direction dir) {
+                  const EdgeData& edata, Direction dir) {
                 if (std::find(labels.begin(), labels.end(), label.dst_label) !=
                     labels.end()) {
                   builder.push_back_vertex({label.dst_label, dst});
@@ -264,7 +264,7 @@ class GetV {
           CHECK(params.opt == VOpt::kOther);
           input_edge_list.foreach_edge(
               [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
-                  const Any& edata, Direction dir) {
+                  const EdgeData& edata, Direction dir) {
                 if (dir == Direction::kOut) {
                   builder.push_back_vertex({label.dst_label, dst});
                 } else {
@@ -279,7 +279,7 @@ class GetV {
           SLVertexColumnBuilder builder(type.src_label);
           input_edge_list.foreach_edge(
               [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
-                  const Any& edata, Direction dir) {
+                  const EdgeData& edata, Direction dir) {
                 if (dir == Direction::kOut) {
                   builder.push_back_opt(dst);
                   shuffle_offset.push_back(index);
@@ -304,7 +304,7 @@ class GetV {
           SLVertexColumnBuilder builder(labels[0]);
           input_edge_list.foreach_edge(
               [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
-                  const Any& edata, Direction dir) {
+                  const EdgeData& edata, Direction dir) {
                 if (dir == Direction::kOut) {
                   if (label.dst_label == labels[0]) {
                     builder.push_back_opt(dst);
@@ -324,7 +324,7 @@ class GetV {
           MLVertexColumnBuilder builder;
           input_edge_list.foreach_edge(
               [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
-                  const Any& edata, Direction dir) {
+                  const EdgeData& edata, Direction dir) {
                 if (dir == Direction::kOut) {
                   if (std::find(labels.begin(), labels.end(),
                                 label.dst_label) != labels.end()) {
@@ -352,7 +352,7 @@ class GetV {
         CHECK(params.opt == VOpt::kOther);
         input_edge_list.foreach_edge(
             [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
-                const Any& edata, Direction dir) {
+                const EdgeData& edata, Direction dir) {
               if (dir == Direction::kOut) {
                 builder.push_back_vertex({label.dst_label, dst});
               } else {
@@ -369,7 +369,7 @@ class GetV {
           SLVertexColumnBuilder builder(vlabel);
           input_edge_list.foreach_edge(
               [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
-                  const Any& edata, Direction dir) {
+                  const EdgeData& edata, Direction dir) {
                 if (dir == Direction::kOut) {
                   if (label.dst_label == vlabel) {
                     builder.push_back_opt(dst);
@@ -393,7 +393,7 @@ class GetV {
           MLVertexColumnBuilder builder;
           input_edge_list.foreach_edge(
               [&](size_t index, const LabelTriplet& label, vid_t src, vid_t dst,
-                  const Any& edata, Direction dir) {
+                  const EdgeData& edata, Direction dir) {
                 if (dir == Direction::kOut) {
                   if (labels[label.dst_label]) {
                     builder.push_back_vertex({label.dst_label, dst});

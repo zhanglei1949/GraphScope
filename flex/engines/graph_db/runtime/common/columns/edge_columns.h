@@ -58,41 +58,6 @@ static inline void get_edge_data(EdgePropVecBase* prop, size_t idx,
     edge_data.type = RTAnyType::kUnknown;
   }
 }
-static inline void get_edge_data(ColumnBase* prop, size_t idx,
-                                 EdgeData& edge_data) {
-  if (prop->type() == PropertyType::kEmpty) {
-    edge_data.type = RTAnyType::kEmpty;
-  } else if (prop->type() == PropertyType::kInt64) {
-    edge_data.type = RTAnyType::kI64Value;
-    edge_data.value.i64_val =
-        dynamic_cast<TypedColumn<int64_t>*>(prop)->get_view(idx);
-  } else if (prop->type() == PropertyType::kInt32) {
-    edge_data.type = RTAnyType::kI32Value;
-    edge_data.value.i32_val =
-        dynamic_cast<TypedColumn<int32_t>*>(prop)->get_view(idx);
-  } else if (prop->type() == PropertyType::kDouble) {
-    edge_data.type = RTAnyType::kF64Value;
-    edge_data.value.f64_val =
-        dynamic_cast<TypedColumn<double>*>(prop)->get_view(idx);
-  } else if (prop->type() == PropertyType::kBool) {
-    edge_data.type = RTAnyType::kBoolValue;
-    edge_data.value.b_val =
-        dynamic_cast<TypedColumn<bool>*>(prop)->get_view(idx);
-  } else if (prop->type() == PropertyType::kString) {
-    edge_data.type = RTAnyType::kStringValue;
-    edge_data.value.str_val =
-        dynamic_cast<TypedColumn<std::string_view>*>(prop)->get_view(idx);
-
-  } else if (prop->type() == PropertyType::kDate) {
-    edge_data.type = RTAnyType::kDate32;
-    edge_data.value.i64_val =
-        dynamic_cast<TypedColumn<Date>*>(prop)->get_view(idx).milli_second;
-  } else if (prop->type() == PropertyType::kRecordView) {
-    // edge_data.type = RTAnyType::kRecordView;
-  } else {
-    edge_data.type = RTAnyType::kUnknown;
-  }
-}
 
 static inline void set_edge_data(EdgePropVecBase* col, size_t idx,
                                  const EdgeData& edge_data) {
@@ -118,33 +83,6 @@ static inline void set_edge_data(EdgePropVecBase* col, size_t idx,
   }
 }
 
-static inline void set_edge_data(ColumnBase* col, size_t idx,
-                                 const EdgeData& edge_data) {
-  if (edge_data.type == RTAnyType::kEmpty) {
-    return;
-  } else if (edge_data.type == RTAnyType::kI64Value) {
-    dynamic_cast<TypedColumn<int64_t>*>(col)->set_value(
-        idx, edge_data.value.i64_val);
-  } else if (edge_data.type == RTAnyType::kI32Value) {
-    dynamic_cast<TypedColumn<int32_t>*>(col)->set_value(
-        idx, edge_data.value.i32_val);
-  } else if (edge_data.type == RTAnyType::kF64Value) {
-    dynamic_cast<TypedColumn<double>*>(col)->set_value(idx,
-                                                       edge_data.value.f64_val);
-  } else if (edge_data.type == RTAnyType::kBoolValue) {
-    dynamic_cast<TypedColumn<bool>*>(col)->set_value(idx,
-                                                     edge_data.value.b_val);
-  } else if (edge_data.type == RTAnyType::kStringValue) {
-    dynamic_cast<TypedColumn<std::string_view>*>(col)->set_value(
-        idx, std::string_view(edge_data.value.str_val.data(),
-                              edge_data.value.str_val.size()));
-  } else if (edge_data.type == RTAnyType::kDate32) {
-    dynamic_cast<TypedColumn<Date>*>(col)->set_value(
-        idx, Date(edge_data.value.i64_val));
-  } else {
-    // LOG(FATAL) << "not support for " << edge_data.type;
-  }
-}
 class IEdgeColumn : public IContextColumn {
  public:
   IEdgeColumn() = default;
@@ -260,12 +198,13 @@ class SDSLEdgeColumn : public IEdgeColumn {
     if (prop_type_ == PropertyType::kEmpty) {
       size_t idx = 0;
       for (auto& e : edges_) {
-        func(idx++, label_, e.first, e.second, grape::EmptyType(), dir_);
+        func(idx++, label_, e.first, e.second, EdgeData(grape::EmptyType()),
+             dir_);
       }
     } else {
       size_t idx = 0;
       for (auto& e : edges_) {
-        func(idx, label_, e.first, e.second, prop_col_->get_any(idx), dir_);
+        func(idx, label_, e.first, e.second, prop_col_->get(idx), dir_);
         ++idx;
       }
     }
@@ -364,12 +303,13 @@ class OptionalSDSLEdgeColumn : public IEdgeColumn {
     if (prop_type_ == PropertyType::kEmpty) {
       size_t idx = 0;
       for (auto& e : edges_) {
-        func(idx++, label_, e.first, e.second, grape::EmptyType(), dir_);
+        func(idx++, label_, e.first, e.second, EdgeData(grape::EmptyType()),
+             dir_);
       }
     } else {
       size_t idx = 0;
       for (auto& e : edges_) {
-        func(idx, label_, e.first, e.second, prop_col_->get_any(idx), dir_);
+        func(idx, label_, e.first, e.second, prop_col_->get(idx), dir_);
         ++idx;
       }
     }
@@ -490,7 +430,7 @@ class BDSLEdgeColumn : public IEdgeColumn {
   void foreach_edge(const FUNC_T& func) const {
     size_t idx = 0;
     for (auto& e : edges_) {
-      func(idx, label_, std::get<0>(e), std::get<1>(e), prop_col_->get_any(idx),
+      func(idx, label_, std::get<0>(e), std::get<1>(e), prop_col_->get(idx),
            (std::get<2>(e) ? Direction::kOut : Direction::kIn));
       ++idx;
     }
@@ -551,7 +491,7 @@ class OptionalBDSLEdgeColumn : public IEdgeColumn {
   void foreach_edge(const FUNC_T& func) const {
     size_t idx = 0;
     for (auto& e : edges_) {
-      func(idx, label_, std::get<0>(e), std::get<1>(e), prop_col_->get_any(idx),
+      func(idx, label_, std::get<0>(e), std::get<1>(e), prop_col_->get(idx),
            (std::get<2>(e) ? Direction::kOut : Direction::kIn));
       ++idx;
     }
@@ -646,7 +586,7 @@ class SDMLEdgeColumn : public IEdgeColumn {
       auto label = edge_labels_[index].first;
       auto offset = std::get<3>(e);
       func(idx, label, std::get<1>(e), std::get<2>(e),
-           prop_cols_[index]->get_any(offset), dir_);
+           prop_cols_[index]->get(offset), dir_);
       ++idx;
     }
   }
@@ -735,7 +675,7 @@ class BDMLEdgeColumn : public IEdgeColumn {
       auto label = labels_[index].first;
       auto offset = std::get<3>(e);
       func(idx, label, std::get<1>(e), std::get<2>(e),
-           prop_cols_[index]->get_any(offset),
+           prop_cols_[index]->get(offset),
            (std::get<4>(e) ? Direction::kOut : Direction::kIn));
       ++idx;
     }
