@@ -451,6 +451,66 @@ std::shared_ptr<IContextColumn> build_topN_column(
   }
 }
 
+std::shared_ptr<IContextColumn> build_topN_property_column(
+    const ReadTransaction& txn, std::shared_ptr<IContextColumn> col,
+    const std::string& property_name, size_t limit, bool asc,
+    std::vector<size_t>& offsets) {
+  CHECK(col->column_type() == ContextColumnType::kVertex);
+  auto vc = std::dynamic_pointer_cast<IVertexColumn>(col);
+  if (vc->vertex_column_type() == VertexColumnType::kMultiSegment) {
+    auto casted_col = std::dynamic_pointer_cast<MSVertexColumn>(vc);
+    std::vector<PropertyType> types;
+    for (auto label : casted_col->get_labels_set()) {
+      size_t prop_num = txn.schema().get_vertex_property_names(label).size();
+      bool found = false;
+      for (size_t i = 0; i < prop_num; ++i) {
+        if (txn.schema().get_vertex_property_names(label)[i] == property_name) {
+          types.push_back(txn.schema().get_vertex_properties(label)[i]);
+          found = true;
+          break;
+        }
+      }
+      CHECK(found);
+    }
+    for (size_t k = 1; k < types.size(); ++k) {
+      CHECK(types[k] == types[0]);
+    }
+    auto prop_type = *types.begin();
+    if (prop_type == PropertyType::Date()) {
+      size_t seg_num = casted_col->seg_num();
+      if (!asc) {
+        TopNGenerator<int64_t, TopNDescCmp<int64_t>> gen(limit);
+        size_t idx = 0;
+        for (size_t seg_i = 0; seg_i < seg_num; ++seg_i) {
+          label_t seg_label = casted_col->seg_label(seg_i);
+          const auto& prop_col = *std::dynamic_pointer_cast<DateColumn>(
+              txn.get_vertex_property_column(seg_label, property_name));
+          for (auto v : casted_col->seg_vertices(seg_i)) {
+            gen.push(prop_col.get_view(v).milli_second, idx);
+            ++idx;
+          }
+        }
+        std::vector<int64_t> values;
+        gen.generate_pairs(values, offsets);
+        ValueColumnBuilder<int64_t> builder;
+        builder.reserve(values.size());
+        for (auto v : values) {
+          builder.push_back_opt(v);
+        }
+        return builder.finish();
+      } else {
+        LOG(FATAL) << "not support";
+      }
+    } else {
+      LOG(FATAL) << "not supported";
+    }
+  } else {
+    LOG(FATAL) << "not supported";
+  }
+  LOG(FATAL) << "not supported";
+  return nullptr;
+}
+
 template <typename T>
 bool vertex_property_topN_impl(
     bool asc, size_t limit, const std::shared_ptr<IVertexColumn>& col,

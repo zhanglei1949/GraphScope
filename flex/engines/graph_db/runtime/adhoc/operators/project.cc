@@ -619,6 +619,26 @@ bool project_order_by_fusable(
   return true;
 }
 
+bool is_property_expr(const common::Expression& expr, int& tag_id,
+                      std::string& property_name) {
+  if (expr.operators_size() != 1) {
+    LOG(INFO) << "AAAA";
+    return false;
+  }
+  if (!expr.operators(0).has_var()) {
+    LOG(INFO) << "AAAA";
+    return false;
+  }
+  if (!expr.operators(0).var().has_property() ||
+      !expr.operators(0).var().has_tag()) {
+    LOG(INFO) << "AAAA";
+    return false;
+  }
+  tag_id = expr.operators(0).var().tag().id();
+  property_name = expr.operators(0).var().property().key().name();
+  return true;
+}
+
 Context eval_project_order_by(
     const physical::Project& project_opr, const algebra::OrderBy& order_by_opr,
     const ReadTransaction& txn, Context&& ctx,
@@ -656,6 +676,25 @@ Context eval_project_order_by(
           const physical::Project_ExprAlias& m = project_opr.mappings(i);
           if (m.has_alias() && m.alias().value() == first_key_tag) {
             CHECK(!ctx.exist(first_key_tag));
+            int tag_id;
+            std::string property_name;
+            if (is_property_expr(m.expr(), tag_id, property_name)) {
+              if (ctx.get(tag_id)->column_type() ==
+                  ContextColumnType::kVertex) {
+                auto col = build_topN_property_column(
+                    txn, ctx.get(tag_id), property_name, limit, asc, offsets);
+                if (col != nullptr) {
+                  success = true;
+                  ctx.reshuffle(offsets);
+                  ctx.set(first_key_tag, col);
+                  added_alias_in_preproject.push_back(first_key_tag);
+                  row_num = ctx.row_num();
+                  break;
+                } else {
+                  LOG(INFO) << "build topN property column returns nullptr";
+                }
+              }
+            }
             Expr expr(txn, ctx, params, m.expr(), VarType::kPathVar);
             auto col = build_topN_column(data_types[i], expr, row_num, limit,
                                          asc, offsets);

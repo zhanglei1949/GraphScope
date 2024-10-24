@@ -165,6 +165,39 @@ class GraphView {
     }
   }
 
+  template <typename FUNC_T>
+  void foreach_edges_lt(vid_t v, const EDATA_T& max_value,
+                        const FUNC_T& func) const {
+    const auto& edges = csr_.get_edges(v);
+    auto ptr = edges.end() - 1;
+    auto end = edges.begin() - 1;
+    while (ptr != end) {
+      if (ptr->timestamp > timestamp_) {
+        --ptr;
+        continue;
+      }
+      if (ptr->timestamp < unsorted_since_) {
+        break;
+      }
+      if (ptr->data < max_value) {
+        func(*ptr);
+      }
+      --ptr;
+    }
+    if (ptr == end) {
+      return;
+    }
+    ptr = std::upper_bound(end + 1, ptr + 1, max_value,
+                           [](const EDATA_T& a, const MutableNbr<EDATA_T>& b) {
+                             return a < b.data;
+                           }) -
+          1;
+    while (ptr != end) {
+      func(*ptr);
+      --ptr;
+    }
+  }
+
   // iterate edges with data in [min_value, +inf)
   template <typename FUNC_T>
   void foreach_edges_ge(vid_t v, EDATA_T& min_value, const FUNC_T& func) const {

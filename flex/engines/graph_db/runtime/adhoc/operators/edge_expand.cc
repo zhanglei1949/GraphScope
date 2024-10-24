@@ -215,6 +215,24 @@ bool is_ep_gt(const common::Expression& expr) {
   return true;
 }
 
+bool is_ep_lt(const common::Expression& expr) {
+  if (expr.operators_size() != 3) {
+    return false;
+  }
+  if (!(expr.operators(0).has_var() &&
+        expr.operators(0).var().has_property())) {
+    return false;
+  }
+  if (!(expr.operators(1).has_logical() &&
+        expr.operators(1).logical() == common::Logical::LT)) {
+    return false;
+  }
+  if (!expr.operators(2).has_param()) {
+    return false;
+  }
+  return true;
+}
+
 bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
                                const physical::GetV& v_opr, const Context& ctx,
                                const physical::PhysicalOpr_MetaData& meta) {
@@ -222,21 +240,22 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
           physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE &&
       ee_opr.expand_opt() !=
           physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_VERTEX) {
-    // LOG(INFO) << "not edge expand, fallback";
+    LOG(INFO) << "not edge expand, fallback";
     return false;
   }
-  bool is_ic5 =
-      ee_opr.params().has_predicate() && is_ep_gt(ee_opr.params().predicate());
-  if (ee_opr.params().has_predicate() && !is_ic5) {
-    // LOG(INFO) << "edge expand has predicate, fallback";
+  bool is_ic5_or_ic9 = ee_opr.params().has_predicate() &&
+                       (is_ep_gt(ee_opr.params().predicate()) ||
+                        is_ep_lt(ee_opr.params().predicate()));
+  if (ee_opr.params().has_predicate() && !is_ic5_or_ic9) {
+    LOG(INFO) << "edge expand has predicate, fallback";
     return false;
   }
   int alias = -1;
   if (ee_opr.has_alias()) {
     alias = ee_opr.alias().value();
   }
-  if (alias != -1 && !is_ic5) {
-    // LOG(INFO) << "alias of edge expand is not -1, fallback";
+  if (alias != -1 && !is_ic5_or_ic9) {
+    LOG(INFO) << "alias of edge expand is not -1, fallback";
     return false;
   }
 
@@ -337,6 +356,18 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
         t += grape::GetCurrentTime();
 #ifdef SINGLE_THREAD
         op_cost.table["#### ep gt-" + std::to_string(op_id)] += t;
+#endif
+        return ret;
+      } else if (is_ep_lt(query_params.predicate())) {
+        double t = -grape::GetCurrentTime();
+        std::string param_name =
+            query_params.predicate().operators(2).param().name();
+        std::string param_value = params.at(param_name);
+        auto ret = EdgeExpand::expand_vertex_ep_lt(txn, std::move(ctx), eep,
+                                                   param_value);
+        t += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
+        op_cost.table["#### ep lt-" + std::to_string(op_id)] += t;
 #endif
         return ret;
       } else {
@@ -607,7 +638,7 @@ Context eval_tc(const physical::EdgeExpand& ee_opr0,
     }
   }
   CHECK(d0_ep == PropertyType::Date());
-  CHECK(d1_ep == PropertyType::Empty());
+  CHECK(d1_ep == PropertyType::Date());
   CHECK(d2_ep == PropertyType::Empty());
   auto csr0 = (dir0 == Direction::kOut)
                   ? txn.GetOutgoingGraphView<Date>(input_label, d0_nbr_label,
@@ -615,10 +646,10 @@ Context eval_tc(const physical::EdgeExpand& ee_opr0,
                   : txn.GetIncomingGraphView<Date>(input_label, d0_nbr_label,
                                                    d0_e_label);
   auto csr1 = (dir1 == Direction::kOut)
-                  ? txn.GetOutgoingGraphView<grape::EmptyType>(
-                        input_label, d1_nbr_label, d1_e_label)
-                  : txn.GetIncomingGraphView<grape::EmptyType>(
-                        input_label, d1_nbr_label, d1_e_label);
+                  ? txn.GetOutgoingGraphView<Date>(input_label, d1_nbr_label,
+                                                   d1_e_label)
+                  : txn.GetIncomingGraphView<Date>(input_label, d1_nbr_label,
+                                                   d1_e_label);
   auto csr2 = (dir2 == Direction::kOut)
                   ? txn.GetOutgoingGraphView<grape::EmptyType>(
                         d1_nbr_label, d2_nbr_label, d2_e_label)
