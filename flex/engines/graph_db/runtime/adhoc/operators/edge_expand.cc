@@ -205,7 +205,7 @@ bool is_ep_gt(const common::Expression& expr) {
         expr.operators(0).var().has_property())) {
     return false;
   }
-  if (!(expr.operators(1).has_logical() &&
+  if (!(expr.operators(1).item_case() == common::ExprOpr::ItemCase::kLogical &&
         expr.operators(1).logical() == common::Logical::GT)) {
     return false;
   }
@@ -225,18 +225,20 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
     // LOG(INFO) << "not edge expand, fallback";
     return false;
   }
-  // if (ee_opr.params().has_predicate()) {
-  //   // LOG(INFO) << "edge expand has predicate, fallback";
-  //   return false;
-  // }
+  bool is_ic5 =
+      ee_opr.params().has_predicate() && is_ep_gt(ee_opr.params().predicate());
+  if (ee_opr.params().has_predicate() && !is_ic5) {
+    // LOG(INFO) << "edge expand has predicate, fallback";
+    return false;
+  }
   int alias = -1;
   if (ee_opr.has_alias()) {
     alias = ee_opr.alias().value();
   }
-  // if (alias != -1) {
-  //   // LOG(INFO) << "alias of edge expand is not -1, fallback";
-  //   return false;
-  // }
+  if (alias != -1 && !is_ic5) {
+    // LOG(INFO) << "alias of edge expand is not -1, fallback";
+    return false;
+  }
 
   int tag = -1;
   if (v_opr.has_tag()) {
@@ -605,7 +607,7 @@ Context eval_tc(const physical::EdgeExpand& ee_opr0,
     }
   }
   CHECK(d0_ep == PropertyType::Date());
-  CHECK(d1_ep == PropertyType::Date());
+  CHECK(d1_ep == PropertyType::Empty());
   CHECK(d2_ep == PropertyType::Empty());
   auto csr0 = (dir0 == Direction::kOut)
                   ? txn.GetOutgoingGraphView<Date>(input_label, d0_nbr_label,
@@ -613,10 +615,10 @@ Context eval_tc(const physical::EdgeExpand& ee_opr0,
                   : txn.GetIncomingGraphView<Date>(input_label, d0_nbr_label,
                                                    d0_e_label);
   auto csr1 = (dir1 == Direction::kOut)
-                  ? txn.GetOutgoingGraphView<Date>(input_label, d1_nbr_label,
-                                                   d1_e_label)
-                  : txn.GetIncomingGraphView<Date>(input_label, d1_nbr_label,
-                                                   d1_e_label);
+                  ? txn.GetOutgoingGraphView<grape::EmptyType>(
+                        input_label, d1_nbr_label, d1_e_label)
+                  : txn.GetIncomingGraphView<grape::EmptyType>(
+                        input_label, d1_nbr_label, d1_e_label);
   auto csr2 = (dir2 == Direction::kOut)
                   ? txn.GetOutgoingGraphView<grape::EmptyType>(
                         d1_nbr_label, d2_nbr_label, d2_e_label)
