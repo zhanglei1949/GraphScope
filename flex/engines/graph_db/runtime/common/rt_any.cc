@@ -1029,6 +1029,8 @@ std::shared_ptr<EdgePropVecBase> EdgePropVecBase::make_edge_prop_vec(
     return std::make_shared<EdgePropVec<double>>();
   } else if (type == PropertyType::Bool()) {
     return std::make_shared<EdgePropVec<bool>>();
+  } else if (type == PropertyType::Empty()) {
+    return std::make_shared<EdgePropVec<grape::EmptyType>>();
   } else {
     LOG(FATAL) << "not support for " << type;
     return nullptr;

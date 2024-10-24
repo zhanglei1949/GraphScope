@@ -43,7 +43,7 @@ std::shared_ptr<IContextColumn> SDSLEdgeColumn::shuffle(
       size_t off = offsets[idx];
       const auto& e = edges_[off];
       builder.push_back_endpoints(e.first, e.second);
-      ret_props.set_any(idx, prop_col_->get(off));
+      ret_props.set_any(idx, prop_col_.get(), off);
     }
   }
 
@@ -76,7 +76,7 @@ std::shared_ptr<IContextColumn> SDSLEdgeColumn::optional_shuffle(
       } else {
         const auto& e = edges_[off];
         builder.push_back_endpoints(e.first, e.second);
-        ret_props.set_any(idx, prop_col_->get(off));
+        ret_props.set_any(idx, prop_col_.get(), off);
       }
     }
   }
@@ -154,7 +154,7 @@ std::shared_ptr<IContextColumn> SDMLEdgeColumn::shuffle(
     auto index = std::get<0>(e);
     auto offset = std::get<3>(e);
     builder.push_back_opt(index, std::get<1>(e), std::get<2>(e),
-                          prop_cols_[index]->get(offset));
+                          prop_cols_[index]->get_edge_data(offset));
   }
   return builder.finish();
 }
@@ -178,7 +178,7 @@ std::shared_ptr<IContextColumn> BDMLEdgeColumn::shuffle(
     auto offset = std::get<3>(e);
     auto dir = std::get<4>(e) ? Direction::kOut : Direction::kIn;
     builder.push_back_opt(index, std::get<1>(e), std::get<2>(e),
-                          prop_cols_[index]->get(offset), dir);
+                          prop_cols_[index]->get_edge_data(offset), dir);
   }
   return builder.finish();
 }

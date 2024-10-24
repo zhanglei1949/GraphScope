@@ -355,6 +355,36 @@ struct EdgeData {
     }
   }
 
+  template <typename T>
+  explicit EdgeData(T val) {
+    if constexpr (std::is_same_v<T, int32_t>) {
+      type = RTAnyType::kI32Value;
+      value.i32_val = val;
+    } else if constexpr (std::is_same_v<T, int64_t>) {
+      type = RTAnyType::kI64Value;
+      value.i64_val = val;
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
+      type = RTAnyType::kU64Value;
+      value.u64_val = val;
+    } else if constexpr (std::is_same_v<T, double>) {
+      type = RTAnyType::kF64Value;
+      value.f64_val = val;
+    } else if constexpr (std::is_same_v<T, bool>) {
+      type = RTAnyType::kBoolValue;
+      value.b_val = val;
+    } else if constexpr (std::is_same_v<T, std::string_view>) {
+      type = RTAnyType::kStringValue;
+      value.str_val = val;
+    } else if constexpr (std::is_same_v<T, grape::EmptyType>) {
+      type = RTAnyType::kEmpty;
+    } else if constexpr (std::is_same_v<T, Date>) {
+      type = RTAnyType::kDate32;
+      value.i64_val = val.milli_second;
+    } else {
+      LOG(FATAL) << "not support for " << typeid(T).name();
+    }
+  }
+
   std::string to_string() const {
     if (type == RTAnyType::kI32Value) {
       return std::to_string(value.i32_val);
@@ -373,6 +403,8 @@ struct EdgeData {
       return "";
     } else if (type == RTAnyType::kDate32) {
       return std::to_string(value.i64_val);
+    } else if (type == RTAnyType::kEmpty) {
+      return "";
     } else {
       LOG(FATAL) << "Unexpected property type: "
                  << static_cast<int>(type.type_enum_);
@@ -873,6 +905,7 @@ class EdgePropVecBase {
   virtual void clear() = 0;
   virtual RTAny get(size_t idx) const = 0;
   virtual Any get_any(size_t idx) const = 0;
+  virtual EdgeData get_edge_data(size_t idx) const = 0;
 
   virtual PropertyType type() const = 0;
   virtual void set_any(size_t idx, EdgePropVecBase* other,
@@ -894,6 +927,10 @@ class EdgePropVec : public EdgePropVecBase {
   size_t size() const override { return prop_data_.size(); }
   RTAny get(size_t idx) const override {
     return TypedConverter<T>::from_typed(prop_data_[idx]);
+  }
+
+  EdgeData get_edge_data(size_t idx) const override {
+    return EdgeData(prop_data_[idx]);
   }
 
   Any get_any(size_t idx) const override { return Any(prop_data_[idx]); }
@@ -918,6 +955,36 @@ class EdgePropVec : public EdgePropVecBase {
 
  private:
   std::vector<T> prop_data_;
+};
+
+template <>
+class EdgePropVec<grape::EmptyType> : public EdgePropVecBase {
+ public:
+  ~EdgePropVec() {}
+  void push_back(const RTAny& val) override { size_++; }
+  void emplace_back(RTAny&& val) override { size_++; }
+
+  void push_back(const grape::EmptyType& val) { size_++; }
+  void emplace_back(grape::EmptyType&& val) { size_++; }
+  size_t size() const override { return size_; }
+  RTAny get(size_t idx) const override { return RTAny(RTAnyType::kEmpty); }
+
+  EdgeData get_edge_data(size_t idx) const override {
+    return EdgeData(grape::EmptyType());
+  }
+
+  Any get_any(size_t idx) const override { return Any(); }
+  grape::EmptyType get_view(size_t idx) const { return grape::EmptyType(); }
+  void resize(size_t size) override { size_ = size; }
+  void clear() override {}
+  void reserve(size_t size) override {}
+  grape::EmptyType operator[](size_t idx) const { return grape::EmptyType(); }
+  void set(size_t idx, const grape::EmptyType& val) {}
+
+  PropertyType type() const override { return PropertyType::kEmpty; }
+
+  void set_any(size_t idx, EdgePropVecBase* other, size_t other_idx) override {}
+  size_t size_;
 };
 
 }  // namespace runtime
