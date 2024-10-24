@@ -29,6 +29,7 @@ import com.alibaba.graphscope.common.ir.tools.Utils;
 import com.alibaba.graphscope.common.ir.type.GraphSchemaType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+
 import org.apache.calcite.linq4j.Ord;
 import org.apache.calcite.plan.GraphOptCluster;
 import org.apache.calcite.rel.RelNode;
@@ -80,13 +81,18 @@ public abstract class FieldTrimRule {
         @Override
         public RelNode trim(RelNode root) {
             ImmutableBitSet.Builder fieldsUsed = ImmutableBitSet.builder();
-            root.getRowType().getFieldList().forEach(k -> {
-                fieldsUsed.set(k.getIndex());
-            });
-            TrimResult trimResult = this.dispatchTrimFields(root, fieldsUsed.build(), Collections.emptySet());
+            root.getRowType()
+                    .getFieldList()
+                    .forEach(
+                            k -> {
+                                fieldsUsed.set(k.getIndex());
+                            });
+            TrimResult trimResult =
+                    this.dispatchTrimFields(root, fieldsUsed.build(), Collections.emptySet());
             Mapping mapping = trimResult.right;
             if (mapping.getTargetCount() != mapping.getSourceCount()) {
-                throw new IllegalArgumentException("trim should not change the final output fields");
+                throw new IllegalArgumentException(
+                        "trim should not change the final output fields");
             }
             return trimResult.left;
         }
@@ -104,7 +110,9 @@ public abstract class FieldTrimRule {
                 ImmutableBitSet fieldsUsed,
                 Set<RelDataTypeField> extraFields) {
             int aliasId = source.getAliasId();
-            if (! trimClass(source.getClass()) || aliasId == AliasInference.DEFAULT_ID || fieldsUsed.get(aliasId)) {
+            if (!trimClass(source.getClass())
+                    || aliasId == AliasInference.DEFAULT_ID
+                    || fieldsUsed.get(aliasId)) {
                 return result(source);
             }
             RelNode newSource =
@@ -141,13 +149,18 @@ public abstract class FieldTrimRule {
             TrimResult trimChild =
                     trimChild(expand, expand.getInput(0), inputFieldsUsed.build(), extraFields);
             RelNode newInput = trimChild.left;
-            AliasNameWithId newStartAlias = getNewStartAlias(startFromInput, newInput, expand.getStartAlias());
+            AliasNameWithId newStartAlias =
+                    getNewStartAlias(startFromInput, newInput, expand.getStartAlias());
             if (!trimClass(expand.getClass())
                     && newInput == expand.getInput(0)
                     && newStartAlias == expand.getStartAlias()) {
                 return result(expand);
             }
-            String newAliasName = getNewAliasName(expand, new AliasNameWithId(expand.getAliasName(), expand.getAliasId()), fieldsUsed);
+            String newAliasName =
+                    getNewAliasName(
+                            expand,
+                            new AliasNameWithId(expand.getAliasName(), expand.getAliasId()),
+                            fieldsUsed);
             if (newInput == expand.getInput(0)
                     && newStartAlias == expand.getStartAlias()
                     && newAliasName == expand.getAliasName()) {
@@ -168,7 +181,8 @@ public abstract class FieldTrimRule {
             return result(newExpand, expand);
         }
 
-        private AliasNameWithId getNewStartAlias(boolean startFromInput, RelNode newInput, AliasNameWithId oldStartAlias) {
+        private AliasNameWithId getNewStartAlias(
+                boolean startFromInput, RelNode newInput, AliasNameWithId oldStartAlias) {
             AliasNameWithId newStartAlias = oldStartAlias;
             if (startFromInput
                     && !oldStartAlias.equals(AliasNameWithId.DEFAULT)
@@ -178,12 +192,14 @@ public abstract class FieldTrimRule {
             return newStartAlias;
         }
 
-        private String getNewAliasName(RelNode rel, AliasNameWithId oldAlias, ImmutableBitSet fieldsUsed) {
+        private String getNewAliasName(
+                RelNode rel, AliasNameWithId oldAlias, ImmutableBitSet fieldsUsed) {
             String oldAliasName = oldAlias.getAliasName();
             if (!trimClass(rel.getClass())) {
                 return oldAliasName;
             }
-            if (oldAlias.getAliasId() != AliasInference.DEFAULT_ID && !fieldsUsed.get(oldAlias.getAliasId())) {
+            if (oldAlias.getAliasId() != AliasInference.DEFAULT_ID
+                    && !fieldsUsed.get(oldAlias.getAliasId())) {
                 return AliasInference.DEFAULT_NAME;
             }
             return oldAliasName;
@@ -201,13 +217,18 @@ public abstract class FieldTrimRule {
             TrimResult trimChild =
                     trimChild(getV, getV.getInput(0), inputFieldsUsed.build(), extraFields);
             RelNode newInput = trimChild.left;
-            AliasNameWithId newStartAlias = getNewStartAlias(startFromInput, newInput, getV.getStartAlias());
+            AliasNameWithId newStartAlias =
+                    getNewStartAlias(startFromInput, newInput, getV.getStartAlias());
             if (!trimClass(getV.getClass())
                     && newInput == getV.getInput(0)
                     && newStartAlias == getV.getStartAlias()) {
                 return result(getV);
             }
-            String newAliasName = getNewAliasName(getV, new AliasNameWithId(getV.getAliasName(), getV.getAliasId()), fieldsUsed);
+            String newAliasName =
+                    getNewAliasName(
+                            getV,
+                            new AliasNameWithId(getV.getAliasName(), getV.getAliasId()),
+                            fieldsUsed);
             if (newInput == getV.getInput(0)
                     && newStartAlias == getV.getStartAlias()
                     && newAliasName == getV.getAliasName()) {
@@ -238,13 +259,18 @@ public abstract class FieldTrimRule {
             TrimResult trimChild =
                     trimChild(pxd, pxd.getInput(0), inputFieldsUsed.build(), extraFields);
             RelNode newInput = trimChild.left;
-            AliasNameWithId newStartAlias = getNewStartAlias(startFromInput, newInput, pxd.getStartAlias());
+            AliasNameWithId newStartAlias =
+                    getNewStartAlias(startFromInput, newInput, pxd.getStartAlias());
             if (!trimClass(pxd.getClass())
                     && newInput == pxd.getInput(0)
                     && newStartAlias == pxd.getStartAlias()) {
                 return result(pxd);
             }
-            String newAliasName = getNewAliasName(pxd, new AliasNameWithId(pxd.getAliasName(), pxd.getAliasId()), fieldsUsed);
+            String newAliasName =
+                    getNewAliasName(
+                            pxd,
+                            new AliasNameWithId(pxd.getAliasName(), pxd.getAliasId()),
+                            fieldsUsed);
             if (newInput == pxd.getInput(0)
                     && newStartAlias == pxd.getStartAlias()
                     && newAliasName == pxd.getAliasName()) {
@@ -441,7 +467,8 @@ public abstract class FieldTrimRule {
             if (newInput == aggregate.getInput()) {
                 return result(aggregate);
             }
-            return result(aggregate.copy(aggregate.getTraitSet(), ImmutableList.of(newInput)), aggregate);
+            return result(
+                    aggregate.copy(aggregate.getTraitSet(), ImmutableList.of(newInput)), aggregate);
         }
 
         public TrimResult trimFields(
@@ -521,8 +548,7 @@ public abstract class FieldTrimRule {
             List<RelNode> newInputs = Lists.newArrayList();
             ImmutableBitSet inputFields = inputFieldsUsed.build();
             for (Ord<RelNode> input : Ord.zip(join.getInputs())) {
-                TrimResult trimChild =
-                        trimChild(join, input.e, inputFields, extraFields);
+                TrimResult trimChild = trimChild(join, input.e, inputFields, extraFields);
                 RelNode newInput = trimChild.left;
                 if (newInput != input.e) {
                     changeCount++;
@@ -573,12 +599,16 @@ public abstract class FieldTrimRule {
             RelNode newCommon = trimCommon.left;
             TrimResult result;
             if (newCommon == common) {
-                result = result(tableScan, Mappings.createIdentity(tableScan.getRowType().getFieldCount()));
+                result =
+                        result(
+                                tableScan,
+                                Mappings.createIdentity(tableScan.getRowType().getFieldCount()));
             } else {
-                RelNode newTableScan = new CommonTableScan(
-                        tableScan.getCluster(),
-                        tableScan.getTraitSet(),
-                        new CommonOptTable(newCommon));
+                RelNode newTableScan =
+                        new CommonTableScan(
+                                tableScan.getCluster(),
+                                tableScan.getTraitSet(),
+                                new CommonOptTable(newCommon));
                 result = result(newTableScan, tableScan);
             }
             trimmedCommon.put(tableScan, result);
@@ -615,12 +645,20 @@ public abstract class FieldTrimRule {
 
         private TrimResult result(RelNode after, RelNode before) {
             if (after == before) {
-                return super.result(after, Mappings.createIdentity(after.getRowType().getFieldCount()));
+                return super.result(
+                        after, Mappings.createIdentity(after.getRowType().getFieldCount()));
             }
             // The trim operation changes the column IDs but not the alias IDs.
-            // todo: This mapping is maintained to track the relationship between the column IDs before
+            // todo: This mapping is maintained to track the relationship between the column IDs
+            // before
             // and after trimming.
-            return super.result(after, Mappings.create(MappingType.INVERSE_SURJECTION, before.getRowType().getFieldCount(), after.getRowType().getFieldCount()), before);
+            return super.result(
+                    after,
+                    Mappings.create(
+                            MappingType.INVERSE_SURJECTION,
+                            before.getRowType().getFieldCount(),
+                            after.getRowType().getFieldCount()),
+                    before);
         }
     }
 }
