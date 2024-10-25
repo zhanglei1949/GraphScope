@@ -26,6 +26,8 @@ compiler:
       - ExtendIntersectRule
       - ExpandGetVFusionRule
       - FlatJoinToExpandRule
+      - FieldTrimRule
+    trim_class_names: GraphLogicalExpand
     join_min_pattern_size: 15
   meta:
     reader:
