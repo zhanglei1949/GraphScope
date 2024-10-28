@@ -89,6 +89,8 @@ bool generate_plan(
   static const char* const GRAPHSCOPE_DIR = "/data/GraphScope/";
   static const char* const COMPILER_CONFIG_PATH =
       "/data/GraphScope/flex/tests/hqps/engine_config_test.yaml";
+  static const char* const COMPILER_CONFIG_PATH_2 =
+      "/data/GraphScope/flex/tests/hqps/engine_config_test_2.yaml";
   static const char* const COMPILER_GRAPH_SCHEMA =
       "/data/flex_ldbc_snb/configs/graph_for_compiler.yaml";
 
@@ -123,21 +125,37 @@ bool generate_plan(
       std::cerr << "Fork failed!" << std::endl;
       return false;
     } else if (pid == 0) {
-      const char* const args[] = {
-          "java",
-          "-cp",
-          jar_path.c_str(),
-          schema_path.c_str(),
-          djna_path.c_str(),
-          "com.alibaba.graphscope.common.ir.tools.GraphPlanner",
-          COMPILER_CONFIG_PATH,
-          query_file.c_str(),
-          output_file.c_str(),
-          "/tmp/temp.cypher.yaml",
-          nullptr  // execvp expects a null-terminated array
-      };
-
-      execvp(args[0], const_cast<char* const*>(args));
+      if (query.at(0) == 'W') {
+        const char* const args[] = {
+            "java",
+            "-cp",
+            jar_path.c_str(),
+            schema_path.c_str(),
+            djna_path.c_str(),
+            "com.alibaba.graphscope.common.ir.tools.GraphPlanner",
+            COMPILER_CONFIG_PATH_2,
+            query_file.c_str(),
+            output_file.c_str(),
+            "/tmp/temp.cypher.yaml",
+            nullptr  // execvp expects a null-terminated array
+        };
+        execvp(args[0], const_cast<char* const*>(args));
+      } else {
+        const char* const args[] = {
+            "java",
+            "-cp",
+            jar_path.c_str(),
+            schema_path.c_str(),
+            djna_path.c_str(),
+            "com.alibaba.graphscope.common.ir.tools.GraphPlanner",
+            COMPILER_CONFIG_PATH,
+            query_file.c_str(),
+            output_file.c_str(),
+            "/tmp/temp.cypher.yaml",
+            nullptr  // execvp expects a null-terminated array
+        };
+        execvp(args[0], const_cast<char* const*>(args));
+      }
       std::cerr << "Exec failed!" << std::endl;
       return false;
     } else {
