@@ -265,11 +265,11 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
           physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE &&
       ee_opr.expand_opt() !=
           physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_VERTEX) {
-    LOG(INFO) << "not edge expand, fallback";
+    // VLOG(1) << "not edge expand, fallback";
     return false;
   }
   if (ee_opr.params().has_predicate()) {
-    LOG(INFO) << "edge expand has predicate, fallback";
+    // VLOG(1) << "edge expand has predicate, fallback";
     return false;
   }
   int alias = -1;
@@ -277,7 +277,7 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
     alias = ee_opr.alias().value();
   }
   if (alias != -1) {
-    LOG(INFO) << "alias of edge expand is not -1, fallback";
+    // VLOG(1) << "alias of edge expand is not -1, fallback";
     return false;
   }
 
@@ -286,7 +286,7 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
     tag = v_opr.tag().value();
   }
   if (tag != -1) {
-    LOG(INFO) << "the input of get_v is -1, fallback";
+    // VLOG(1) << "the input of get_v is -1, fallback";
     return false;
   }
 
@@ -309,7 +309,7 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
   }
   return false;
 
-  LOG(INFO) << "direction of edge_expand is not consistent with vopt of get_v";
+  // VLOG(1) << "direction of edge_expand is not consistent with vopt of get_v";
   return false;
 }
 
