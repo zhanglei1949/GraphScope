@@ -27,13 +27,16 @@ target_include_directories(flex_utils PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> 
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
 if (ARROW_SHARED_LIB)
-        target_link_libraries(flex_utils ${ARROW_SHARED_LIB})
+        target_link_libraries(flex_utils PRIVATE ${ARROW_SHARED_LIB})
 else()
-        target_link_libraries(flex_utils ${ARROW_STATIC_LIB})
+        target_link_libraries(flex_utils PRIVATE ${ARROW_STATIC_LIB})
 endif()
 
 
-target_link_libraries(flex_utils ${YAML_CPP_LIBRARIES} ${Boost_LIBRARIES} ${Protobuf_LIBRARIES})
+target_link_libraries(flex_utils PRIVATE ${YAML_CPP_LIBRARIES} ${Boost_LIBRARIES} ${Protobuf_LIBRARIES})
+
+find_package(mimalloc 1.8 REQUIRED)
+target_link_libraries(flex_utils PUBLIC mimalloc-static)
 
 install_flex_target(flex_utils)
 
