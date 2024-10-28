@@ -82,22 +82,77 @@ std::string decompress(const std::string& compressed) {
   return result;
 }
 
+std::string generate_compiler_config(const std::string& schema,
+                                     const std::string& statistics,
+                                     const std::vector<std::string>& rules) {
+  std::stringstream ss;
+  std::string configs =
+      "compiler:\n"
+      "  planner:\n"
+      "    is_on: true\n"
+      "    opt: CBO\n"
+      "    rules:\n";
+  for (const auto& rule : rules) {
+    ss << "      - " << rule << "\n";
+  }
+  std::string rules_str = ss.str();
+  configs += rules_str;
+  configs +=
+      "    trim_class_names: GraphLogicalExpand\n"
+      "    join_min_pattern_size: 15\n"
+      "  meta:\n"
+      "    reader:\n"
+      "      schema:\n";
+  configs += "        uri: " + schema + "\n";
+  configs += "        interval: 1000 # ms\n";
+
+  configs += "      statistics:\n";
+
+  configs += "        uri: " + statistics + "\n";
+  configs += "        interval: 86400000 # ms\n";
+  configs +=
+      "  endpoint:\n"
+      "    default_listen_address: localhost\n"
+      "  query_timeout: 40000\n"
+      "  physical.opt.config: proto\n";
+  return configs;
+}
+
+void generate_compiler_configs(const std::string& graph_yaml,
+                               const std::string& statistics_json,
+                               const std::string& path,
+                               bool field_trim = false) {
+  std::vector<std::string> rules = {
+      "FilterIntoJoinRule",  "FilterMatchRule",      "NotMatchToAntiJoinRule",
+      "ExtendIntersectRule", "ExpandGetVFusionRule", "FlatJoinToExpandRule",
+      "FieldTrimRule"};
+  if (!field_trim) {
+    rules.pop_back();
+  }
+  std::string compiler_config =
+      generate_compiler_config(graph_yaml, statistics_json, rules);
+  std::ofstream out(path);
+  out << compiler_config;
+  out.close();
+}
+
 bool generate_plan(
     const std::string& query,
     std::unordered_map<std::string, physical::PhysicalPlan>& plan_cache) {
   // dump query to file
   static const char* const GRAPHSCOPE_DIR = "/data/GraphScope/";
-  static const char* const COMPILER_CONFIG_PATH =
-      "/data/GraphScope/flex/tests/hqps/engine_config_test.yaml";
-  static const char* const COMPILER_CONFIG_PATH_2 =
-      "/data/GraphScope/flex/tests/hqps/engine_config_test_2.yaml";
-  static const char* const COMPILER_GRAPH_SCHEMA =
-      "/data/flex_ldbc_snb/configs/graph_for_compiler.yaml";
+  static const char* const CONFIG_DIR = "/data/flex_ldbc_snb/configs/";
+  static const std::string COMPILER_GRAPH_SCHEMA =
+      std::string(CONFIG_DIR) + "graph_for_compiler.yaml";
+  static const std::string COMPILER_STATISTICS =
+      std::string(CONFIG_DIR) + "ldbc_30_statistics.json";
 
   auto id = std::this_thread::get_id();
   std::stringstream ss;
   ss << id;
   std::string thread_id = ss.str();
+  static std::string compiler_config_path =
+      "/tmp/compiler_config_" + thread_id + ".yaml";
   const std::string query_file = "/tmp/temp" + thread_id + ".cypher";
   const std::string output_file = "/tmp/temp" + thread_id + ".pb";
   const std::string jar_path = std::string(GRAPHSCOPE_DIR) +
@@ -126,6 +181,8 @@ bool generate_plan(
       return false;
     } else if (pid == 0) {
       if (query.at(0) == 'W') {
+        generate_compiler_configs(COMPILER_GRAPH_SCHEMA, COMPILER_STATISTICS,
+                                  compiler_config_path, false);
         const char* const args[] = {
             "java",
             "-cp",
@@ -133,7 +190,7 @@ bool generate_plan(
             schema_path.c_str(),
             djna_path.c_str(),
             "com.alibaba.graphscope.common.ir.tools.GraphPlanner",
-            COMPILER_CONFIG_PATH_2,
+            compiler_config_path.c_str(),
             query_file.c_str(),
             output_file.c_str(),
             "/tmp/temp.cypher.yaml",
@@ -141,6 +198,8 @@ bool generate_plan(
         };
         execvp(args[0], const_cast<char* const*>(args));
       } else {
+        generate_compiler_configs(COMPILER_GRAPH_SCHEMA, COMPILER_STATISTICS,
+                                  compiler_config_path, true);
         const char* const args[] = {
             "java",
             "-cp",
@@ -148,7 +207,7 @@ bool generate_plan(
             schema_path.c_str(),
             djna_path.c_str(),
             "com.alibaba.graphscope.common.ir.tools.GraphPlanner",
-            COMPILER_CONFIG_PATH,
+            compiler_config_path.c_str(),
             query_file.c_str(),
             output_file.c_str(),
             "/tmp/temp.cypher.yaml",
@@ -196,6 +255,7 @@ bool generate_plan(
   {
     unlink(output_file.c_str());
     unlink(query_file.c_str());
+    unlink(compiler_config_path.c_str());
     // unlink("/tmp/temp.cypher.yaml");
     // unlink("/tmp/temp.cypher.yaml_extra_config.yaml");
   }
