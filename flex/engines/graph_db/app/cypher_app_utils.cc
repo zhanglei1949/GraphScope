@@ -142,6 +142,7 @@ bool generate_plan(
   // dump query to file
   static const char* const GRAPHSCOPE_DIR = "/data/GraphScope/";
   static const char* const CONFIG_DIR = "/data/flex_ldbc_snb/configs/";
+
   static const std::string COMPILER_GRAPH_SCHEMA =
       std::string(CONFIG_DIR) + "graph_for_compiler.yaml";
   static const std::string COMPILER_STATISTICS =
@@ -180,41 +181,24 @@ bool generate_plan(
       std::cerr << "Fork failed!" << std::endl;
       return false;
     } else if (pid == 0) {
-      if (query.at(0) == 'W') {
-        generate_compiler_configs(COMPILER_GRAPH_SCHEMA, COMPILER_STATISTICS,
-                                  compiler_config_path, false);
-        const char* const args[] = {
-            "java",
-            "-cp",
-            jar_path.c_str(),
-            schema_path.c_str(),
-            djna_path.c_str(),
-            "com.alibaba.graphscope.common.ir.tools.GraphPlanner",
-            compiler_config_path.c_str(),
-            query_file.c_str(),
-            output_file.c_str(),
-            "/tmp/temp.cypher.yaml",
-            nullptr  // execvp expects a null-terminated array
-        };
-        execvp(args[0], const_cast<char* const*>(args));
-      } else {
-        generate_compiler_configs(COMPILER_GRAPH_SCHEMA, COMPILER_STATISTICS,
-                                  compiler_config_path, true);
-        const char* const args[] = {
-            "java",
-            "-cp",
-            jar_path.c_str(),
-            schema_path.c_str(),
-            djna_path.c_str(),
-            "com.alibaba.graphscope.common.ir.tools.GraphPlanner",
-            compiler_config_path.c_str(),
-            query_file.c_str(),
-            output_file.c_str(),
-            "/tmp/temp.cypher.yaml",
-            nullptr  // execvp expects a null-terminated array
-        };
-        execvp(args[0], const_cast<char* const*>(args));
-      }
+      generate_compiler_configs(COMPILER_GRAPH_SCHEMA, COMPILER_STATISTICS,
+                                compiler_config_path, query.at(0) != 'W');
+
+      const char* const args[] = {
+          "java",
+          "-cp",
+          jar_path.c_str(),
+          schema_path.c_str(),
+          djna_path.c_str(),
+          "com.alibaba.graphscope.common.ir.tools.GraphPlanner",
+          compiler_config_path.c_str(),
+          query_file.c_str(),
+          output_file.c_str(),
+          "/tmp/temp.cypher.yaml",
+          nullptr  // execvp expects a null-terminated array
+      };
+      execvp(args[0], const_cast<char* const*>(args));
+
       std::cerr << "Exec failed!" << std::endl;
       return false;
     } else {
