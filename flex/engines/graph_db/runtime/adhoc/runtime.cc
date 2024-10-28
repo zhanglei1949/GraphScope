@@ -421,6 +421,7 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
 #ifdef SINGLE_THREAD
   auto& op_cost = OpCost::get().table;
 #endif
+  // LOG(INFO) << plan.DebugString();
 
   int opr_num = plan.plan_size();
   bool terminate = false;
@@ -439,26 +440,25 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kEdge: {
       CHECK_EQ(opr.meta_data_size(), 1);
-      if ((i + 6) < opr_num && plan.plan(i + 1).opr().has_vertex() &&
-          plan.plan(i + 2).opr().has_group_by() &&
-          plan.plan(i + 3).opr().has_edge() &&
-          plan.plan(i + 4).opr().has_vertex() &&
-          plan.plan(i + 5).opr().has_edge() &&
-          plan.plan(i + 6).opr().has_select() &&
-          tc_fusable(
-              opr.opr().edge(), plan.plan(i + 1).opr().vertex(),
-              plan.plan(i + 2).opr().group_by(), plan.plan(i + 3).opr().edge(),
-              plan.plan(i + 4).opr().vertex(), plan.plan(i + 5).opr().edge(),
-              plan.plan(i + 6).opr().select(), ret)) {
-        ret = eval_tc(
-            opr.opr().edge(), plan.plan(i + 1).opr().vertex(),
-            plan.plan(i + 2).opr().group_by(), plan.plan(i + 3).opr().edge(),
-            plan.plan(i + 4).opr().vertex(), plan.plan(i + 5).opr().edge(),
-            plan.plan(i + 6).opr().select(), txn, std::move(ret), params,
-            opr.meta_data(0), plan.plan(i + 3).meta_data(0),
-            plan.plan(i + 5).meta_data(0), i + op_id_offset);
+      if ((i + 5) < opr_num && plan.plan(i + 1).opr().has_group_by() &&
+          plan.plan(i + 2).opr().has_edge() &&
+          plan.plan(i + 3).opr().has_vertex() &&
+          plan.plan(i + 4).opr().has_edge() &&
+          plan.plan(i + 5).opr().has_select() &&
+          tc_fusable(opr.opr().edge(), plan.plan(i + 1).opr().group_by(),
+                     plan.plan(i + 2).opr().edge(),
+                     plan.plan(i + 3).opr().vertex(),
+                     plan.plan(i + 4).opr().edge(),
+                     plan.plan(i + 5).opr().select(), ret)) {
+        ret = eval_tc(opr.opr().edge(), plan.plan(i + 1).opr().group_by(),
+                      plan.plan(i + 2).opr().edge(),
+                      plan.plan(i + 3).opr().vertex(),
+                      plan.plan(i + 4).opr().edge(),
+                      plan.plan(i + 5).opr().select(), txn, std::move(ret),
+                      params, opr.meta_data(0), plan.plan(i + 2).meta_data(0),
+                      plan.plan(i + 4).meta_data(0), i + op_id_offset);
         op_name += "_tc";
-        i += 6;
+        i += 5;
       } else if ((i + 1) < opr_num) {
         const physical::PhysicalOpr& next_opr = plan.plan(i + 1);
         if (next_opr.opr().has_vertex() &&

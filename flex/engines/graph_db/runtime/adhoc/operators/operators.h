@@ -99,7 +99,6 @@ bool edge_expand_get_v_fusable(const physical::EdgeExpand& ee_opr,
                                const physical::PhysicalOpr_MetaData& meta);
 
 bool tc_fusable(const physical::EdgeExpand& ee_opr0,
-                const physical::GetV& v_opr0,
                 const physical::GroupBy& group_by_opr,
                 const physical::EdgeExpand& ee_opr1,
                 const physical::GetV& v_opr1,
@@ -114,7 +113,6 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
                                int op_id);
 
 Context eval_tc(const physical::EdgeExpand& ee_opr0,
-                const physical::GetV& v_opr0,
                 const physical::GroupBy& group_by_opr,
                 const physical::EdgeExpand& ee_opr1,
                 const physical::GetV& v_opr1,

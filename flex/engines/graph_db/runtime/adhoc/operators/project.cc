@@ -644,6 +644,7 @@ Context eval_project_order_by(
     const ReadTransaction& txn, Context&& ctx,
     const std::map<std::string, std::string>& params,
     const std::vector<common::IrDataType>& data_types) {
+  auto& op_cost = OpCost::get().table;
   double t0 = -grape::GetCurrentTime();
   int mappings_size = project_opr.mappings_size();
 
@@ -681,8 +682,13 @@ Context eval_project_order_by(
             if (is_property_expr(m.expr(), tag_id, property_name)) {
               if (ctx.get(tag_id)->column_type() ==
                   ContextColumnType::kVertex) {
+                double tb = -grape::GetCurrentTime();
                 auto col = build_topN_property_column(
                     txn, ctx.get(tag_id), property_name, limit, asc, offsets);
+                tb += grape::GetCurrentTime();
+#ifdef SINGLE_THREAD
+                op_cost["project_order_by_topN_property"] += tb;
+#endif
                 if (col != nullptr) {
                   success = true;
                   ctx.reshuffle(offsets);
@@ -776,7 +782,6 @@ Context eval_project_order_by(
   ret.update_tag_ids(tags);
   t2 += grape::GetCurrentTime();
 #ifdef SINGLE_THREAD
-  auto& op_cost = OpCost::get().table;
   op_cost["project_order_by:partial_project"] += t0;
   op_cost["project_order_by:order_by"] += t1;
   op_cost["project_order_by:project"] += t2;
