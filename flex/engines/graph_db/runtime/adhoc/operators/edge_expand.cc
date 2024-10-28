@@ -119,7 +119,7 @@ bool is_ep_lt(const common::Expression& expr) {
         expr.operators(0).var().has_property())) {
     return false;
   }
-  if (!(expr.operators(1).has_logical() &&
+  if (!(expr.operators(1).item_case() == common::ExprOpr::ItemCase::kLogical &&
         expr.operators(1).logical() == common::Logical::LT)) {
     return false;
   }

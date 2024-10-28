@@ -644,7 +644,9 @@ Context eval_project_order_by(
     const ReadTransaction& txn, Context&& ctx,
     const std::map<std::string, std::string>& params,
     const std::vector<common::IrDataType>& data_types) {
+#ifdef SINGLE_THREAD
   auto& op_cost = OpCost::get().table;
+#endif
   double t0 = -grape::GetCurrentTime();
   int mappings_size = project_opr.mappings_size();
 
