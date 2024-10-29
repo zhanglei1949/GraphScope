@@ -120,15 +120,11 @@ std::string generate_compiler_config(const std::string& schema,
 
 void generate_compiler_configs(const std::string& graph_yaml,
                                const std::string& statistics_json,
-                               const std::string& path,
-                               bool field_trim = false) {
+                               const std::string& path) {
   std::vector<std::string> rules = {
       "FilterIntoJoinRule",  "FilterMatchRule",      "NotMatchToAntiJoinRule",
       "ExtendIntersectRule", "ExpandGetVFusionRule", "FlatJoinToExpandRule",
       "FieldTrimRule"};
-  if (!field_trim) {
-    rules.pop_back();
-  }
   std::string compiler_config =
       generate_compiler_config(graph_yaml, statistics_json, rules);
   std::ofstream out(path);
@@ -149,10 +145,12 @@ bool generate_plan(
       std::string(CONFIG_DIR) + "ldbc_30_statistics.json";
 
   auto id = std::this_thread::get_id();
+
   std::stringstream ss;
   ss << id;
   std::string thread_id = ss.str();
-  static std::string compiler_config_path =
+
+  const std::string compiler_config_path =
       "/tmp/compiler_config_" + thread_id + ".yaml";
   const std::string query_file = "/tmp/temp" + thread_id + ".cypher";
   const std::string output_file = "/tmp/temp" + thread_id + ".pb";
@@ -172,6 +170,8 @@ bool generate_plan(
     out << query;
     out.close();
   }
+  generate_compiler_configs(COMPILER_GRAPH_SCHEMA, COMPILER_STATISTICS,
+                            compiler_config_path);
 
   // call compiler to generate plan
   {
@@ -181,9 +181,6 @@ bool generate_plan(
       std::cerr << "Fork failed!" << std::endl;
       return false;
     } else if (pid == 0) {
-      generate_compiler_configs(COMPILER_GRAPH_SCHEMA, COMPILER_STATISTICS,
-                                compiler_config_path, query.at(0) != 'W');
-
       const char* const args[] = {
           "java",
           "-cp",
@@ -208,40 +205,40 @@ bool generate_plan(
         std::cout << "Child exited with status " << WEXITSTATUS(status)
                   << std::endl;
       }
+
+      {
+        std::ifstream file(output_file, std::ios::binary);
+
+        if (!file.is_open()) {
+          return false;
+        }
+
+        file.seekg(0, std::ios::end);
+        size_t size = file.tellg();
+        file.seekg(0, std::ios::beg);
+
+        std::string buffer;
+        buffer.resize(size);
+
+        file.read(&buffer[0], size);
+
+        file.close();
+        physical::PhysicalPlan plan;
+        if (!plan.ParseFromString(std::string(buffer))) {
+          return false;
+        }
+
+        plan_cache[query] = plan;
+      }
+      // clean up temp files
+      {
+        unlink(output_file.c_str());
+        unlink(query_file.c_str());
+        unlink(compiler_config_path.c_str());
+        // unlink("/tmp/temp.cypher.yaml");
+        // unlink("/tmp/temp.cypher.yaml_extra_config.yaml");
+      }
     }
-  }
-
-  {
-    std::ifstream file(output_file, std::ios::binary);
-
-    if (!file.is_open()) {
-      return false;
-    }
-
-    file.seekg(0, std::ios::end);
-    size_t size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    std::string buffer;
-    buffer.resize(size);
-
-    file.read(&buffer[0], size);
-
-    file.close();
-    physical::PhysicalPlan plan;
-    if (!plan.ParseFromString(std::string(buffer))) {
-      return false;
-    }
-
-    plan_cache[query] = plan;
-  }
-  // clean up temp files
-  {
-    unlink(output_file.c_str());
-    unlink(query_file.c_str());
-    unlink(compiler_config_path.c_str());
-    // unlink("/tmp/temp.cypher.yaml");
-    // unlink("/tmp/temp.cypher.yaml_extra_config.yaml");
   }
 
   return true;
