@@ -19,6 +19,7 @@ package com.alibaba.graphscope.common.ir.planner.rules;
 import com.alibaba.graphscope.common.config.PlannerConfig;
 import com.alibaba.graphscope.common.ir.meta.schema.CommonOptTable;
 import com.alibaba.graphscope.common.ir.rel.*;
+import com.alibaba.graphscope.common.ir.rel.ddl.GraphTableModify;
 import com.alibaba.graphscope.common.ir.rel.graph.*;
 import com.alibaba.graphscope.common.ir.rel.type.AliasNameWithId;
 import com.alibaba.graphscope.common.ir.rex.RexGraphVariable;
@@ -85,7 +86,9 @@ public abstract class FieldTrimRule {
                     .getFieldList()
                     .forEach(
                             k -> {
-                                fieldsUsed.set(k.getIndex());
+                                if (k.getIndex() >= 0) {
+                                    fieldsUsed.set(k.getIndex());
+                                }
                             });
             TrimResult trimResult =
                     this.dispatchTrimFields(root, fieldsUsed.build(), Collections.emptySet());
@@ -631,6 +634,30 @@ public abstract class FieldTrimRule {
                 return result(union);
             }
             return result(union.copy(union.getTraitSet(), newInputs), union);
+        }
+
+        public RelNode visit(LoadCSVTableScan scan) {
+            return scan;
+        }
+
+        public TrimResult trimFields(
+                GraphTableModify.Insert insert, ImmutableBitSet fieldsUsed, Set<RelDataTypeField> extraFields) {
+            return result(insert);
+        }
+
+        public TrimResult trimFields(
+                GraphTableModify.Update update, ImmutableBitSet fieldsUsed, Set<RelDataTypeField> extraFields) {
+            return result(update);
+        }
+
+        public TrimResult trimFields(
+                GraphTableModify.Delete delete, ImmutableBitSet fieldsUsed, Set<RelDataTypeField> extraFields) {
+            return result(delete);
+        }
+
+        public TrimResult trimFields(
+                DataSourceTableScan scan, ImmutableBitSet fieldsUsed, Set<RelDataTypeField> extraFields) {
+            return result(scan);
         }
 
         private boolean startFromInput(RelNode input, AliasNameWithId startAlias) {
