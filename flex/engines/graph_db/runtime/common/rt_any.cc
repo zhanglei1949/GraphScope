@@ -104,6 +104,8 @@ RTAnyType parse_from_ir_data_type(const ::common::IrDataType& dt) {
   // LOG(FATAL) << "unknown";
   return RTAnyType::kUnknown;
 }
+
+RTAny Tuple::get(size_t idx) const { return impl_->get(idx); }
 PropertyType rt_type_to_property_type(RTAnyType type) {
   switch (type.type_enum_) {
   case RTAnyType::RTAnyTypeImpl::kEmpty:
@@ -196,7 +198,7 @@ RTAny::RTAny(const RTAny& rhs) : type_(rhs.type_) {
   } else if (type_ == RTAnyType::kNull) {
     // do nothing
   } else if (type_ == RTAnyType::kTuple) {
-    value_.t = rhs.value_.t.dup();
+    value_.t = rhs.value_.t;
   } else if (type_ == RTAnyType::kList) {
     value_.list = rhs.value_.list;
   } else if (type_ == RTAnyType::kF64Value) {
@@ -223,7 +225,7 @@ RTAny& RTAny::operator=(const RTAny& rhs) {
   } else if (type_ == RTAnyType::kStringValue) {
     value_.str_val = rhs.value_.str_val;
   } else if (type_ == RTAnyType::kTuple) {
-    value_.t = rhs.value_.t.dup();
+    value_.t = rhs.value_.t;
   } else if (type_ == RTAnyType::kList) {
     value_.list = rhs.value_.list;
   } else if (type_ == RTAnyType::kF64Value) {
@@ -321,18 +323,10 @@ RTAny RTAny::from_date32(Date v) {
   ret.value_.i64_val = v.milli_second;
   return ret;
 }
-
-RTAny RTAny::from_tuple(std::vector<RTAny>&& v) {
-  RTAny ret;
-  ret.type_ = RTAnyType::kTuple;
-  ret.value_.t.init(std::move(v));
-  return ret;
-}
-
 RTAny RTAny::from_tuple(const Tuple& t) {
   RTAny ret;
   ret.type_ = RTAnyType::kTuple;
-  ret.value_.t = t.dup();
+  ret.value_.t = t;
   return ret;
 }
 
@@ -719,7 +713,7 @@ void RTAny::sink_impl(common::Value* value) const {
     LOG(FATAL) << "not support list sink";
   } else if (type_ == RTAnyType::kTuple) {
     auto tup = value_.t;
-    for (size_t i = 0; i < value_.t.size(); ++i) {
+    for (size_t i = 0; i < tup.size(); ++i) {
       std::string s = tup.get(i).to_string();
       value->mutable_str_array()->add_item(s.data(), s.size());
     }

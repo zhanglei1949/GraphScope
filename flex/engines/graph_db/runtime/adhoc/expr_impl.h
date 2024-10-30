@@ -451,7 +451,7 @@ class CaseWhenExpr : public ExprBase {
       when_then_exprs_;
   std::unique_ptr<ExprBase> else_expr_;
 };
-
+/**
 class TupleExpr : public ExprBase {
  public:
   TupleExpr(std::vector<std::unique_ptr<ExprBase>>&& exprs);
@@ -465,6 +465,60 @@ class TupleExpr : public ExprBase {
 
  private:
   std::vector<std::unique_ptr<ExprBase>> exprs_;
+};*/
+
+template <typename... Args>
+class TypedTupleExpr : public ExprBase {
+ public:
+  TypedTupleExpr(std::array<std::unique_ptr<ExprBase>, sizeof...(Args)>&& exprs)
+      : exprs_(std::move(exprs)) {
+    CHECK(exprs.size() == sizeof...(Args));
+  }
+
+  template <std::size_t... Is>
+  std::tuple<Args...> eval_path_impl(std::index_sequence<Is...>,
+                                     size_t idx) const {
+    return std::make_tuple(
+        TypedConverter<Args>::to_typed(exprs_[Is]->eval_path(idx))...);
+  }
+
+  RTAny eval_path(size_t idx) const override {
+    return RTAny::from_tuple(
+        eval_path_impl(std::index_sequence_for<Args...>(), idx));
+  }
+
+  template <std::size_t... Is>
+  std::tuple<Args...> eval_vertex_impl(std::index_sequence<Is...>,
+                                       label_t label, vid_t v,
+                                       size_t idx) const {
+    return std::make_tuple(TypedConverter<Args>::to_typed(
+        exprs_[Is]->eval_vertex(label, v, idx))...);
+  }
+
+  RTAny eval_vertex(label_t label, vid_t v, size_t idx) const override {
+    return RTAny::from_tuple(
+        eval_vertex_impl(std::index_sequence_for<Args...>(), label, v, idx));
+  }
+
+  template <std::size_t... Is>
+  std::tuple<Args...> eval_edge_impl(std::index_sequence<Is...>,
+                                     const LabelTriplet& label, vid_t src,
+                                     vid_t dst, const Any& data,
+                                     size_t idx) const {
+    return std::make_tuple(TypedConverter<Args>::to_typed(
+        exprs_[Is]->eval_edge(label, src, dst, data, idx))...);
+  }
+
+  RTAny eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
+                  const Any& data, size_t idx) const override {
+    return RTAny::from_tuple(eval_edge_impl(std::index_sequence_for<Args...>(),
+                                            label, src, dst, data, idx));
+  }
+
+  RTAnyType type() const override { return RTAnyType::kTuple; }
+
+ private:
+  std::array<std::unique_ptr<ExprBase>, sizeof...(Args)> exprs_;
 };
 
 class MapExpr : public ExprBase {

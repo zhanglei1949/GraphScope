@@ -408,6 +408,8 @@ RTAnyType CaseWhenExpr::type() const {
   return type;
 }
 
+/**
+
 TupleExpr::TupleExpr(std::vector<std::unique_ptr<ExprBase>>&& exprs)
     : exprs_(std::move(exprs)) {}
 
@@ -436,7 +438,7 @@ RTAny TupleExpr::eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
   return RTAny::from_tuple(std::move(ret));
 }
 
-RTAnyType TupleExpr::type() const { return RTAnyType::kTuple; }
+RTAnyType TupleExpr::type() const { return RTAnyType::kTuple; }*/
 
 static RTAny parse_const_value(const common::Value& val) {
   switch (val.item_case()) {
@@ -457,6 +459,34 @@ static RTAny parse_const_value(const common::Value& val) {
   }
   return RTAny();
 }
+
+template <size_t N, size_t I, typename... Args>
+struct TypedTupleBuilder {
+  std::unique_ptr<ExprBase> build_typed_tuple(
+      std::array<std::unique_ptr<ExprBase>, N>&& exprs) {
+    switch (exprs[I - 1]->type().type_enum_) {
+    case RTAnyType::RTAnyTypeImpl::kI32Value:
+      return TypedTupleBuilder<N, I - 1, int, Args...>().build_typed_tuple(
+          std::move(exprs));
+    case RTAnyType::RTAnyTypeImpl::kI64Value:
+      return TypedTupleBuilder<N, I - 1, int64_t, Args...>().build_typed_tuple(
+          std::move(exprs));
+    case RTAnyType::RTAnyTypeImpl::kStringValue:
+      return TypedTupleBuilder<N, I - 1, std::string_view, Args...>()
+          .build_typed_tuple(std::move(exprs));
+    default:
+      LOG(FATAL) << "not support";
+    }
+  }
+};
+
+template <size_t N, typename... Args>
+struct TypedTupleBuilder<N, 0, Args...> {
+  std::unique_ptr<ExprBase> build_typed_tuple(
+      std::array<std::unique_ptr<ExprBase>, N>&& exprs) {
+    return std::make_unique<TypedTupleExpr<Args...>>(std::move(exprs));
+  }
+};
 
 static RTAny parse_param(const common::DynamicParam& param,
                          const std::map<std::string, std::string>& input) {
@@ -645,14 +675,32 @@ static std::unique_ptr<ExprBase> build_expr(
     }
     case common::ExprOpr::kVars: {
       auto op = opr.vars();
+
+      if (op.keys_size() == 3) {
+        std::array<std::unique_ptr<ExprBase>, 3> exprs;
+        for (int i = 0; i < op.keys_size(); ++i) {
+          exprs[i] =
+              std::make_unique<VariableExpr>(txn, ctx, op.keys(i), var_type);
+        }
+        return TypedTupleBuilder<3, 3>().build_typed_tuple(std::move(exprs));
+      } else if (op.keys_size() == 2) {
+        std::array<std::unique_ptr<ExprBase>, 2> exprs;
+        for (int i = 0; i < op.keys_size(); ++i) {
+          exprs[i] =
+              std::make_unique<VariableExpr>(txn, ctx, op.keys(i), var_type);
+        }
+        return TypedTupleBuilder<2, 2>().build_typed_tuple(std::move(exprs));
+      }
+      /**
       std::vector<std::unique_ptr<ExprBase>> exprs;
       for (int i = 0; i < op.keys_size(); ++i) {
         exprs.push_back(
             std::make_unique<VariableExpr>(txn, ctx, op.keys(i), var_type));
       }
-      return std::make_unique<TupleExpr>(std::move(exprs));
-      // LOG(FATAL) << "not support" << opr.DebugString();
-      // break;
+
+      return std::make_unique<TupleExpr>(std::move(exprs));*/
+      LOG(FATAL) << "not support" << opr.DebugString();
+      break;
     }
     case common::ExprOpr::kMap: {
       auto op = opr.map();

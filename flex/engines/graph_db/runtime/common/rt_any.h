@@ -195,30 +195,50 @@ class Set {
   bool exists(const RTAny& val) const { return impl_->exists(val); }
   SetImplBase* impl_;
 };
+
+class TupleImplBase {
+ public:
+  virtual ~TupleImplBase() = default;
+  virtual bool operator<(const TupleImplBase& p) const = 0;
+  virtual bool operator==(const TupleImplBase& p) const = 0;
+  virtual size_t size() const = 0;
+  virtual RTAny get(size_t idx) const = 0;
+};
+
+template <typename... Args>
+class TupleImpl : public TupleImplBase {
+ public:
+  TupleImpl() = default;
+  ~TupleImpl() = default;
+  TupleImpl(Args&&... args) : values(std::forward<Args>(args)...) {}
+  TupleImpl(std::tuple<Args...>&& args) : values(std::move(args)) {}
+  bool operator<(const TupleImplBase& p) const {
+    return values < dynamic_cast<const TupleImpl<Args...>&>(p).values;
+  }
+  bool operator==(const TupleImplBase& p) const {
+    return values == dynamic_cast<const TupleImpl<Args...>&>(p).values;
+  }
+
+  RTAny get(size_t idx) const;
+
+  size_t size() const { return std::tuple_size_v<std::tuple<Args...>>; }
+  std::tuple<Args...> values;
+};
+
 class Tuple {
  public:
-  ~Tuple() {
-    if (props_ != nullptr) {
-      // delete props_;
-    }
-  }
-  void init(std::vector<RTAny>&& vals) {
-    props_ = new std::vector<RTAny>(vals);
-  }
-  // not support for path
-  Tuple dup() const {
+  template <typename... Args>
+  static Tuple make_tuple(std::tuple<Args...>&& args) {
     Tuple new_tuple;
-    new_tuple.props_ = new std::vector<RTAny>(*props_);
+
+    new_tuple.impl_ = new TupleImpl<Args...>(std::move(args));
     return new_tuple;
   }
-
-  bool operator<(const Tuple& p) const { return *props_ < *(p.props_); }
-  bool operator==(const Tuple& p) const { return *props_ == *(p.props_); }
-  size_t size() const { return props_->size(); }
-  const RTAny& get(size_t idx) const { return (*props_)[idx]; }
-
- private:
-  const std::vector<RTAny>* props_;
+  bool operator<(const Tuple& p) const { return *impl_ < *(p.impl_); }
+  bool operator==(const Tuple& p) const { return *impl_ == *(p.impl_); }
+  size_t size() const { return impl_->size(); }
+  RTAny get(size_t idx) const;
+  TupleImplBase* impl_;
 };
 
 class MapImpl {
@@ -575,7 +595,14 @@ class RTAny {
   static RTAny from_string(const std::string_view& str);
   static RTAny from_string_set(const std::set<std::string>& str_set);
   static RTAny from_date32(Date v);
-  static RTAny from_tuple(std::vector<RTAny>&& tuple);
+  template <typename... Args>
+  static RTAny from_tuple(std::tuple<Args...>&& tuple) {
+    RTAny ret;
+    ret.type_ = RTAnyType::kTuple;
+    ret.value_.t = Tuple::make_tuple(std::move(tuple));
+    return ret;
+  }
+
   static RTAny from_tuple(const Tuple& tuple);
   static RTAny from_list(const List& list);
   static RTAny from_double(double v);
@@ -742,6 +769,37 @@ struct TypedConverter<VertexRecord> {
   static RTAny from_typed(VertexRecord val) { return RTAny::from_vertex(val); }
   static const std::string name() { return "vertex"; }
 };
+
+template <typename... Args>
+RTAny TupleImpl<Args...>::get(size_t idx) const {
+  if constexpr (sizeof...(Args) == 2) {
+    if (idx == 0) {
+      return TypedConverter<std::tuple_element_t<0, std::tuple<Args...>>>::
+          from_typed(std::get<0>(values));
+    } else if (idx == 1) {
+      return TypedConverter<std::tuple_element_t<1, std::tuple<Args...>>>::
+          from_typed(std::get<1>(values));
+    } else {
+      return RTAny(RTAnyType::kNull);
+    }
+  } else if constexpr (sizeof...(Args) == 3) {
+    if (idx == 0) {
+      return TypedConverter<std::tuple_element_t<0, std::tuple<Args...>>>::
+          from_typed(std::get<0>(values));
+    } else if (idx == 1) {
+      return TypedConverter<std::tuple_element_t<1, std::tuple<Args...>>>::
+          from_typed(std::get<1>(values));
+    } else if (idx == 2) {
+      return TypedConverter<std::tuple_element_t<2, std::tuple<Args...>>>::
+          from_typed(std::get<2>(values));
+    } else {
+      return RTAny(RTAnyType::kNull);
+    }
+  } else {
+    return RTAny(RTAnyType::kNull);
+  }
+}
+
 template <typename T>
 class ListImpl : ListImplBase {
  public:
@@ -786,6 +844,7 @@ class ListImpl : ListImplBase {
   std::vector<T> list_;
   std::vector<bool> is_valid_;
 };
+
 template <>
 class ListImpl<std::string_view> : public ListImplBase {
  public:
