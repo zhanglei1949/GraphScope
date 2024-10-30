@@ -497,4 +497,182 @@ const CsrBase* MutablePropertyFragment::get_ie_csr(label_t label,
   return ie_[index];
 }
 
+void MutablePropertyFragment::generateStatistics(
+    const std::string& work_dir) const {
+  std::string filename = work_dir + "/statistics.json";
+  std::string yaml_content = "schema:\n";
+  yaml_content += "  vertex_types:\n";
+  size_t vertex_count = 0;
+
+  auto type_2_str = [](PropertyType type) -> std::string {
+    if (type == PropertyType::kBool) {
+      return "primitive_type: DT_BOOL";
+    } else if (type == PropertyType::kInt32) {
+      return "primitive_type: DT_SIGNED_INT32";
+    } else if (type == PropertyType::kUInt32) {
+      return "primitive_type: DT_UNSIGNED_INT32";
+    } else if (type == PropertyType::kDate) {
+      return "primitive_type: DT_SIGNED_INT64";
+    } else if (type == PropertyType::kInt64) {
+      return "primitive_type: DT_SIGNED_INT64";
+    } else if (type == PropertyType::kUInt64) {
+      return "primitive_type: DT_UNSIGNED_INT64";
+    } else if (type == PropertyType::kDouble) {
+      return "primitive_type: DT_DOUBLE";
+    } else if (type == PropertyType::kFloat) {
+      return "primitive_type: DT_FLOAT";
+    } else if (type == PropertyType::kStringView) {
+      return "string:\n              long_text:";
+    } else if (type == PropertyType::kDay) {
+      return "temporal:\n              timestamp:";
+    } else {
+      return "unknown";
+    }
+  };
+  std::string ss = "\"vertex_type_statistics\": [\n";
+  size_t vertex_label_num = schema_.vertex_label_num();
+  for (size_t idx = 0; idx < vertex_label_num; ++idx) {
+    yaml_content += "    - type_id: " + std::to_string(idx) + "\n";
+    yaml_content +=
+        "      type_name: " + schema_.get_vertex_label_name(idx) + "\n";
+    yaml_content += "      properties:\n";
+    const auto& pk = schema_.get_vertex_primary_key(idx);
+    for (const auto& key : pk) {
+      yaml_content +=
+          "        - property_id: " + std::to_string(std::get<2>(key)) + "\n";
+      yaml_content += "          property_name: " + (std::get<1>(key)) + "\n";
+      yaml_content += "          property_type: \n            " +
+                      type_2_str(std::get<0>(key)) + "\n";
+    }
+    size_t offset = pk.size();
+    auto& prop_names = schema_.get_vertex_property_names(idx);
+    auto& prop_types = schema_.get_vertex_properties(idx);
+
+    for (size_t i = 0; i < prop_names.size(); ++i) {
+      yaml_content +=
+          "        - property_id: " + std::to_string(i + offset) + "\n";
+      yaml_content += "          property_name: " + prop_names[i] + "\n";
+      yaml_content += "          property_type: \n            " +
+                      type_2_str(prop_types[i]) + "\n";
+    }
+
+    ss += "{\n\"type_id\": " + std::to_string(idx) + ", \n";
+    ss += "\"type_name\": \"" + schema_.get_vertex_label_name(idx) + "\", \n";
+    size_t count = lf_indexers_[idx].size();
+    ss += "\"count\": " + std::to_string(count) + "\n}";
+    vertex_count += count;
+    if (idx != vertex_label_num - 1) {
+      ss += ", \n";
+    } else {
+      ss += "\n";
+    }
+  }
+  ss += "]\n";
+  size_t edge_count = 0;
+
+  size_t edge_label_num = schema_.edge_label_num();
+  std::vector<std::thread> count_threads;
+  std::vector<size_t> edge_count_list(dual_csr_list_.size(), 0);
+  for (size_t src_label = 0; src_label < vertex_label_num; ++src_label) {
+    const auto& src_label_name = schema_.get_vertex_label_name(src_label);
+    for (size_t dst_label = 0; dst_label < vertex_label_num; ++dst_label) {
+      const auto& dst_label_name = schema_.get_vertex_label_name(dst_label);
+      for (size_t edge_label = 0; edge_label < edge_label_num; ++edge_label) {
+        const auto& edge_label_name = schema_.get_edge_label_name(edge_label);
+        if (schema_.exist(src_label_name, dst_label_name, edge_label_name)) {
+          size_t index = src_label * vertex_label_num * edge_label_num +
+                         dst_label * edge_label_num + edge_label;
+          if (dual_csr_list_[index] != NULL) {
+            count_threads.emplace_back([&edge_count_list, index, this] {
+              edge_count_list[index] = dual_csr_list_[index]->EdgeNum();
+            });
+          }
+        }
+      }
+    }
+  }
+  for (auto& t : count_threads) {
+    t.join();
+  }
+  ss += ",\n";
+  ss += "\"edge_type_statistics\": [";
+
+  yaml_content += "  edge_types:\n";
+
+  for (size_t edge_label = 0; edge_label < edge_label_num; ++edge_label) {
+    yaml_content += "    - type_id: " + std::to_string(edge_label) + "\n";
+
+    const auto& edge_label_name = schema_.get_edge_label_name(edge_label);
+
+    yaml_content += "      type_name: " + edge_label_name + "\n";
+    yaml_content += "      vertex_type_pair_relations:\n";
+    ss += "{\n\"type_id\": " + std::to_string(edge_label) + ", \n";
+    ss += "\"type_name\": \"" + edge_label_name + "\", \n";
+    ss += "\"vertex_type_pair_statistics\": [\n";
+    bool first = true;
+    std::string props_content{};
+    for (size_t src_label = 0; src_label < vertex_label_num; ++src_label) {
+      const auto& src_label_name = schema_.get_vertex_label_name(src_label);
+      for (size_t dst_label = 0; dst_label < vertex_label_num; ++dst_label) {
+        const auto& dst_label_name = schema_.get_vertex_label_name(dst_label);
+        size_t index = src_label * vertex_label_num * edge_label_num +
+                       dst_label * edge_label_num + edge_label;
+        if (schema_.exist(src_label_name, dst_label_name, edge_label_name)) {
+          if (!first) {
+            ss += ",\n";
+          }
+
+          yaml_content += "        - source_vertex: " + src_label_name + "\n";
+          yaml_content +=
+              "          destination_vertex: " + dst_label_name + "\n";
+          const auto& props = schema_.get_edge_properties(
+              src_label_name, dst_label_name, edge_label_name);
+          const auto& prop_names = schema_.get_edge_property_names(
+              src_label_name, dst_label_name, edge_label_name);
+          if (first && (!props.empty())) {
+            props_content += "      properties:\n";
+            for (size_t i = 0; i < props.size(); ++i) {
+              props_content +=
+                  "        - property_id: " + std::to_string(i) + "\n";
+              props_content +=
+                  "          property_name: " + prop_names[i] + "\n";
+              props_content += "          property_type: \n            " +
+                               type_2_str(props[i]) + "\n";
+            }
+          }
+          first = false;
+          ss += "{\n\"source_vertex\" : \"" + src_label_name + "\", \n";
+          ss += "\"destination_vertex\" : \"" + dst_label_name + "\", \n";
+          ss += "\"count\" : " + std::to_string(edge_count_list[index]) + "\n";
+          edge_count += edge_count_list[index];
+          ss += "}";
+        }
+      }
+    }
+
+    yaml_content += props_content;
+    ss += "\n]\n}";
+    if (edge_label != edge_label_num - 1) {
+      ss += ", \n";
+    } else {
+      ss += "\n";
+    }
+  }
+  ss += "]\n";
+  {
+    std::ofstream out(filename);
+    out << "{\n\"total_vertex_count\": " << vertex_count << ",\n";
+    out << "\"total_edge_count\": " << edge_count << ",\n";
+    out << ss;
+    out << "}\n";
+    out.close();
+  }
+  {
+    std::string yaml_filename = work_dir + "/.compiler.yaml";
+    std::ofstream out(yaml_filename);
+    out << yaml_content;
+    out.close();
+  }
+}
+
 }  // namespace gs
