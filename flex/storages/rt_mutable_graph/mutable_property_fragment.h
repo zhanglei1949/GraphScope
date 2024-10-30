@@ -112,8 +112,6 @@ class MutablePropertyFragment {
 
   void loadSchema(const std::string& filename);
 
-  void generateStatistics(const std::string& work_dir) const;
-
   Schema schema_;
   std::vector<IndexerType> lf_indexers_;
   std::vector<CsrBase*> ie_, oe_;

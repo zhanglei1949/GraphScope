@@ -171,8 +171,6 @@ class GraphDB {
 
   QueryCache& getQueryCache() const;
 
-  std::string work_dir() const { return work_dir_; }
-
  private:
   bool registerApp(const std::string& path, uint8_t index = 0);
 
