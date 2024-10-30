@@ -133,16 +133,11 @@ void generate_compiler_configs(const std::string& graph_yaml,
 }
 
 bool generate_plan(
-    const std::string& query,
+    const std::string& query, const std::string& statistics,
+    const std::string& compiler_yaml,
     std::unordered_map<std::string, physical::PhysicalPlan>& plan_cache) {
   // dump query to file
   static const char* const GRAPHSCOPE_DIR = "/data/GraphScope/";
-  static const char* const CONFIG_DIR = "/data/flex_ldbc_snb/configs/";
-
-  static const std::string COMPILER_GRAPH_SCHEMA =
-      std::string(CONFIG_DIR) + "graph_for_compiler.yaml";
-  static const std::string COMPILER_STATISTICS =
-      std::string(CONFIG_DIR) + "ldbc_30_statistics.json";
 
   auto id = std::this_thread::get_id();
 
@@ -162,16 +157,14 @@ bool generate_plan(
   const std::string djna_path =
       std::string("-Djna.library.path=") + std::string(GRAPHSCOPE_DIR) +
       "/interactive_engine/executor/ir/target/release/";
-  const std::string schema_path =
-      "-Dgraph.schema=" + std::string(COMPILER_GRAPH_SCHEMA);
+  const std::string schema_path = "-Dgraph.schema=" + compiler_yaml;
   auto raw_query = query;  // decompress(query);
   {
     std::ofstream out(query_file);
     out << query;
     out.close();
   }
-  generate_compiler_configs(COMPILER_GRAPH_SCHEMA, COMPILER_STATISTICS,
-                            compiler_config_path);
+  generate_compiler_configs(compiler_yaml, statistics, compiler_config_path);
 
   // call compiler to generate plan
   {

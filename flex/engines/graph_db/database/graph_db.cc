@@ -231,6 +231,11 @@ Result<bool> GraphDB::Open(const GraphDBConfig& config) {
     });
   }
 
+  unlink((work_dir_ + "/statistics.json").c_str());
+  unlink((work_dir_ + "/.compiler.yaml").c_str());
+  graph_.generateStatistics(work_dir_);
+  query_cache_.cache.clear();
+
   return Result<bool>(true);
 }
 
