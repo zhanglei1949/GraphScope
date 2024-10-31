@@ -560,6 +560,11 @@ void MutablePropertyFragment::generateStatistics(
       yaml_content += "        - " + std::get<1>(key) + "\n";
     }
 
+    yaml_content += "      primary_keys:\n";
+    for (const auto& key : pk) {
+      yaml_content += "        - " + std::get<1>(key) + "\n";
+    }
+
     ss += "{\n\"type_id\": " + std::to_string(idx) + ", \n";
     ss += "\"type_name\": \"" + schema_.get_vertex_label_name(idx) + "\", \n";
     size_t count = lf_indexers_[idx].size();

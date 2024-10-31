@@ -71,6 +71,60 @@ Context eval_select_vertex_within_set(
   return ctx;
 }
 
+bool is_date_within(const algebra::Select& opr, const ReadTransaction& txn,
+                    const Context& ctx,
+                    const std::map<std::string, std::string>& params,
+                    int vertex_tag, int& month) {
+  if (opr.predicate().operators_size() != 27) {
+    return false;
+  }
+  if (!((opr.predicate().operators(0).item_case() ==
+         common::ExprOpr::ItemCase::kExtract) &&
+        (opr.predicate().operators(0).extract().interval() ==
+         common::Extract::MONTH))) {
+    return false;
+  }
+  if (!((opr.predicate().operators(5).item_case() ==
+         common::ExprOpr::ItemCase::kExtract) &&
+        (opr.predicate().operators(5).extract().interval() ==
+         common::Extract::DAY))) {
+    return false;
+  }
+  if (!((opr.predicate().operators(10).item_case() ==
+         common::ExprOpr::ItemCase::kExtract) &&
+        (opr.predicate().operators(10).extract().interval() ==
+         common::Extract::MONTH))) {
+    return false;
+  }
+  if (!((opr.predicate().operators(23).item_case() ==
+         common::ExprOpr::ItemCase::kExtract) &&
+        (opr.predicate().operators(23).extract().interval() ==
+         common::Extract::DAY))) {
+    return false;
+  }
+
+  if (!opr.predicate().operators(1).has_var() ||
+      !opr.predicate().operators(6).has_var() ||
+      !opr.predicate().operators(11).has_var() ||
+      !opr.predicate().operators(24).has_var()) {
+    return false;
+  }
+  vertex_tag = opr.predicate().operators(1).var().tag().id();
+  if (opr.predicate().operators(6).var().tag().id() != vertex_tag ||
+      opr.predicate().operators(11).var().tag().id() != vertex_tag ||
+      opr.predicate().operators(24).var().tag().id() != vertex_tag) {
+    return false;
+  }
+
+  if (!opr.predicate().operators(3).has_param() ||
+      !opr.predicate().operators(14).has_param()) {
+    return false;
+  }
+  month = std::stoi(params.at(opr.predicate().operators(3).param().name()));
+  // TODO: other conditions
+  return true;
+}
+
 bool is_vertex_ne_id(const ReadTransaction& txn, const common::Expression& expr,
                      const Context& ctx,
                      const std::map<std::string, std::string>& params,
@@ -129,6 +183,34 @@ Context eval_select_vertex_ne_id(
   return ctx;
 }
 
+
+bool date_within(int64_t ts, int month, int next_month) {
+  struct tm tm;
+  auto micro_second = ts / 1000;
+  gmtime_r(reinterpret_cast<time_t*>(&micro_second), &tm);
+  int m = tm.tm_mon + 1;
+  int d = tm.tm_mday;
+  return (m == month && d >= 21) || (m == next_month && d < 22);
+}
+
+Context eval_select_date_within(
+    const algebra::Select& opr, const ReadTransaction& txn, Context&& ctx,
+    const std::map<std::string, std::string>& params, int date_tag, int month) {
+  std::vector<size_t> offsets;
+  auto& date_col =
+      *std::dynamic_pointer_cast<ValueColumn<Date>>(ctx.get(date_tag));
+  size_t row_num = ctx.row_num();
+  int next_month = (month % 12) + 1;
+  for (size_t i = 0; i < row_num; ++i) {
+    int64_t ts = date_col.get_value(i).milli_second;
+    if (date_within(ts, month, next_month)) {
+      offsets.push_back(i);
+    }
+  }
+  ctx.reshuffle(offsets);
+  return ctx;
+}
+
 Context eval_select(const algebra::Select& opr, const ReadTransaction& txn,
                     Context&& ctx,
                     const std::map<std::string, std::string>& params) {
@@ -144,6 +226,13 @@ Context eval_select(const algebra::Select& opr, const ReadTransaction& txn,
     // LOG(INFO) << "Select vertex within set";
     return eval_select_vertex_within_set(opr, txn, std::move(ctx), params,
                                          vertex_tag, set_tag);
+  }
+  int date_tag = -1;
+  int month = -1;
+  if (is_date_within(opr, txn, ctx, params, date_tag, month)) {
+    auto ret = eval_select_date_within(opr, txn, std::move(ctx), params,
+                                       date_tag, month);
+    return ret;
   }
 
   Expr expr(txn, ctx, params, opr.predicate(), VarType::kPathVar);
