@@ -555,10 +555,6 @@ void MutablePropertyFragment::generateStatistics(
       yaml_content += "          property_type: \n            " +
                       type_2_str(prop_types[i]) + "\n";
     }
-    yaml_content += "      primary_keys:\n";
-    for (const auto& key : pk) {
-      yaml_content += "        - " + std::get<1>(key) + "\n";
-    }
 
     yaml_content += "      primary_keys:\n";
     for (const auto& key : pk) {
