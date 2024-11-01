@@ -27,14 +27,10 @@ WriteContext eval_load(const cypher::Load& opr, InsertTransaction& txn,
 
     const auto& vertex_prop_types =
         schema.get_vertex_properties(vertex_label_id);
-    const auto& vertex_prop_names =
-        schema.get_vertex_property_names(vertex_label_id);
-    std::unordered_map<std::string, std::pair<PropertyType, int>> prop_map;
-    for (size_t i = 0; i < vertex_prop_names.size(); ++i) {
-      prop_map[vertex_prop_names[i]] = {vertex_prop_types[i], i};
-    }
+    const auto& prop_map =
+        schema.get_vprop_name_to_type_and_index(vertex_label_id);
 
-    const auto props = vertex_mapping.column_mappings();
+    const auto& props = vertex_mapping.column_mappings();
     int prop_size = vertex_mapping.column_mappings_size();
     Any id;
     std::vector<WriteContext::WriteParamsColumn> properties(
@@ -47,7 +43,7 @@ WriteContext eval_load(const cypher::Load& opr, InsertTransaction& txn,
         int idx = prop.column().index();
         id_col = ctx.get(idx);
       } else {
-        const auto& prop_idx = prop_map[prop_name].second;
+        const auto& prop_idx = prop_map.at(prop_name).second;
         const auto& prop_value = ctx.get(prop.column().index());
         properties[prop_idx] = prop_value;
       }
@@ -91,7 +87,7 @@ WriteContext eval_load(const cypher::Load& opr, InsertTransaction& txn,
     auto src = ctx.get(src_mapping.column().index());
     auto dst = ctx.get(dst_mapping.column().index());
 
-    auto edge_props = edge_mapping.column_mappings();
+    const auto& edge_props = edge_mapping.column_mappings();
     CHECK(static_cast<size_t>(edge_mapping.column_mappings_size()) ==
           prop_types.size())
         << "Only support one property";

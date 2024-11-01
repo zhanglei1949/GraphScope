@@ -85,10 +85,6 @@ class Schema {
 
   label_t get_vertex_label_id(const std::string& label) const;
 
-  void set_vertex_properties(
-      label_t label_id, const std::vector<PropertyType>& types,
-      const std::vector<StorageStrategy>& strategies = {});
-
   const std::vector<PropertyType>& get_vertex_properties(
       const std::string& label) const;
 
@@ -230,6 +226,9 @@ class Schema {
 
   bool has_multi_props_edge() const;
 
+  const std::unordered_map<std::string, std::pair<PropertyType, uint8_t>>&
+  get_vprop_name_to_type_and_index(label_t label) const;
+
  private:
   label_t vertex_label_to_index(const std::string& label);
 
@@ -254,6 +253,8 @@ class Schema {
   std::map<uint32_t, bool> oe_mutability_;
   std::map<uint32_t, bool> ie_mutability_;
   std::map<uint32_t, bool> sort_on_compactions_;
+  std::vector<std::unordered_map<std::string, std::pair<PropertyType, uint8_t>>>
+      vprop_name_to_type_and_index_;
   std::vector<size_t> max_vnum_;
   std::unordered_map<std::string, std::pair<std::string, uint8_t>>
       plugin_name_to_path_and_id_;  // key is plugin_name, value is plugin_path
