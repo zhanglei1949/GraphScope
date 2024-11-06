@@ -500,67 +500,11 @@ const CsrBase* MutablePropertyFragment::get_ie_csr(label_t label,
 void MutablePropertyFragment::generateStatistics(
     const std::string& work_dir) const {
   std::string filename = work_dir + "/statistics.json";
-  std::string yaml_content = "schema:\n";
-  yaml_content += "  vertex_types:\n";
   size_t vertex_count = 0;
 
-  auto type_2_str = [](PropertyType type) -> std::string {
-    if (type == PropertyType::kBool) {
-      return "primitive_type: DT_BOOL";
-    } else if (type == PropertyType::kInt32) {
-      return "primitive_type: DT_SIGNED_INT32";
-    } else if (type == PropertyType::kUInt32) {
-      return "primitive_type: DT_UNSIGNED_INT32";
-    } else if (type == PropertyType::kDate) {
-      return "primitive_type: DT_SIGNED_INT64";
-    } else if (type == PropertyType::kInt64) {
-      return "primitive_type: DT_SIGNED_INT64";
-    } else if (type == PropertyType::kUInt64) {
-      return "primitive_type: DT_UNSIGNED_INT64";
-    } else if (type == PropertyType::kDouble) {
-      return "primitive_type: DT_DOUBLE";
-    } else if (type == PropertyType::kFloat) {
-      return "primitive_type: DT_FLOAT";
-    } else if (type == PropertyType::kStringView) {
-      return "string:\n              long_text:";
-    } else if (type == PropertyType::kDay) {
-      return "temporal:\n              timestamp:";
-    } else {
-      return "unknown";
-    }
-  };
   std::string ss = "\"vertex_type_statistics\": [\n";
   size_t vertex_label_num = schema_.vertex_label_num();
   for (size_t idx = 0; idx < vertex_label_num; ++idx) {
-    yaml_content += "    - type_id: " + std::to_string(idx) + "\n";
-    yaml_content +=
-        "      type_name: " + schema_.get_vertex_label_name(idx) + "\n";
-    yaml_content += "      properties:\n";
-    const auto& pk = schema_.get_vertex_primary_key(idx);
-    for (const auto& key : pk) {
-      yaml_content +=
-          "        - property_id: " + std::to_string(std::get<2>(key)) + "\n";
-      yaml_content += "          property_name: " + (std::get<1>(key)) + "\n";
-      yaml_content += "          property_type: \n            " +
-                      type_2_str(std::get<0>(key)) + "\n";
-    }
-    size_t offset = pk.size();
-    auto& prop_names = schema_.get_vertex_property_names(idx);
-    auto& prop_types = schema_.get_vertex_properties(idx);
-
-    for (size_t i = 0; i < prop_names.size(); ++i) {
-      yaml_content +=
-          "        - property_id: " + std::to_string(i + offset) + "\n";
-      yaml_content += "          property_name: " + prop_names[i] + "\n";
-      yaml_content += "          property_type: \n            " +
-                      type_2_str(prop_types[i]) + "\n";
-    }
-
-    yaml_content += "      primary_keys:\n";
-    for (const auto& key : pk) {
-      yaml_content += "        - " + std::get<1>(key) + "\n";
-    }
-
     ss += "{\n\"type_id\": " + std::to_string(idx) + ", \n";
     ss += "\"type_name\": \"" + schema_.get_vertex_label_name(idx) + "\", \n";
     size_t count = lf_indexers_[idx].size();
@@ -602,15 +546,9 @@ void MutablePropertyFragment::generateStatistics(
   ss += ",\n";
   ss += "\"edge_type_statistics\": [";
 
-  yaml_content += "  edge_types:\n";
-
   for (size_t edge_label = 0; edge_label < edge_label_num; ++edge_label) {
-    yaml_content += "    - type_id: " + std::to_string(edge_label) + "\n";
-
     const auto& edge_label_name = schema_.get_edge_label_name(edge_label);
 
-    yaml_content += "      type_name: " + edge_label_name + "\n";
-    yaml_content += "      vertex_type_pair_relations:\n";
     ss += "{\n\"type_id\": " + std::to_string(edge_label) + ", \n";
     ss += "\"type_name\": \"" + edge_label_name + "\", \n";
     ss += "\"vertex_type_pair_statistics\": [\n";
@@ -626,25 +564,6 @@ void MutablePropertyFragment::generateStatistics(
           if (!first) {
             ss += ",\n";
           }
-
-          yaml_content += "        - source_vertex: " + src_label_name + "\n";
-          yaml_content +=
-              "          destination_vertex: " + dst_label_name + "\n";
-          const auto& props = schema_.get_edge_properties(
-              src_label_name, dst_label_name, edge_label_name);
-          const auto& prop_names = schema_.get_edge_property_names(
-              src_label_name, dst_label_name, edge_label_name);
-          if (first && (!props.empty())) {
-            props_content += "      properties:\n";
-            for (size_t i = 0; i < props.size(); ++i) {
-              props_content +=
-                  "        - property_id: " + std::to_string(i) + "\n";
-              props_content +=
-                  "          property_name: " + prop_names[i] + "\n";
-              props_content += "          property_type: \n            " +
-                               type_2_str(props[i]) + "\n";
-            }
-          }
           first = false;
           ss += "{\n\"source_vertex\" : \"" + src_label_name + "\", \n";
           ss += "\"destination_vertex\" : \"" + dst_label_name + "\", \n";
@@ -655,7 +574,6 @@ void MutablePropertyFragment::generateStatistics(
       }
     }
 
-    yaml_content += props_content;
     ss += "\n]\n}";
     if (edge_label != edge_label_num - 1) {
       ss += ", \n";
@@ -670,12 +588,6 @@ void MutablePropertyFragment::generateStatistics(
     out << "\"total_edge_count\": " << edge_count << ",\n";
     out << ss;
     out << "}\n";
-    out.close();
-  }
-  {
-    std::string yaml_filename = work_dir + "/.compiler.yaml";
-    std::ofstream out(yaml_filename);
-    out << yaml_content;
     out.close();
   }
 }

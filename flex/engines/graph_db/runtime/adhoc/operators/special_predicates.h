@@ -708,6 +708,28 @@ inline std::unique_ptr<SPVertexPredicate> parse_special_vertex_predicate(
           LOG(INFO) << "AAAA";
           return nullptr;
         }
+      } else if (op2.param().data_type().data_type() ==
+                 common::DataType::TIMESTAMP) {
+        if (ptype == SPVertexPredicateType::kPropertyLT) {
+          return std::unique_ptr<SPVertexPredicate>(
+              new VertexPropertyLTPredicateBeta<Date>(txn, property_name,
+                                                      value_str));
+        } else if (ptype == SPVertexPredicateType::kPropertyEQ) {
+          return std::unique_ptr<SPVertexPredicate>(
+              new VertexPropertyEQPredicateBeta<Date>(txn, property_name,
+                                                      value_str));
+        } else if (ptype == SPVertexPredicateType::kPropertyGT) {
+          return std::unique_ptr<SPVertexPredicate>(
+              new VertexPropertyGTPredicateBeta<Date>(txn, property_name,
+                                                      value_str));
+        } else if (ptype == SPVertexPredicateType::kPropertyLE) {
+          return std::unique_ptr<SPVertexPredicate>(
+              new VertexPropertyLEPredicateBeta<Date>(txn, property_name,
+                                                      value_str));
+        } else {
+          LOG(INFO) << "AAAA";
+          return nullptr;
+        }
       } else {
         LOG(INFO) << "AAAA";
         return nullptr;
@@ -830,6 +852,12 @@ inline std::unique_ptr<SPVertexPredicate> parse_special_vertex_predicate(
       return std::unique_ptr<SPVertexPredicate>(
           new VertexPropertyBetweenPredicateBeta<int64_t>(txn, property_name,
                                                           from_str, to_str));
+    } else if (op2.param().data_type().data_type() ==
+               common::DataType::TIMESTAMP) {
+      return std::unique_ptr<SPVertexPredicate>(
+          new VertexPropertyBetweenPredicateBeta<Date>(txn, property_name,
+                                                       from_str, to_str));
+
     } else {
       LOG(INFO) << "AAAA";
       return nullptr;

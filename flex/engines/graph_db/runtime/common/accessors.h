@@ -409,7 +409,11 @@ class ContextValueAccessor : public IAccessor {
  public:
   using elem_t = T;
   ContextValueAccessor(const Context& ctx, int tag)
-      : col_(*std::dynamic_pointer_cast<IValueColumn<elem_t>>(ctx.get(tag))) {}
+      : col_(*std::dynamic_pointer_cast<IValueColumn<elem_t>>(ctx.get(tag))) {
+    CHECK(std::dynamic_pointer_cast<IValueColumn<elem_t>>(ctx.get(tag)) !=
+          nullptr)
+        << " " << ctx.get(tag)->column_info();
+  }
 
   elem_t typed_eval_path(size_t idx) const { return col_.get_value(idx); }
 

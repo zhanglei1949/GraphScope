@@ -127,6 +127,8 @@ std::shared_ptr<IContextColumnBuilder> create_column_builder(RTAnyType type) {
   case RTAnyType::RTAnyTypeImpl::kI32Value:
     return std::make_shared<ValueColumnBuilder<int32_t>>();
   case RTAnyType::RTAnyTypeImpl::kDate32:
+    return std::make_shared<ValueColumnBuilder<Day>>();
+  case RTAnyType::RTAnyTypeImpl::kTimestamp:
     return std::make_shared<ValueColumnBuilder<Date>>();
   case RTAnyType::RTAnyTypeImpl::kU64Value:
     return std::make_shared<ValueColumnBuilder<uint64_t>>();
@@ -227,12 +229,27 @@ std::shared_ptr<IContextColumn> build_optional_column(
         if (v.is_null()) {
           builder.push_back_null();
         } else {
-          builder.push_back_opt(v.as_date32(), true);
+          builder.push_back_opt(v.as_timestamp(), true);
         }
       }
 
       return builder.finish();
     } break;
+
+    case common::DataType::DATE32: {
+      OptionalValueColumnBuilder<Day> builder;
+      builder.reserve(row_num);
+      for (size_t i = 0; i < row_num; ++i) {
+        auto v = expr.eval_path(i, 0);
+        if (v.is_null()) {
+          builder.push_back_null();
+        } else {
+          builder.push_back_opt(v.as_date32(), true);
+        }
+      }
+
+      return builder.finish();
+    }
 
     default: {
       LOG(FATAL) << "not support"
@@ -292,7 +309,7 @@ std::shared_ptr<IContextColumn> build_column(
 
     } break;
     case common::DataType::DATE32: {
-      ValueColumnBuilder<Date> builder;
+      ValueColumnBuilder<Day> builder;
       builder.reserve(row_num);
       for (size_t i = 0; i < row_num; ++i) {
         auto v = expr.eval_path(i).as_date32();
@@ -315,7 +332,7 @@ std::shared_ptr<IContextColumn> build_column(
       ValueColumnBuilder<Date> builder;
       builder.reserve(row_num);
       for (size_t i = 0; i < row_num; ++i) {
-        auto v = expr.eval_path(i).as_date32();
+        auto v = expr.eval_path(i).as_timestamp();
         builder.push_back_opt(v);
       }
 
@@ -479,7 +496,7 @@ std::shared_ptr<IContextColumn> build_topN_property_column(
     if (prop_type == PropertyType::Date()) {
       size_t seg_num = casted_col->seg_num();
       if (!asc) {
-        TopNGenerator<int64_t, TopNDescCmp<int64_t>> gen(limit);
+        TopNGenerator<Date, TopNDescCmp<Date>> gen(limit);
         size_t idx = 0;
         for (size_t seg_i = 0; seg_i < seg_num; ++seg_i) {
           label_t seg_label = casted_col->seg_label(seg_i);
@@ -490,9 +507,9 @@ std::shared_ptr<IContextColumn> build_topN_property_column(
             ++idx;
           }
         }
-        std::vector<int64_t> values;
+        std::vector<Date> values;
         gen.generate_pairs(values, offsets);
-        ValueColumnBuilder<int64_t> builder;
+        ValueColumnBuilder<Date> builder;
         builder.reserve(values.size());
         for (auto v : values) {
           builder.push_back_opt(v);
@@ -732,13 +749,20 @@ std::shared_ptr<IContextColumn> build_column_beta(const Expr& expr,
     return builder.finish();
   } break;
   case RTAnyType::RTAnyTypeImpl::kDate32: {
-    ValueColumnBuilder<Date> builder;
+    ValueColumnBuilder<Day> builder;
     builder.reserve(row_num);
     for (size_t i = 0; i < row_num; ++i) {
       builder.push_back_opt(expr.eval_path(i).as_date32());
     }
 
     return builder.finish();
+  } break;
+  case RTAnyType::RTAnyTypeImpl::kTimestamp: {
+    ValueColumnBuilder<Date> builder;
+    builder.reserve(row_num);
+    for (size_t i = 0; i < row_num; ++i) {
+      builder.push_back_opt(expr.eval_path(i).as_timestamp());
+    }
   } break;
   case RTAnyType::RTAnyTypeImpl::kVertex: {
     MLVertexColumnBuilder builder;

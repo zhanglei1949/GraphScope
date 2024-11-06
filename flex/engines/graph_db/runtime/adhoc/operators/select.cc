@@ -183,13 +183,12 @@ Context eval_select_vertex_ne_id(
   return ctx;
 }
 
-
-bool date_within(int64_t ts, int month, int next_month) {
-  struct tm tm;
-  auto micro_second = ts / 1000;
-  gmtime_r(reinterpret_cast<time_t*>(&micro_second), &tm);
-  int m = tm.tm_mon + 1;
-  int d = tm.tm_mday;
+bool date_within(Day ts, int month, int next_month) {
+  // struct tm tm;
+  // auto micro_second = ts / 1000;
+  // gmtime_r(reinterpret_cast<time_t*>(&micro_second), &tm);
+  int m = ts.month();
+  int d = ts.day();
   return (m == month && d >= 21) || (m == next_month && d < 22);
 }
 
@@ -198,11 +197,12 @@ Context eval_select_date_within(
     const std::map<std::string, std::string>& params, int date_tag, int month) {
   std::vector<size_t> offsets;
   auto& date_col =
-      *std::dynamic_pointer_cast<ValueColumn<Date>>(ctx.get(date_tag));
+      *std::dynamic_pointer_cast<ValueColumn<Day>>(ctx.get(date_tag));
+
   size_t row_num = ctx.row_num();
   int next_month = (month % 12) + 1;
   for (size_t i = 0; i < row_num; ++i) {
-    int64_t ts = date_col.get_value(i).milli_second;
+    Day ts = date_col.get_value(i);
     if (date_within(ts, month, next_month)) {
       offsets.push_back(i);
     }

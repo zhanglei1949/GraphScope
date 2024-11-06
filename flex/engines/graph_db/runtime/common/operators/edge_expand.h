@@ -662,6 +662,44 @@ class EdgeExpand {
                   dynamic_cast<const VertexPropertyEQPredicateBeta<int64_t>&>(
                       pred)));
         }
+      } else if (pred.data_type() == RTAnyType::kTimestamp) {
+        if (pred.type() == SPVertexPredicateType::kPropertyLT) {
+          return expand_vertex<
+              SPVPWrapper<VertexPropertyLTPredicateBeta<Date>>>(
+              txn, std::move(ctx), params,
+              SPVPWrapper(
+                  dynamic_cast<const VertexPropertyLTPredicateBeta<Date>&>(
+                      pred)));
+        } else if (pred.type() == SPVertexPredicateType::kPropertyGT) {
+          return expand_vertex<
+              SPVPWrapper<VertexPropertyGTPredicateBeta<Date>>>(
+              txn, std::move(ctx), params,
+              SPVPWrapper(
+                  dynamic_cast<const VertexPropertyGTPredicateBeta<Date>&>(
+                      pred)));
+        } else if (pred.type() == SPVertexPredicateType::kPropertyLE) {
+          return expand_vertex<
+              SPVPWrapper<VertexPropertyLEPredicateBeta<Date>>>(
+              txn, std::move(ctx), params,
+              SPVPWrapper(
+                  dynamic_cast<const VertexPropertyLEPredicateBeta<Date>&>(
+                      pred)));
+        } else if (pred.type() == SPVertexPredicateType::kPropertyBetween) {
+          return expand_vertex<
+              SPVPWrapper<VertexPropertyBetweenPredicateBeta<Date>>>(
+              txn, std::move(ctx), params,
+              SPVPWrapper(
+                  dynamic_cast<const VertexPropertyBetweenPredicateBeta<Date>&>(
+                      pred)));
+        } else {
+          CHECK(pred.type() == SPVertexPredicateType::kPropertyEQ);
+          return expand_vertex<
+              SPVPWrapper<VertexPropertyEQPredicateBeta<Date>>>(
+              txn, std::move(ctx), params,
+              SPVPWrapper(
+                  dynamic_cast<const VertexPropertyEQPredicateBeta<Date>&>(
+                      pred)));
+        }
       } else if (pred.data_type() == RTAnyType::kStringValue) {
         if (pred.type() == SPVertexPredicateType::kPropertyEQ) {
           return expand_vertex<

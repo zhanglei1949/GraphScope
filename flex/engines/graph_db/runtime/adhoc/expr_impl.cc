@@ -277,6 +277,31 @@ RTAnyType ArithExpr::type() const {
   return lhs_->type();
 }
 
+DateMinusExpr::DateMinusExpr(std::unique_ptr<ExprBase>&& lhs,
+                             std::unique_ptr<ExprBase>&& rhs)
+    : lhs_(std::move(lhs)), rhs_(std::move(rhs)) {}
+
+RTAny DateMinusExpr::eval_path(size_t idx) const {
+  auto lhs = lhs_->eval_path(idx).as_timestamp();
+  auto rhs = rhs_->eval_path(idx).as_timestamp();
+  return RTAny::from_int64(lhs.milli_second - rhs.milli_second);
+}
+
+RTAny DateMinusExpr::eval_vertex(label_t label, vid_t v, size_t idx) const {
+  auto lhs = lhs_->eval_vertex(label, v, idx).as_timestamp();
+  auto rhs = rhs_->eval_vertex(label, v, idx).as_timestamp();
+  return RTAny::from_int64(lhs.milli_second - rhs.milli_second);
+}
+
+RTAny DateMinusExpr::eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
+                               const Any& data, size_t idx) const {
+  auto lhs = lhs_->eval_edge(label, src, dst, data, idx).as_timestamp();
+  auto rhs = rhs_->eval_edge(label, src, dst, data, idx).as_timestamp();
+  return RTAny::from_int64(lhs.milli_second - rhs.milli_second);
+}
+
+RTAnyType DateMinusExpr::type() const { return RTAnyType::kI64Value; }
+
 ConstExpr::ConstExpr(const RTAny& val) : val_(val) {
   if (val_.type() == RTAnyType::kStringValue) {
     s = val_.as_string();
@@ -293,10 +318,6 @@ RTAny ConstExpr::eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
 }
 
 RTAnyType ConstExpr::type() const { return val_.type(); }
-
-ExtractExpr::ExtractExpr(std::unique_ptr<ExprBase>&& expr,
-                         const common::Extract& extract)
-    : expr_(std::move(expr)), extract_(extract) {}
 
 static int32_t extract_year(int64_t ms) {
   auto micro_second = ms / 1000;
@@ -319,8 +340,7 @@ static int32_t extract_day(int64_t ms) {
   return tm.tm_mday;
 }
 
-static int32_t extract_time_from_milli_second(int64_t ms,
-                                              common::Extract extract) {
+int32_t extract_time_from_milli_second(int64_t ms, common::Extract extract) {
   if (extract.interval() == common::Extract::YEAR) {
     return extract_year(ms);
   } else if (extract.interval() == common::Extract::MONTH) {
@@ -332,27 +352,6 @@ static int32_t extract_time_from_milli_second(int64_t ms,
   }
   return 0;
 }
-
-RTAny ExtractExpr::eval_path(size_t idx) const {
-  auto ms = expr_->eval_path(idx).as_date32();
-  int32_t val = extract_time_from_milli_second(ms, extract_);
-  return RTAny::from_int32(val);
-}
-
-RTAny ExtractExpr::eval_vertex(label_t label, vid_t v, size_t idx) const {
-  auto ms = expr_->eval_vertex(label, v, idx).as_date32();
-  int32_t val = extract_time_from_milli_second(ms, extract_);
-  return RTAny::from_int32(val);
-}
-
-RTAny ExtractExpr::eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
-                             const Any& data, size_t idx) const {
-  auto ms = expr_->eval_edge(label, src, dst, data, idx).as_date32();
-  int32_t val = extract_time_from_milli_second(ms, extract_);
-  return RTAny::from_int32(val);
-}
-
-RTAnyType ExtractExpr::type() const { return RTAnyType::kI32Value; }
 
 CaseWhenExpr::CaseWhenExpr(
     std::vector<std::pair<std::unique_ptr<ExprBase>,
@@ -503,7 +502,8 @@ static RTAny parse_param(const common::DynamicParam& param,
     } else if (dt == common::DataType::INT32) {
       int val = std::stoi(input.at(name));
       return RTAny::from_int32(val);
-    } else if (dt == common::DataType::INT64) {
+    } else if (dt == common::DataType::INT64 ||
+               dt == common::DataType::TIMESTAMP) {
       int64_t val = std::stoll(input.at(name));
       return RTAny::from_int64(val);
     }
@@ -560,6 +560,8 @@ static inline int get_proiority(const common::ExprOpr& opr) {
       return 16;
     }
   }
+  case common::ExprOpr::kDateTimeMinus:
+    return 4;
   default:
     return 16;
   }
@@ -671,7 +673,17 @@ static std::unique_ptr<ExprBase> build_expr(
     }
     case common::ExprOpr::kExtract: {
       auto hs = build_expr(txn, ctx, params, opr_stack, var_type);
-      return std::make_unique<ExtractExpr>(std::move(hs), opr.extract());
+      if (hs->type() == RTAnyType::kI64Value) {
+        return std::make_unique<ExtractExpr<int64_t>>(std::move(hs),
+                                                      opr.extract());
+      } else if (hs->type() == RTAnyType::kDate32) {
+        return std::make_unique<ExtractExpr<Day>>(std::move(hs), opr.extract());
+      } else if (hs->type() == RTAnyType::kTimestamp) {
+        return std::make_unique<ExtractExpr<Date>>(std::move(hs),
+                                                   opr.extract());
+      } else {
+        LOG(FATAL) << "not support" << static_cast<int>(hs->type().type_enum_);
+      }
     }
     case common::ExprOpr::kVars: {
       auto op = opr.vars();
@@ -743,6 +755,11 @@ static std::unique_ptr<ExprBase> build_expr(
         LOG(FATAL) << "not support udf" << opr.DebugString();
       }
     }
+    case common::ExprOpr::kDateTimeMinus: {
+      auto lhs = build_expr(txn, ctx, params, opr_stack, var_type);
+      auto rhs = build_expr(txn, ctx, params, opr_stack, var_type);
+      return std::make_unique<DateMinusExpr>(std::move(lhs), std::move(rhs));
+    }
     default:
       LOG(FATAL) << "not support" << opr.DebugString();
       break;
@@ -782,7 +799,8 @@ static std::unique_ptr<ExprBase> parse_expression_impl(
       break;
     }
     case common::ExprOpr::kArith:
-    case common::ExprOpr::kLogical: {
+    case common::ExprOpr::kLogical:
+    case common::ExprOpr::kDateTimeMinus: {
       // unary operator
       if ((*it).logical() == common::Logical::NOT ||
           (*it).logical() == common::Logical::ISNULL) {
@@ -814,6 +832,7 @@ static std::unique_ptr<ExprBase> parse_expression_impl(
       opr_stack2.push(*it);
       break;
     }
+
     default: {
       LOG(FATAL) << "not support" << (*it).DebugString();
       break;

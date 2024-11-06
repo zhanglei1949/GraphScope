@@ -49,9 +49,13 @@ static inline void get_edge_data(EdgePropVecBase* prop, size_t idx,
         dynamic_cast<EdgePropVec<std::string_view>*>(prop)->get_view(idx);
 
   } else if (prop->type() == PropertyType::kDate) {
+    edge_data.type = RTAnyType::kTimestamp;
+    edge_data.value.date_val =
+        dynamic_cast<EdgePropVec<Date>*>(prop)->get_view(idx);
+  } else if (prop->type() == PropertyType::kDay) {
     edge_data.type = RTAnyType::kDate32;
-    edge_data.value.i64_val =
-        dynamic_cast<EdgePropVec<Date>*>(prop)->get_view(idx).milli_second;
+    edge_data.value.day_val =
+        dynamic_cast<EdgePropVec<Day>*>(prop)->get_view(idx);
   } else if (prop->type() == PropertyType::kRecordView) {
     // edge_data.type = RTAnyType::kRecordView;
   } else {
@@ -75,9 +79,10 @@ static inline void set_edge_data(EdgePropVecBase* col, size_t idx,
     dynamic_cast<EdgePropVec<std::string_view>*>(col)->set(
         idx, std::string_view(edge_data.value.str_val.data(),
                               edge_data.value.str_val.size()));
+  } else if (edge_data.type == RTAnyType::kTimestamp) {
+    dynamic_cast<EdgePropVec<Date>*>(col)->set(idx, edge_data.value.date_val);
   } else if (edge_data.type == RTAnyType::kDate32) {
-    dynamic_cast<EdgePropVec<Date>*>(col)->set(idx,
-                                               Date(edge_data.value.i64_val));
+    dynamic_cast<EdgePropVec<Day>*>(col)->set(idx, edge_data.value.day_val);
   } else {
     // LOG(FATAL) << "not support for " << edge_data.type;
   }

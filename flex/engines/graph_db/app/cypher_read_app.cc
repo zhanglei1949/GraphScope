@@ -19,7 +19,7 @@ bool CypherReadApp::Query(const GraphDBSession& graph, Decoder& input,
   parse_params(params_str, params);
   auto query = std::string(query_str.data(), query_str.size());
   const std::string statistics = db_.work_dir() + "/statistics.json";
-  const std::string& compiler_yaml = db_.work_dir() + "/.compiler.yaml";
+  const std::string& compiler_yaml = db_.work_dir() + "/.graph.yaml";
   if (plan_cache_.count(query)) {
     // LOG(INFO) << "Hit cache for query ";
   } else {

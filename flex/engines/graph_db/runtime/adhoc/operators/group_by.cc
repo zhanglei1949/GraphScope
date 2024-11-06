@@ -653,6 +653,12 @@ std::shared_ptr<IContextColumn> apply_reduce(
       return vertex_first(var, to_aggregate);
     } else if (var.type() == RTAnyType::kI64Value) {
       return general_first<int64_t>(var, to_aggregate);
+    } else if (var.type() == RTAnyType::kDate32) {
+      return general_first<Day>(var, to_aggregate);
+    } else if (var.type() == RTAnyType::kTimestamp) {
+      return general_first<Date>(var, to_aggregate);
+    } else {
+      LOG(FATAL) << "not support" << static_cast<int>(var.type().type_enum_);
     }
   } else if (func.aggregate == AggrKind::kMin) {
     if (func.vars.size() != 1) {

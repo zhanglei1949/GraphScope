@@ -69,6 +69,18 @@ class SigColumn<Date> : public ISigColumn {
 };
 
 template <>
+class SigColumn<Day> : public ISigColumn {
+ public:
+  SigColumn(const std::vector<Day>& data) : data_(data.data()) {}
+  ~SigColumn() = default;
+  size_t get_sig(size_t idx) const override {
+    return static_cast<size_t>(data_[idx].to_u32());
+  }
+
+ private:
+  const Day* data_;
+};
+template <>
 class SigColumn<VertexRecord> : public ISigColumn {
  public:
   SigColumn(const std::vector<VertexRecord>& data) : data_(data.data()) {}

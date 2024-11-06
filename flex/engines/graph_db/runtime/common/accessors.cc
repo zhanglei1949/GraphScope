@@ -34,6 +34,8 @@ std::shared_ptr<IAccessor> create_context_value_accessor(const Context& ctx,
   case RTAnyType::RTAnyTypeImpl::kStringValue:
     return std::make_shared<ContextValueAccessor<std::string_view>>(ctx, tag);
   case RTAnyType::RTAnyTypeImpl::kDate32:
+    return std::make_shared<ContextValueAccessor<Day>>(ctx, tag);
+  case RTAnyType::RTAnyTypeImpl::kTimestamp:
     return std::make_shared<ContextValueAccessor<Date>>(ctx, tag);
   case RTAnyType::RTAnyTypeImpl::kStringSetValue:
     return std::make_shared<ContextValueAccessor<std::set<std::string>>>(ctx,
@@ -74,6 +76,9 @@ std::shared_ptr<IAccessor> create_vertex_property_path_accessor(
     return std::make_shared<VertexPropertyPathAccessor<std::string_view>>(
         txn, ctx, tag, prop_name);
   case RTAnyType::RTAnyTypeImpl::kDate32:
+    return std::make_shared<VertexPropertyPathAccessor<Day>>(txn, ctx, tag,
+                                                             prop_name);
+  case RTAnyType::RTAnyTypeImpl::kTimestamp:
     return std::make_shared<VertexPropertyPathAccessor<Date>>(txn, ctx, tag,
                                                               prop_name);
   default:
@@ -102,6 +107,8 @@ std::shared_ptr<IAccessor> create_vertex_property_vertex_accessor(
     return std::make_shared<VertexPropertyVertexAccessor<std::string_view>>(
         txn, prop_name);
   case RTAnyType::RTAnyTypeImpl::kDate32:
+    return std::make_shared<VertexPropertyVertexAccessor<Day>>(txn, prop_name);
+  case RTAnyType::RTAnyTypeImpl::kTimestamp:
     return std::make_shared<VertexPropertyVertexAccessor<Date>>(txn, prop_name);
   default:
     LOG(FATAL) << "not implemented - " << static_cast<int>(type.type_enum_);
@@ -141,6 +148,9 @@ std::shared_ptr<IAccessor> create_edge_property_path_accessor(
           MultiPropsEdgePropertyPathAccessor<std::string_view>>(txn, name, ctx,
                                                                 tag);
     case RTAnyType::RTAnyTypeImpl::kDate32:
+      return std::make_shared<MultiPropsEdgePropertyPathAccessor<Day>>(
+          txn, name, ctx, tag);
+    case RTAnyType::RTAnyTypeImpl::kTimestamp:
       return std::make_shared<MultiPropsEdgePropertyPathAccessor<Date>>(
           txn, name, ctx, tag);
     case RTAnyType::RTAnyTypeImpl::kF64Value:
@@ -164,8 +174,13 @@ std::shared_ptr<IAccessor> create_edge_property_path_accessor(
       return std::make_shared<EdgePropertyPathAccessor<std::string_view>>(
           txn, name, ctx, tag);
     case RTAnyType::RTAnyTypeImpl::kDate32:
+      return std::make_shared<EdgePropertyPathAccessor<Day>>(txn, name, ctx,
+                                                             tag);
+
+    case RTAnyType::RTAnyTypeImpl::kTimestamp:
       return std::make_shared<EdgePropertyPathAccessor<Date>>(txn, name, ctx,
                                                               tag);
+
     case RTAnyType::RTAnyTypeImpl::kF64Value:
       return std::make_shared<EdgePropertyPathAccessor<double>>(txn, name, ctx,
                                                                 tag);
@@ -200,6 +215,10 @@ std::shared_ptr<IAccessor> create_edge_property_edge_accessor(
       return std::make_shared<
           MultiPropsEdgePropertyEdgeAccessor<std::string_view>>(txn, prop_name);
     case RTAnyType::RTAnyTypeImpl::kDate32:
+      return std::make_shared<MultiPropsEdgePropertyEdgeAccessor<Day>>(
+          txn, prop_name);
+
+    case RTAnyType::RTAnyTypeImpl::kTimestamp:
       return std::make_shared<MultiPropsEdgePropertyEdgeAccessor<Date>>(
           txn, prop_name);
     case RTAnyType::RTAnyTypeImpl::kF64Value:
@@ -222,6 +241,9 @@ std::shared_ptr<IAccessor> create_edge_property_edge_accessor(
       return std::make_shared<EdgePropertyEdgeAccessor<std::string_view>>(
           txn, prop_name);
     case RTAnyType::RTAnyTypeImpl::kDate32:
+      return std::make_shared<EdgePropertyEdgeAccessor<Day>>(txn, prop_name);
+
+    case RTAnyType::RTAnyTypeImpl::kTimestamp:
       return std::make_shared<EdgePropertyEdgeAccessor<Date>>(txn, prop_name);
     case RTAnyType::RTAnyTypeImpl::kF64Value:
       return std::make_shared<EdgePropertyEdgeAccessor<double>>(txn, prop_name);
