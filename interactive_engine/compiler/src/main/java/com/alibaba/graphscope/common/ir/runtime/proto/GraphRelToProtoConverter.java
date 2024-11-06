@@ -894,6 +894,31 @@ public class GraphRelToProtoConverter extends GraphShuttle {
 
     @Override
     public RelNode visit(LogicalJoin join) {
+        List<CommonTableScan> commons = relToCommons.get(join);
+        if (ObjectUtils.isNotEmpty(commons)) {
+            // add commons before union
+            GraphAlgebraPhysical.PhysicalPlan.Builder commonPlanBuilder =
+                    GraphAlgebraPhysical.PhysicalPlan.newBuilder();
+            for (int i = commons.size() - 1; i >= 0; --i) {
+                RelNode commonRel = ((CommonOptTable) commons.get(i).getTable()).getCommon();
+                commonRel.accept(
+                        new GraphRelToProtoConverter(
+                                isColumnId,
+                                graphConfig,
+                                commonPlanBuilder,
+                                this.relToCommons,
+                                this.extraParams,
+                                depth + 1));
+            }
+            physicalBuilder.addAllPlan(commonPlanBuilder.getPlanList());
+        } else if (this.depth == 0) {
+            // add a dummy root if the root union does not have any common sub-plans
+            physicalBuilder.addPlan(
+                    GraphAlgebraPhysical.PhysicalOpr.newBuilder()
+                            .setOpr(
+                                    GraphAlgebraPhysical.PhysicalOpr.Operator.newBuilder()
+                                            .setRoot(GraphAlgebraPhysical.Root.newBuilder())));
+        }
         GraphAlgebraPhysical.PhysicalOpr.Builder oprBuilder =
                 GraphAlgebraPhysical.PhysicalOpr.newBuilder();
         GraphAlgebraPhysical.Join.Builder joinBuilder = GraphAlgebraPhysical.Join.newBuilder();

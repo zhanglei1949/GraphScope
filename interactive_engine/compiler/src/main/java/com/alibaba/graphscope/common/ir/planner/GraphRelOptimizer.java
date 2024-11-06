@@ -115,7 +115,11 @@ public class GraphRelOptimizer {
             relPlanner.setRoot(before);
             RelNode relOptimized = relPlanner.findBestExp();
             if (config.getRules().contains(FlatJoinToExpandRule.class.getSimpleName())) {
-                relOptimized = relOptimized.accept(new FlatJoinToExpandRule(graphConfig));
+                relOptimized = relOptimized.accept(new FlatJoinToExpandRule());
+            }
+            if (config.getRules().contains(FlatJoinToCommonRule.class.getSimpleName())) {
+                relOptimized =
+                        relOptimized.accept(new FlatJoinToCommonRule(ioProcessor.getBuilder()));
             }
             if (config.getRules().contains(FlatJoinToIntersectRule.class.getSimpleName())) {
                 relOptimized =

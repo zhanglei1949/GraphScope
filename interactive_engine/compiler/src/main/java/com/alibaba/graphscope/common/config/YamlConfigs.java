@@ -39,7 +39,9 @@ public class YamlConfigs extends Configs {
                 .put(
                         "graph.planner.join.min.pattern.size",
                         (Configs configs) -> configs.get("compiler.planner.join_min_pattern_size"))
-                .put("graph.planner.trim.class.names", (Configs configs) -> configs.get("compiler.planner.trim_class_names"))
+                .put(
+                        "graph.planner.trim.class.names",
+                        (Configs configs) -> configs.get("compiler.planner.trim_class_names"))
                 .put("graph.planner.opt", (Configs configs) -> configs.get("compiler.planner.opt"))
                 .put(
                         "graph.planner.rules",

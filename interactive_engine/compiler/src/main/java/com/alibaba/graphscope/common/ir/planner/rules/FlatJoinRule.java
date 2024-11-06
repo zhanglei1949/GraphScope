@@ -33,10 +33,12 @@ import com.google.common.collect.Maps;
 import org.apache.calcite.plan.GraphOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.logical.LogicalFilter;
 import org.apache.calcite.rel.logical.LogicalJoin;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.commons.lang3.ObjectUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -542,6 +544,55 @@ public abstract class FlatJoinRule extends GraphShuttle {
         @Override
         public RelNode visit(GraphLogicalSource source) {
             return input;
+        }
+    }
+
+    // perform the transformation from the join plan to the expand plan
+    // replace the source operator of the right plan with the left plan,
+    // i.e. join(getV1->expand1->source1, getV2->expand2->source2) =>
+    // getV2->expand2->getV1->expand1->source1
+    static class ExpandFlatter extends GraphShuttle {
+        protected final RelNode expandSource;
+        protected final AliasNameWithId expandSourceAlias;
+        protected final boolean optional;
+        protected final List<RexNode> otherJoinConditions;
+
+        public ExpandFlatter(
+                RelNode expandSource,
+                AliasNameWithId expandSourceAlias,
+                boolean optional,
+                List<RexNode> otherJoinConditions) {
+            this.expandSource = expandSource;
+            this.expandSourceAlias = expandSourceAlias;
+            this.optional = optional;
+            this.otherJoinConditions = otherJoinConditions;
+        }
+
+        @Override
+        public RelNode visit(GraphLogicalSingleMatch match) {
+            RelNode sentence = match.getSentence();
+            // reverse the sentence if the expand order does not start from the 'leftAlias'
+            RelNode source = getSource(sentence);
+            if (getAliasId(source) != expandSourceAlias.getAliasId()) {
+                sentence = sentence.accept(new FlatJoinRule.Reverse(sentence));
+            }
+            // set expand operators in the right plan as optional if 'optional' = true
+            if (optional) {
+                sentence = sentence.accept(new FlatJoinRule.SetOptional());
+            }
+            // replace the source operator of the sentence with the left plan
+            RelNode expand =
+                    sentence.accept(new FlatJoinRule.ReplaceInput(expandSourceAlias, expandSource));
+            // if there are other join conditions, add a filter operator on top of the expand
+            // operator
+            if (!otherJoinConditions.isEmpty()) {
+                RexNode otherJoinCondition =
+                        RexUtil.composeConjunction(
+                                match.getCluster().getRexBuilder(), otherJoinConditions);
+                LogicalFilter filter = LogicalFilter.create(expand, otherJoinCondition);
+                expand = filter;
+            }
+            return expand;
         }
     }
 }
