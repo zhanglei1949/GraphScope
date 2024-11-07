@@ -460,6 +460,10 @@ std::shared_ptr<IContextColumn> build_topN_column(
     return build_topN_value_column_impl<int32_t>(expr, row_num, limit, asc,
                                                  offsets);
   }
+  case common::DataType::TIMESTAMP: {
+    return build_topN_value_column_impl<Date>(expr, row_num, limit, asc,
+                                              offsets);
+  }
   default: {
     LOG(INFO) << "type: " << common::DataType_Name(data_type.data_type())
               << " not implemented...";

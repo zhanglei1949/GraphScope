@@ -230,56 +230,6 @@ class VertexPropertyLTPredicateBeta : public SPVertexPredicate {
   T target_;
 };
 
-template <>
-class VertexPropertyLTPredicateBeta<int64_t> : public SPVertexPredicate {
- public:
-  using T = int64_t;
-  VertexPropertyLTPredicateBeta(const ReadTransaction& txn,
-                                const std::string& property_name,
-                                const std::string& target_str) {
-    label_t label_num = txn.schema().vertex_label_num();
-    columns_.resize(label_num, nullptr);
-    date_columns_.resize(label_num, nullptr);
-    for (label_t i = 0; i < label_num; ++i) {
-      auto col = txn.get_vertex_property_column(i, property_name);
-      if (col != nullptr) {
-        auto casted_col = std::dynamic_pointer_cast<TypedColumn<T>>(col);
-        if (casted_col != nullptr) {
-          columns_[i] = casted_col.get();
-        } else {
-          auto casted_date_col =
-              std::dynamic_pointer_cast<TypedColumn<Date>>(col);
-          if (casted_date_col != nullptr) {
-            date_columns_[i] = casted_date_col.get();
-          }
-        }
-      }
-    }
-    target_ = TypedConverter<T>::typed_from_string(target_str);
-  }
-
-  ~VertexPropertyLTPredicateBeta() = default;
-
-  SPVertexPredicateType type() const override {
-    return SPVertexPredicateType::kPropertyLT;
-  }
-
-  RTAnyType data_type() const override { return TypedConverter<T>::type(); }
-
-  bool operator()(label_t label, vid_t v) const {
-    if (columns_[label] != nullptr) {
-      return columns_[label]->get_view(v) < target_;
-    } else {
-      return date_columns_[label]->get_view(v).milli_second < target_;
-    }
-  }
-
- private:
-  std::vector<TypedColumn<T>*> columns_;
-  std::vector<TypedColumn<Date>*> date_columns_;
-  T target_;
-};
-
 template <typename T>
 class VertexPropertyLEPredicateBeta : public SPVertexPredicate {
  public:
@@ -314,57 +264,6 @@ class VertexPropertyLEPredicateBeta : public SPVertexPredicate {
 
  private:
   std::vector<TypedColumn<T>*> columns_;
-  T target_;
-};
-
-template <>
-class VertexPropertyLEPredicateBeta<int64_t> : public SPVertexPredicate {
-  using T = int64_t;
-
- public:
-  VertexPropertyLEPredicateBeta(const ReadTransaction& txn,
-                                const std::string& property_name,
-                                const std::string& target_str) {
-    label_t label_num = txn.schema().vertex_label_num();
-    columns_.resize(label_num, nullptr);
-    date_columns_.resize(label_num, nullptr);
-    for (label_t i = 0; i < label_num; ++i) {
-      auto col = txn.get_vertex_property_column(i, property_name);
-      if (col != nullptr) {
-        auto casted_col = std::dynamic_pointer_cast<TypedColumn<T>>(col);
-        if (casted_col != nullptr) {
-          columns_[i] = casted_col.get();
-        } else {
-          auto casted_date_col =
-              std::dynamic_pointer_cast<TypedColumn<Date>>(col);
-          if (casted_date_col != nullptr) {
-            date_columns_[i] = casted_date_col.get();
-          }
-        }
-      }
-    }
-    target_ = TypedConverter<T>::typed_from_string(target_str);
-  }
-
-  ~VertexPropertyLEPredicateBeta() = default;
-
-  SPVertexPredicateType type() const override {
-    return SPVertexPredicateType::kPropertyLE;
-  }
-
-  RTAnyType data_type() const override { return TypedConverter<T>::type(); }
-
-  bool operator()(label_t label, vid_t v) const {
-    if (columns_[label] != nullptr) {
-      return !(target_ < columns_[label]->get_view(v));
-    } else {
-      return !(target_ < date_columns_[label]->get_view(v).milli_second);
-    }
-  }
-
- private:
-  std::vector<TypedColumn<T>*> columns_;
-  std::vector<TypedColumn<Date>*> date_columns_;
   T target_;
 };
 
@@ -519,62 +418,6 @@ class VertexPropertyBetweenPredicateBeta : public SPVertexPredicate {
 
  private:
   std::vector<TypedColumn<T>*> columns_;
-  T from_;
-  T to_;
-};
-
-template <>
-class VertexPropertyBetweenPredicateBeta<int64_t> : public SPVertexPredicate {
-  using T = int64_t;
-
- public:
-  VertexPropertyBetweenPredicateBeta(const ReadTransaction& txn,
-                                     const std::string& property_name,
-                                     const std::string& from_str,
-                                     const std::string& to_str) {
-    label_t label_num = txn.schema().vertex_label_num();
-    columns_.resize(label_num, nullptr);
-    date_columns_.resize(label_num, nullptr);
-    for (label_t i = 0; i < label_num; ++i) {
-      auto col = txn.get_vertex_property_column(i, property_name);
-      if (col != nullptr) {
-        auto casted_col = std::dynamic_pointer_cast<TypedColumn<T>>(col);
-        if (casted_col != nullptr) {
-          columns_[i] = casted_col.get();
-        } else {
-          auto casted_date_col =
-              std::dynamic_pointer_cast<TypedColumn<Date>>(col);
-          if (casted_date_col != nullptr) {
-            date_columns_[i] = casted_date_col.get();
-          }
-        }
-      }
-    }
-    from_ = TypedConverter<T>::typed_from_string(from_str);
-    to_ = TypedConverter<T>::typed_from_string(to_str);
-  }
-
-  ~VertexPropertyBetweenPredicateBeta() = default;
-
-  SPVertexPredicateType type() const override {
-    return SPVertexPredicateType::kPropertyBetween;
-  }
-
-  RTAnyType data_type() const override { return TypedConverter<T>::type(); }
-
-  bool operator()(label_t label, vid_t v) const {
-    int64_t val;
-    if (columns_[label] != nullptr) {
-      val = columns_[label]->get_view(v);
-    } else {
-      val = date_columns_[label]->get_view(v).milli_second;
-    }
-    return ((val < to_) && !(val < from_));
-  }
-
- private:
-  std::vector<TypedColumn<T>*> columns_;
-  std::vector<TypedColumn<Date>*> date_columns_;
   T from_;
   T to_;
 };
@@ -909,41 +752,6 @@ class EdgePropertyLTPredicate : public SPEdgePredicate {
   T target_;
 };
 
-template <>
-class EdgePropertyLTPredicate<int64_t> : public SPEdgePredicate {
-  using T = int64_t;
-
- public:
-  EdgePropertyLTPredicate(const std::string& target_str) {
-    target_ = TypedConverter<T>::typed_from_string(target_str);
-  }
-
-  ~EdgePropertyLTPredicate() = default;
-
-  SPEdgePredicateType type() const override {
-    return SPEdgePredicateType::kPropertyLT;
-  }
-
-  RTAnyType data_type() const override { return TypedConverter<T>::type(); }
-
-  bool operator()(label_t v_label, vid_t v, label_t nbr_label, vid_t nbr,
-                  label_t edge_label, Direction dir, const T& edata) const {
-    return edata < target_;
-  }
-
-  bool operator()(const LabelTriplet& label, vid_t src, vid_t dst,
-                  const Any& edata, Direction dir, size_t idx) const {
-    if (edata.type == PropertyType::Date()) {
-      return edata.AsDate().milli_second < target_;
-    } else {
-      return edata.AsInt64() < target_;
-    }
-  }
-
- private:
-  T target_;
-};
-
 template <typename T>
 class EdgePropertyGTPredicate : public SPEdgePredicate {
  public:
@@ -967,41 +775,6 @@ class EdgePropertyGTPredicate : public SPEdgePredicate {
   bool operator()(const LabelTriplet& label, vid_t src, vid_t dst,
                   const Any& edata, Direction dir, size_t idx) const {
     return target_ < AnyConverter<T>::from_any(edata);
-  }
-
- private:
-  T target_;
-};
-
-template <>
-class EdgePropertyGTPredicate<int64_t> : public SPEdgePredicate {
-  using T = int64_t;
-
- public:
-  EdgePropertyGTPredicate(const std::string& target_str) {
-    target_ = TypedConverter<T>::typed_from_string(target_str);
-  }
-
-  ~EdgePropertyGTPredicate() = default;
-
-  SPEdgePredicateType type() const override {
-    return SPEdgePredicateType::kPropertyGT;
-  }
-
-  RTAnyType data_type() const override { return TypedConverter<T>::type(); }
-
-  bool operator()(label_t v_label, vid_t v, label_t nbr_label, vid_t nbr,
-                  label_t edge_label, Direction dir, const T& edata) const {
-    return target_ < edata;
-  }
-
-  bool operator()(const LabelTriplet& label, vid_t src, vid_t dst,
-                  const Any& edata, Direction dir, size_t idx) const {
-    if (edata.type == PropertyType::Date()) {
-      return target_ < edata.AsDate().milli_second;
-    } else {
-      return target_ < edata.AsInt64();
-    }
   }
 
  private:
@@ -1081,6 +854,18 @@ inline std::unique_ptr<SPEdgePredicate> parse_special_edge_predicate(
       } else if (ptype == SPEdgePredicateType::kPropertyGT) {
         return std::unique_ptr<SPEdgePredicate>(
             new EdgePropertyGTPredicate<int>(value_str));
+      } else {
+        LOG(INFO) << "AAAA";
+        return nullptr;
+      }
+    } else if (op2.param().data_type().data_type() ==
+               common::DataType::TIMESTAMP) {
+      if (ptype == SPEdgePredicateType::kPropertyLT) {
+        return std::unique_ptr<SPEdgePredicate>(
+            new EdgePropertyLTPredicate<Date>(value_str));
+      } else if (ptype == SPEdgePredicateType::kPropertyGT) {
+        return std::unique_ptr<SPEdgePredicate>(
+            new EdgePropertyGTPredicate<Date>(value_str));
       } else {
         LOG(INFO) << "AAAA";
         return nullptr;

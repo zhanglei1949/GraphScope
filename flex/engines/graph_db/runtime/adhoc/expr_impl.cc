@@ -494,18 +494,21 @@ static RTAny parse_param(const common::DynamicParam& param,
     common::DataType dt = param.data_type().data_type();
     const std::string& name = param.name();
     if (dt == common::DataType::DATE32) {
-      int64_t val = std::stoll(input.at(name));
-      return RTAny::from_int64(val);
+      Day val = Day(std::stoll(input.at(name)));
+
+      return RTAny::from_date32(val);
     } else if (dt == common::DataType::STRING) {
       const std::string& val = input.at(name);
       return RTAny::from_string(val);
     } else if (dt == common::DataType::INT32) {
       int val = std::stoi(input.at(name));
       return RTAny::from_int32(val);
-    } else if (dt == common::DataType::INT64 ||
-               dt == common::DataType::TIMESTAMP) {
+    } else if (dt == common::DataType::INT64) {
       int64_t val = std::stoll(input.at(name));
       return RTAny::from_int64(val);
+    } else if (dt == common::DataType::TIMESTAMP) {
+      Date val = Date(std::stoll(input.at(name)));
+      return RTAny::from_timestamp(val);
     }
 
     LOG(FATAL) << "not support type: " << common::DataType_Name(dt);
