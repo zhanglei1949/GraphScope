@@ -122,9 +122,9 @@ void generate_compiler_configs(const std::string& graph_yaml,
                                const std::string& statistics_json,
                                const std::string& path) {
   std::vector<std::string> rules = {
-      "FilterIntoJoinRule",  "FilterMatchRule",      "NotMatchToAntiJoinRule",
-      "ExtendIntersectRule", "ExpandGetVFusionRule", "FlatJoinToExpandRule",
-      "FieldTrimRule"};
+      "FilterIntoJoinRule",   "FilterMatchRule",      "NotMatchToAntiJoinRule",
+      "ExtendIntersectRule",  "ExpandGetVFusionRule", "FlatJoinToExpandRule",
+      "FlatJoinToCommonRule", "FieldTrimRule"};
   std::string compiler_config =
       generate_compiler_config(graph_yaml, statistics_json, rules);
   std::ofstream out(path);

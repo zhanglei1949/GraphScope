@@ -622,7 +622,7 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
           break;
         }
       }
-      Context ret_dup;
+      Context ret_dup(ret);
       auto ctx = runtime_eval_impl(op.left_plan(), std::move(ret), txn, params,
                                    op_id_offset + 100, op_name + "-left");
       auto ctx2 =
