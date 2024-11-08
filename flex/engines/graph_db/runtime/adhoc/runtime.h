@@ -22,48 +22,41 @@ namespace gs {
 
 namespace runtime {
 
-class OpCost {
+class OprTimer {
  public:
-  OpCost() {}
-  ~OpCost() {
-    LOG(INFO) << "op elapsed time: ";
-    for (auto& pair : table) {
-      LOG(INFO) << "\t" << pair.first << ": " << pair.second << " ("
-                << pair.second / total * 100.0 << "%)";
-    }
+  OprTimer() = default;
+  ~OprTimer() = default;
+
+  void add_total(double time) { total_time_ += time; }
+
+  void record_opr(const std::string& opr, double time) {
+    opr_timers_[opr] += time;
   }
 
-  static OpCost& get() {
-    static OpCost instance;
-    return instance;
+  void record_routine(const std::string& routine, double time) {
+    routine_timers_[routine] += time;
   }
 
-  void add_total(double t) { total += t; }
+  void output(const std::string& path) const;
 
-  void output(const std::string& path) const {
-    std::ofstream fout(path);
-    for (auto& pair : table) {
-      fout << pair.first << ": " << pair.second << " ("
-           << pair.second / total * 100.0 << "%)" << std::endl;
-    }
-    fout.flush();
-  }
+  void clear();
 
-  void clear() {
-    total = 0;
-    table.clear();
-  }
+  OprTimer& operator+=(const OprTimer& other);
 
-  std::map<std::string, double> table;
-  double total = 0;
+ private:
+  std::map<std::string, double> opr_timers_;
+  std::map<std::string, double> routine_timers_;
+  double total_time_ = 0;
 };
 
 Context runtime_eval(const physical::PhysicalPlan& plan,
                      const ReadTransaction& txn,
-                     const std::map<std::string, std::string>& params);
+                     const std::map<std::string, std::string>& params,
+                     OprTimer& timer);
 WriteContext runtime_eval(const physical::PhysicalPlan& plan,
                           InsertTransaction& txn,
-                          const std::map<std::string, std::string>& params);
+                          const std::map<std::string, std::string>& params,
+                          OprTimer& timer);
 
 }  // namespace runtime
 

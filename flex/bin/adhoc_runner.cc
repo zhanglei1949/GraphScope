@@ -160,30 +160,32 @@ int main(int argc, char** argv) {
   }
   std::vector<std::vector<char>> outputs(query_num);
 
+  gs::runtime::OprTimer timer;
+
   double t1 = -grape::GetCurrentTime();
   for (int i = 0; i < query_num; ++i) {
     auto& m = map[i % params_num];
-    auto ctx = gs::runtime::runtime_eval(pb, txn, m);
+    auto ctx = gs::runtime::runtime_eval(pb, txn, m, timer);
     gs::Encoder output(outputs[i]);
     gs::runtime::eval_sink_beta(ctx, txn, output);
   }
   t1 += grape::GetCurrentTime();
 
-  // gs::runtime::OpCost::get().clear();
+  // timer.clear();
   // double t2 = -grape::GetCurrentTime();
   // for (int i = 0; i < query_num; ++i) {
   //   auto& m = map[i % params_num];
-  //   auto ctx = gs::runtime::runtime_eval(pb, txn, m);
+  //   auto ctx = gs::runtime::runtime_eval(pb, txn, m, timer);
   //   outputs[i].clear();
   //   gs::Encoder output(outputs[i]);
   //   gs::runtime::eval_sink_beta(ctx, txn, output);
   // }
   // t2 += grape::GetCurrentTime();
 
-  // double t3 = -grape::GetCurrentTime();
+  // timer.clear();
   // for (int i = 0; i < query_num; ++i) {
   //   auto& m = map[i % params_num];
-  //   auto ctx = gs::runtime::runtime_eval(pb, txn, m);
+  //   auto ctx = gs::runtime::runtime_eval(pb, txn, m, timer);
   //   outputs[i].clear();
   //   gs::Encoder output(outputs[i]);
   //   gs::runtime::eval_sink(ctx, txn, output);
@@ -209,7 +211,7 @@ int main(int argc, char** argv) {
     fclose(fout);
   }
   if (!log_path.empty()) {
-    gs::runtime::OpCost::get().output(log_path);
+    timer.output(log_path);
   }
 
   return 0;

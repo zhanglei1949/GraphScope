@@ -641,13 +641,9 @@ bool is_property_expr(const common::Expression& expr, int& tag_id,
 
 Context eval_project_order_by(
     const physical::Project& project_opr, const algebra::OrderBy& order_by_opr,
-    const ReadTransaction& txn, Context&& ctx,
+    const ReadTransaction& txn, Context&& ctx, OprTimer& timer,
     const std::map<std::string, std::string>& params,
     const std::vector<common::IrDataType>& data_types) {
-#ifdef SINGLE_THREAD
-  auto& op_cost = OpCost::get().table;
-#endif
-  double t0 = -grape::GetCurrentTime();
   int mappings_size = project_opr.mappings_size();
 
   int order_by_keys_num = order_by_opr.pairs_size();
@@ -684,13 +680,8 @@ Context eval_project_order_by(
             if (is_property_expr(m.expr(), tag_id, property_name)) {
               if (ctx.get(tag_id)->column_type() ==
                   ContextColumnType::kVertex) {
-                double tb = -grape::GetCurrentTime();
                 auto col = build_topN_property_column(
                     txn, ctx.get(tag_id), property_name, limit, asc, offsets);
-                tb += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-                op_cost["project_order_by_topN_property"] += tb;
-#endif
                 if (col != nullptr) {
                   success = true;
                   ctx.reshuffle(offsets);
@@ -753,13 +744,11 @@ Context eval_project_order_by(
     }
   }
 
-  t0 += grape::GetCurrentTime();
-
   double t1 = -grape::GetCurrentTime();
-  ctx = eval_order_by(order_by_opr, txn, std::move(ctx), !success);
+  ctx = eval_order_by(order_by_opr, txn, std::move(ctx), timer, !success);
   t1 += grape::GetCurrentTime();
+  timer.record_routine("project_order_by:order_by", t1);
 
-  double t2 = -grape::GetCurrentTime();
   row_num = ctx.row_num();
   Context ret;
 
@@ -782,12 +771,6 @@ Context eval_project_order_by(
     ret.set(alias, ctx.get(alias));
   }
   ret.update_tag_ids(tags);
-  t2 += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-  op_cost["project_order_by:partial_project"] += t0;
-  op_cost["project_order_by:order_by"] += t1;
-  op_cost["project_order_by:project"] += t2;
-#endif
 
   return ret;
 }

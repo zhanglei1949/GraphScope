@@ -161,9 +161,6 @@ Context EdgeExpand::expand_edge_without_predicate(
                                                        params);
   }
   std::vector<size_t> shuffle_offset;
-#ifdef SINGLE_THREAD
-  auto& op_cost = OpCost::get().table;
-#endif
 
   if (params.labels.size() == 1) {
     if (params.dir == Direction::kIn) {
@@ -187,7 +184,6 @@ Context EdgeExpand::expand_edge_without_predicate(
                                     props);
 
       label_t dst_label = params.labels[0].dst_label;
-      double t = -grape::GetCurrentTime();
       foreach_vertex(input_vertex_list,
                      [&](size_t index, label_t label, vid_t v) {
                        if (label != dst_label) {
@@ -204,10 +200,6 @@ Context EdgeExpand::expand_edge_without_predicate(
                          ie_iter.Next();
                        }
                      });
-      t += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-      op_cost["EEP-01"] += t;
-#endif
 
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       return ctx;
@@ -232,7 +224,6 @@ Context EdgeExpand::expand_edge_without_predicate(
       SDSLEdgeColumnBuilder builder(Direction::kOut, params.labels[0], pt,
                                     props);
       label_t src_label = params.labels[0].src_label;
-      double t = -grape::GetCurrentTime();
       foreach_vertex(input_vertex_list,
                      [&](size_t index, label_t label, vid_t v) {
                        if (label != src_label) {
@@ -249,10 +240,6 @@ Context EdgeExpand::expand_edge_without_predicate(
                          oe_iter.Next();
                        }
                      });
-      t += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-      op_cost["EEP-02"] += t;
-#endif
 
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       return ctx;
@@ -267,7 +254,6 @@ Context EdgeExpand::expand_edge_without_predicate(
         pt = props[0];
       }
       BDSLEdgeColumnBuilder builder(params.labels[0], pt);
-      double t = -grape::GetCurrentTime();
       foreach_vertex(input_vertex_list, [&](size_t index, label_t label,
                                             vid_t v) {
         if (label == params.labels[0].src_label) {
@@ -293,10 +279,6 @@ Context EdgeExpand::expand_edge_without_predicate(
           }
         }
       });
-      t += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-      op_cost["EEP-03"] += t;
-#endif
       ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
       return ctx;
     }
@@ -329,7 +311,6 @@ Context EdgeExpand::expand_edge_without_predicate(
           auto& triplet = labels[0];
           SDSLEdgeColumnBuilder builder(Direction::kOut, triplet,
                                         label_props[0].second, props_vec[0]);
-          double t = -grape::GetCurrentTime();
           foreach_vertex(
               input_vertex_list, [&](size_t index, label_t label, vid_t v) {
                 if (label == triplet.src_label) {
@@ -343,10 +324,6 @@ Context EdgeExpand::expand_edge_without_predicate(
                   }
                 }
               });
-          t += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-          op_cost["EEP-04"] += t;
-#endif
           ctx.set_with_reshuffle(params.alias, builder.finish(),
                                  shuffle_offset);
           return ctx;
@@ -354,7 +331,6 @@ Context EdgeExpand::expand_edge_without_predicate(
           auto& triplet = labels[0];
           SDSLEdgeColumnBuilder builder(Direction::kIn, triplet,
                                         label_props[0].second, props_vec[0]);
-          double t = -grape::GetCurrentTime();
           foreach_vertex(
               input_vertex_list, [&](size_t index, label_t label, vid_t v) {
                 if (label == triplet.dst_label) {
@@ -368,10 +344,6 @@ Context EdgeExpand::expand_edge_without_predicate(
                   }
                 }
               });
-          t += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-          op_cost["EEP-05"] += t;
-#endif
           ctx.set_with_reshuffle(params.alias, builder.finish(),
                                  shuffle_offset);
           return ctx;
@@ -382,7 +354,6 @@ Context EdgeExpand::expand_edge_without_predicate(
 
         SDMLEdgeColumnBuilder builder(params.dir, label_props);
         if (params.dir == Direction::kOut) {
-          double t = -grape::GetCurrentTime();
           foreach_vertex(input_vertex_list, [&](size_t index, label_t label,
                                                 vid_t v) {
             for (auto& triplet : labels) {
@@ -400,12 +371,7 @@ Context EdgeExpand::expand_edge_without_predicate(
               }
             }
           });
-          t += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-          op_cost["EEP-06"] += t;
-#endif
         } else {
-          double t = -grape::GetCurrentTime();
           foreach_vertex(input_vertex_list, [&](size_t index, label_t label,
                                                 vid_t v) {
             for (auto& triplet : labels) {
@@ -423,10 +389,6 @@ Context EdgeExpand::expand_edge_without_predicate(
               }
             }
           });
-          t += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-          op_cost["EEP-07"] += t;
-#endif
         }
 
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
@@ -437,7 +399,6 @@ Context EdgeExpand::expand_edge_without_predicate(
         BDSLEdgeColumnBuilder builder(labels[0], label_props[0].second);
         auto& input_vertex_list =
             *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
-        double t = -grape::GetCurrentTime();
         foreach_vertex(input_vertex_list, [&](size_t index, label_t label,
                                               vid_t v) {
           if (label == labels[0].src_label) {
@@ -461,18 +422,12 @@ Context EdgeExpand::expand_edge_without_predicate(
             }
           }
         });
-        t += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-        op_cost["EEP-08"] += t;
-#endif
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
         return ctx;
-
       } else {
         BDMLEdgeColumnBuilder builder(label_props);
         auto& input_vertex_list =
             *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
-        double t = -grape::GetCurrentTime();
         foreach_vertex(
             input_vertex_list, [&](size_t index, label_t label, vid_t v) {
               for (auto& triplet : labels) {
@@ -500,10 +455,6 @@ Context EdgeExpand::expand_edge_without_predicate(
                 }
               }
             });
-        t += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-        op_cost["EEP-09"] += t;
-#endif
         ctx.set_with_reshuffle(params.alias, builder.finish(), shuffle_offset);
         return ctx;
       }
@@ -516,10 +467,6 @@ Context EdgeExpand::expand_edge_without_predicate(
 
 Context EdgeExpand::expand_vertex_without_predicate(
     const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params) {
-#ifdef SINGLE_THREAD
-  auto& op_cost = OpCost::get().table;
-#endif
-
   std::shared_ptr<IVertexColumn> input_vertex_list =
       std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
   VertexColumnType input_vertex_list_type =
@@ -545,13 +492,8 @@ Context EdgeExpand::expand_vertex_without_predicate(
         ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
         return ctx;
       } else {
-        double t = -grape::GetCurrentTime();
         auto pair = expand_vertex_without_predicate_impl(
             txn, *casted_input_vertex_list, params.labels, params.dir);
-        t += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-        op_cost["VENP[1-7,12]"] += t;
-#endif
         ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
         return ctx;
       }
@@ -564,18 +506,11 @@ Context EdgeExpand::expand_vertex_without_predicate(
           txn, *casted_input_vertex_list, params.labels, params.dir);
       ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
       return ctx;
-      // LOG(FATAL) << "not support optional vertex column as input currently";
-      // return ctx;
     }
     auto casted_input_vertex_list =
         std::dynamic_pointer_cast<MLVertexColumn>(input_vertex_list);
-    double t = -grape::GetCurrentTime();
     auto pair = expand_vertex_without_predicate_impl(
         txn, *casted_input_vertex_list, params.labels, params.dir);
-    t += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-    op_cost["VENP[8-9]"] += t;
-#endif
     ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
     return ctx;
   } else if (input_vertex_list_type == VertexColumnType::kMultiSegment) {

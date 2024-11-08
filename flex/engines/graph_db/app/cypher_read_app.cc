@@ -47,7 +47,7 @@ bool CypherReadApp::Query(const GraphDBSession& graph, Decoder& input,
 
   // LOG(INFO) << "plan: " << plan.DebugString();
 
-  auto ctx = runtime::runtime_eval(plan, txn, params);
+  auto ctx = runtime::runtime_eval(plan, txn, params, timer_);
 
   runtime::eval_sink_encoder(ctx, txn, output);
   return true;

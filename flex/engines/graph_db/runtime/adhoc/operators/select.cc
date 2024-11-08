@@ -15,6 +15,7 @@
 
 #include "flex/engines/graph_db/runtime/adhoc/expr.h"
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
+#include "flex/engines/graph_db/runtime/adhoc/runtime.h"
 
 namespace gs {
 
@@ -213,25 +214,33 @@ Context eval_select_date_within(
 
 Context eval_select(const algebra::Select& opr, const ReadTransaction& txn,
                     Context&& ctx,
-                    const std::map<std::string, std::string>& params) {
+                    const std::map<std::string, std::string>& params,
+                    OprTimer& timer) {
   int vertex_tag = -1;
   int set_tag = -1;
   vid_t vid{};
+  double t = -grape::GetCurrentTime();
   if (is_vertex_ne_id(txn, opr.predicate(), ctx, params, vertex_tag, vid)) {
-    // LOG(INFO) << "Select vertex ne id";
-    return eval_select_vertex_ne_id(opr, txn, std::move(ctx), params,
-                                    vertex_tag, vid);
+    auto ret = eval_select_vertex_ne_id(opr, txn, std::move(ctx), params,
+                                        vertex_tag, vid);
+    t += grape::GetCurrentTime();
+    timer.record_routine("select::vertex_ne_id", t);
+    return ret;
   }
   if (is_vertex_within_set(opr.predicate(), ctx, vertex_tag, set_tag)) {
-    // LOG(INFO) << "Select vertex within set";
-    return eval_select_vertex_within_set(opr, txn, std::move(ctx), params,
-                                         vertex_tag, set_tag);
+    auto ret = eval_select_vertex_within_set(opr, txn, std::move(ctx), params,
+                                             vertex_tag, set_tag);
+    t += grape::GetCurrentTime();
+    timer.record_routine("select::vertex_within_set", t);
+    return ret;
   }
   int date_tag = -1;
   int month = -1;
   if (is_date_within(opr, txn, ctx, params, date_tag, month)) {
     auto ret = eval_select_date_within(opr, txn, std::move(ctx), params,
                                        date_tag, month);
+    t += grape::GetCurrentTime();
+    timer.record_routine("select::date_within", t);
     return ret;
   }
 
@@ -256,6 +265,8 @@ Context eval_select(const algebra::Select& opr, const ReadTransaction& txn,
   }
 
   ctx.reshuffle(offsets);
+  t += grape::GetCurrentTime();
+  timer.record_routine("select::default", t);
   return ctx;
 }
 

@@ -173,6 +173,8 @@ class GraphDB {
 
   std::string work_dir() const { return work_dir_; }
 
+  void OutputCypherProfiles(const std::string& prefix);
+
  private:
   bool registerApp(const std::string& path, uint8_t index = 0);
 

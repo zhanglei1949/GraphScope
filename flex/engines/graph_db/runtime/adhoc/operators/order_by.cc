@@ -60,10 +60,8 @@ class GeneralComparer {
 };
 
 Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
-                      Context&& ctx, bool enable_staged) {
-#ifdef SINGLE_THREAD
-  auto& op_cost = OpCost::get().table;
-#endif
+                      Context&& ctx, OprTimer& timer, bool enable_staged) {
+  double t = -grape::GetCurrentTime();
   int lower = 0;
   int upper = std::numeric_limits<int>::max();
   if (opr.has_limit()) {
@@ -74,63 +72,59 @@ Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
   GeneralComparer cmp;
   int keys_num = opr.pairs_size();
   CHECK_GE(keys_num, 1);
-  double t0 = -grape::GetCurrentTime();
   bool staged_order_by = false;
   std::vector<size_t> picked_indices;
-#if 1
-  if (enable_staged) {
-    if (ctx.row_num() <= static_cast<size_t>(upper)) {
-      // LOG(INFO) << "row number of context <= upper, fallback";
-    } else {
-      if (opr.pairs(0).key().has_tag() &&
-          opr.pairs(0).key().tag().item_case() ==
-              common::NameOrId::ItemCase::kId) {
-        int tag = opr.pairs(0).key().tag().id();
-        if ((opr.pairs(0).order() == algebra::OrderBy_OrderingPair_Order::
-                                         OrderBy_OrderingPair_Order_ASC) ||
-            (opr.pairs(0).order() == algebra::OrderBy_OrderingPair_Order::
-                                         OrderBy_OrderingPair_Order_DESC)) {
-          bool asc = opr.pairs(0).order() ==
-                     algebra::OrderBy_OrderingPair_Order::
-                         OrderBy_OrderingPair_Order_ASC;
-          auto col = ctx.get(tag);
-          if (col != nullptr) {
-            if (!opr.pairs(0).key().has_property()) {
-              staged_order_by = col->order_by_limit(asc, upper, picked_indices);
-              if (!staged_order_by) {
-                LOG(INFO) << "column staged order by returns false, fallback";
-              }
-            } else if (col->column_type() == ContextColumnType::kVertex) {
-              std::string prop_name =
-                  opr.pairs(0).key().property().key().name();
-              if (prop_name == "id") {
-                staged_order_by = vertex_id_topN(
-                    asc, upper, std::dynamic_pointer_cast<IVertexColumn>(col),
-                    txn, picked_indices);
-              } else {
-                staged_order_by = vertex_property_topN(
-                    asc, upper, std::dynamic_pointer_cast<IVertexColumn>(col),
-                    txn, prop_name, picked_indices);
-              }
+  if (enable_staged && ctx.row_num() > static_cast<size_t>(upper)) {
+    if (opr.pairs(0).key().has_tag() && opr.pairs(0).key().tag().item_case() ==
+                                            common::NameOrId::ItemCase::kId) {
+      int tag = opr.pairs(0).key().tag().id();
+      if ((opr.pairs(0).order() == algebra::OrderBy_OrderingPair_Order::
+                                       OrderBy_OrderingPair_Order_ASC) ||
+          (opr.pairs(0).order() == algebra::OrderBy_OrderingPair_Order::
+                                       OrderBy_OrderingPair_Order_DESC)) {
+        bool asc =
+            opr.pairs(0).order() ==
+            algebra::OrderBy_OrderingPair_Order::OrderBy_OrderingPair_Order_ASC;
+        auto col = ctx.get(tag);
+        if (col != nullptr) {
+          if (!opr.pairs(0).key().has_property()) {
+            double tx = -grape::GetCurrentTime();
+            staged_order_by = col->order_by_limit(asc, upper, picked_indices);
+            if (!staged_order_by) {
+              LOG(INFO) << "column staged order by returns false, fallback";
+            }
+            tx += grape::GetCurrentTime();
+            timer.record_routine("order_by::column_order_by", tx);
+          } else if (col->column_type() == ContextColumnType::kVertex) {
+            std::string prop_name = opr.pairs(0).key().property().key().name();
+            if (prop_name == "id") {
+              double tx = -grape::GetCurrentTime();
+              staged_order_by = vertex_id_topN(
+                  asc, upper, std::dynamic_pointer_cast<IVertexColumn>(col),
+                  txn, picked_indices);
+              tx += grape::GetCurrentTime();
+              timer.record_routine("order_by::vertex_id_topN", tx);
             } else {
-              LOG(INFO) << "first key is property of not vertex, fallback";
+              double tx = -grape::GetCurrentTime();
+              staged_order_by = vertex_property_topN(
+                  asc, upper, std::dynamic_pointer_cast<IVertexColumn>(col),
+                  txn, prop_name, picked_indices);
+              tx += grape::GetCurrentTime();
+              timer.record_routine("order_by::vertex_property_topN", tx);
             }
           } else {
-            LOG(INFO) << "the col of first key is null, fallback";
+            LOG(INFO) << "first key is property of not vertex, fallback";
           }
         } else {
-          LOG(INFO) << "first pair doesn't have tag";
+          LOG(INFO) << "the col of first key is null, fallback";
         }
       } else {
-        LOG(INFO) << "order is not asc or desc";
+        LOG(INFO) << "first pair doesn't have tag";
       }
+    } else {
+      LOG(INFO) << "order is not asc or desc";
     }
   }
-#endif
-  t0 += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-  op_cost["order_by:preprocess"] += t0;
-#endif
   for (int i = 0; i < keys_num; ++i) {
     const algebra::OrderBy_OrderingPair& pair = opr.pairs(i);
     Var v(txn, ctx, pair.key(), VarType::kPathVar);
@@ -145,22 +139,21 @@ Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
   }
 
   if (!staged_order_by) {
-    double t1 = -grape::GetCurrentTime();
+    double tx = -grape::GetCurrentTime();
     OrderBy::order_by_with_limit<GeneralComparer>(txn, ctx, cmp, lower, upper);
-    t1 += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-    op_cost["order_by:order_by"] += t0;
-#endif
+    tx += grape::GetCurrentTime();
+    timer.record_routine("order_by::order_by_with_limit", tx);
   } else {
-    double t1 = -grape::GetCurrentTime();
     CHECK_GE(picked_indices.size(), upper);
+    double tx = -grape::GetCurrentTime();
     OrderBy::staged_order_by_with_limit<GeneralComparer>(txn, ctx, cmp, lower,
                                                          upper, picked_indices);
-    t1 += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-    op_cost["order_by:staged_order_by"] += t1;
-#endif
+    tx += grape::GetCurrentTime();
+    timer.record_routine("order_by::staged_order_by_with_limit", tx);
   }
+  t += grape::GetCurrentTime();
+  timer.record_routine(staged_order_by ? "order_by_staged" : "order_by_normal",
+                       t);
   return ctx;
 }
 

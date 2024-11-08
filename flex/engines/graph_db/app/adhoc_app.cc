@@ -1,7 +1,6 @@
 #include "flex/engines/graph_db/app/adhoc_app.h"
 
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
-#include "flex/engines/graph_db/runtime/adhoc/runtime.h"
 
 #include "flex/proto_generated_gie/physical.pb.h"
 
@@ -20,7 +19,7 @@ bool AdhocReadApp::Query(const GraphDBSession& graph, Decoder& input,
 
   LOG(INFO) << "plan: " << plan.DebugString();
 
-  auto ctx = runtime::runtime_eval(plan, txn, {});
+  auto ctx = runtime::runtime_eval(plan, txn, {}, timer_);
 
   runtime::eval_sink(ctx, txn, output);
 

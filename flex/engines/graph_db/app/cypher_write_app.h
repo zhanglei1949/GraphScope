@@ -17,6 +17,7 @@
 #define ENGINES_GRAPH_DB_CYPHER_WRITE_APP_H_
 #include "flex/engines/graph_db/app/app_base.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
+#include "flex/engines/graph_db/runtime/adhoc/runtime.h"
 
 #include "flex/proto_generated_gie/physical.pb.h"
 
@@ -29,9 +30,13 @@ class CypherWriteApp : public WriteAppBase {
 
   bool Query(GraphDBSession& graph, Decoder& input, Encoder& output) override;
 
+  const runtime::OprTimer& timer() const { return timer_; }
+  runtime::OprTimer& timer() { return timer_; }
+
  private:
   const GraphDB& db_;
   std::unordered_map<std::string, physical::PhysicalPlan> plan_cache_;
+  runtime::OprTimer timer_;
 };
 
 class CypherWriteAppFactory : public AppFactoryBase {

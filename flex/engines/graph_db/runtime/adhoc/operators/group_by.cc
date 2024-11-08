@@ -321,7 +321,6 @@ std::shared_ptr<IContextColumn> general_count_distinct(
 std::shared_ptr<IContextColumn> general_count(
     const std::vector<Var>& vars,
     const std::vector<std::vector<size_t>>& to_aggregate) {
-  double tx = -grape::GetCurrentTime();
   ValueColumnBuilder<int64_t> builder;
   if (vars.size() == 1) {
     if (vars[0].is_optional()) {
@@ -339,10 +338,6 @@ std::shared_ptr<IContextColumn> general_count(
         builder.push_back_opt(s);
       }
       auto ret = builder.finish();
-      tx += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-      OpCost::get().table["general_count_optional"] += tx;
-#endif
       return ret;
     }
   }
@@ -353,10 +348,6 @@ std::shared_ptr<IContextColumn> general_count(
     builder.push_back_opt(vec.size());
   }
   auto ret = builder.finish();
-  tx += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-  OpCost::get().table["general_count"] += tx;
-#endif
   return ret;
 }
 
@@ -731,7 +722,6 @@ std::shared_ptr<IContextColumn> apply_reduce(
 
 Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
                       Context&& ctx) {
-  double t0 = -grape::GetCurrentTime();
   std::vector<AggFunc> functions;
   std::vector<AggKey> mappings;
   int func_num = opr.functions_size();
@@ -740,8 +730,6 @@ Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
   }
 
   int mappings_num = opr.mappings_size();
-  t0 += grape::GetCurrentTime();
-  // return ctx;
   if (mappings_num == 0) {
     Context ret;
     for (int i = 0; i < func_num; ++i) {
@@ -756,19 +744,13 @@ Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
 
     return ret;
   } else {
-    double t1 = -grape::GetCurrentTime();
     for (int i = 0; i < mappings_num; ++i) {
       mappings.emplace_back(opr.mappings(i), txn, ctx);
     }
-    t1 += grape::GetCurrentTime();
 
-    double t2 = -grape::GetCurrentTime();
     auto keys_ret =
         generate_aggregate_indices(ctx, mappings, ctx.row_num(), functions);
     std::vector<std::vector<size_t>>& to_aggregate = keys_ret.first;
-    t2 += grape::GetCurrentTime();
-
-    double t3 = -grape::GetCurrentTime();
 
     Context& ret = keys_ret.second;
 
@@ -795,14 +777,6 @@ Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
       ret.set(functions[i].alias, new_col);
       ret.append_tag_id(functions[i].alias);
     }
-    t3 += grape::GetCurrentTime();
-#ifdef SINGLE_THREAD
-    auto& table = OpCost::get().table;
-    table["group_by_t0"] += t0;
-    table["group_by_t1"] += t1;
-    table["group_by_t2"] += t2;
-    table["group_by_t3"] += t3;
-#endif
     return ret;
   }
 }

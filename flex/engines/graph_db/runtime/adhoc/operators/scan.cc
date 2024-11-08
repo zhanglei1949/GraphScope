@@ -18,6 +18,7 @@
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
 #include "flex/engines/graph_db/runtime/adhoc/operators/special_predicates.h"
 #include "flex/engines/graph_db/runtime/adhoc/predicates.h"
+#include "flex/engines/graph_db/runtime/adhoc/runtime.h"
 namespace gs {
 
 namespace runtime {
@@ -233,14 +234,20 @@ bool parse_idx_predicate(const algebra::IndexPredicate& predicate,
 }
 
 Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
-                  const std::map<std::string, std::string>& params) {
+                  const std::map<std::string, std::string>& params,
+                  OprTimer& timer) {
+  double tx = -grape::GetCurrentTime();
   label_t label;
   int64_t vertex_id;
   int alias;
 
   bool scan_oid;
   if (is_find_vertex(scan_opr, params, label, vertex_id, alias, scan_oid)) {
-    return Scan::find_vertex_with_id(txn, label, vertex_id, alias, scan_oid);
+    auto ret =
+        Scan::find_vertex_with_id(txn, label, vertex_id, alias, scan_oid);
+    tx += grape::GetCurrentTime();
+    timer.record_routine("scan::find_vertex_with_id", tx);
+    return ret;
   }
 
   const auto& opt = scan_opr.scan_opt();
@@ -285,27 +292,41 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
               parse_expression(txn, ctx, params, scan_opr_params.predicate(),
                                VarType::kVertexVar);
           if (scan_oid) {
-            return Scan::filter_oids(
+            auto ret = Scan::filter_oids(
                 txn, scan_params,
                 [&expr, oids](label_t label, vid_t vid) {
                   return expr->eval_vertex(label, vid, 0).as_bool();
                 },
                 oids);
+            tx += grape::GetCurrentTime();
+            timer.record_routine("scan::filter_oids0", tx);
+            return ret;
           } else {
-            return Scan::filter_gids(
+            auto ret = Scan::filter_gids(
                 txn, scan_params,
                 [&expr, oids](label_t label, vid_t vid) {
                   return expr->eval_vertex(label, vid, 0).as_bool();
                 },
                 oids);
+            tx += grape::GetCurrentTime();
+            timer.record_routine("scan::filter_gids0", tx);
+            return ret;
           }
         } else {
           if (scan_oid) {
-            return Scan::filter_oids_with_special_vertex_predicate(
+            auto ret = Scan::filter_oids_with_special_vertex_predicate(
                 txn, scan_params, *sp_vertex_pred, oids);
+            tx += grape::GetCurrentTime();
+            timer.record_routine(
+                "scan::filter_oids_with_special_vertex_predicate0", tx);
+            return ret;
           } else {
-            return Scan::filter_gids_with_special_vertex_predicate(
+            auto ret = Scan::filter_gids_with_special_vertex_predicate(
                 txn, scan_params, *sp_vertex_pred, oids);
+            tx += grape::GetCurrentTime();
+            timer.record_routine(
+                "scan::filter_gids_with_special_vertex_predicate0", tx);
+            return ret;
           }
         }
       }
@@ -316,12 +337,18 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
                                   scan_oid));
 
         if (scan_oid) {
-          return Scan::filter_oids(
+          auto ret = Scan::filter_oids(
               txn, scan_params, [](label_t label, vid_t vid) { return true; },
               oids);
+          tx += grape::GetCurrentTime();
+          timer.record_routine("scan::filter_oids1", tx);
+          return ret;
         } else {
-          return Scan::filter_gids(
+          auto ret = Scan::filter_gids(
               txn, scan_params, [](label_t, vid_t) { return true; }, oids);
+          tx += grape::GetCurrentTime();
+          timer.record_routine("scan::filter_gids1", tx);
+          return ret;
         }
       }
     } else if (scan_opr.has_idx_predicate()) {
@@ -338,35 +365,49 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
               parse_expression(txn, ctx, params, scan_opr_params.predicate(),
                                VarType::kVertexVar);
           if (scan_oid) {
-            return Scan::filter_oids(
+            auto ret = Scan::filter_oids(
                 txn, scan_params,
                 [&expr, oids](label_t label, vid_t vid) {
                   return expr->eval_vertex(label, vid, 0).as_bool();
                 },
                 oids);
+            tx += grape::GetCurrentTime();
+            timer.record_routine("scan::filter_oids2", tx);
+            return ret;
           } else {
             std::vector<int64_t> gids;
             for (size_t i = 0; i < oids.size(); i++) {
               gids.push_back(oids[i].AsInt64());
             }
-            return Scan::filter_gids(
+            auto ret = Scan::filter_gids(
                 txn, scan_params,
                 [&expr, gids](label_t label, vid_t vid) {
                   return expr->eval_vertex(label, vid, 0).as_bool();
                 },
                 gids);
+            tx += grape::GetCurrentTime();
+            timer.record_routine("scan::filter_gids2", tx);
+            return ret;
           }
         } else {
           if (scan_oid) {
-            return Scan::filter_oids_with_special_vertex_predicate(
+            auto ret = Scan::filter_oids_with_special_vertex_predicate(
                 txn, scan_params, *sp_vertex_pred, oids);
+            tx += grape::GetCurrentTime();
+            timer.record_routine(
+                "scan::filter_oids_with_special_vertex_predicate1", tx);
+            return ret;
           } else {
             std::vector<int64_t> gids;
             for (size_t i = 0; i < oids.size(); i++) {
               gids.push_back(oids[i].AsInt64());
             }
-            return Scan::filter_gids_with_special_vertex_predicate(
+            auto ret = Scan::filter_gids_with_special_vertex_predicate(
                 txn, scan_params, *sp_vertex_pred, gids);
+            tx += grape::GetCurrentTime();
+            timer.record_routine(
+                "scan::filter_gids_with_special_vertex_predicate1", tx);
+            return ret;
           }
         }
       }
@@ -377,16 +418,22 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
                                   scan_oid));
 
         if (scan_oid) {
-          return Scan::filter_oids(
+          auto ret = Scan::filter_oids(
               txn, scan_params, [](label_t label, vid_t vid) { return true; },
               oids);
+          tx += grape::GetCurrentTime();
+          timer.record_routine("scan::filter_oids3", tx);
+          return ret;
         } else {
           std::vector<int64_t> gids;
           for (size_t i = 0; i < oids.size(); i++) {
             gids.push_back(oids[i].AsInt64());
           }
-          return Scan::filter_gids(
+          auto ret = Scan::filter_gids(
               txn, scan_params, [](label_t, vid_t) { return true; }, gids);
+          tx += grape::GetCurrentTime();
+          timer.record_routine("scan::filter_gids3", tx);
+          return ret;
         }
       }
     }
@@ -399,25 +446,38 @@ Context eval_scan(const physical::Scan& scan_opr, const ReadTransaction& txn,
         auto expr = parse_expression(
             txn, ctx, params, scan_opr_params.predicate(), VarType::kVertexVar);
         if (expr->is_optional()) {
-          return Scan::scan_vertex(
+          auto ret = Scan::scan_vertex(
               txn, scan_params, [&expr](label_t label, vid_t vid) {
                 return expr->eval_vertex(label, vid, 0, 0).as_bool();
               });
+          tx += grape::GetCurrentTime();
+          timer.record_routine("scan::scan_vertex0", tx);
+          return ret;
         } else {
-          return Scan::scan_vertex(
+          auto ret = Scan::scan_vertex(
               txn, scan_params, [&expr](label_t label, vid_t vid) {
                 return expr->eval_vertex(label, vid, 0).as_bool();
               });
+          tx += grape::GetCurrentTime();
+          timer.record_routine("scan::scan_vertex1", tx);
+          return ret;
         }
       } else {
-        return Scan::scan_vertex_with_special_vertex_predicate(txn, scan_params,
-                                                               *sp_vertex_pred);
+        auto ret = Scan::scan_vertex_with_special_vertex_predicate(
+            txn, scan_params, *sp_vertex_pred);
+        tx += grape::GetCurrentTime();
+        timer.record_routine("scan::scan_vertex_with_special_vertex_predicate",
+                             tx);
+        return ret;
       }
     }
 
     if ((!scan_opr.has_idx_predicate()) && (!scan_opr_params.has_predicate())) {
-      return Scan::scan_vertex(txn, scan_params,
-                               [](label_t, vid_t) { return true; });
+      auto ret = Scan::scan_vertex(txn, scan_params,
+                                   [](label_t, vid_t) { return true; });
+      tx += grape::GetCurrentTime();
+      timer.record_routine("scan::scan_vertex2", tx);
+      return ret;
     }
   }
   LOG(FATAL) << "unsupport scan option " << scan_opr.DebugString()

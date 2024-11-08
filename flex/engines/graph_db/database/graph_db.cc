@@ -21,6 +21,7 @@
 #include "flex/engines/graph_db/app/server_app.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/engines/graph_db/database/wal.h"
+#include "flex/engines/graph_db/runtime/adhoc/runtime.h"
 #include "flex/utils/yaml_utils.h"
 
 #include "flex/third_party/httplib.h"
@@ -224,6 +225,7 @@ Result<bool> GraphDB::Open(const GraphDBConfig& config) {
           timestamp_t ts = this->version_manager_.acquire_update_timestamp();
           auto txn = CompactTransaction(this->graph_, this->contexts_[0].logger,
                                         this->version_manager_, ts);
+          OutputCypherProfiles("./" + std::to_string(ts) + "_");
           txn.Commit();
           VLOG(10) << "Finish compaction";
         }
@@ -492,5 +494,26 @@ size_t GraphDB::getExecutedQueryNum() const {
 }
 
 QueryCache& GraphDB::getQueryCache() const { return query_cache_; }
+
+void GraphDB::OutputCypherProfiles(const std::string& prefix) {
+  runtime::OprTimer read_timer, write_timer;
+  int session_num = SessionNum();
+  for (int i = 0; i < session_num; ++i) {
+    auto read_app_ptr = GetSession(i).GetApp(Schema::CYPHER_READ_PLUGIN_ID);
+    auto casted_read_app = dynamic_cast<CypherReadApp*>(read_app_ptr);
+    if (casted_read_app) {
+      read_timer += casted_read_app->timer();
+    }
+
+    auto write_app_ptr = GetSession(i).GetApp(Schema::CYPHER_WRITE_PLUGIN_ID);
+    auto casted_write_app = dynamic_cast<CypherWriteApp*>(write_app_ptr);
+    if (casted_write_app) {
+      write_timer += casted_write_app->timer();
+    }
+  }
+
+  read_timer.output(prefix + "read_profile.log");
+  write_timer.output(prefix + "write_profile.log");
+}
 
 }  // namespace gs
