@@ -15,8 +15,8 @@
 #ifndef RUNTIME_COMMON_OPERATORS_ORDER_BY_H_
 #define RUNTIME_COMMON_OPERATORS_ORDER_BY_H_
 
-#include "flex/engines/graph_db/database/read_transaction.h"
 #include "flex/engines/graph_db/runtime/common/context.h"
+#include "flex/engines/graph_db/runtime/common/graph_interface.h"
 #include "flex/engines/graph_db/runtime/common/operators/project.h"
 
 #include <queue>
@@ -156,7 +156,7 @@ typename ValueTypeExtractor<std::tuple<Ts...>>::type invokeTuple(
 class OrderBy {
  public:
   template <typename Comparer>
-  static void order_by_with_limit(const ReadTransaction& txn, Context& ctx,
+  static void order_by_with_limit(const GraphReadInterface& graph, Context& ctx,
                                   const Comparer& cmp, size_t low,
                                   size_t high) {
     if (low == 0 && high >= ctx.row_num()) {
@@ -193,7 +193,7 @@ class OrderBy {
   }
 
   template <typename Comparer>
-  static void staged_order_by_with_limit(const ReadTransaction& txn,
+  static void staged_order_by_with_limit(const GraphReadInterface& graph,
                                          Context& ctx, const Comparer& cmp,
                                          size_t low, size_t high,
                                          const std::vector<size_t>& indices) {
@@ -220,7 +220,8 @@ class OrderBy {
   }
 
   template <typename... Args>
-  static void order_by_with_limit_beta(const ReadTransaction& txn, Context& ctx,
+  static void order_by_with_limit_beta(const GraphReadInterface& graph,
+                                       Context& ctx,
                                        const std::tuple<Args...>& keys,
                                        size_t low, size_t high) {
     size_t row_num = ctx.row_num();

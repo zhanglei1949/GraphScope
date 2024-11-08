@@ -51,7 +51,7 @@ bool is_vertex_within_set(const common::Expression& expr, const Context& ctx,
 }
 
 Context eval_select_vertex_within_set(
-    const algebra::Select& opr, const ReadTransaction& txn, Context&& ctx,
+    const algebra::Select& opr, const GraphReadInterface& graph, Context&& ctx,
     const std::map<std::string, std::string>& params, int vertex_tag,
     int set_tag) {
   std::vector<size_t> offsets;
@@ -72,7 +72,7 @@ Context eval_select_vertex_within_set(
   return ctx;
 }
 
-bool is_date_within(const algebra::Select& opr, const ReadTransaction& txn,
+bool is_date_within(const algebra::Select& opr, const GraphReadInterface& graph,
                     const Context& ctx,
                     const std::map<std::string, std::string>& params,
                     int vertex_tag, int& month) {
@@ -126,8 +126,8 @@ bool is_date_within(const algebra::Select& opr, const ReadTransaction& txn,
   return true;
 }
 
-bool is_vertex_ne_id(const ReadTransaction& txn, const common::Expression& expr,
-                     const Context& ctx,
+bool is_vertex_ne_id(const GraphReadInterface& graph,
+                     const common::Expression& expr, const Context& ctx,
                      const std::map<std::string, std::string>& params,
                      int& vertex_tag, vid_t& vid) {
   if (expr.operators_size() != 3) {
@@ -159,7 +159,7 @@ bool is_vertex_ne_id(const ReadTransaction& txn, const common::Expression& expr,
     return false;
   }
   auto label = *vertex_col.get_labels_set().begin();
-  if (!txn.GetVertexIndex(label, oid, vid)) {
+  if (!graph.GetVertexIndex(label, oid, vid)) {
     return false;
   }
 
@@ -167,7 +167,7 @@ bool is_vertex_ne_id(const ReadTransaction& txn, const common::Expression& expr,
 }
 
 Context eval_select_vertex_ne_id(
-    const algebra::Select& opr, const ReadTransaction& txn, Context&& ctx,
+    const algebra::Select& opr, const GraphReadInterface& graph, Context&& ctx,
     const std::map<std::string, std::string>& params, int vertex_tag,
     vid_t vid) {
   std::vector<size_t> offsets;
@@ -194,7 +194,7 @@ bool date_within(Day ts, int month, int next_month) {
 }
 
 Context eval_select_date_within(
-    const algebra::Select& opr, const ReadTransaction& txn, Context&& ctx,
+    const algebra::Select& opr, const GraphReadInterface& graph, Context&& ctx,
     const std::map<std::string, std::string>& params, int date_tag, int month) {
   std::vector<size_t> offsets;
   auto& date_col =
@@ -212,7 +212,7 @@ Context eval_select_date_within(
   return ctx;
 }
 
-Context eval_select(const algebra::Select& opr, const ReadTransaction& txn,
+Context eval_select(const algebra::Select& opr, const GraphReadInterface& graph,
                     Context&& ctx,
                     const std::map<std::string, std::string>& params,
                     OprTimer& timer) {
@@ -220,15 +220,15 @@ Context eval_select(const algebra::Select& opr, const ReadTransaction& txn,
   int set_tag = -1;
   vid_t vid{};
   double t = -grape::GetCurrentTime();
-  if (is_vertex_ne_id(txn, opr.predicate(), ctx, params, vertex_tag, vid)) {
-    auto ret = eval_select_vertex_ne_id(opr, txn, std::move(ctx), params,
+  if (is_vertex_ne_id(graph, opr.predicate(), ctx, params, vertex_tag, vid)) {
+    auto ret = eval_select_vertex_ne_id(opr, graph, std::move(ctx), params,
                                         vertex_tag, vid);
     t += grape::GetCurrentTime();
     timer.record_routine("select::vertex_ne_id", t);
     return ret;
   }
   if (is_vertex_within_set(opr.predicate(), ctx, vertex_tag, set_tag)) {
-    auto ret = eval_select_vertex_within_set(opr, txn, std::move(ctx), params,
+    auto ret = eval_select_vertex_within_set(opr, graph, std::move(ctx), params,
                                              vertex_tag, set_tag);
     t += grape::GetCurrentTime();
     timer.record_routine("select::vertex_within_set", t);
@@ -236,15 +236,15 @@ Context eval_select(const algebra::Select& opr, const ReadTransaction& txn,
   }
   int date_tag = -1;
   int month = -1;
-  if (is_date_within(opr, txn, ctx, params, date_tag, month)) {
-    auto ret = eval_select_date_within(opr, txn, std::move(ctx), params,
+  if (is_date_within(opr, graph, ctx, params, date_tag, month)) {
+    auto ret = eval_select_date_within(opr, graph, std::move(ctx), params,
                                        date_tag, month);
     t += grape::GetCurrentTime();
     timer.record_routine("select::date_within", t);
     return ret;
   }
 
-  Expr expr(txn, ctx, params, opr.predicate(), VarType::kPathVar);
+  Expr expr(graph, ctx, params, opr.predicate(), VarType::kPathVar);
 
   std::vector<size_t> offsets;
   size_t row_num = ctx.row_num();

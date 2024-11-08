@@ -21,7 +21,7 @@ namespace gs {
 
 namespace runtime {
 
-Context eval_dedup(const algebra::Dedup& opr, const ReadTransaction& txn,
+Context eval_dedup(const algebra::Dedup& opr, const GraphReadInterface& graph,
                    Context&& ctx) {
   std::vector<size_t> keys;
   std::vector<std::function<RTAny(size_t)>> vars;
@@ -35,7 +35,7 @@ Context eval_dedup(const algebra::Dedup& opr, const ReadTransaction& txn,
       tag = key.tag().id();
     }
     if (key.has_property()) {
-      Var var(txn, ctx, key, VarType::kPathVar);
+      Var var(graph, ctx, key, VarType::kPathVar);
       vars.emplace_back([var](size_t i) { return var.get(i); });
       flag = true;
     } else {
@@ -43,16 +43,16 @@ Context eval_dedup(const algebra::Dedup& opr, const ReadTransaction& txn,
     }
   }
   if (!flag) {
-    Dedup::dedup(txn, ctx, keys);
+    Dedup::dedup(graph, ctx, keys);
   } else {
-    Dedup::dedup(txn, ctx, keys, vars);
+    Dedup::dedup(graph, ctx, keys, vars);
   }
   //  LOG(INFO) << "dedup row num:" << ctx.row_num();
   return ctx;
 }
 
-WriteContext eval_dedup(const algebra::Dedup& opr, const InsertTransaction& txn,
-                        WriteContext&& ctx) {
+WriteContext eval_dedup(const algebra::Dedup& opr,
+                        const GraphInsertInterface& graph, WriteContext&& ctx) {
   std::vector<size_t> keys;
 
   int keys_num = opr.keys_size();

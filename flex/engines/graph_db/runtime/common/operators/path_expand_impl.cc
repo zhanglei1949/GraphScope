@@ -20,9 +20,9 @@ namespace gs {
 namespace runtime {
 
 std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
-iterative_expand_vertex(const ReadTransaction& txn, const SLVertexColumn& input,
-                        label_t edge_label, Direction dir, int lower,
-                        int upper) {
+iterative_expand_vertex(const GraphReadInterface& graph,
+                        const SLVertexColumn& input, label_t edge_label,
+                        Direction dir, int lower, int upper) {
   int input_label = input.label();
   SLVertexColumnBuilder builder(input_label);
   std::vector<size_t> offsets;
@@ -65,8 +65,8 @@ iterative_expand_vertex(const ReadTransaction& txn, const SLVertexColumn& input,
             builder.push_back_opt(pair.first);
             offsets.push_back(pair.second);
 
-            auto it = txn.GetOutEdgeIterator(input_label, pair.first,
-                                             input_label, edge_label);
+            auto it = graph.GetOutEdgeIterator(input_label, pair.first,
+                                               input_label, edge_label);
             while (it.IsValid()) {
               output_list.emplace_back(it.GetNeighbor(), pair.second);
               it.Next();
@@ -75,8 +75,8 @@ iterative_expand_vertex(const ReadTransaction& txn, const SLVertexColumn& input,
         }
       } else if (depth < lower) {
         for (auto& pair : input_list) {
-          auto it = txn.GetOutEdgeIterator(input_label, pair.first, input_label,
-                                           edge_label);
+          auto it = graph.GetOutEdgeIterator(input_label, pair.first,
+                                             input_label, edge_label);
           while (it.IsValid()) {
             output_list.emplace_back(it.GetNeighbor(), pair.second);
             it.Next();
@@ -100,8 +100,8 @@ iterative_expand_vertex(const ReadTransaction& txn, const SLVertexColumn& input,
             builder.push_back_opt(pair.first);
             offsets.push_back(pair.second);
 
-            auto it = txn.GetInEdgeIterator(input_label, pair.first,
-                                            input_label, edge_label);
+            auto it = graph.GetInEdgeIterator(input_label, pair.first,
+                                              input_label, edge_label);
             while (it.IsValid()) {
               output_list.emplace_back(it.GetNeighbor(), pair.second);
               it.Next();
@@ -110,8 +110,8 @@ iterative_expand_vertex(const ReadTransaction& txn, const SLVertexColumn& input,
         }
       } else if (depth < lower) {
         for (auto& pair : input_list) {
-          auto it = txn.GetInEdgeIterator(input_label, pair.first, input_label,
-                                          edge_label);
+          auto it = graph.GetInEdgeIterator(input_label, pair.first,
+                                            input_label, edge_label);
           while (it.IsValid()) {
             output_list.emplace_back(it.GetNeighbor(), pair.second);
             it.Next();
@@ -135,14 +135,14 @@ iterative_expand_vertex(const ReadTransaction& txn, const SLVertexColumn& input,
             builder.push_back_opt(pair.first);
             offsets.push_back(pair.second);
 
-            auto it0 = txn.GetInEdgeIterator(input_label, pair.first,
-                                             input_label, edge_label);
+            auto it0 = graph.GetInEdgeIterator(input_label, pair.first,
+                                               input_label, edge_label);
             while (it0.IsValid()) {
               output_list.emplace_back(it0.GetNeighbor(), pair.second);
               it0.Next();
             }
-            auto it1 = txn.GetOutEdgeIterator(input_label, pair.first,
-                                              input_label, edge_label);
+            auto it1 = graph.GetOutEdgeIterator(input_label, pair.first,
+                                                input_label, edge_label);
             while (it1.IsValid()) {
               output_list.emplace_back(it1.GetNeighbor(), pair.second);
               it1.Next();
@@ -151,14 +151,14 @@ iterative_expand_vertex(const ReadTransaction& txn, const SLVertexColumn& input,
         }
       } else if (depth < lower) {
         for (auto& pair : input_list) {
-          auto it0 = txn.GetInEdgeIterator(input_label, pair.first, input_label,
-                                           edge_label);
+          auto it0 = graph.GetInEdgeIterator(input_label, pair.first,
+                                             input_label, edge_label);
           while (it0.IsValid()) {
             output_list.emplace_back(it0.GetNeighbor(), pair.second);
             it0.Next();
           }
-          auto it1 = txn.GetOutEdgeIterator(input_label, pair.first,
-                                            input_label, edge_label);
+          auto it1 = graph.GetOutEdgeIterator(input_label, pair.first,
+                                              input_label, edge_label);
           while (it1.IsValid()) {
             output_list.emplace_back(it1.GetNeighbor(), pair.second);
             it1.Next();
@@ -174,7 +174,7 @@ iterative_expand_vertex(const ReadTransaction& txn, const SLVertexColumn& input,
 
 std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 path_expand_vertex_without_predicate_impl(
-    const ReadTransaction& txn, const SLVertexColumn& input,
+    const GraphReadInterface& graph, const SLVertexColumn& input,
     const std::vector<LabelTriplet>& labels, Direction dir, int lower,
     int upper) {
   if (labels.size() == 1) {
@@ -183,85 +183,86 @@ path_expand_vertex_without_predicate_impl(
       label_t v_label = labels[0].src_label;
       label_t e_label = labels[0].edge_label;
       const auto& properties =
-          txn.schema().get_edge_properties(v_label, v_label, e_label);
+          graph.schema().get_edge_properties(v_label, v_label, e_label);
       if (properties.size() <= 1) {
         if (dir == Direction::kBoth) {
           if (properties.empty() || properties[0] == PropertyType::Empty()) {
-            auto iview = txn.GetIncomingGraphView<grape::EmptyType>(
+            auto iview = graph.GetIncomingGraphView<grape::EmptyType>(
                 v_label, v_label, e_label);
-            auto oview = txn.GetOutgoingGraphView<grape::EmptyType>(
+            auto oview = graph.GetOutgoingGraphView<grape::EmptyType>(
                 v_label, v_label, e_label);
             return iterative_expand_vertex_on_dual_graph_view(
                 iview, oview, input, lower, upper);
           } else if (properties[0] == PropertyType::Int32()) {
             auto iview =
-                txn.GetIncomingGraphView<int>(v_label, v_label, e_label);
+                graph.GetIncomingGraphView<int>(v_label, v_label, e_label);
             auto oview =
-                txn.GetOutgoingGraphView<int>(v_label, v_label, e_label);
+                graph.GetOutgoingGraphView<int>(v_label, v_label, e_label);
             return iterative_expand_vertex_on_dual_graph_view(
                 iview, oview, input, lower, upper);
           } else if (properties[0] == PropertyType::Int64()) {
             auto iview =
-                txn.GetIncomingGraphView<int64_t>(v_label, v_label, e_label);
+                graph.GetIncomingGraphView<int64_t>(v_label, v_label, e_label);
             auto oview =
-                txn.GetOutgoingGraphView<int64_t>(v_label, v_label, e_label);
+                graph.GetOutgoingGraphView<int64_t>(v_label, v_label, e_label);
             return iterative_expand_vertex_on_dual_graph_view(
                 iview, oview, input, lower, upper);
           } else if (properties[0] == PropertyType::Date()) {
             auto iview =
-                txn.GetIncomingGraphView<Date>(v_label, v_label, e_label);
+                graph.GetIncomingGraphView<Date>(v_label, v_label, e_label);
             auto oview =
-                txn.GetOutgoingGraphView<Date>(v_label, v_label, e_label);
+                graph.GetOutgoingGraphView<Date>(v_label, v_label, e_label);
             return iterative_expand_vertex_on_dual_graph_view(
                 iview, oview, input, lower, upper);
           }
         } else if (dir == Direction::kIn) {
           if (properties.empty() || properties[0] == PropertyType::Empty()) {
-            auto iview = txn.GetIncomingGraphView<grape::EmptyType>(
+            auto iview = graph.GetIncomingGraphView<grape::EmptyType>(
                 v_label, v_label, e_label);
             return iterative_expand_vertex_on_graph_view(iview, input, lower,
                                                          upper);
           } else if (properties[0] == PropertyType::Int32()) {
             auto iview =
-                txn.GetIncomingGraphView<int>(v_label, v_label, e_label);
+                graph.GetIncomingGraphView<int>(v_label, v_label, e_label);
             return iterative_expand_vertex_on_graph_view(iview, input, lower,
                                                          upper);
           } else if (properties[0] == PropertyType::Int64()) {
             auto iview =
-                txn.GetIncomingGraphView<int64_t>(v_label, v_label, e_label);
+                graph.GetIncomingGraphView<int64_t>(v_label, v_label, e_label);
             return iterative_expand_vertex_on_graph_view(iview, input, lower,
                                                          upper);
           } else if (properties[0] == PropertyType::Date()) {
             auto iview =
-                txn.GetIncomingGraphView<Date>(v_label, v_label, e_label);
+                graph.GetIncomingGraphView<Date>(v_label, v_label, e_label);
             return iterative_expand_vertex_on_graph_view(iview, input, lower,
                                                          upper);
           }
         } else if (dir == Direction::kOut) {
           if (properties.empty() || properties[0] == PropertyType::Empty()) {
-            auto oview = txn.GetOutgoingGraphView<grape::EmptyType>(
+            auto oview = graph.GetOutgoingGraphView<grape::EmptyType>(
                 v_label, v_label, e_label);
             return iterative_expand_vertex_on_graph_view(oview, input, lower,
                                                          upper);
           } else if (properties[0] == PropertyType::Int32()) {
             auto oview =
-                txn.GetOutgoingGraphView<int>(v_label, v_label, e_label);
+                graph.GetOutgoingGraphView<int>(v_label, v_label, e_label);
             return iterative_expand_vertex_on_graph_view(oview, input, lower,
                                                          upper);
           } else if (properties[0] == PropertyType::Int64()) {
             auto oview =
-                txn.GetOutgoingGraphView<int64_t>(v_label, v_label, e_label);
+                graph.GetOutgoingGraphView<int64_t>(v_label, v_label, e_label);
             return iterative_expand_vertex_on_graph_view(oview, input, lower,
                                                          upper);
           } else if (properties[0] == PropertyType::Date()) {
             auto oview =
-                txn.GetOutgoingGraphView<Date>(v_label, v_label, e_label);
+                graph.GetOutgoingGraphView<Date>(v_label, v_label, e_label);
             return iterative_expand_vertex_on_graph_view(oview, input, lower,
                                                          upper);
           }
         }
 
-        return iterative_expand_vertex(txn, input, e_label, dir, lower, upper);
+        return iterative_expand_vertex(graph, input, e_label, dir, lower,
+                                       upper);
       }
     }
   }

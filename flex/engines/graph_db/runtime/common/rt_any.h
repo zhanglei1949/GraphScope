@@ -19,7 +19,7 @@
 #include "flex/proto_generated_gie/results.pb.h"
 #include "flex/proto_generated_gie/type.pb.h"
 
-#include "flex/engines/graph_db/database/read_transaction.h"
+#include "flex/engines/graph_db/runtime/common/graph_interface.h"
 #include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/utils/app_utils.h"
 
@@ -646,9 +646,9 @@ class RTAny {
   RTAny operator/(const RTAny& other) const;
   RTAny operator%(const RTAny& other) const;
 
-  void sink(const gs::ReadTransaction& txn, int id,
+  void sink(const GraphReadInterface& graph, int id,
             results::Column* column) const;
-  void sink(const ReadTransaction& txn, Encoder& encoder) const;
+  void sink(const GraphReadInterface& graph, Encoder& encoder) const;
   void encode_sig(RTAnyType type, Encoder& encoder) const;
 
   std::string to_string() const;

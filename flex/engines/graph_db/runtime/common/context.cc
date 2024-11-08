@@ -268,7 +268,7 @@ void Context::desc(const std::string& info) const {
   LOG(INFO) << "\thead: " << ((head == nullptr) ? "NULL" : head->column_info());
 }
 
-void Context::show(const ReadTransaction& txn) const {
+void Context::show(const GraphReadInterface& graph) const {
   size_t rn = row_num();
   size_t cn = col_num();
   for (size_t ri = 0; ri < rn; ++ri) {
@@ -278,7 +278,7 @@ void Context::show(const ReadTransaction& txn) const {
           columns[ci]->column_type() == ContextColumnType::kVertex) {
         auto v = std::dynamic_pointer_cast<IVertexColumn>(columns[ci])
                      ->get_vertex(ri);
-        int64_t id = txn.GetVertexId(v.label_, v.vid_).AsInt64();
+        int64_t id = graph.GetVertexId(v.label_, v.vid_).AsInt64();
         line += std::to_string(id);
         line += ", ";
       } else if (columns[ci] != nullptr) {

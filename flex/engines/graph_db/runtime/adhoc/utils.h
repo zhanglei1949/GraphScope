@@ -18,6 +18,7 @@
 
 #include "flex/engines/graph_db/runtime/adhoc/expr.h"
 #include "flex/engines/graph_db/runtime/common/columns/i_context_column.h"
+#include "flex/engines/graph_db/runtime/common/graph_interface.h"
 #include "flex/engines/graph_db/runtime/common/rt_any.h"
 #include "flex/engines/graph_db/runtime/common/types.h"
 
@@ -54,19 +55,20 @@ std::shared_ptr<IContextColumn> build_topN_column(
     size_t limit, bool asc, std::vector<size_t>& offsets);
 
 std::shared_ptr<IContextColumn> build_topN_property_column(
-    const ReadTransaction& txn, std::shared_ptr<IContextColumn> col,
+    const GraphReadInterface& graph, std::shared_ptr<IContextColumn> col,
     const std::string& property_name, size_t limit, bool asc,
     std::vector<size_t>& offsets);
 
 bool vertex_property_topN(bool asc, size_t limit,
                           const std::shared_ptr<IVertexColumn>& col,
-                          const ReadTransaction& txn,
+                          const GraphReadInterface& graph,
                           const std::string& prop_name,
                           std::vector<size_t>& offsets);
 
 bool vertex_id_topN(bool asc, size_t limit,
                     const std::shared_ptr<IVertexColumn>& col,
-                    const ReadTransaction& txn, std::vector<size_t>& offsets);
+                    const GraphReadInterface& graph,
+                    std::vector<size_t>& offsets);
 
 }  // namespace runtime
 

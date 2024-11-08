@@ -228,8 +228,8 @@ bool is_check_property_lt(const common::Expression& expr,
   return false;
 }
 
-Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
-                     Context&& ctx,
+Context eval_project(const physical::Project& opr,
+                     const GraphReadInterface& graph, Context&& ctx,
                      const std::map<std::string, std::string>& params,
                      const std::vector<common::IrDataType>& data_types) {
   bool is_append = opr.is_append();
@@ -269,7 +269,7 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
               if (data_types[i].type_case() == common::IrDataType::kDataType) {
                 switch (data_types[i].data_type()) {
                 case common::DataType::STRING: {
-                  auto col = txn.get_vertex_property_column(label, name);
+                  auto col = graph.get_vertex_property_column(label, name);
                   if (col == nullptr) {
                     OptionalValueColumnBuilder<std::string_view> builder;
                     builder.reserve(row_num);
@@ -301,7 +301,7 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
                 case common::DataType::INT32: {
                   ValueColumnBuilder<int32_t> builder;
                   builder.reserve(row_num);
-                  auto col = txn.get_vertex_property_column(label, name);
+                  auto col = graph.get_vertex_property_column(label, name);
                   if (col->type() == PropertyType::kInt32) {
                     auto typed_col = std::dynamic_pointer_cast<IntColumn>(col);
                     for (size_t k = 0; k < row_num; ++k) {
@@ -319,7 +319,7 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
                   ValueColumnBuilder<int64_t> builder;
                   builder.reserve(row_num);
                   // LOG(INFO) << (int) label << " " << name;
-                  auto col = txn.get_vertex_property_column(label, name);
+                  auto col = graph.get_vertex_property_column(label, name);
                   if (col->type() == PropertyType::kInt64) {
                     auto typed_col = std::dynamic_pointer_cast<LongColumn>(col);
                     for (size_t k = 0; k < row_num; ++k) {
@@ -348,7 +348,7 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
                 case common::DataType::DOUBLE: {
                   ValueColumnBuilder<double> builder;
                   builder.reserve(row_num);
-                  auto col = txn.get_vertex_property_column(label, name);
+                  auto col = graph.get_vertex_property_column(label, name);
                   if (col->type() == PropertyType::kDouble) {
                     auto typed_col =
                         std::dynamic_pointer_cast<DoubleColumn>(col);
@@ -365,7 +365,7 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
                 case common::DataType::TIMESTAMP: {
                   ValueColumnBuilder<int64_t> builder;
                   builder.reserve(row_num);
-                  auto col = txn.get_vertex_property_column(label, name);
+                  auto col = graph.get_vertex_property_column(label, name);
                   //                  LOG(INFO) << (int) col->type().type_enum;
                   if (col->type() == PropertyType::kDate) {
                     auto typed_col =
@@ -425,11 +425,8 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
                 ValueColumnBuilder<int32_t> builder;
                 builder.reserve(row_num);
 
-                auto col = txn.get_vertex_property_column(label, name);
-                if (col->type() == PropertyType::kDate) {
-                  auto typed_col =
-                      std::dynamic_pointer_cast<TypedColumn<Date>>(col);
-
+                auto col = graph.GetVertexColumn<Date>(label, name);
+                if (!col.is_null()) {
                   auto lower_value = std::stoll(lower);
                   auto upper_value = std::stoll(upper);
 
@@ -438,7 +435,7 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
 
                   for (size_t k = 0; k < row_num; ++k) {
                     auto vertex = vertex_col->get_vertex(k);
-                    auto prop = typed_col->get_view(vertex.vid_).milli_second;
+                    auto prop = col.get_view(vertex.vid_).milli_second;
                     if (prop >= lower_value && prop < upper_value) {
                       builder.push_back_opt(then_int);
                     } else {
@@ -474,17 +471,15 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
                 ValueColumnBuilder<int32_t> builder;
                 builder.reserve(row_num);
 
-                auto col = txn.get_vertex_property_column(label, name);
-                if (col->type() == PropertyType::kDate) {
-                  auto typed_col =
-                      std::dynamic_pointer_cast<TypedColumn<Date>>(col);
+                auto col = graph.GetVertexColumn<Date>(label, name);
+                if (!col.is_null()) {
                   auto upper_value = std::stoll(upper);
 
                   int then_int = then_value.i32();
                   int else_int = else_value.i32();
                   for (size_t k = 0; k < row_num; ++k) {
                     auto vertex = vertex_col->get_vertex(k);
-                    auto prop = typed_col->get_view(vertex.vid_).milli_second;
+                    auto prop = col.get_view(vertex.vid_).milli_second;
                     if (prop < upper_value) {
                       builder.push_back_opt(then_int);
                     } else {
@@ -501,7 +496,7 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
           }
         }
       }
-      Expr expr(txn, ctx, params, m.expr(), VarType::kPathVar);
+      Expr expr(graph, ctx, params, m.expr(), VarType::kPathVar);
       int alias = -1;
       if (m.has_alias()) {
         alias = m.alias().value();
@@ -539,7 +534,7 @@ Context eval_project(const physical::Project& opr, const ReadTransaction& txn,
         }
       }
 
-      Expr expr(txn, ctx, params, m.expr(), VarType::kPathVar);
+      Expr expr(graph, ctx, params, m.expr(), VarType::kPathVar);
       int alias = -1;
       if (m.has_alias()) {
         alias = m.alias().value();
@@ -641,7 +636,7 @@ bool is_property_expr(const common::Expression& expr, int& tag_id,
 
 Context eval_project_order_by(
     const physical::Project& project_opr, const algebra::OrderBy& order_by_opr,
-    const ReadTransaction& txn, Context&& ctx, OprTimer& timer,
+    const GraphReadInterface& graph, Context&& ctx, OprTimer& timer,
     const std::map<std::string, std::string>& params,
     const std::vector<common::IrDataType>& data_types) {
   int mappings_size = project_opr.mappings_size();
@@ -681,7 +676,7 @@ Context eval_project_order_by(
               if (ctx.get(tag_id)->column_type() ==
                   ContextColumnType::kVertex) {
                 auto col = build_topN_property_column(
-                    txn, ctx.get(tag_id), property_name, limit, asc, offsets);
+                    graph, ctx.get(tag_id), property_name, limit, asc, offsets);
                 if (col != nullptr) {
                   success = true;
                   ctx.reshuffle(offsets);
@@ -694,7 +689,7 @@ Context eval_project_order_by(
                 }
               }
             }
-            Expr expr(txn, ctx, params, m.expr(), VarType::kPathVar);
+            Expr expr(graph, ctx, params, m.expr(), VarType::kPathVar);
             auto col = build_topN_column(data_types[i], expr, row_num, limit,
                                          asc, offsets);
             if (col != nullptr) {
@@ -716,7 +711,7 @@ Context eval_project_order_by(
                 order_by_keys.find(m.alias().value()) != order_by_keys.end()) {
               int alias = m.alias().value();
               CHECK(!ctx.exist(alias));
-              Expr expr(txn, ctx, params, m.expr(), VarType::kPathVar);
+              Expr expr(graph, ctx, params, m.expr(), VarType::kPathVar);
               auto col = build_column(data_types[i], expr, row_num);
               ctx.set(alias, col);
               added_alias_in_preproject.push_back(alias);
@@ -735,7 +730,7 @@ Context eval_project_order_by(
         {
           int alias = m.alias().value();
           CHECK(!ctx.exist(alias));
-          Expr expr(txn, ctx, params, m.expr(), VarType::kPathVar);
+          Expr expr(graph, ctx, params, m.expr(), VarType::kPathVar);
           auto col = build_column(data_types[i], expr, row_num);
           ctx.set(alias, col);
           added_alias_in_preproject.push_back(alias);
@@ -745,7 +740,7 @@ Context eval_project_order_by(
   }
 
   double t1 = -grape::GetCurrentTime();
-  ctx = eval_order_by(order_by_opr, txn, std::move(ctx), timer, !success);
+  ctx = eval_order_by(order_by_opr, graph, std::move(ctx), timer, !success);
   t1 += grape::GetCurrentTime();
   timer.record_routine("project_order_by:order_by", t1);
 
@@ -758,7 +753,7 @@ Context eval_project_order_by(
     if (!(m.has_alias() &&
           order_by_keys.find(m.alias().value()) != order_by_keys.end())) {
       int alias = m.alias().value();
-      Expr expr(txn, ctx, params, m.expr(), VarType::kPathVar);
+      Expr expr(graph, ctx, params, m.expr(), VarType::kPathVar);
       auto col = build_column(data_types[i], expr, row_num);
       ret.set(alias, col);
       tags.push_back(alias);
@@ -777,7 +772,7 @@ Context eval_project_order_by(
 
 // for insert transaction, lazy evaluation as we don't have the type information
 WriteContext eval_project(const physical::Project& opr,
-                          const InsertTransaction& txn, WriteContext&& ctx,
+                          const GraphInsertInterface& graph, WriteContext&& ctx,
                           const std::map<std::string, std::string>& params) {
   int mappings_size = opr.mappings_size();
   WriteContext ret;

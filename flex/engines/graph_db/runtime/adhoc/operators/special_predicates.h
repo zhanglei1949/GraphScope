@@ -17,6 +17,7 @@
 #ifndef RUNTIME_ADHOC_OPERATORS_SPECIAL_PREDICATES_H_
 #define RUNTIME_ADHOC_OPERATORS_SPECIAL_PREDICATES_H_
 
+#include "flex/engines/graph_db/runtime/common/graph_interface.h"
 #include "flex/engines/graph_db/runtime/common/rt_any.h"
 #include "flex/proto_generated_gie/expr.pb.h"
 #include "flex/storages/rt_mutable_graph/types.h"
@@ -196,19 +197,12 @@ class SPVertexPredicate {
 template <typename T>
 class VertexPropertyLTPredicateBeta : public SPVertexPredicate {
  public:
-  VertexPropertyLTPredicateBeta(const ReadTransaction& txn,
+  VertexPropertyLTPredicateBeta(const GraphReadInterface& graph,
                                 const std::string& property_name,
                                 const std::string& target_str) {
-    label_t label_num = txn.schema().vertex_label_num();
-    columns_.resize(label_num, nullptr);
+    label_t label_num = graph.schema().vertex_label_num();
     for (label_t i = 0; i < label_num; ++i) {
-      auto col = txn.get_vertex_property_column(i, property_name);
-      if (col != nullptr) {
-        auto casted_col = std::dynamic_pointer_cast<TypedColumn<T>>(col);
-        if (casted_col != nullptr) {
-          columns_[i] = casted_col.get();
-        }
-      }
+      columns_.emplace_back(graph.GetVertexColumn<T>(i, property_name));
     }
     target_ = TypedConverter<T>::typed_from_string(target_str);
   }
@@ -222,30 +216,23 @@ class VertexPropertyLTPredicateBeta : public SPVertexPredicate {
   RTAnyType data_type() const override { return TypedConverter<T>::type(); }
 
   bool operator()(label_t label, vid_t v) const {
-    return columns_[label]->get_view(v) < target_;
+    return columns_[label].get_view(v) < target_;
   }
 
  private:
-  std::vector<TypedColumn<T>*> columns_;
+  std::vector<GraphReadInterface::vertex_column_t<T>> columns_;
   T target_;
 };
 
 template <typename T>
 class VertexPropertyLEPredicateBeta : public SPVertexPredicate {
  public:
-  VertexPropertyLEPredicateBeta(const ReadTransaction& txn,
+  VertexPropertyLEPredicateBeta(const GraphReadInterface& graph,
                                 const std::string& property_name,
                                 const std::string& target_str) {
-    label_t label_num = txn.schema().vertex_label_num();
-    columns_.resize(label_num, nullptr);
+    label_t label_num = graph.schema().vertex_label_num();
     for (label_t i = 0; i < label_num; ++i) {
-      auto col = txn.get_vertex_property_column(i, property_name);
-      if (col != nullptr) {
-        auto casted_col = std::dynamic_pointer_cast<TypedColumn<T>>(col);
-        if (casted_col != nullptr) {
-          columns_[i] = casted_col.get();
-        }
-      }
+      columns_.emplace_back(graph.GetVertexColumn<T>(i, property_name));
     }
     target_ = TypedConverter<T>::typed_from_string(target_str);
   }
@@ -259,30 +246,23 @@ class VertexPropertyLEPredicateBeta : public SPVertexPredicate {
   RTAnyType data_type() const override { return TypedConverter<T>::type(); }
 
   bool operator()(label_t label, vid_t v) const {
-    return !(target_ < columns_[label]->get_view(v));
+    return !(target_ < columns_[label].get_view(v));
   }
 
  private:
-  std::vector<TypedColumn<T>*> columns_;
+  std::vector<GraphReadInterface::vertex_column_t<T>> columns_;
   T target_;
 };
 
 template <typename T>
 class VertexPropertyGTPredicateBeta : public SPVertexPredicate {
  public:
-  VertexPropertyGTPredicateBeta(const ReadTransaction& txn,
+  VertexPropertyGTPredicateBeta(const GraphReadInterface& graph,
                                 const std::string& property_name,
                                 const std::string& target_str) {
-    label_t label_num = txn.schema().vertex_label_num();
-    columns_.resize(label_num, nullptr);
+    label_t label_num = graph.schema().vertex_label_num();
     for (label_t i = 0; i < label_num; ++i) {
-      auto col = txn.get_vertex_property_column(i, property_name);
-      if (col != nullptr) {
-        auto casted_col = std::dynamic_pointer_cast<TypedColumn<T>>(col);
-        if (casted_col != nullptr) {
-          columns_[i] = casted_col.get();
-        }
-      }
+      columns_.emplace_back(graph.GetVertexColumn<T>(i, property_name));
     }
     target_ = TypedConverter<T>::typed_from_string(target_str);
   }
@@ -296,30 +276,23 @@ class VertexPropertyGTPredicateBeta : public SPVertexPredicate {
   RTAnyType data_type() const override { return TypedConverter<T>::type(); }
 
   bool operator()(label_t label, vid_t v) const {
-    return target_ < columns_[label]->get_view(v);
+    return target_ < columns_[label].get_view(v);
   }
 
  private:
-  std::vector<TypedColumn<T>*> columns_;
+  std::vector<GraphReadInterface::vertex_column_t<T>> columns_;
   T target_;
 };
 
 template <typename T>
 class VertexPropertyEQPredicateBeta : public SPVertexPredicate {
  public:
-  VertexPropertyEQPredicateBeta(const ReadTransaction& txn,
+  VertexPropertyEQPredicateBeta(const GraphReadInterface& graph,
                                 const std::string& property_name,
                                 const std::string& target_str) {
-    label_t label_num = txn.schema().vertex_label_num();
-    columns_.resize(label_num, nullptr);
+    label_t label_num = graph.schema().vertex_label_num();
     for (label_t i = 0; i < label_num; ++i) {
-      auto col = txn.get_vertex_property_column(i, property_name);
-      if (col != nullptr) {
-        auto casted_col = std::dynamic_pointer_cast<TypedColumn<T>>(col);
-        if (casted_col != nullptr) {
-          columns_[i] = casted_col.get();
-        }
-      }
+      columns_.emplace_back(graph.GetVertexColumn<T>(i, property_name));
     }
     target_ = TypedConverter<T>::typed_from_string(target_str);
   }
@@ -333,11 +306,11 @@ class VertexPropertyEQPredicateBeta : public SPVertexPredicate {
   RTAnyType data_type() const override { return TypedConverter<T>::type(); }
 
   bool operator()(label_t label, vid_t v) const {
-    return target_ == columns_[label]->get_view(v);
+    return target_ == columns_[label].get_view(v);
   }
 
  private:
-  std::vector<TypedColumn<T>*> columns_;
+  std::vector<GraphReadInterface::vertex_column_t<T>> columns_;
   T target_;
 };
 
@@ -347,19 +320,13 @@ class VertexPropertyEQPredicateBeta<std::string_view>
   using T = std::string_view;
 
  public:
-  VertexPropertyEQPredicateBeta(const ReadTransaction& txn,
+  VertexPropertyEQPredicateBeta(const GraphReadInterface& graph,
                                 const std::string& property_name,
                                 const std::string& target_str) {
-    label_t label_num = txn.schema().vertex_label_num();
-    columns_.resize(label_num, nullptr);
+    label_t label_num = graph.schema().vertex_label_num();
     for (label_t i = 0; i < label_num; ++i) {
-      auto col = txn.get_vertex_property_column(i, property_name);
-      if (col != nullptr) {
-        auto casted_col = std::dynamic_pointer_cast<TypedColumn<T>>(col);
-        if (casted_col != nullptr) {
-          columns_[i] = casted_col.get();
-        }
-      }
+      columns_.emplace_back(
+          graph.GetVertexColumn<std::string_view>(i, property_name));
     }
     target_ = target_str;
   }
@@ -373,31 +340,24 @@ class VertexPropertyEQPredicateBeta<std::string_view>
   RTAnyType data_type() const override { return TypedConverter<T>::type(); }
 
   bool operator()(label_t label, vid_t v) const {
-    return target_ == columns_[label]->get_view(v);
+    return target_ == columns_[label].get_view(v);
   }
 
  private:
-  std::vector<TypedColumn<T>*> columns_;
+  std::vector<GraphReadInterface::vertex_column_t<T>> columns_;
   std::string target_;
 };
 
 template <typename T>
 class VertexPropertyBetweenPredicateBeta : public SPVertexPredicate {
  public:
-  VertexPropertyBetweenPredicateBeta(const ReadTransaction& txn,
+  VertexPropertyBetweenPredicateBeta(const GraphReadInterface& graph,
                                      const std::string& property_name,
                                      const std::string& from_str,
                                      const std::string& to_str) {
-    label_t label_num = txn.schema().vertex_label_num();
-    columns_.resize(label_num, nullptr);
+    label_t label_num = graph.schema().vertex_label_num();
     for (label_t i = 0; i < label_num; ++i) {
-      auto col = txn.get_vertex_property_column(i, property_name);
-      if (col != nullptr) {
-        auto casted_col = std::dynamic_pointer_cast<TypedColumn<T>>(col);
-        if (casted_col != nullptr) {
-          columns_[i] = casted_col.get();
-        }
-      }
+      columns_.emplace_back(graph.GetVertexColumn<T>(i, property_name));
     }
     from_ = TypedConverter<T>::typed_from_string(from_str);
     to_ = TypedConverter<T>::typed_from_string(to_str);
@@ -412,21 +372,22 @@ class VertexPropertyBetweenPredicateBeta : public SPVertexPredicate {
   RTAnyType data_type() const override { return TypedConverter<T>::type(); }
 
   bool operator()(label_t label, vid_t v) const {
-    auto val = columns_[label]->get_view(v);
+    auto val = columns_[label].get_view(v);
     return ((val < to_) && !(val < from_));
   }
 
  private:
-  std::vector<TypedColumn<T>*> columns_;
+  std::vector<GraphReadInterface::vertex_column_t<T>> columns_;
   T from_;
   T to_;
 };
 
 class VertexIdEQPredicateBeta : public SPVertexPredicate {
  public:
-  VertexIdEQPredicateBeta(const ReadTransaction& txn, const std::string& val,
+  VertexIdEQPredicateBeta(const GraphReadInterface& graph,
+                          const std::string& val,
                           const common::DataType& data_type)
-      : txn_(txn) {
+      : graph_(graph) {
     if (data_type == common::DataType::INT64) {
       data_type_ = RTAnyType::kI64Value;
       target_.set_i64(TypedConverter<int64_t>::typed_from_string(val));
@@ -443,18 +404,18 @@ class VertexIdEQPredicateBeta : public SPVertexPredicate {
 
   RTAnyType data_type() const override { return data_type_; }
   bool operator()(label_t label, vid_t v) const {
-    auto id = txn_.GetVertexId(label, v);
+    auto id = graph_.GetVertexId(label, v);
     return id == target_;
   }
 
  private:
-  const ReadTransaction& txn_;
+  const GraphReadInterface& graph_;
   RTAnyType data_type_;
   Any target_;
 };
 
 inline std::unique_ptr<SPVertexPredicate> parse_special_vertex_predicate(
-    const common::Expression& expr, const ReadTransaction& txn,
+    const common::Expression& expr, const GraphReadInterface& graph,
     const std::map<std::string, std::string>& params) {
   // LOG(INFO) << "enter...";
   if (expr.operators_size() == 3) {
@@ -514,7 +475,7 @@ inline std::unique_ptr<SPVertexPredicate> parse_special_vertex_predicate(
     if (property_name == "id") {
       if (ptype == SPVertexPredicateType::kPropertyEQ) {
         return std::unique_ptr<SPVertexPredicate>(new VertexIdEQPredicateBeta(
-            txn, value_str, op2.param().data_type().data_type()));
+            graph, value_str, op2.param().data_type().data_type()));
       } else {
         LOG(INFO) << "AAAA";
         return nullptr;
@@ -523,19 +484,19 @@ inline std::unique_ptr<SPVertexPredicate> parse_special_vertex_predicate(
       if (op2.param().data_type().data_type() == common::DataType::INT64) {
         if (ptype == SPVertexPredicateType::kPropertyLT) {
           return std::unique_ptr<SPVertexPredicate>(
-              new VertexPropertyLTPredicateBeta<int64_t>(txn, property_name,
+              new VertexPropertyLTPredicateBeta<int64_t>(graph, property_name,
                                                          value_str));
         } else if (ptype == SPVertexPredicateType::kPropertyEQ) {
           return std::unique_ptr<SPVertexPredicate>(
-              new VertexPropertyEQPredicateBeta<int64_t>(txn, property_name,
+              new VertexPropertyEQPredicateBeta<int64_t>(graph, property_name,
                                                          value_str));
         } else if (ptype == SPVertexPredicateType::kPropertyGT) {
           return std::unique_ptr<SPVertexPredicate>(
-              new VertexPropertyGTPredicateBeta<int64_t>(txn, property_name,
+              new VertexPropertyGTPredicateBeta<int64_t>(graph, property_name,
                                                          value_str));
         } else if (ptype == SPVertexPredicateType::kPropertyLE) {
           return std::unique_ptr<SPVertexPredicate>(
-              new VertexPropertyLEPredicateBeta<int64_t>(txn, property_name,
+              new VertexPropertyLEPredicateBeta<int64_t>(graph, property_name,
                                                          value_str));
         } else {
           LOG(INFO) << "AAAA";
@@ -546,7 +507,7 @@ inline std::unique_ptr<SPVertexPredicate> parse_special_vertex_predicate(
         if (ptype == SPVertexPredicateType::kPropertyEQ) {
           return std::unique_ptr<SPVertexPredicate>(
               new VertexPropertyEQPredicateBeta<std::string_view>(
-                  txn, property_name, value_str));
+                  graph, property_name, value_str));
         } else {
           LOG(INFO) << "AAAA";
           return nullptr;
@@ -555,19 +516,19 @@ inline std::unique_ptr<SPVertexPredicate> parse_special_vertex_predicate(
                  common::DataType::TIMESTAMP) {
         if (ptype == SPVertexPredicateType::kPropertyLT) {
           return std::unique_ptr<SPVertexPredicate>(
-              new VertexPropertyLTPredicateBeta<Date>(txn, property_name,
+              new VertexPropertyLTPredicateBeta<Date>(graph, property_name,
                                                       value_str));
         } else if (ptype == SPVertexPredicateType::kPropertyEQ) {
           return std::unique_ptr<SPVertexPredicate>(
-              new VertexPropertyEQPredicateBeta<Date>(txn, property_name,
+              new VertexPropertyEQPredicateBeta<Date>(graph, property_name,
                                                       value_str));
         } else if (ptype == SPVertexPredicateType::kPropertyGT) {
           return std::unique_ptr<SPVertexPredicate>(
-              new VertexPropertyGTPredicateBeta<Date>(txn, property_name,
+              new VertexPropertyGTPredicateBeta<Date>(graph, property_name,
                                                       value_str));
         } else if (ptype == SPVertexPredicateType::kPropertyLE) {
           return std::unique_ptr<SPVertexPredicate>(
-              new VertexPropertyLEPredicateBeta<Date>(txn, property_name,
+              new VertexPropertyLEPredicateBeta<Date>(graph, property_name,
                                                       value_str));
         } else {
           LOG(INFO) << "AAAA";
@@ -693,12 +654,12 @@ inline std::unique_ptr<SPVertexPredicate> parse_special_vertex_predicate(
 
     if (op2.param().data_type().data_type() == common::DataType::INT64) {
       return std::unique_ptr<SPVertexPredicate>(
-          new VertexPropertyBetweenPredicateBeta<int64_t>(txn, property_name,
+          new VertexPropertyBetweenPredicateBeta<int64_t>(graph, property_name,
                                                           from_str, to_str));
     } else if (op2.param().data_type().data_type() ==
                common::DataType::TIMESTAMP) {
       return std::unique_ptr<SPVertexPredicate>(
-          new VertexPropertyBetweenPredicateBeta<Date>(txn, property_name,
+          new VertexPropertyBetweenPredicateBeta<Date>(graph, property_name,
                                                        from_str, to_str));
 
     } else {
@@ -782,7 +743,7 @@ class EdgePropertyGTPredicate : public SPEdgePredicate {
 };
 
 inline std::unique_ptr<SPEdgePredicate> parse_special_edge_predicate(
-    const common::Expression& expr, const ReadTransaction& txn,
+    const common::Expression& expr, const GraphReadInterface& graph,
     const std::map<std::string, std::string>& params) {
   if (expr.operators_size() == 3) {
     // LT, GT

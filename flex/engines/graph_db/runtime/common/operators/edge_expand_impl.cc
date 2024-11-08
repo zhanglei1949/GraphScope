@@ -28,7 +28,7 @@ struct DummyPredicate {
 };
 
 std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
-expand_vertex_without_predicate_impl(const ReadTransaction& txn,
+expand_vertex_without_predicate_impl(const GraphReadInterface& graph,
                                      const SLVertexColumn& input,
                                      const std::vector<LabelTriplet>& labels,
                                      Direction dir) {
@@ -36,15 +36,15 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
   std::vector<std::tuple<label_t, label_t, Direction>> label_dirs;
   std::vector<PropertyType> ed_types;
   for (auto& triplet : labels) {
-    if (!txn.schema().exist(triplet.src_label, triplet.dst_label,
-                            triplet.edge_label)) {
+    if (!graph.schema().exist(triplet.src_label, triplet.dst_label,
+                              triplet.edge_label)) {
       continue;
     }
     if (triplet.src_label == input_label &&
         ((dir == Direction::kOut) || (dir == Direction::kBoth))) {
       label_dirs.emplace_back(triplet.dst_label, triplet.edge_label,
                               Direction::kOut);
-      const auto& properties = txn.schema().get_edge_properties(
+      const auto& properties = graph.schema().get_edge_properties(
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       if (properties.empty()) {
         ed_types.push_back(PropertyType::Empty());
@@ -57,7 +57,7 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
         ((dir == Direction::kIn) || (dir == Direction::kBoth))) {
       label_dirs.emplace_back(triplet.src_label, triplet.edge_label,
                               Direction::kIn);
-      const auto& properties = txn.schema().get_edge_properties(
+      const auto& properties = graph.schema().get_edge_properties(
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       if (properties.empty()) {
         ed_types.push_back(PropertyType::Empty());
@@ -84,39 +84,43 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
       if (se) {
         return expand_vertex_np_se<grape::EmptyType,
                                    DummyPredicate<grape::EmptyType>>(
-            txn, input, std::get<0>(label_dirs[0]), std::get<1>(label_dirs[0]),
-            std::get<2>(label_dirs[0]), DummyPredicate<grape::EmptyType>());
+            graph, input, std::get<0>(label_dirs[0]),
+            std::get<1>(label_dirs[0]), std::get<2>(label_dirs[0]),
+            DummyPredicate<grape::EmptyType>());
       } else {
         return expand_vertex_np_me_sp<grape::EmptyType,
                                       DummyPredicate<grape::EmptyType>>(
-            txn, input, label_dirs, DummyPredicate<grape::EmptyType>());
+            graph, input, label_dirs, DummyPredicate<grape::EmptyType>());
       }
     } else if (ed_type == PropertyType::Int32()) {
       if (se) {
         return expand_vertex_np_se<int, DummyPredicate<int>>(
-            txn, input, std::get<0>(label_dirs[0]), std::get<1>(label_dirs[0]),
-            std::get<2>(label_dirs[0]), DummyPredicate<int>());
+            graph, input, std::get<0>(label_dirs[0]),
+            std::get<1>(label_dirs[0]), std::get<2>(label_dirs[0]),
+            DummyPredicate<int>());
       } else {
         return expand_vertex_np_me_sp<int, DummyPredicate<int>>(
-            txn, input, label_dirs, DummyPredicate<int>());
+            graph, input, label_dirs, DummyPredicate<int>());
       }
     } else if (ed_type == PropertyType::Int64()) {
       if (se) {
         return expand_vertex_np_se<int64_t, DummyPredicate<int64_t>>(
-            txn, input, std::get<0>(label_dirs[0]), std::get<1>(label_dirs[0]),
-            std::get<2>(label_dirs[0]), DummyPredicate<int64_t>());
+            graph, input, std::get<0>(label_dirs[0]),
+            std::get<1>(label_dirs[0]), std::get<2>(label_dirs[0]),
+            DummyPredicate<int64_t>());
       } else {
         return expand_vertex_np_me_sp<int64_t, DummyPredicate<int64_t>>(
-            txn, input, label_dirs, DummyPredicate<int64_t>());
+            graph, input, label_dirs, DummyPredicate<int64_t>());
       }
     } else if (ed_type == PropertyType::Date()) {
       if (se) {
         return expand_vertex_np_se<Date, DummyPredicate<Date>>(
-            txn, input, std::get<0>(label_dirs[0]), std::get<1>(label_dirs[0]),
-            std::get<2>(label_dirs[0]), DummyPredicate<Date>());
+            graph, input, std::get<0>(label_dirs[0]),
+            std::get<1>(label_dirs[0]), std::get<2>(label_dirs[0]),
+            DummyPredicate<Date>());
       } else {
         return expand_vertex_np_me_sp<Date, DummyPredicate<Date>>(
-            txn, input, label_dirs, DummyPredicate<Date>());
+            graph, input, label_dirs, DummyPredicate<Date>());
       }
     } else {
       LOG(INFO) << "type - " << ed_type << " - not implemented, fallback";
@@ -125,27 +129,27 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
     LOG(INFO)
         << "different edge property type in an edge(vertex) expand, fallback";
   }
-  return expand_vertex_np_me_mp<DummyPredicate<Any>>(txn, input, label_dirs,
+  return expand_vertex_np_me_mp<DummyPredicate<Any>>(graph, input, label_dirs,
                                                      DummyPredicate<Any>());
 }
 
 std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_without_predicate_optional_impl(
-    const ReadTransaction& txn, const SLVertexColumnBase& input,
+    const GraphReadInterface& graph, const SLVertexColumnBase& input,
     const std::vector<LabelTriplet>& labels, Direction dir) {
   label_t input_label = *input.get_labels_set().begin();
   std::vector<std::tuple<label_t, label_t, Direction>> label_dirs;
   std::vector<PropertyType> ed_types;
   for (auto& triplet : labels) {
-    if (!txn.schema().exist(triplet.src_label, triplet.dst_label,
-                            triplet.edge_label)) {
+    if (!graph.schema().exist(triplet.src_label, triplet.dst_label,
+                              triplet.edge_label)) {
       continue;
     }
     if (triplet.src_label == input_label &&
         ((dir == Direction::kOut) || (dir == Direction::kBoth))) {
       label_dirs.emplace_back(triplet.dst_label, triplet.edge_label,
                               Direction::kOut);
-      const auto& properties = txn.schema().get_edge_properties(
+      const auto& properties = graph.schema().get_edge_properties(
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       if (properties.empty()) {
         ed_types.push_back(PropertyType::Empty());
@@ -158,7 +162,7 @@ expand_vertex_without_predicate_optional_impl(
         ((dir == Direction::kIn) || (dir == Direction::kBoth))) {
       label_dirs.emplace_back(triplet.src_label, triplet.edge_label,
                               Direction::kIn);
-      const auto& properties = txn.schema().get_edge_properties(
+      const auto& properties = graph.schema().get_edge_properties(
 
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       if (properties.empty()) {
@@ -178,22 +182,24 @@ expand_vertex_without_predicate_optional_impl(
       if (se) {
         return expand_vertex_np_se_optional<grape::EmptyType,
                                             DummyPredicate<grape::EmptyType>>(
-            txn, input, std::get<0>(label_dirs[0]), std::get<1>(label_dirs[0]),
-            std::get<2>(label_dirs[0]), DummyPredicate<grape::EmptyType>());
+            graph, input, std::get<0>(label_dirs[0]),
+            std::get<1>(label_dirs[0]), std::get<2>(label_dirs[0]),
+            DummyPredicate<grape::EmptyType>());
       } else {
         //        LOG(FATAL) << "not implemented";
         return expand_vertex_np_me_sp_optional<
             grape::EmptyType, DummyPredicate<grape::EmptyType>>(
-            txn, input, label_dirs, DummyPredicate<grape::EmptyType>());
+            graph, input, label_dirs, DummyPredicate<grape::EmptyType>());
       }
     } else if (ed_type == PropertyType::Date()) {
       if (se) {
         return expand_vertex_np_se_optional<Date, DummyPredicate<Date>>(
-            txn, input, std::get<0>(label_dirs[0]), std::get<1>(label_dirs[0]),
-            std::get<2>(label_dirs[0]), DummyPredicate<Date>());
+            graph, input, std::get<0>(label_dirs[0]),
+            std::get<1>(label_dirs[0]), std::get<2>(label_dirs[0]),
+            DummyPredicate<Date>());
       } else {
         return expand_vertex_np_me_sp_optional<Date, DummyPredicate<Date>>(
-            txn, input, label_dirs, DummyPredicate<Date>());
+            graph, input, label_dirs, DummyPredicate<Date>());
       }
     }
   }
@@ -203,25 +209,25 @@ expand_vertex_without_predicate_optional_impl(
 }
 
 std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
-expand_vertex_without_predicate_impl(const ReadTransaction& txn,
+expand_vertex_without_predicate_impl(const GraphReadInterface& graph,
                                      const MLVertexColumn& input,
                                      const std::vector<LabelTriplet>& labels,
                                      Direction dir) {
   const std::set<label_t>& input_labels = input.get_labels_set();
-  int label_num = txn.schema().vertex_label_num();
+  int label_num = graph.schema().vertex_label_num();
   std::vector<std::vector<std::tuple<label_t, label_t, Direction>>> label_dirs(
       label_num);
   std::vector<PropertyType> ed_types;
   for (auto& triplet : labels) {
-    if (!txn.schema().exist(triplet.src_label, triplet.dst_label,
-                            triplet.edge_label)) {
+    if (!graph.schema().exist(triplet.src_label, triplet.dst_label,
+                              triplet.edge_label)) {
       continue;
     }
     if ((input_labels.find(triplet.src_label) != input_labels.end()) &&
         ((dir == Direction::kOut) || (dir == Direction::kBoth))) {
       label_dirs[triplet.src_label].emplace_back(
           triplet.dst_label, triplet.edge_label, Direction::kOut);
-      const auto& properties = txn.schema().get_edge_properties(
+      const auto& properties = graph.schema().get_edge_properties(
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       if (properties.empty()) {
         ed_types.push_back(PropertyType::Empty());
@@ -234,7 +240,7 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
         ((dir == Direction::kIn) || (dir == Direction::kBoth))) {
       label_dirs[triplet.dst_label].emplace_back(
           triplet.src_label, triplet.edge_label, Direction::kIn);
-      const auto& properties = txn.schema().get_edge_properties(
+      const auto& properties = graph.schema().get_edge_properties(
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       if (properties.empty()) {
         ed_types.push_back(PropertyType::Empty());
@@ -270,35 +276,35 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
       if (se) {
         return expand_vertex_np_se<grape::EmptyType,
                                    DummyPredicate<grape::EmptyType>>(
-            txn, input, label_dirs, DummyPredicate<grape::EmptyType>());
+            graph, input, label_dirs, DummyPredicate<grape::EmptyType>());
       } else {
         return expand_vertex_np_me_sp<grape::EmptyType,
                                       DummyPredicate<grape::EmptyType>>(
-            txn, input, label_dirs, DummyPredicate<grape::EmptyType>());
+            graph, input, label_dirs, DummyPredicate<grape::EmptyType>());
       }
     } else if (ed_type == PropertyType::Int32()) {
       if (se) {
         return expand_vertex_np_se<int, DummyPredicate<int>>(
-            txn, input, label_dirs, DummyPredicate<int>());
+            graph, input, label_dirs, DummyPredicate<int>());
       } else {
         return expand_vertex_np_me_sp<int, DummyPredicate<int>>(
-            txn, input, label_dirs, DummyPredicate<int>());
+            graph, input, label_dirs, DummyPredicate<int>());
       }
     } else if (ed_type == PropertyType::Int64()) {
       if (se) {
         return expand_vertex_np_se<int64_t, DummyPredicate<int64_t>>(
-            txn, input, label_dirs, DummyPredicate<int64_t>());
+            graph, input, label_dirs, DummyPredicate<int64_t>());
       } else {
         return expand_vertex_np_me_sp<int64_t, DummyPredicate<int64_t>>(
-            txn, input, label_dirs, DummyPredicate<int64_t>());
+            graph, input, label_dirs, DummyPredicate<int64_t>());
       }
     } else if (ed_type == PropertyType::Date()) {
       if (se) {
         return expand_vertex_np_se<Date, DummyPredicate<Date>>(
-            txn, input, label_dirs, DummyPredicate<Date>());
+            graph, input, label_dirs, DummyPredicate<Date>());
       } else {
         return expand_vertex_np_me_sp<Date, DummyPredicate<Date>>(
-            txn, input, label_dirs, DummyPredicate<Date>());
+            graph, input, label_dirs, DummyPredicate<Date>());
       }
     } else {
       LOG(INFO) << "type - " << ed_type << " - not implemented, fallback";
@@ -307,29 +313,29 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
     LOG(INFO)
         << "different edge property type in an edge(vertex) expand, fallback";
   }
-  return expand_vertex_np_me_mp<DummyPredicate<Any>>(txn, input, label_dirs,
+  return expand_vertex_np_me_mp<DummyPredicate<Any>>(graph, input, label_dirs,
                                                      DummyPredicate<Any>());
 }
 
 std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_without_predicate_optional_impl(
-    const ReadTransaction& txn, const MLVertexColumnBase& input,
+    const GraphReadInterface& graph, const MLVertexColumnBase& input,
     const std::vector<LabelTriplet>& labels, Direction dir) {
   const std::set<label_t>& input_labels = input.get_labels_set();
-  int label_num = txn.schema().vertex_label_num();
+  int label_num = graph.schema().vertex_label_num();
   std::vector<std::vector<std::tuple<label_t, label_t, Direction>>> label_dirs(
       label_num);
   std::vector<PropertyType> ed_types;
   for (auto& triplet : labels) {
-    if (!txn.schema().exist(triplet.src_label, triplet.dst_label,
-                            triplet.edge_label)) {
+    if (!graph.schema().exist(triplet.src_label, triplet.dst_label,
+                              triplet.edge_label)) {
       continue;
     }
     if ((input_labels.find(triplet.src_label) != input_labels.end()) &&
         ((dir == Direction::kOut) || (dir == Direction::kBoth))) {
       label_dirs[triplet.src_label].emplace_back(
           triplet.dst_label, triplet.edge_label, Direction::kOut);
-      const auto& properties = txn.schema().get_edge_properties(
+      const auto& properties = graph.schema().get_edge_properties(
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       if (properties.empty()) {
         ed_types.push_back(PropertyType::Empty());
@@ -342,7 +348,7 @@ expand_vertex_without_predicate_optional_impl(
         ((dir == Direction::kIn) || (dir == Direction::kBoth))) {
       label_dirs[triplet.dst_label].emplace_back(
           triplet.src_label, triplet.edge_label, Direction::kIn);
-      const auto& properties = txn.schema().get_edge_properties(
+      const auto& properties = graph.schema().get_edge_properties(
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       if (properties.empty()) {
         ed_types.push_back(PropertyType::Empty());
@@ -380,11 +386,11 @@ expand_vertex_without_predicate_optional_impl(
         LOG(FATAL) << "not implemented";
         // return expand_vertex_np_se_optional<grape::EmptyType,
         //                                     DummyPredicate<grape::EmptyType>>(
-        //   txn, input, label_dirs, DummyPredicate<grape::EmptyType>());
+        //   graph, input, label_dirs, DummyPredicate<grape::EmptyType>());
       } else {
         return expand_vertex_np_me_sp_optional<
             grape::EmptyType, DummyPredicate<grape::EmptyType>>(
-            txn, input, label_dirs, DummyPredicate<grape::EmptyType>());
+            graph, input, label_dirs, DummyPredicate<grape::EmptyType>());
       }
     }
   }
@@ -392,25 +398,25 @@ expand_vertex_without_predicate_optional_impl(
 }
 
 std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
-expand_vertex_without_predicate_impl(const ReadTransaction& txn,
+expand_vertex_without_predicate_impl(const GraphReadInterface& graph,
                                      const MSVertexColumn& input,
                                      const std::vector<LabelTriplet>& labels,
                                      Direction dir) {
   const std::set<label_t>& input_labels = input.get_labels_set();
-  int label_num = txn.schema().vertex_label_num();
+  int label_num = graph.schema().vertex_label_num();
   std::vector<std::vector<std::tuple<label_t, label_t, Direction>>> label_dirs(
       label_num);
   std::vector<PropertyType> ed_types;
   for (auto& triplet : labels) {
-    if (!txn.schema().exist(triplet.src_label, triplet.dst_label,
-                            triplet.edge_label)) {
+    if (!graph.schema().exist(triplet.src_label, triplet.dst_label,
+                              triplet.edge_label)) {
       continue;
     }
     if ((input_labels.find(triplet.src_label) != input_labels.end()) &&
         ((dir == Direction::kOut) || (dir == Direction::kBoth))) {
       label_dirs[triplet.src_label].emplace_back(
           triplet.dst_label, triplet.edge_label, Direction::kOut);
-      const auto& properties = txn.schema().get_edge_properties(
+      const auto& properties = graph.schema().get_edge_properties(
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       if (properties.empty()) {
         ed_types.push_back(PropertyType::Empty());
@@ -423,7 +429,7 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
         ((dir == Direction::kIn) || (dir == Direction::kBoth))) {
       label_dirs[triplet.dst_label].emplace_back(
           triplet.src_label, triplet.edge_label, Direction::kIn);
-      const auto& properties = txn.schema().get_edge_properties(
+      const auto& properties = graph.schema().get_edge_properties(
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       if (properties.empty()) {
         ed_types.push_back(PropertyType::Empty());
@@ -457,35 +463,35 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
       if (se) {
         return expand_vertex_np_se<grape::EmptyType,
                                    DummyPredicate<grape::EmptyType>>(
-            txn, input, label_dirs, DummyPredicate<grape::EmptyType>());
+            graph, input, label_dirs, DummyPredicate<grape::EmptyType>());
       } else {
         return expand_vertex_np_me_sp<grape::EmptyType,
                                       DummyPredicate<grape::EmptyType>>(
-            txn, input, label_dirs, DummyPredicate<grape::EmptyType>());
+            graph, input, label_dirs, DummyPredicate<grape::EmptyType>());
       }
     } else if (ed_type == PropertyType::Int32()) {
       if (se) {
         return expand_vertex_np_se<int, DummyPredicate<int>>(
-            txn, input, label_dirs, DummyPredicate<int>());
+            graph, input, label_dirs, DummyPredicate<int>());
       } else {
         return expand_vertex_np_me_sp<int, DummyPredicate<int>>(
-            txn, input, label_dirs, DummyPredicate<int>());
+            graph, input, label_dirs, DummyPredicate<int>());
       }
     } else if (ed_type == PropertyType::Int64()) {
       if (se) {
         return expand_vertex_np_se<int64_t, DummyPredicate<int64_t>>(
-            txn, input, label_dirs, DummyPredicate<int64_t>());
+            graph, input, label_dirs, DummyPredicate<int64_t>());
       } else {
         return expand_vertex_np_me_sp<int64_t, DummyPredicate<int64_t>>(
-            txn, input, label_dirs, DummyPredicate<int64_t>());
+            graph, input, label_dirs, DummyPredicate<int64_t>());
       }
     } else if (ed_type == PropertyType::Date()) {
       if (se) {
         return expand_vertex_np_se<Date, DummyPredicate<Date>>(
-            txn, input, label_dirs, DummyPredicate<Date>());
+            graph, input, label_dirs, DummyPredicate<Date>());
       } else {
         return expand_vertex_np_me_sp<Date, DummyPredicate<Date>>(
-            txn, input, label_dirs, DummyPredicate<Date>());
+            graph, input, label_dirs, DummyPredicate<Date>());
       }
     } else {
       LOG(INFO) << "type - " << ed_type << " - not implemented, fallback";
@@ -494,7 +500,7 @@ expand_vertex_without_predicate_impl(const ReadTransaction& txn,
     LOG(INFO)
         << "different edge property type in an edge(vertex) expand, fallback";
   }
-  return expand_vertex_np_me_mp<DummyPredicate<Any>>(txn, input, label_dirs,
+  return expand_vertex_np_me_mp<DummyPredicate<Any>>(graph, input, label_dirs,
                                                      DummyPredicate<Any>());
 }
 

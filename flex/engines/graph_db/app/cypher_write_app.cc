@@ -48,9 +48,10 @@ bool CypherWriteApp::Query(GraphDBSession& graph, Decoder& input,
 
   // LOG(INFO) << "plan: " << plan.DebugString();
 
-  auto ctx = runtime::runtime_eval(plan, txn, params, timer_);
+  gs::runtime::GraphInsertInterface gri(txn);
+  auto ctx = runtime::runtime_eval(plan, gri, params, timer_);
 
-  // runtime::eval_sink_encoder(ctx, txn, output);
+  // runtime::eval_sink_encoder(ctx, gri, output);
   return true;
 }
 AppWrapper CypherWriteAppFactory::CreateApp(const GraphDB& db) {

@@ -60,26 +60,26 @@ std::shared_ptr<IAccessor> create_context_value_accessor(const Context& ctx,
 }
 
 std::shared_ptr<IAccessor> create_vertex_property_path_accessor(
-    const ReadTransaction& txn, const Context& ctx, int tag, RTAnyType type,
-    const std::string& prop_name) {
+    const GraphReadInterface& graph, const Context& ctx, int tag,
+    RTAnyType type, const std::string& prop_name) {
   switch (type.type_enum_) {
   case RTAnyType::RTAnyTypeImpl::kI64Value:
-    return std::make_shared<VertexPropertyPathAccessor<int64_t>>(txn, ctx, tag,
-                                                                 prop_name);
+    return std::make_shared<VertexPropertyPathAccessor<int64_t>>(
+        graph, ctx, tag, prop_name);
   case RTAnyType::RTAnyTypeImpl::kI32Value:
-    return std::make_shared<VertexPropertyPathAccessor<int>>(txn, ctx, tag,
+    return std::make_shared<VertexPropertyPathAccessor<int>>(graph, ctx, tag,
                                                              prop_name);
   case RTAnyType::RTAnyTypeImpl::kU64Value:
-    return std::make_shared<VertexPropertyPathAccessor<uint64_t>>(txn, ctx, tag,
-                                                                  prop_name);
+    return std::make_shared<VertexPropertyPathAccessor<uint64_t>>(
+        graph, ctx, tag, prop_name);
   case RTAnyType::RTAnyTypeImpl::kStringValue:
     return std::make_shared<VertexPropertyPathAccessor<std::string_view>>(
-        txn, ctx, tag, prop_name);
+        graph, ctx, tag, prop_name);
   case RTAnyType::RTAnyTypeImpl::kDate32:
-    return std::make_shared<VertexPropertyPathAccessor<Day>>(txn, ctx, tag,
+    return std::make_shared<VertexPropertyPathAccessor<Day>>(graph, ctx, tag,
                                                              prop_name);
   case RTAnyType::RTAnyTypeImpl::kTimestamp:
-    return std::make_shared<VertexPropertyPathAccessor<Date>>(txn, ctx, tag,
+    return std::make_shared<VertexPropertyPathAccessor<Date>>(graph, ctx, tag,
                                                               prop_name);
   default:
     LOG(FATAL) << "not implemented - " << static_cast<int>(type.type_enum_);
@@ -93,23 +93,27 @@ std::shared_ptr<IAccessor> create_vertex_label_path_accessor(const Context& ctx,
 }
 
 std::shared_ptr<IAccessor> create_vertex_property_vertex_accessor(
-    const ReadTransaction& txn, RTAnyType type, const std::string& prop_name) {
+    const GraphReadInterface& graph, RTAnyType type,
+    const std::string& prop_name) {
   switch (type.type_enum_) {
   case RTAnyType::RTAnyTypeImpl::kI64Value:
-    return std::make_shared<VertexPropertyVertexAccessor<int64_t>>(txn,
+    return std::make_shared<VertexPropertyVertexAccessor<int64_t>>(graph,
                                                                    prop_name);
   case RTAnyType::RTAnyTypeImpl::kI32Value:
-    return std::make_shared<VertexPropertyVertexAccessor<int>>(txn, prop_name);
+    return std::make_shared<VertexPropertyVertexAccessor<int>>(graph,
+                                                               prop_name);
   case RTAnyType::RTAnyTypeImpl::kU64Value:
-    return std::make_shared<VertexPropertyVertexAccessor<uint64_t>>(txn,
+    return std::make_shared<VertexPropertyVertexAccessor<uint64_t>>(graph,
                                                                     prop_name);
   case RTAnyType::RTAnyTypeImpl::kStringValue:
     return std::make_shared<VertexPropertyVertexAccessor<std::string_view>>(
-        txn, prop_name);
+        graph, prop_name);
   case RTAnyType::RTAnyTypeImpl::kDate32:
-    return std::make_shared<VertexPropertyVertexAccessor<Day>>(txn, prop_name);
+    return std::make_shared<VertexPropertyVertexAccessor<Day>>(graph,
+                                                               prop_name);
   case RTAnyType::RTAnyTypeImpl::kTimestamp:
-    return std::make_shared<VertexPropertyVertexAccessor<Date>>(txn, prop_name);
+    return std::make_shared<VertexPropertyVertexAccessor<Date>>(graph,
+                                                                prop_name);
   default:
     LOG(FATAL) << "not implemented - " << static_cast<int>(type.type_enum_);
   }
@@ -117,14 +121,14 @@ std::shared_ptr<IAccessor> create_vertex_property_vertex_accessor(
 }
 
 std::shared_ptr<IAccessor> create_edge_property_path_accessor(
-    const ReadTransaction& txn, const std::string& name, const Context& ctx,
-    int tag, RTAnyType type) {
+    const GraphReadInterface& graph, const std::string& name,
+    const Context& ctx, int tag, RTAnyType type) {
   auto col = std::dynamic_pointer_cast<IEdgeColumn>(ctx.get(tag));
   const auto& labels = col->get_labels();
   bool multip_properties = false;
-  if (txn.schema().has_multi_props_edge()) {
+  if (graph.schema().has_multi_props_edge()) {
     for (auto label : labels) {
-      auto& properties = txn.schema().get_edge_properties(
+      auto& properties = graph.schema().get_edge_properties(
           label.src_label, label.dst_label, label.edge_label);
       if (properties.size() > 1) {
         multip_properties = true;
@@ -136,54 +140,54 @@ std::shared_ptr<IAccessor> create_edge_property_path_accessor(
     switch (type.type_enum_) {
     case RTAnyType::RTAnyTypeImpl::kI64Value:
       return std::make_shared<MultiPropsEdgePropertyPathAccessor<int64_t>>(
-          txn, name, ctx, tag);
+          graph, name, ctx, tag);
     case RTAnyType::RTAnyTypeImpl::kI32Value:
       return std::make_shared<MultiPropsEdgePropertyPathAccessor<int>>(
-          txn, name, ctx, tag);
+          graph, name, ctx, tag);
     case RTAnyType::RTAnyTypeImpl::kU64Value:
       return std::make_shared<MultiPropsEdgePropertyPathAccessor<uint64_t>>(
-          txn, name, ctx, tag);
+          graph, name, ctx, tag);
     case RTAnyType::RTAnyTypeImpl::kStringValue:
       return std::make_shared<
-          MultiPropsEdgePropertyPathAccessor<std::string_view>>(txn, name, ctx,
-                                                                tag);
+          MultiPropsEdgePropertyPathAccessor<std::string_view>>(graph, name,
+                                                                ctx, tag);
     case RTAnyType::RTAnyTypeImpl::kDate32:
       return std::make_shared<MultiPropsEdgePropertyPathAccessor<Day>>(
-          txn, name, ctx, tag);
+          graph, name, ctx, tag);
     case RTAnyType::RTAnyTypeImpl::kTimestamp:
       return std::make_shared<MultiPropsEdgePropertyPathAccessor<Date>>(
-          txn, name, ctx, tag);
+          graph, name, ctx, tag);
     case RTAnyType::RTAnyTypeImpl::kF64Value:
       return std::make_shared<MultiPropsEdgePropertyPathAccessor<double>>(
-          txn, name, ctx, tag);
+          graph, name, ctx, tag);
     default:
       LOG(FATAL) << "not implemented - " << static_cast<int>(type.type_enum_);
     }
   } else {
     switch (type.type_enum_) {
     case RTAnyType::RTAnyTypeImpl::kI64Value:
-      return std::make_shared<EdgePropertyPathAccessor<int64_t>>(txn, name, ctx,
-                                                                 tag);
+      return std::make_shared<EdgePropertyPathAccessor<int64_t>>(graph, name,
+                                                                 ctx, tag);
     case RTAnyType::RTAnyTypeImpl::kI32Value:
-      return std::make_shared<EdgePropertyPathAccessor<int>>(txn, name, ctx,
+      return std::make_shared<EdgePropertyPathAccessor<int>>(graph, name, ctx,
                                                              tag);
     case RTAnyType::RTAnyTypeImpl::kU64Value:
-      return std::make_shared<EdgePropertyPathAccessor<uint64_t>>(txn, name,
+      return std::make_shared<EdgePropertyPathAccessor<uint64_t>>(graph, name,
                                                                   ctx, tag);
     case RTAnyType::RTAnyTypeImpl::kStringValue:
       return std::make_shared<EdgePropertyPathAccessor<std::string_view>>(
-          txn, name, ctx, tag);
+          graph, name, ctx, tag);
     case RTAnyType::RTAnyTypeImpl::kDate32:
-      return std::make_shared<EdgePropertyPathAccessor<Day>>(txn, name, ctx,
+      return std::make_shared<EdgePropertyPathAccessor<Day>>(graph, name, ctx,
                                                              tag);
 
     case RTAnyType::RTAnyTypeImpl::kTimestamp:
-      return std::make_shared<EdgePropertyPathAccessor<Date>>(txn, name, ctx,
+      return std::make_shared<EdgePropertyPathAccessor<Date>>(graph, name, ctx,
                                                               tag);
 
     case RTAnyType::RTAnyTypeImpl::kF64Value:
-      return std::make_shared<EdgePropertyPathAccessor<double>>(txn, name, ctx,
-                                                                tag);
+      return std::make_shared<EdgePropertyPathAccessor<double>>(graph, name,
+                                                                ctx, tag);
     default:
       LOG(FATAL) << "not implemented - " << static_cast<int>(type.type_enum_);
     }
@@ -197,56 +201,59 @@ std::shared_ptr<IAccessor> create_edge_label_path_accessor(const Context& ctx,
 }
 
 std::shared_ptr<IAccessor> create_edge_property_edge_accessor(
-    const ReadTransaction& txn, const std::string& prop_name, RTAnyType type) {
-  bool multip_properties = txn.schema().has_multi_props_edge();
+    const GraphReadInterface& graph, const std::string& prop_name,
+    RTAnyType type) {
+  bool multip_properties = graph.schema().has_multi_props_edge();
 
   if (multip_properties) {
     switch (type.type_enum_) {
     case RTAnyType::RTAnyTypeImpl::kI64Value:
       return std::make_shared<MultiPropsEdgePropertyEdgeAccessor<int64_t>>(
-          txn, prop_name);
+          graph, prop_name);
     case RTAnyType::RTAnyTypeImpl::kI32Value:
       return std::make_shared<MultiPropsEdgePropertyEdgeAccessor<int>>(
-          txn, prop_name);
+          graph, prop_name);
     case RTAnyType::RTAnyTypeImpl::kU64Value:
       return std::make_shared<MultiPropsEdgePropertyEdgeAccessor<uint64_t>>(
-          txn, prop_name);
+          graph, prop_name);
     case RTAnyType::RTAnyTypeImpl::kStringValue:
       return std::make_shared<
-          MultiPropsEdgePropertyEdgeAccessor<std::string_view>>(txn, prop_name);
+          MultiPropsEdgePropertyEdgeAccessor<std::string_view>>(graph,
+                                                                prop_name);
     case RTAnyType::RTAnyTypeImpl::kDate32:
       return std::make_shared<MultiPropsEdgePropertyEdgeAccessor<Day>>(
-          txn, prop_name);
+          graph, prop_name);
 
     case RTAnyType::RTAnyTypeImpl::kTimestamp:
       return std::make_shared<MultiPropsEdgePropertyEdgeAccessor<Date>>(
-          txn, prop_name);
+          graph, prop_name);
     case RTAnyType::RTAnyTypeImpl::kF64Value:
       return std::make_shared<MultiPropsEdgePropertyEdgeAccessor<double>>(
-          txn, prop_name);
+          graph, prop_name);
     default:
       LOG(FATAL) << "not implemented - " << static_cast<int>(type.type_enum_);
     }
   } else {
     switch (type.type_enum_) {
     case RTAnyType::RTAnyTypeImpl::kI64Value:
-      return std::make_shared<EdgePropertyEdgeAccessor<int64_t>>(txn,
+      return std::make_shared<EdgePropertyEdgeAccessor<int64_t>>(graph,
                                                                  prop_name);
     case RTAnyType::RTAnyTypeImpl::kI32Value:
-      return std::make_shared<EdgePropertyEdgeAccessor<int>>(txn, prop_name);
+      return std::make_shared<EdgePropertyEdgeAccessor<int>>(graph, prop_name);
     case RTAnyType::RTAnyTypeImpl::kU64Value:
-      return std::make_shared<EdgePropertyEdgeAccessor<uint64_t>>(txn,
+      return std::make_shared<EdgePropertyEdgeAccessor<uint64_t>>(graph,
                                                                   prop_name);
     case RTAnyType::RTAnyTypeImpl::kStringValue:
       return std::make_shared<EdgePropertyEdgeAccessor<std::string_view>>(
-          txn, prop_name);
+          graph, prop_name);
     case RTAnyType::RTAnyTypeImpl::kDate32:
-      return std::make_shared<EdgePropertyEdgeAccessor<Day>>(txn, prop_name);
+      return std::make_shared<EdgePropertyEdgeAccessor<Day>>(graph, prop_name);
 
     case RTAnyType::RTAnyTypeImpl::kTimestamp:
-      return std::make_shared<EdgePropertyEdgeAccessor<Date>>(txn, prop_name);
+      return std::make_shared<EdgePropertyEdgeAccessor<Date>>(graph, prop_name);
     case RTAnyType::RTAnyTypeImpl::kF64Value:
-      return std::make_shared<EdgePropertyEdgeAccessor<double>>(txn, prop_name);
+      return std::make_shared<EdgePropertyEdgeAccessor<double>>(graph,
+                                                                prop_name);
     default:
       LOG(FATAL) << "not implemented - " << static_cast<int>(type.type_enum_);
     }

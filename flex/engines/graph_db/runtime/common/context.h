@@ -58,7 +58,7 @@ class Context {
 
   void desc(const std::string& info = "") const;
 
-  void show(const ReadTransaction& txn) const;
+  void show(const GraphReadInterface& graph) const;
 
   size_t col_num() const;
 

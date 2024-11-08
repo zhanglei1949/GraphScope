@@ -59,8 +59,9 @@ class GeneralComparer {
   size_t keys_num_;
 };
 
-Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
-                      Context&& ctx, OprTimer& timer, bool enable_staged) {
+Context eval_order_by(const algebra::OrderBy& opr,
+                      const GraphReadInterface& graph, Context&& ctx,
+                      OprTimer& timer, bool enable_staged) {
   double t = -grape::GetCurrentTime();
   int lower = 0;
   int upper = std::numeric_limits<int>::max();
@@ -101,14 +102,14 @@ Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
               double tx = -grape::GetCurrentTime();
               staged_order_by = vertex_id_topN(
                   asc, upper, std::dynamic_pointer_cast<IVertexColumn>(col),
-                  txn, picked_indices);
+                  graph, picked_indices);
               tx += grape::GetCurrentTime();
               timer.record_routine("order_by::vertex_id_topN", tx);
             } else {
               double tx = -grape::GetCurrentTime();
               staged_order_by = vertex_property_topN(
                   asc, upper, std::dynamic_pointer_cast<IVertexColumn>(col),
-                  txn, prop_name, picked_indices);
+                  graph, prop_name, picked_indices);
               tx += grape::GetCurrentTime();
               timer.record_routine("order_by::vertex_property_topN", tx);
             }
@@ -127,7 +128,7 @@ Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
   }
   for (int i = 0; i < keys_num; ++i) {
     const algebra::OrderBy_OrderingPair& pair = opr.pairs(i);
-    Var v(txn, ctx, pair.key(), VarType::kPathVar);
+    Var v(graph, ctx, pair.key(), VarType::kPathVar);
     CHECK(pair.order() == algebra::OrderBy_OrderingPair_Order::
                               OrderBy_OrderingPair_Order_ASC ||
           pair.order() == algebra::OrderBy_OrderingPair_Order::
@@ -140,13 +141,14 @@ Context eval_order_by(const algebra::OrderBy& opr, const ReadTransaction& txn,
 
   if (!staged_order_by) {
     double tx = -grape::GetCurrentTime();
-    OrderBy::order_by_with_limit<GeneralComparer>(txn, ctx, cmp, lower, upper);
+    OrderBy::order_by_with_limit<GeneralComparer>(graph, ctx, cmp, lower,
+                                                  upper);
     tx += grape::GetCurrentTime();
     timer.record_routine("order_by::order_by_with_limit", tx);
   } else {
     CHECK_GE(picked_indices.size(), upper);
     double tx = -grape::GetCurrentTime();
-    OrderBy::staged_order_by_with_limit<GeneralComparer>(txn, ctx, cmp, lower,
+    OrderBy::staged_order_by_with_limit<GeneralComparer>(graph, ctx, cmp, lower,
                                                          upper, picked_indices);
     tx += grape::GetCurrentTime();
     timer.record_routine("order_by::staged_order_by_with_limit", tx);

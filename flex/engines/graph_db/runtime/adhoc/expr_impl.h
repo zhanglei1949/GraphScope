@@ -84,7 +84,7 @@ class ConstFalseExpr : public ExprBase {
 
 class VertexWithInSetExpr : public ExprBase {
  public:
-  VertexWithInSetExpr(const ReadTransaction& txn, const Context& ctx,
+  VertexWithInSetExpr(const GraphReadInterface& graph, const Context& ctx,
                       std::unique_ptr<ExprBase>&& key,
                       std::unique_ptr<ExprBase>&& val_set)
       : key_(std::move(key)), val_set_(std::move(val_set)) {
@@ -126,7 +126,7 @@ class VertexWithInSetExpr : public ExprBase {
 };
 class VertexWithInListExpr : public ExprBase {
  public:
-  VertexWithInListExpr(const ReadTransaction& txn, const Context& ctx,
+  VertexWithInListExpr(const GraphReadInterface& graph, const Context& ctx,
                        std::unique_ptr<ExprBase>&& key,
                        std::unique_ptr<ExprBase>&& val_list)
       : key_(std::move(key)), val_list_(std::move(val_list)) {
@@ -178,7 +178,7 @@ class VertexWithInListExpr : public ExprBase {
 template <typename T>
 class WithInExpr : public ExprBase {
  public:
-  WithInExpr(const ReadTransaction& txn, const Context& ctx,
+  WithInExpr(const GraphReadInterface& graph, const Context& ctx,
              std::unique_ptr<ExprBase>&& key, const common::Value& array)
       : key_(std::move(key)) {
     if constexpr (std::is_same_v<T, int64_t>) {
@@ -268,7 +268,7 @@ class WithInExpr : public ExprBase {
 
 class VariableExpr : public ExprBase {
  public:
-  VariableExpr(const ReadTransaction& txn, const Context& ctx,
+  VariableExpr(const GraphReadInterface& graph, const Context& ctx,
                const common::Variable& pb, VarType var_type);
 
   RTAny eval_path(size_t idx) const override;
@@ -891,7 +891,7 @@ class ToFloatExpr : public ExprBase {
   std::unique_ptr<ExprBase> args;
 };
 std::unique_ptr<ExprBase> parse_expression(
-    const ReadTransaction& txn, const Context& ctx,
+    const GraphReadInterface& graph, const Context& ctx,
     const std::map<std::string, std::string>& params,
     const common::Expression& expr, VarType var_type);
 

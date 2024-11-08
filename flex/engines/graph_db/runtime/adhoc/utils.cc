@@ -473,7 +473,7 @@ std::shared_ptr<IContextColumn> build_topN_column(
 }
 
 std::shared_ptr<IContextColumn> build_topN_property_column(
-    const ReadTransaction& txn, std::shared_ptr<IContextColumn> col,
+    const GraphReadInterface& graph, std::shared_ptr<IContextColumn> col,
     const std::string& property_name, size_t limit, bool asc,
     std::vector<size_t>& offsets) {
   CHECK(col->column_type() == ContextColumnType::kVertex);
@@ -482,11 +482,12 @@ std::shared_ptr<IContextColumn> build_topN_property_column(
     auto casted_col = std::dynamic_pointer_cast<MSVertexColumn>(vc);
     std::vector<PropertyType> types;
     for (auto label : casted_col->get_labels_set()) {
-      size_t prop_num = txn.schema().get_vertex_property_names(label).size();
+      size_t prop_num = graph.schema().get_vertex_property_names(label).size();
       bool found = false;
       for (size_t i = 0; i < prop_num; ++i) {
-        if (txn.schema().get_vertex_property_names(label)[i] == property_name) {
-          types.push_back(txn.schema().get_vertex_properties(label)[i]);
+        if (graph.schema().get_vertex_property_names(label)[i] ==
+            property_name) {
+          types.push_back(graph.schema().get_vertex_properties(label)[i]);
           found = true;
           break;
         }
@@ -504,8 +505,7 @@ std::shared_ptr<IContextColumn> build_topN_property_column(
         size_t idx = 0;
         for (size_t seg_i = 0; seg_i < seg_num; ++seg_i) {
           label_t seg_label = casted_col->seg_label(seg_i);
-          const auto& prop_col = *std::dynamic_pointer_cast<DateColumn>(
-              txn.get_vertex_property_column(seg_label, property_name));
+          auto prop_col = graph.GetVertexColumn<Date>(seg_label, property_name);
           for (auto v : casted_col->seg_vertices(seg_i)) {
             gen.push(prop_col.get_view(v).milli_second, idx);
             ++idx;
@@ -533,27 +533,22 @@ std::shared_ptr<IContextColumn> build_topN_property_column(
 }
 
 template <typename T>
-bool vertex_property_topN_impl(
-    bool asc, size_t limit, const std::shared_ptr<IVertexColumn>& col,
-    const std::vector<std::shared_ptr<ColumnBase>>& property_columns,
-    std::vector<size_t>& offsets) {
-  std::vector<const TypedColumn<T>*> casted_columns(property_columns.size(),
-                                                    nullptr);
-  for (size_t k = 0; k < property_columns.size(); ++k) {
-    if (property_columns[k] != nullptr) {
-      auto casted =
-          std::dynamic_pointer_cast<TypedColumn<T>>(property_columns[k]);
-      if (casted != nullptr) {
-        casted_columns[k] = casted.get();
-      }
-    }
+bool vertex_property_topN_impl(bool asc, size_t limit,
+                               const std::shared_ptr<IVertexColumn>& col,
+                               const GraphReadInterface& graph,
+                               const std::string& prop_name,
+                               std::vector<size_t>& offsets) {
+  std::vector<GraphReadInterface::vertex_column_t<T>> property_columns;
+  label_t label_num = graph.schema().vertex_label_num();
+  for (label_t i = 0; i < label_num; ++i) {
+    property_columns.emplace_back(graph.GetVertexColumn<T>(i, prop_name));
   }
   bool success = true;
   if (asc) {
     TopNGenerator<T, TopNAscCmp<T>> gen(limit);
     foreach_vertex(*col, [&](size_t idx, label_t label, vid_t v) {
-      if (casted_columns[label] != nullptr) {
-        gen.push(casted_columns[label]->get_view(v), idx);
+      if (!property_columns[label].is_null()) {
+        gen.push(property_columns[label].get_view(v), idx);
       } else {
         success = false;
       }
@@ -564,8 +559,8 @@ bool vertex_property_topN_impl(
   } else {
     TopNGenerator<T, TopNDescCmp<T>> gen(limit);
     foreach_vertex(*col, [&](size_t idx, label_t label, vid_t v) {
-      if (casted_columns[label] != nullptr) {
-        gen.push(casted_columns[label]->get_view(v), idx);
+      if (!property_columns[label].is_null()) {
+        gen.push(property_columns[label].get_view(v), idx);
       } else {
         success = false;
       }
@@ -581,19 +576,19 @@ bool vertex_property_topN_impl(
 template <typename T>
 bool vertex_id_topN_impl(bool asc, size_t limit,
                          const std::shared_ptr<IVertexColumn>& col,
-                         const ReadTransaction& txn,
+                         const GraphReadInterface& graph,
                          std::vector<size_t>& offsets) {
   if (asc) {
     TopNGenerator<T, TopNAscCmp<T>> gen(limit);
     foreach_vertex(*col, [&](size_t idx, label_t label, vid_t v) {
-      auto oid = AnyConverter<T>::from_any(txn.GetVertexId(label, v));
+      auto oid = AnyConverter<T>::from_any(graph.GetVertexId(label, v));
       gen.push(oid, idx);
     });
     gen.generate_indices(offsets);
   } else {
     TopNGenerator<T, TopNDescCmp<T>> gen(limit);
     foreach_vertex(*col, [&](size_t idx, label_t label, vid_t v) {
-      auto oid = AnyConverter<T>::from_any(txn.GetVertexId(label, v));
+      auto oid = AnyConverter<T>::from_any(graph.GetVertexId(label, v));
       gen.push(oid, idx);
     });
     gen.generate_indices(offsets);
@@ -602,36 +597,40 @@ bool vertex_id_topN_impl(bool asc, size_t limit,
 }
 bool vertex_id_topN(bool asc, size_t limit,
                     const std::shared_ptr<IVertexColumn>& col,
-                    const ReadTransaction& txn, std::vector<size_t>& offsets) {
+                    const GraphReadInterface& graph,
+                    std::vector<size_t>& offsets) {
   if (col->get_labels_set().size() != 1) {
     return false;
   }
   auto& vec =
-      txn.schema().get_vertex_primary_key(*col->get_labels_set().begin());
+      graph.schema().get_vertex_primary_key(*col->get_labels_set().begin());
   if (vec.size() != 1) {
     return false;
   }
   auto type = std::get<0>(vec[0]);
   if (type == PropertyType::Int64()) {
-    return vertex_id_topN_impl<int64_t>(asc, limit, col, txn, offsets);
+    return vertex_id_topN_impl<int64_t>(asc, limit, col, graph, offsets);
   } else if (type == PropertyType::StringView()) {
-    return vertex_id_topN_impl<std::string_view>(asc, limit, col, txn, offsets);
+    return vertex_id_topN_impl<std::string_view>(asc, limit, col, graph,
+                                                 offsets);
   } else {
     return false;
   }
 }
 bool vertex_property_topN(bool asc, size_t limit,
                           const std::shared_ptr<IVertexColumn>& col,
-                          const ReadTransaction& txn,
+                          const GraphReadInterface& graph,
                           const std::string& prop_name,
                           std::vector<size_t>& offsets) {
-  label_t label_num = txn.schema().vertex_label_num();
-  std::vector<std::shared_ptr<ColumnBase>> columns(label_num, nullptr);
   std::vector<PropertyType> prop_types;
   for (auto l : col->get_labels_set()) {
-    columns[l] = txn.get_vertex_property_column(l, prop_name);
-    if (columns[l] != nullptr) {
-      prop_types.push_back(columns[l]->type());
+    const auto& prop_names = graph.schema().get_vertex_property_names(l);
+    int prop_names_size = prop_names.size();
+    for (int prop_id = 0; prop_id < prop_names_size; ++prop_id) {
+      if (prop_names[prop_id] == prop_name) {
+        prop_types.push_back(graph.schema().get_vertex_properties(l)[prop_id]);
+        break;
+      }
     }
   }
   if (prop_types.empty()) {
@@ -644,11 +643,13 @@ bool vertex_property_topN(bool asc, size_t limit,
     }
   }
   if (prop_types[0] == PropertyType::Date()) {
-    return vertex_property_topN_impl<Date>(asc, limit, col, columns, offsets);
+    return vertex_property_topN_impl<Date>(asc, limit, col, graph, prop_name,
+                                           offsets);
   } else if (prop_types[0] == PropertyType::Int32()) {
-    return vertex_property_topN_impl<int>(asc, limit, col, columns, offsets);
+    return vertex_property_topN_impl<int>(asc, limit, col, graph, prop_name,
+                                          offsets);
   } else if (prop_types[0] == PropertyType::Int64()) {
-    return vertex_property_topN_impl<int64_t>(asc, limit, col, columns,
+    return vertex_property_topN_impl<int64_t>(asc, limit, col, graph, prop_name,
                                               offsets);
   } else {
     LOG(INFO) << "prop type not support...";

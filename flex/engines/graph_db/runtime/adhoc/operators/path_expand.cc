@@ -23,7 +23,7 @@ namespace gs {
 namespace runtime {
 
 Context eval_path_expand_v(const physical::PathExpand& opr,
-                           const ReadTransaction& txn, Context&& ctx,
+                           const GraphReadInterface& graph, Context&& ctx,
                            const std::map<std::string, std::string>& params,
                            const physical::PhysicalOpr_MetaData& meta,
                            int alias) {
@@ -56,7 +56,7 @@ Context eval_path_expand_v(const physical::PathExpand& opr,
     if (query_params.has_predicate()) {
       LOG(FATAL) << "not support";
     } else {
-      return PathExpand::edge_expand_v(txn, std::move(ctx), pep);
+      return PathExpand::edge_expand_v(graph, std::move(ctx), pep);
     }
   } else {
     LOG(FATAL) << "not support";
@@ -66,7 +66,7 @@ Context eval_path_expand_v(const physical::PathExpand& opr,
 }
 
 Context eval_path_expand_p(const physical::PathExpand& opr,
-                           const ReadTransaction& txn, Context&& ctx,
+                           const GraphReadInterface& graph, Context&& ctx,
                            const std::map<std::string, std::string>& params,
                            const physical::PhysicalOpr_MetaData& meta,
                            int alias) {
@@ -97,15 +97,15 @@ Context eval_path_expand_p(const physical::PathExpand& opr,
   if (query_params.has_predicate()) {
     LOG(FATAL) << "not support";
   } else {
-    return PathExpand::edge_expand_p(txn, std::move(ctx), pep);
+    return PathExpand::edge_expand_p(graph, std::move(ctx), pep);
   }
 
   return ctx;
 }
 
 Context eval_shortest_path_with_order_by_length_limit(
-    const physical::PathExpand& opr, const ReadTransaction& txn, Context&& ctx,
-    const std::map<std::string, std::string>& params,
+    const physical::PathExpand& opr, const GraphReadInterface& graph,
+    Context&& ctx, const std::map<std::string, std::string>& params,
     const physical::PhysicalOpr_MetaData& meta, const physical::GetV& get_v_opr,
     int v_alias, int path_len_alias, int limit) {
   CHECK(opr.has_start_tag());
@@ -122,7 +122,7 @@ Context eval_shortest_path_with_order_by_length_limit(
   CHECK(spp.labels.size() == 1) << "only support one label triplet";
   if (get_v_opr.has_params() && get_v_opr.params().has_predicate()) {
     auto sp_vertex_pred = parse_special_vertex_predicate(
-        get_v_opr.params().predicate(), txn, params);
+        get_v_opr.params().predicate(), graph, params);
     if (sp_vertex_pred == nullptr) {
       LOG(FATAL) << "not support"
                  << get_v_opr.params().predicate().DebugString();
@@ -135,7 +135,7 @@ Context eval_shortest_path_with_order_by_length_limit(
               *sp_vertex_pred);
           return PathExpand::
               single_source_shortest_path_with_order_by_length_limit(
-                  txn, std::move(ctx), spp, casted_pred, limit);
+                  graph, std::move(ctx), spp, casted_pred, limit);
         }
       }
     }
@@ -145,7 +145,7 @@ Context eval_shortest_path_with_order_by_length_limit(
 }
 
 Context eval_shortest_path(const physical::PathExpand& opr,
-                           const ReadTransaction& txn, Context&& ctx,
+                           const GraphReadInterface& graph, Context&& ctx,
                            const std::map<std::string, std::string>& params,
                            const physical::PhysicalOpr_MetaData& meta,
                            const physical::GetV& v_opr, int v_alias) {
@@ -170,41 +170,41 @@ Context eval_shortest_path(const physical::PathExpand& opr,
   if (v_opr.has_params() && v_opr.params().has_predicate() &&
       is_pk_oid_exact_check(v_opr.params().predicate(), params, vertex)) {
     vid_t vid;
-    CHECK(txn.GetVertexIndex(spp.labels[0].dst_label, vertex, vid))
+    CHECK(graph.GetVertexIndex(spp.labels[0].dst_label, vertex, vid))
         << "vertex not found";
     auto v = std::make_pair(spp.labels[0].dst_label, vid);
     return PathExpand::single_source_single_dest_shortest_path(
-        txn, std::move(ctx), spp, v);
+        graph, std::move(ctx), spp, v);
   } else {
     if (v_opr.has_params() && v_opr.params().has_predicate()) {
       auto sp_vertex_pred = parse_special_vertex_predicate(
-          v_opr.params().predicate(), txn, params);
+          v_opr.params().predicate(), graph, params);
       if (sp_vertex_pred == nullptr) {
         Context tmp_ctx;
         auto predicate =
-            parse_expression(txn, tmp_ctx, params, v_opr.params().predicate(),
+            parse_expression(graph, tmp_ctx, params, v_opr.params().predicate(),
                              VarType::kVertexVar);
         auto pred = [&predicate](label_t label, vid_t v) {
           return predicate->eval_vertex(label, v, 0).as_bool();
         };
-        return PathExpand::single_source_shortest_path(txn, std::move(ctx), spp,
-                                                       pred);
+        return PathExpand::single_source_shortest_path(graph, std::move(ctx),
+                                                       spp, pred);
       } else {
         return PathExpand::
             single_source_shortest_path_with_special_vertex_predicate(
-                txn, std::move(ctx), spp, *sp_vertex_pred);
+                graph, std::move(ctx), spp, *sp_vertex_pred);
       }
     } else {
       auto pred = [](label_t label, vid_t v) { return true; };
-      return PathExpand::single_source_shortest_path(txn, std::move(ctx), spp,
+      return PathExpand::single_source_shortest_path(graph, std::move(ctx), spp,
                                                      pred);
     }
   }
 }
 
 Context eval_all_shortest_paths(
-    const physical::PathExpand& opr, const ReadTransaction& txn, Context&& ctx,
-    const std::map<std::string, std::string>& params,
+    const physical::PathExpand& opr, const GraphReadInterface& graph,
+    Context&& ctx, const std::map<std::string, std::string>& params,
     const physical::PhysicalOpr_MetaData& meta, const physical::GetV& v_opr,
     int v_alias) {
   CHECK(opr.has_start_tag());
@@ -228,11 +228,11 @@ Context eval_all_shortest_paths(
   if (v_opr.has_params() && v_opr.params().has_predicate() &&
       is_pk_oid_exact_check(v_opr.params().predicate(), params, vertex)) {
     vid_t vid;
-    CHECK(txn.GetVertexIndex(aspp.labels[0].dst_label, vertex, vid))
+    CHECK(graph.GetVertexIndex(aspp.labels[0].dst_label, vertex, vid))
         << "vertex not found";
     auto v = std::make_pair(aspp.labels[0].dst_label, vid);
     return PathExpand::all_shortest_paths_with_given_source_and_dest(
-        txn, std::move(ctx), aspp, v);
+        graph, std::move(ctx), aspp, v);
 
   } else {
     LOG(FATAL) << "only support all shortest paths from a single source to a "

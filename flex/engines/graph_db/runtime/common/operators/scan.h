@@ -30,15 +30,15 @@ struct ScanParams {
 class Scan {
  public:
   template <typename PRED_T>
-  static Context scan_vertex(const ReadTransaction& txn,
+  static Context scan_vertex(const GraphReadInterface& graph,
                              const ScanParams& params,
                              const PRED_T& predicate) {
     Context ctx;
     if (params.tables.size() == 1) {
       label_t label = params.tables[0];
       SLVertexColumnBuilder builder(label);
-      vid_t vnum = txn.GetVertexNum(label);
-      for (vid_t vid = 0; vid != vnum; ++vid) {
+      auto vertices = graph.GetVertexSet(label);
+      for (auto vid : vertices) {
         if (predicate(label, vid)) {
           builder.push_back_opt(vid);
         }
@@ -49,10 +49,10 @@ class Scan {
       MLVertexColumnBuilder builder;
 
       for (auto label : params.tables) {
-        vid_t vnum = txn.GetVertexNum(label);
-        for (vid_t vid = 0; vid != vnum; ++vid) {
+        auto vertices = graph.GetVertexSet(label);
+        for (auto vid : vertices) {
           if (predicate(label, vid)) {
-            builder.push_back_vertex(std::make_pair(label, vid));
+            builder.push_back_vertex({label, vid});
           }
         }
       }
@@ -60,9 +60,9 @@ class Scan {
       MSVertexColumnBuilder builder;
 
       for (auto label : params.tables) {
-        vid_t vnum = txn.GetVertexNum(label);
+        auto vertices = graph.GetVertexSet(label);
         builder.start_label(label);
-        for (vid_t vid = 0; vid != vnum; ++vid) {
+        for (auto vid : vertices) {
           if (predicate(label, vid)) {
             builder.push_back_opt(vid);
           }
@@ -75,23 +75,23 @@ class Scan {
   }
 
   static Context scan_vertex_with_special_vertex_predicate(
-      const ReadTransaction& txn, const ScanParams& params,
+      const GraphReadInterface& graph, const ScanParams& params,
       const SPVertexPredicate& pred) {
     if (pred.type() == SPVertexPredicateType::kIdEQ) {
       return scan_vertex<VertexIdEQPredicateBeta>(
-          txn, params, dynamic_cast<const VertexIdEQPredicateBeta&>(pred));
+          graph, params, dynamic_cast<const VertexIdEQPredicateBeta&>(pred));
     } else {
       if (pred.data_type() == RTAnyType::kI64Value) {
         if (pred.type() == SPVertexPredicateType::kPropertyEQ) {
           return scan_vertex<VertexPropertyEQPredicateBeta<int64_t>>(
-              txn, params,
+              graph, params,
               dynamic_cast<const VertexPropertyEQPredicateBeta<int64_t>&>(
                   pred));
         }
       } else if (pred.data_type() == RTAnyType::kStringValue) {
         if (pred.type() == SPVertexPredicateType::kPropertyEQ) {
           return scan_vertex<VertexPropertyEQPredicateBeta<std::string_view>>(
-              txn, params,
+              graph, params,
               dynamic_cast<
                   const VertexPropertyEQPredicateBeta<std::string_view>&>(
                   pred));
@@ -103,7 +103,7 @@ class Scan {
   }
 
   template <typename PRED_T>
-  static Context filter_gids(const ReadTransaction& txn,
+  static Context filter_gids(const GraphReadInterface& graph,
                              const ScanParams& params, const PRED_T& predicate,
                              const std::vector<int64_t>& gids) {
     Context ctx;
@@ -135,19 +135,19 @@ class Scan {
 
   template <typename KEY_T>
   static Context filter_gids_with_special_vertex_predicate(
-      const ReadTransaction& txn, const ScanParams& params,
+      const GraphReadInterface& graph, const ScanParams& params,
       const SPVertexPredicate& predicate, const std::vector<KEY_T>& oids) {
     if (predicate.type() == SPVertexPredicateType::kIdEQ) {
       return filter_gids<VertexIdEQPredicateBeta>(
-          txn, params, dynamic_cast<const VertexIdEQPredicateBeta&>(predicate),
-          oids);
+          graph, params,
+          dynamic_cast<const VertexIdEQPredicateBeta&>(predicate), oids);
     }
     LOG(FATAL) << "not impl...";
     return Context();
   }
 
   template <typename PRED_T, typename KEY_T>
-  static Context filter_oids(const ReadTransaction& txn,
+  static Context filter_oids(const GraphReadInterface& graph,
                              const ScanParams& params, const PRED_T& predicate,
                              const std::vector<KEY_T>& oids) {
     Context ctx;
@@ -156,7 +156,7 @@ class Scan {
       SLVertexColumnBuilder builder(label);
       for (auto oid : oids) {
         vid_t vid;
-        if (txn.GetVertexIndex(label, oid, vid)) {
+        if (graph.GetVertexIndex(label, oid, vid)) {
           if (predicate(label, vid)) {
             builder.push_back_opt(vid);
           }
@@ -169,7 +169,7 @@ class Scan {
       for (auto label : params.tables) {
         for (auto oid : oids) {
           vid_t vid;
-          if (txn.GetVertexIndex(label, oid, vid)) {
+          if (graph.GetVertexIndex(label, oid, vid)) {
             if (predicate(label, vid)) {
               vids.emplace_back(label, vid);
             }
@@ -193,12 +193,12 @@ class Scan {
 
   template <typename KEY_T>
   static Context filter_oids_with_special_vertex_predicate(
-      const ReadTransaction& txn, const ScanParams& params,
+      const GraphReadInterface& graph, const ScanParams& params,
       const SPVertexPredicate& predicate, const std::vector<KEY_T>& oids) {
     if (predicate.type() == SPVertexPredicateType::kIdEQ) {
       return filter_oids<VertexIdEQPredicateBeta>(
-          txn, params, dynamic_cast<const VertexIdEQPredicateBeta&>(predicate),
-          oids);
+          graph, params,
+          dynamic_cast<const VertexIdEQPredicateBeta&>(predicate), oids);
     }
     LOG(FATAL) << "not impl...";
     return Context();
@@ -206,14 +206,14 @@ class Scan {
 
   // EXPR() is a function that returns the oid of the vertex
   template <typename EXPR>
-  static Context find_vertex(const ReadTransaction& txn, label_t label,
+  static Context find_vertex(const GraphReadInterface& graph, label_t label,
                              const EXPR& expr, int alias, bool scan_oid) {
     Context ctx;
     SLVertexColumnBuilder builder(label);
     if (scan_oid) {
       auto oid = expr();
       vid_t vid;
-      if (txn.GetVertexIndex(label, oid, vid)) {
+      if (graph.GetVertexIndex(label, oid, vid)) {
         builder.push_back_opt(vid);
       }
     } else {
@@ -229,8 +229,9 @@ class Scan {
     return ctx;
   }
 
-  static Context find_vertex_with_id(const ReadTransaction& txn, label_t label,
-                                     const Any& pk, int alias, bool scan_oid);
+  static Context find_vertex_with_id(const GraphReadInterface& graph,
+                                     label_t label, const Any& pk, int alias,
+                                     bool scan_oid);
 };
 
 }  // namespace runtime

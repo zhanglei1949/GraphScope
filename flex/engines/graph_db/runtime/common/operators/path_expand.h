@@ -18,11 +18,11 @@
 
 #include <vector>
 
-#include "flex/engines/graph_db/database/read_transaction.h"
 #include "flex/engines/graph_db/runtime/adhoc/operators/special_predicates.h"
 #include "flex/engines/graph_db/runtime/common/columns/path_columns.h"
 #include "flex/engines/graph_db/runtime/common/columns/vertex_columns.h"
 #include "flex/engines/graph_db/runtime/common/context.h"
+#include "flex/engines/graph_db/runtime/common/graph_interface.h"
 #include "flex/engines/graph_db/runtime/common/operators/path_expand_impl.h"
 #include "flex/engines/graph_db/runtime/common/types.h"
 
@@ -54,22 +54,22 @@ class PathExpand {
  public:
   // PathExpand(expandOpt == Vertex && alias == -1 && resultOpt == END_V) +
   // GetV(opt == END)
-  static Context edge_expand_v(const ReadTransaction& txn, Context&& ctx,
+  static Context edge_expand_v(const GraphReadInterface& graph, Context&& ctx,
                                const PathExpandParams& params);
-  static Context edge_expand_p(const ReadTransaction& txn, Context&& ctx,
+  static Context edge_expand_p(const GraphReadInterface& graph, Context&& ctx,
                                const PathExpandParams& params);
 
   static Context all_shortest_paths_with_given_source_and_dest(
-      const ReadTransaction& txn, Context&& ctx,
+      const GraphReadInterface& graph, Context&& ctx,
       const ShortestPathParams& params, const std::pair<label_t, vid_t>& dst);
   // single dst
   static Context single_source_single_dest_shortest_path(
-      const ReadTransaction& txn, Context&& ctx,
+      const GraphReadInterface& graph, Context&& ctx,
       const ShortestPathParams& params, std::pair<label_t, vid_t>& dest);
 
   template <typename PRED_T>
   static Context single_source_shortest_path_with_order_by_length_limit(
-      const ReadTransaction& txn, Context&& ctx,
+      const GraphReadInterface& graph, Context&& ctx,
       const ShortestPathParams& params, const PRED_T& pred, int limit_upper) {
     std::vector<size_t> shuffle_offset;
     auto input_vertex_col =
@@ -78,13 +78,13 @@ class PathExpand {
         params.labels[0].src_label == params.labels[0].dst_label &&
         params.dir == Direction::kBoth &&
         input_vertex_col->get_labels_set().size() == 1) {
-      const auto& properties = txn.schema().get_edge_properties(
+      const auto& properties = graph.schema().get_edge_properties(
           params.labels[0].src_label, params.labels[0].dst_label,
           params.labels[0].edge_label);
       if (properties.empty()) {
         auto tup = single_source_shortest_path_with_order_by_length_limit_impl<
             grape::EmptyType, PRED_T>(
-            txn, *input_vertex_col, params.labels[0].edge_label, params.dir,
+            graph, *input_vertex_col, params.labels[0].edge_label, params.dir,
             params.hop_lower, params.hop_upper, pred, limit_upper);
         ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
                                std::get<2>(tup));
@@ -94,7 +94,7 @@ class PathExpand {
         if (properties[0] == PropertyType::Int32()) {
           auto tup =
               single_source_shortest_path_with_order_by_length_limit_impl<
-                  int, PRED_T>(txn, *input_vertex_col,
+                  int, PRED_T>(graph, *input_vertex_col,
                                params.labels[0].edge_label, params.dir,
                                params.hop_lower, params.hop_upper, pred,
                                limit_upper);
@@ -105,7 +105,7 @@ class PathExpand {
         } else if (properties[0] == PropertyType::Int64()) {
           auto tup =
               single_source_shortest_path_with_order_by_length_limit_impl<
-                  int64_t, PRED_T>(txn, *input_vertex_col,
+                  int64_t, PRED_T>(graph, *input_vertex_col,
                                    params.labels[0].edge_label, params.dir,
                                    params.hop_lower, params.hop_upper, pred,
                                    limit_upper);
@@ -116,7 +116,7 @@ class PathExpand {
         } else if (properties[0] == PropertyType::Date()) {
           auto tup =
               single_source_shortest_path_with_order_by_length_limit_impl<
-                  Date, PRED_T>(txn, *input_vertex_col,
+                  Date, PRED_T>(graph, *input_vertex_col,
                                 params.labels[0].edge_label, params.dir,
                                 params.hop_lower, params.hop_upper, pred,
                                 limit_upper);
@@ -132,7 +132,7 @@ class PathExpand {
   }
 
   template <typename PRED_T>
-  static Context single_source_shortest_path(const ReadTransaction& txn,
+  static Context single_source_shortest_path(const GraphReadInterface& graph,
                                              Context&& ctx,
                                              const ShortestPathParams& params,
                                              const PRED_T& pred) {
@@ -143,12 +143,12 @@ class PathExpand {
         params.labels[0].src_label == params.labels[0].dst_label &&
         params.dir == Direction::kBoth &&
         input_vertex_col->get_labels_set().size() == 1) {
-      const auto& properties = txn.schema().get_edge_properties(
+      const auto& properties = graph.schema().get_edge_properties(
           params.labels[0].src_label, params.labels[0].dst_label,
           params.labels[0].edge_label);
       if (properties.empty()) {
         auto tup = single_source_shortest_path_impl<grape::EmptyType, PRED_T>(
-            txn, *input_vertex_col, params.labels[0].edge_label, params.dir,
+            graph, *input_vertex_col, params.labels[0].edge_label, params.dir,
             params.hop_lower, params.hop_upper, pred);
         ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
                                std::get<2>(tup));
@@ -157,7 +157,7 @@ class PathExpand {
       } else if (properties.size() == 1) {
         if (properties[0] == PropertyType::Int32()) {
           auto tup = single_source_shortest_path_impl<int, PRED_T>(
-              txn, *input_vertex_col, params.labels[0].edge_label, params.dir,
+              graph, *input_vertex_col, params.labels[0].edge_label, params.dir,
               params.hop_lower, params.hop_upper, pred);
           ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
                                  std::get<2>(tup));
@@ -165,7 +165,7 @@ class PathExpand {
           return ctx;
         } else if (properties[0] == PropertyType::Int64()) {
           auto tup = single_source_shortest_path_impl<int64_t, PRED_T>(
-              txn, *input_vertex_col, params.labels[0].edge_label, params.dir,
+              graph, *input_vertex_col, params.labels[0].edge_label, params.dir,
               params.hop_lower, params.hop_upper, pred);
           ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
                                  std::get<2>(tup));
@@ -173,7 +173,7 @@ class PathExpand {
           return ctx;
         } else if (properties[0] == PropertyType::Date()) {
           auto tup = single_source_shortest_path_impl<Date, PRED_T>(
-              txn, *input_vertex_col, params.labels[0].edge_label, params.dir,
+              graph, *input_vertex_col, params.labels[0].edge_label, params.dir,
               params.hop_lower, params.hop_upper, pred);
           ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup),
                                  std::get<2>(tup));
@@ -183,7 +183,7 @@ class PathExpand {
       }
     }
     auto tup = default_single_source_shortest_path_impl<PRED_T>(
-        txn, *input_vertex_col, params.labels, params.dir, params.hop_lower,
+        graph, *input_vertex_col, params.labels, params.dir, params.hop_lower,
         params.hop_upper, pred);
     ctx.set_with_reshuffle(params.v_alias, std::get<0>(tup), std::get<2>(tup));
     ctx.set(params.alias, std::get<1>(tup));
@@ -191,43 +191,43 @@ class PathExpand {
   }
 
   static Context single_source_shortest_path_with_special_vertex_predicate(
-      const ReadTransaction& txn, Context&& ctx,
+      const GraphReadInterface& graph, Context&& ctx,
       const ShortestPathParams& params, const SPVertexPredicate& pred) {
     if (pred.type() == SPVertexPredicateType::kIdEQ) {
       return single_source_shortest_path<VertexIdEQPredicateBeta>(
-          txn, std::move(ctx), params,
+          graph, std::move(ctx), params,
           dynamic_cast<const VertexIdEQPredicateBeta&>(pred));
     } else {
       if (pred.data_type() == RTAnyType::kI64Value) {
         if (pred.type() == SPVertexPredicateType::kPropertyLT) {
           return single_source_shortest_path<
               VertexPropertyLTPredicateBeta<int64_t>>(
-              txn, std::move(ctx), params,
+              graph, std::move(ctx), params,
               dynamic_cast<const VertexPropertyLTPredicateBeta<int64_t>&>(
                   pred));
         } else if (pred.type() == SPVertexPredicateType::kPropertyGT) {
           return single_source_shortest_path<
               VertexPropertyGTPredicateBeta<int64_t>>(
-              txn, std::move(ctx), params,
+              graph, std::move(ctx), params,
               dynamic_cast<const VertexPropertyGTPredicateBeta<int64_t>&>(
                   pred));
         } else if (pred.type() == SPVertexPredicateType::kPropertyLE) {
           return single_source_shortest_path<
               VertexPropertyLEPredicateBeta<int64_t>>(
-              txn, std::move(ctx), params,
+              graph, std::move(ctx), params,
               dynamic_cast<const VertexPropertyLEPredicateBeta<int64_t>&>(
                   pred));
         } else if (pred.type() == SPVertexPredicateType::kPropertyBetween) {
           return single_source_shortest_path<
               VertexPropertyBetweenPredicateBeta<int64_t>>(
-              txn, std::move(ctx), params,
+              graph, std::move(ctx), params,
               dynamic_cast<const VertexPropertyBetweenPredicateBeta<int64_t>&>(
                   pred));
         } else {
           CHECK(pred.type() == SPVertexPredicateType::kPropertyEQ);
           return single_source_shortest_path<
               VertexPropertyEQPredicateBeta<int64_t>>(
-              txn, std::move(ctx), params,
+              graph, std::move(ctx), params,
               dynamic_cast<const VertexPropertyEQPredicateBeta<int64_t>&>(
                   pred));
         }
@@ -235,7 +235,7 @@ class PathExpand {
         if (pred.type() == SPVertexPredicateType::kPropertyEQ) {
           return single_source_shortest_path<
               VertexPropertyEQPredicateBeta<std::string_view>>(
-              txn, std::move(ctx), params,
+              graph, std::move(ctx), params,
               dynamic_cast<
                   const VertexPropertyEQPredicateBeta<std::string_view>&>(
                   pred));

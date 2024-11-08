@@ -800,29 +800,28 @@ static void sink_edge_data(const EdgeData& any, common::Value* value) {
   }
 }
 
-void sink_vertex(const gs::ReadTransaction& txn, const VertexRecord& vertex,
+void sink_vertex(const GraphReadInterface& graph, const VertexRecord& vertex,
                  results::Vertex* v) {
   v->mutable_label()->set_id(vertex.label_);
   v->set_id(encode_unique_vertex_id(vertex.label_, vertex.vid_));
   //  TODO: add properties
-  const auto& names =
-      txn.graph().schema().get_vertex_property_names(vertex.label_);
+  const auto& names = graph.schema().get_vertex_property_names(vertex.label_);
   for (size_t i = 0; i < names.size(); ++i) {
     auto prop = v->add_properties();
     prop->mutable_key()->set_name(names[i]);
-    sink_any(txn.graph().get_vertex_table(vertex.label_).at(vertex.vid_, i),
+    sink_any(graph.GetVertexProperty(vertex.label_, vertex.vid_, i),
              prop->mutable_value());
   }
 }
-void RTAny::sink(const ReadTransaction& txn, Encoder& encoder) const {
+void RTAny::sink(const GraphReadInterface& graph, Encoder& encoder) const {
   if (type_ == RTAnyType::kList) {
     encoder.put_int(value_.list.size());
     for (size_t i = 0; i < value_.list.size(); ++i) {
-      value_.list.get(i).sink(txn, encoder);
+      value_.list.get(i).sink(graph, encoder);
     }
   } else if (type_ == RTAnyType::kTuple) {
     for (size_t i = 0; i < value_.t.size(); ++i) {
-      value_.t.get(i).sink(txn, encoder);
+      value_.t.get(i).sink(graph, encoder);
     }
   } else if (type_ == RTAnyType::kStringValue) {
     encoder.put_string_view(value_.str_val);
@@ -851,7 +850,7 @@ void RTAny::sink(const ReadTransaction& txn, Encoder& encoder) const {
     LOG(FATAL) << "not support for " << static_cast<int>(type_.type_enum_);
   }
 }
-void RTAny::sink(const gs::ReadTransaction& txn, int id,
+void RTAny::sink(const GraphReadInterface& graph, int id,
                  results::Column* col) const {
   col->mutable_name_or_id()->set_id(id);
   if (type_ == RTAnyType::kList) {
@@ -872,7 +871,7 @@ void RTAny::sink(const gs::ReadTransaction& txn, int id,
     }
   } else if (type_ == RTAnyType::kVertex) {
     auto v = col->mutable_entry()->mutable_element()->mutable_vertex();
-    sink_vertex(txn, value_.vertex, v);
+    sink_vertex(graph, value_.vertex, v);
 
   } else if (type_ == RTAnyType::kMap) {
     auto mp = col->mutable_entry()->mutable_map();
@@ -887,7 +886,7 @@ void RTAny::sink(const gs::ReadTransaction& txn, int id,
       ret->mutable_key()->set_str(keys[i]);
       if (vals[i].type_ == RTAnyType::kVertex) {
         auto v = ret->mutable_value()->mutable_element()->mutable_vertex();
-        sink_vertex(txn, vals[i].as_vertex(), v);
+        sink_vertex(graph, vals[i].as_vertex(), v);
       } else {
         vals[i].sink_impl(
             ret->mutable_value()->mutable_element()->mutable_object());
@@ -905,7 +904,7 @@ void RTAny::sink(const gs::ReadTransaction& txn, int id,
     e->set_src_id(encode_unique_vertex_id(label.src_label, src));
     e->set_dst_id(encode_unique_vertex_id(label.dst_label, dst));
     e->set_id(encode_unique_edge_id(edge_label, src, dst));
-    auto& prop_names = txn.schema().get_edge_property_names(
+    auto& prop_names = graph.schema().get_edge_property_names(
         label.src_label, label.dst_label, label.edge_label);
     if (prop_names.size() == 1) {
       auto props = e->add_properties();

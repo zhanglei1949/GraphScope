@@ -130,7 +130,7 @@ bool is_ep_lt(const common::Expression& expr) {
 }
 
 Context eval_edge_expand(const physical::EdgeExpand& opr,
-                         const ReadTransaction& txn, Context&& ctx,
+                         const GraphReadInterface& graph, Context&& ctx,
                          const std::map<std::string, std::string>& params,
                          OprTimer& timer,
                          const physical::PhysicalOpr_MetaData& meta) {
@@ -169,7 +169,7 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
         std::string param_name =
             query_params.predicate().operators(2).param().name();
         std::string param_value = params.at(param_name);
-        auto ret = EdgeExpand::expand_vertex_ep_gt(txn, std::move(ctx), eep,
+        auto ret = EdgeExpand::expand_vertex_ep_gt(graph, std::move(ctx), eep,
                                                    param_value);
         tx += grape::GetCurrentTime();
         timer.record_routine("edge_expand::expand_vertex_ep_gt", tx);
@@ -178,22 +178,22 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
         std::string param_name =
             query_params.predicate().operators(2).param().name();
         std::string param_value = params.at(param_name);
-        auto ret = EdgeExpand::expand_vertex_ep_lt(txn, std::move(ctx), eep,
+        auto ret = EdgeExpand::expand_vertex_ep_lt(graph, std::move(ctx), eep,
                                                    param_value);
         tx += grape::GetCurrentTime();
         timer.record_routine("edge_expand::expand_vertex_ep_lt", tx);
         return ret;
       } else {
-        GeneralEdgePredicate pred(txn, ctx, params, query_params.predicate());
+        GeneralEdgePredicate pred(graph, ctx, params, query_params.predicate());
         auto ret = EdgeExpand::expand_vertex<GeneralEdgePredicate>(
-            txn, std::move(ctx), eep, pred);
+            graph, std::move(ctx), eep, pred);
         tx += grape::GetCurrentTime();
         timer.record_routine("edge_expand::expand_vertex", tx);
         return ret;
       }
     } else {
-      auto ret =
-          EdgeExpand::expand_vertex_without_predicate(txn, std::move(ctx), eep);
+      auto ret = EdgeExpand::expand_vertex_without_predicate(
+          graph, std::move(ctx), eep);
       tx += grape::GetCurrentTime();
       timer.record_routine("edge_expand::expand_vertex_without_predicate", tx);
       return ret;
@@ -202,16 +202,16 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
              physical::EdgeExpand_ExpandOpt::EdgeExpand_ExpandOpt_EDGE) {
     if (query_params.has_predicate()) {
       auto sp_edge_pred =
-          parse_special_edge_predicate(query_params.predicate(), txn, params);
+          parse_special_edge_predicate(query_params.predicate(), graph, params);
       if (sp_edge_pred == nullptr) {
-        GeneralEdgePredicate pred(txn, ctx, params, query_params.predicate());
-        auto ret = EdgeExpand::expand_edge(txn, std::move(ctx), eep, pred);
+        GeneralEdgePredicate pred(graph, ctx, params, query_params.predicate());
+        auto ret = EdgeExpand::expand_edge(graph, std::move(ctx), eep, pred);
         tx += grape::GetCurrentTime();
         timer.record_routine("edge_expand::expand_edge", tx);
         return ret;
       } else {
         auto ret = EdgeExpand::expand_edge_with_special_edge_predicate(
-            txn, std::move(ctx), eep, *sp_edge_pred);
+            graph, std::move(ctx), eep, *sp_edge_pred);
         tx += grape::GetCurrentTime();
         timer.record_routine(
             "edge_expand::expand_edge_with_special_edge_predicate", tx);
@@ -219,7 +219,7 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
       }
     } else {
       auto ret =
-          EdgeExpand::expand_edge_without_predicate(txn, std::move(ctx), eep);
+          EdgeExpand::expand_edge_without_predicate(graph, std::move(ctx), eep);
       tx += grape::GetCurrentTime();
       timer.record_routine("edge_expand::expand_edge_without_predicate", tx);
       return ret;
@@ -296,7 +296,7 @@ bool tc_fusable(const physical::EdgeExpand& ee_opr0,
 
 Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
                                const physical::GetV& v_opr,
-                               const ReadTransaction& txn, Context&& ctx,
+                               const GraphReadInterface& graph, Context&& ctx,
                                const std::map<std::string, std::string>& params,
                                OprTimer& timer,
                                const physical::PhysicalOpr_MetaData& meta) {
@@ -336,7 +336,7 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
 
   if (!v_opr.params().has_predicate()) {
     auto ret =
-        EdgeExpand::expand_vertex_without_predicate(txn, std::move(ctx), eep);
+        EdgeExpand::expand_vertex_without_predicate(graph, std::move(ctx), eep);
     tx += grape::GetCurrentTime();
     timer.record_routine("eegv::expand_vertex_without_predicate0", tx);
     return ret;
@@ -375,35 +375,36 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
 
       if (within) {
         if (query_params.has_predicate()) {
-          GeneralEdgePredicate pred(txn, ctx, params, query_params.predicate());
+          GeneralEdgePredicate pred(graph, ctx, params,
+                                    query_params.predicate());
           auto ret = EdgeExpand::expand_vertex<GeneralEdgePredicate>(
-              txn, std::move(ctx), eep, pred);
+              graph, std::move(ctx), eep, pred);
           tx += grape::GetCurrentTime();
           timer.record_routine("eegv::expand_vertex0", tx);
           return ret;
         } else {
           auto ret = EdgeExpand::expand_vertex_without_predicate(
-              txn, std::move(ctx), eep);
+              graph, std::move(ctx), eep);
           tx += grape::GetCurrentTime();
           timer.record_routine("eegv::expand_vertex_without_predicate1", tx);
           return ret;
         }
       } else {
-        GeneralVertexPredicate v_pred(txn, ctx, params,
+        GeneralVertexPredicate v_pred(graph, ctx, params,
                                       v_opr.params().predicate());
         if (query_params.has_predicate()) {
-          GeneralEdgePredicate e_pred(txn, ctx, params,
+          GeneralEdgePredicate e_pred(graph, ctx, params,
                                       query_params.predicate());
           VertexEdgePredicateWrapper ve_pred(v_pred, e_pred);
           auto ret = EdgeExpand::expand_vertex<VertexEdgePredicateWrapper>(
-              txn, std::move(ctx), eep, ve_pred);
+              graph, std::move(ctx), eep, ve_pred);
           tx += grape::GetCurrentTime();
           timer.record_routine("eegv::expand_vertex1", tx);
           return ret;
         } else {
           VertexPredicateWrapper vpred(v_pred);
           auto ret = EdgeExpand::expand_vertex<VertexPredicateWrapper>(
-              txn, std::move(ctx), eep, vpred);
+              graph, std::move(ctx), eep, vpred);
           tx += grape::GetCurrentTime();
           timer.record_routine("eegv::expand_vertex2", tx);
           return ret;
@@ -412,32 +413,34 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
     } else if (is_pk_exact_check(v_opr.params().predicate(), params,
                                  exact_pk_label, exact_pk)) {
       vid_t index = std::numeric_limits<vid_t>::max();
-      txn.GetVertexIndex(exact_pk_label, exact_pk, index);
+      graph.GetVertexIndex(exact_pk_label, exact_pk, index);
       ExactVertexPredicate v_pred(exact_pk_label, index);
       if (query_params.has_predicate()) {
-        GeneralEdgePredicate e_pred(txn, ctx, params, query_params.predicate());
+        GeneralEdgePredicate e_pred(graph, ctx, params,
+                                    query_params.predicate());
         ExactVertexEdgePredicateWrapper ve_pred(v_pred, e_pred);
 
         auto ret = EdgeExpand::expand_vertex<ExactVertexEdgePredicateWrapper>(
-            txn, std::move(ctx), eep, ve_pred);
+            graph, std::move(ctx), eep, ve_pred);
         tx += grape::GetCurrentTime();
         timer.record_routine("eegv::expand_vertex3", tx);
         return ret;
       } else {
         auto ret = EdgeExpand::expand_vertex<ExactVertexPredicateWrapper>(
-            txn, std::move(ctx), eep, v_pred);
+            graph, std::move(ctx), eep, v_pred);
         tx += grape::GetCurrentTime();
         timer.record_routine("eegv::expand_vertex4", tx);
         return ret;
       }
     } else {
       if (query_params.has_predicate()) {
-        GeneralVertexPredicate v_pred(txn, ctx, params,
+        GeneralVertexPredicate v_pred(graph, ctx, params,
                                       v_opr.params().predicate());
-        GeneralEdgePredicate e_pred(txn, ctx, params, query_params.predicate());
+        GeneralEdgePredicate e_pred(graph, ctx, params,
+                                    query_params.predicate());
         VertexEdgePredicateWrapper ve_pred(v_pred, e_pred);
         auto ret = EdgeExpand::expand_vertex<VertexEdgePredicateWrapper>(
-            txn, std::move(ctx), eep, ve_pred);
+            graph, std::move(ctx), eep, ve_pred);
         tx += grape::GetCurrentTime();
         timer.record_routine("eegv::expand_vertex5", tx);
         return ret;
@@ -445,27 +448,27 @@ Context eval_edge_expand_get_v(const physical::EdgeExpand& ee_opr,
         auto vertex_col =
             std::dynamic_pointer_cast<IVertexColumn>(ctx.get(eep.v_tag));
         if (vertex_col->vertex_column_type() == VertexColumnType::kMultiple) {
-          auto ee_ret = eval_edge_expand(ee_opr, txn, std::move(ctx), params,
+          auto ee_ret = eval_edge_expand(ee_opr, graph, std::move(ctx), params,
                                          timer, meta);
-          auto v_ret = eval_get_v(v_opr, txn, std::move(ctx), params, timer);
+          auto v_ret = eval_get_v(v_opr, graph, std::move(ctx), params, timer);
           tx += grape::GetCurrentTime();
           timer.record_routine("eegv::edge_expand+get_v", tx);
           return v_ret;
         } else {
           auto sp_vertex_pred = parse_special_vertex_predicate(
-              v_opr.params().predicate(), txn, params);
+              v_opr.params().predicate(), graph, params);
           if (sp_vertex_pred == nullptr) {
-            GeneralVertexPredicate v_pred(txn, ctx, params,
+            GeneralVertexPredicate v_pred(graph, ctx, params,
                                           v_opr.params().predicate());
             VertexPredicateWrapper vpred(v_pred);
             auto ret = EdgeExpand::expand_vertex<VertexPredicateWrapper>(
-                txn, std::move(ctx), eep, vpred);
+                graph, std::move(ctx), eep, vpred);
             tx += grape::GetCurrentTime();
             timer.record_routine("eegv::expand_vertex6", tx);
             return ret;
           } else {
             auto ret = EdgeExpand::expand_vertex_with_special_vertex_predicate(
-                txn, std::move(ctx), eep, *sp_vertex_pred);
+                graph, std::move(ctx), eep, *sp_vertex_pred);
             tx += grape::GetCurrentTime();
             timer.record_routine(
                 "eegv::expand_vertex_with_special_vertex_predicate", tx);
@@ -482,8 +485,9 @@ Context eval_tc(const physical::EdgeExpand& ee_opr0,
                 const physical::EdgeExpand& ee_opr1,
                 const physical::GetV& v_opr1,
                 const physical::EdgeExpand& ee_opr2,
-                const algebra::Select& select_opr, const ReadTransaction& txn,
-                Context&& ctx, const std::map<std::string, std::string>& params,
+                const algebra::Select& select_opr,
+                const GraphReadInterface& graph, Context&& ctx,
+                const std::map<std::string, std::string>& params,
                 const physical::PhysicalOpr_MetaData& meta0,
                 const physical::PhysicalOpr_MetaData& meta1,
                 const physical::PhysicalOpr_MetaData& meta2) {
@@ -524,7 +528,7 @@ Context eval_tc(const physical::EdgeExpand& ee_opr0,
       LOG(FATAL) << "both direction not supported";
     }
 
-    const auto& properties0 = txn.schema().get_edge_properties(
+    const auto& properties0 = graph.schema().get_edge_properties(
         labels0[0].src_label, labels0[0].dst_label, labels0[0].edge_label);
     if (properties0.empty()) {
       d0_ep = PropertyType::Empty();
@@ -546,7 +550,7 @@ Context eval_tc(const physical::EdgeExpand& ee_opr0,
       LOG(FATAL) << "both direction not supported";
     }
 
-    const auto& properties1 = txn.schema().get_edge_properties(
+    const auto& properties1 = graph.schema().get_edge_properties(
         labels1[0].src_label, labels1[0].dst_label, labels1[0].edge_label);
     if (properties1.empty()) {
       d1_ep = PropertyType::Empty();
@@ -568,7 +572,7 @@ Context eval_tc(const physical::EdgeExpand& ee_opr0,
       LOG(FATAL) << "both direction not supported";
     }
 
-    const auto& properties2 = txn.schema().get_edge_properties(
+    const auto& properties2 = graph.schema().get_edge_properties(
         labels2[0].src_label, labels2[0].dst_label, labels2[0].edge_label);
     if (properties2.empty()) {
       d2_ep = PropertyType::Empty();
@@ -581,19 +585,19 @@ Context eval_tc(const physical::EdgeExpand& ee_opr0,
   CHECK(d1_ep == PropertyType::Date());
   CHECK(d2_ep == PropertyType::Empty());
   auto csr0 = (dir0 == Direction::kOut)
-                  ? txn.GetOutgoingGraphView<Date>(input_label, d0_nbr_label,
-                                                   d0_e_label)
-                  : txn.GetIncomingGraphView<Date>(input_label, d0_nbr_label,
-                                                   d0_e_label);
+                  ? graph.GetOutgoingGraphView<Date>(input_label, d0_nbr_label,
+                                                     d0_e_label)
+                  : graph.GetIncomingGraphView<Date>(input_label, d0_nbr_label,
+                                                     d0_e_label);
   auto csr1 = (dir1 == Direction::kOut)
-                  ? txn.GetOutgoingGraphView<Date>(input_label, d1_nbr_label,
-                                                   d1_e_label)
-                  : txn.GetIncomingGraphView<Date>(input_label, d1_nbr_label,
-                                                   d1_e_label);
+                  ? graph.GetOutgoingGraphView<Date>(input_label, d1_nbr_label,
+                                                     d1_e_label)
+                  : graph.GetIncomingGraphView<Date>(input_label, d1_nbr_label,
+                                                     d1_e_label);
   auto csr2 = (dir2 == Direction::kOut)
-                  ? txn.GetOutgoingGraphView<grape::EmptyType>(
+                  ? graph.GetOutgoingGraphView<grape::EmptyType>(
                         d1_nbr_label, d2_nbr_label, d2_e_label)
-                  : txn.GetIncomingGraphView<grape::EmptyType>(
+                  : graph.GetIncomingGraphView<grape::EmptyType>(
                         d1_nbr_label, d2_nbr_label, d2_e_label);
 
   const algebra::QueryParams& ee_opr0_qp = ee_opr0.params();
@@ -607,29 +611,24 @@ Context eval_tc(const physical::EdgeExpand& ee_opr0,
   std::vector<size_t> offsets;
 
   size_t idx = 0;
-  static thread_local std::vector<bool> d0_set;
+  static thread_local GraphReadInterface::vertex_array_t<bool> d0_set;
   static thread_local std::vector<vid_t> d0_vec;
 
-  d0_set.resize(txn.GetVertexNum(d0_nbr_label), false);
+  d0_set.Init(graph.GetVertexSet(d0_nbr_label), false);
   for (auto v : casted_input_vertex_list->vertices()) {
-    csr0.foreach_edges_gt(v, min_date,
-                          [&](const MutableNbr<Date>& e, Date& val) {
-                            auto u = e.neighbor;
-                            d0_set[u] = true;
-                            d0_vec.push_back(u);
-                          });
-    for (auto& e1 : csr1.get_edges(v)) {
-      auto nbr1 = e1.neighbor;
-      for (auto& e2 : csr2.get_edges(nbr1)) {
-        auto nbr2 = e2.neighbor;
-        // if (d0_set.find(nbr2) != d0_set.end()) {
+    csr0.foreach_edges_gt(v, min_date, [&](vid_t u, const Date& date) {
+      d0_set[u] = true;
+      d0_vec.push_back(u);
+    });
+    csr1.foreach_edges(v, [&](vid_t nbr1, const Date&) {
+      csr2.foreach_edges(nbr1, [&](vid_t nbr2, const grape::EmptyType&) {
         if (d0_set[nbr2]) {
           builder1.push_back_opt(nbr1);
           builder2.push_back_opt(nbr2);
           offsets.push_back(idx);
         }
-      }
-    }
+      });
+    });
     for (auto u : d0_vec) {
       d0_set[u] = false;
     }

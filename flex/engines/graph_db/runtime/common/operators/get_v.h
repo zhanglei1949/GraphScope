@@ -56,10 +56,9 @@ std::vector<label_t> extract_labels(const std::vector<LabelTriplet>& labels,
 class GetV {
  public:
   template <typename PRED_T>
-  static Context get_vertex_from_edges_optional_impl(const ReadTransaction& txn,
-                                                     Context&& ctx,
-                                                     const GetVParams& params,
-                                                     const PRED_T& pred) {
+  static Context get_vertex_from_edges_optional_impl(
+      const GraphReadInterface& graph, Context&& ctx, const GetVParams& params,
+      const PRED_T& pred) {
     auto column = std::dynamic_pointer_cast<IEdgeColumn>(ctx.get(params.tag));
     CHECK(column != nullptr);
 
@@ -132,7 +131,7 @@ class GetV {
     return ctx;
   }
   template <typename PRED_T>
-  static Context get_vertex_from_edges(const ReadTransaction& txn,
+  static Context get_vertex_from_edges(const GraphReadInterface& graph,
                                        Context&& ctx, const GetVParams& params,
                                        const PRED_T& pred) {
     std::vector<size_t> shuffle_offset;
@@ -153,7 +152,7 @@ class GetV {
 
     auto column = std::dynamic_pointer_cast<IEdgeColumn>(ctx.get(params.tag));
     if (column->is_optional()) {
-      return get_vertex_from_edges_optional_impl(txn, std::move(ctx), params,
+      return get_vertex_from_edges_optional_impl(graph, std::move(ctx), params,
                                                  pred);
     }
     CHECK(column != nullptr);
@@ -418,7 +417,7 @@ class GetV {
   }
 
   template <typename PRED_T>
-  static Context get_vertex_from_vertices(const ReadTransaction& txn,
+  static Context get_vertex_from_vertices(const GraphReadInterface& graph,
                                           Context&& ctx,
                                           const GetVParams& params,
                                           const PRED_T& pred) {

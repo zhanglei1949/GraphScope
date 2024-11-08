@@ -18,12 +18,13 @@
 namespace gs {
 namespace runtime {
 
-Context Scan::find_vertex_with_id(const ReadTransaction& txn, label_t label,
-                                  const Any& pk, int alias, bool scan_oid) {
+Context Scan::find_vertex_with_id(const GraphReadInterface& graph,
+                                  label_t label, const Any& pk, int alias,
+                                  bool scan_oid) {
   if (scan_oid) {
     SLVertexColumnBuilder builder(label);
     vid_t vid;
-    if (txn.GetVertexIndex(label, pk, vid)) {
+    if (graph.GetVertexIndex(label, pk, vid)) {
       builder.push_back_opt(vid);
     }
     Context ctx;

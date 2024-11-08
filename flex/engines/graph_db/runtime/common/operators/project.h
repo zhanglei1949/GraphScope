@@ -21,6 +21,7 @@
 
 #include "flex/engines/graph_db/runtime/common/columns/i_context_column.h"
 #include "flex/engines/graph_db/runtime/common/columns/value_columns.h"
+#include "flex/engines/graph_db/runtime/common/graph_interface.h"
 
 namespace gs {
 
@@ -101,7 +102,7 @@ class Project {
   }
 
   template <typename... Args>
-  static Context map_value(const ReadTransaction& txn, Context&& ctx,
+  static Context map_value(const GraphReadInterface& graph, Context&& ctx,
                            const std::tuple<Args...>& exprs, bool is_append) {
     std::vector<std::shared_ptr<IContextColumn>> new_columns;
     map_value_impl(ctx, exprs, ctx.row_num(), new_columns);
@@ -134,7 +135,7 @@ class Project {
 
   template <typename EXPR_T>
   static Context map_value_general(
-      const ReadTransaction& txn, Context&& ctx,
+      const GraphReadInterface& graph, Context&& ctx,
       const std::vector<ProjectExpr<EXPR_T>>& expressions, bool is_append) {
     if (!is_append) {
       std::vector<std::shared_ptr<IContextColumn>> new_columns;

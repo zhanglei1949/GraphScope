@@ -20,7 +20,7 @@ namespace gs {
 
 namespace runtime {
 
-void eval_sink(const Context& ctx, const ReadTransaction& txn,
+void eval_sink(const Context& ctx, const GraphReadInterface& graph,
                Encoder& output) {
   size_t row_num = ctx.row_num();
   results::CollectiveResults results;
@@ -33,7 +33,7 @@ void eval_sink(const Context& ctx, const ReadTransaction& txn,
       }
       auto column = result->mutable_record()->add_columns();
       auto val = col->get_elem(i);
-      val.sink(txn, j, column);
+      val.sink(graph, j, column);
     }
   }
   // LOG(INFO) << "sink: " << results.DebugString();
@@ -41,7 +41,7 @@ void eval_sink(const Context& ctx, const ReadTransaction& txn,
   output.put_bytes(res.data(), res.size());
 }
 
-void eval_sink_beta(const Context& ctx, const ReadTransaction& txn,
+void eval_sink_beta(const Context& ctx, const GraphReadInterface& graph,
                     Encoder& output) {
   size_t row_num = ctx.row_num();
   results::CollectiveResults results;
@@ -56,7 +56,7 @@ void eval_sink_beta(const Context& ctx, const ReadTransaction& txn,
       auto column = result->mutable_record()->add_columns();
       auto val = col->get_elem(i);
       ss << val.to_string() << "|";
-      val.sink(txn, j, column);
+      val.sink(graph, j, column);
     }
     std::cout << ss.str() << std::endl;
   }
@@ -66,7 +66,7 @@ void eval_sink_beta(const Context& ctx, const ReadTransaction& txn,
   output.put_bytes(res.data(), res.size());
 }
 
-void eval_sink_encoder(const Context& ctx, const ReadTransaction& txn,
+void eval_sink_encoder(const Context& ctx, const GraphReadInterface& graph,
                        Encoder& encoder) {
   size_t row_num = ctx.row_num();
   for (size_t i = 0; i < row_num; ++i) {
@@ -77,7 +77,7 @@ void eval_sink_encoder(const Context& ctx, const ReadTransaction& txn,
       }
 
       auto val = col->get_elem(i);
-      val.sink(txn, encoder);
+      val.sink(graph, encoder);
     }
   }
 }

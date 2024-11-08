@@ -62,7 +62,7 @@ AggrKind parse_aggregate(physical::GroupBy_AggFunc::Aggregate v) {
 }
 
 struct AggFunc {
-  AggFunc(const physical::GroupBy_AggFunc& opr, const ReadTransaction& txn,
+  AggFunc(const physical::GroupBy_AggFunc& opr, const GraphReadInterface& graph,
           const Context& ctx)
       : aggregate(parse_aggregate(opr.aggregate())),
         alias(-1),
@@ -72,7 +72,7 @@ struct AggFunc {
     }
     int var_num = opr.vars_size();
     for (int i = 0; i < var_num; ++i) {
-      vars.emplace_back(txn, ctx, opr.vars(i), VarType::kPathVar);
+      vars.emplace_back(graph, ctx, opr.vars(i), VarType::kPathVar);
     }
 
     if (var_num == 1) {
@@ -97,9 +97,11 @@ struct AggFunc {
 };
 
 struct AggKey {
-  AggKey(const physical::GroupBy_KeyAlias& opr, const ReadTransaction& txn,
+  AggKey(const physical::GroupBy_KeyAlias& opr, const GraphReadInterface& graph,
          const Context& ctx)
-      : key(txn, ctx, opr.key(), VarType::kPathVar), alias(-1), is_tag(false) {
+      : key(graph, ctx, opr.key(), VarType::kPathVar),
+        alias(-1),
+        is_tag(false) {
     if (opr.has_alias()) {
       alias = opr.alias().value();
     }
@@ -720,13 +722,13 @@ std::shared_ptr<IContextColumn> apply_reduce(
   return nullptr;
 }
 
-Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
-                      Context&& ctx) {
+Context eval_group_by(const physical::GroupBy& opr,
+                      const GraphReadInterface& graph, Context&& ctx) {
   std::vector<AggFunc> functions;
   std::vector<AggKey> mappings;
   int func_num = opr.functions_size();
   for (int i = 0; i < func_num; ++i) {
-    functions.emplace_back(opr.functions(i), txn, ctx);
+    functions.emplace_back(opr.functions(i), graph, ctx);
   }
 
   int mappings_num = opr.mappings_size();
@@ -745,7 +747,7 @@ Context eval_group_by(const physical::GroupBy& opr, const ReadTransaction& txn,
     return ret;
   } else {
     for (int i = 0; i < mappings_num; ++i) {
-      mappings.emplace_back(opr.mappings(i), txn, ctx);
+      mappings.emplace_back(opr.mappings(i), graph, ctx);
     }
 
     auto keys_ret =

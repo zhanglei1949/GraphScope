@@ -22,6 +22,7 @@
 #include "flex/engines/graph_db/runtime/common/columns/value_columns.h"
 #include "flex/engines/graph_db/runtime/common/columns/vertex_columns.h"
 #include "flex/engines/graph_db/runtime/common/context.h"
+#include "flex/engines/graph_db/runtime/common/graph_interface.h"
 #include "flex/engines/graph_db/runtime/common/rt_any.h"
 
 namespace gs {
@@ -97,15 +98,16 @@ template <typename KEY_T>
 class VertexIdPathAccessor : public IAccessor {
  public:
   using elem_t = KEY_T;
-  VertexIdPathAccessor(const ReadTransaction& txn, const Context& ctx, int tag)
-      : txn_(txn),
+  VertexIdPathAccessor(const GraphReadInterface& graph, const Context& ctx,
+                       int tag)
+      : graph_(graph),
         vertex_col_(*std::dynamic_pointer_cast<IVertexColumn>(ctx.get(tag))) {}
 
   bool is_optional() const override { return vertex_col_.is_optional(); }
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& v = vertex_col_.get_vertex(idx);
-    return AnyConverter<KEY_T>::from_any(txn_.GetVertexId(v.label_, v.vid_));
+    return AnyConverter<KEY_T>::from_any(graph_.GetVertexId(v.label_, v.vid_));
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -124,7 +126,7 @@ class VertexIdPathAccessor : public IAccessor {
   }
 
  private:
-  const ReadTransaction& txn_;
+  const GraphReadInterface& graph_;
   const IVertexColumn& vertex_col_;
 };
 
@@ -157,15 +159,14 @@ template <typename T>
 class VertexPropertyPathAccessor : public IAccessor {
  public:
   using elem_t = T;
-  VertexPropertyPathAccessor(const ReadTransaction& txn, const Context& ctx,
-                             int tag, const std::string& prop_name)
+  VertexPropertyPathAccessor(const GraphReadInterface& graph,
+                             const Context& ctx, int tag,
+                             const std::string& prop_name)
       : vertex_col_(*std::dynamic_pointer_cast<IVertexColumn>(ctx.get(tag))) {
-    int label_num = txn.schema().vertex_label_num();
-    property_columns_.resize(label_num, nullptr);
+    int label_num = graph.schema().vertex_label_num();
     for (int i = 0; i < label_num; ++i) {
-      property_columns_[i] = dynamic_cast<const TypedColumn<elem_t>*>(
-          txn.get_vertex_property_column(static_cast<label_t>(i), prop_name)
-              .get());
+      property_columns_.emplace_back(
+          graph.GetVertexColumn<elem_t>(static_cast<label_t>(i), prop_name));
     }
   }
 
@@ -175,7 +176,7 @@ class VertexPropertyPathAccessor : public IAccessor {
     }
     auto label_set = vertex_col_.get_labels_set();
     for (auto label : label_set) {
-      if (property_columns_[label] == nullptr) {
+      if (property_columns_[label].is_null()) {
         return true;
       }
     }
@@ -184,9 +185,9 @@ class VertexPropertyPathAccessor : public IAccessor {
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& v = vertex_col_.get_vertex(idx);
-    auto col_ptr = property_columns_[v.label_];
-    if (col_ptr != nullptr) {
-      return property_columns_[v.label_]->get_view(v.vid_);
+    auto& col = property_columns_[v.label_];
+    if (!col.is_null()) {
+      return col.get_view(v.vid_);
     } else {
       return elem_t();
     }
@@ -202,9 +203,9 @@ class VertexPropertyPathAccessor : public IAccessor {
       return RTAny(RTAnyType::kNull);
     }
     const auto& v = vertex_col_.get_vertex(idx);
-    auto col_ptr = property_columns_[v.label_];
-    if (col_ptr != nullptr) {
-      return TypedConverter<T>::from_typed(col_ptr->get_view(v.vid_));
+    auto& col = property_columns_[v.label_];
+    if (!col.is_null()) {
+      return TypedConverter<T>::from_typed(col.get_view(v.vid_));
     } else {
       return RTAny(RTAnyType::kNull);
     }
@@ -212,7 +213,7 @@ class VertexPropertyPathAccessor : public IAccessor {
 
  private:
   const IVertexColumn& vertex_col_;
-  std::vector<const TypedColumn<elem_t>*> property_columns_;
+  std::vector<GraphReadInterface::vertex_column_t<elem_t>> property_columns_;
 };
 
 class VertexLabelPathAccessor : public IAccessor {
@@ -287,10 +288,10 @@ template <typename KEY_T>
 class VertexIdVertexAccessor : public IAccessor {
  public:
   using elem_t = KEY_T;
-  VertexIdVertexAccessor(const ReadTransaction& txn) : txn_(txn) {}
+  VertexIdVertexAccessor(const GraphReadInterface& graph) : graph_(graph) {}
 
   elem_t typed_eval_vertex(label_t label, vid_t v, size_t idx) const {
-    return AnyConverter<KEY_T>::from_any(txn_.GetVertexId(label, v));
+    return AnyConverter<KEY_T>::from_any(graph_.GetVertexId(label, v));
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -310,7 +311,7 @@ class VertexIdVertexAccessor : public IAccessor {
   }
 
  private:
-  const ReadTransaction& txn_;
+  const GraphReadInterface& graph_;
 };
 
 class VertexGIdVertexAccessor : public IAccessor {
@@ -336,22 +337,20 @@ template <typename T>
 class VertexPropertyVertexAccessor : public IAccessor {
  public:
   using elem_t = T;
-  VertexPropertyVertexAccessor(const ReadTransaction& txn,
+  VertexPropertyVertexAccessor(const GraphReadInterface& graph,
                                const std::string& prop_name) {
-    int label_num = txn.schema().vertex_label_num();
-    property_columns_.resize(label_num, nullptr);
+    int label_num = graph.schema().vertex_label_num();
     for (int i = 0; i < label_num; ++i) {
-      property_columns_[i] = dynamic_cast<const TypedColumn<elem_t>*>(
-          txn.get_vertex_property_column(static_cast<label_t>(i), prop_name)
-              .get());
+      property_columns_.emplace_back(
+          graph.GetVertexColumn<T>(static_cast<label_t>(i), prop_name));
     }
   }
 
   elem_t typed_eval_vertex(label_t label, vid_t v, size_t idx) const {
-    if (property_columns_[label] == nullptr) {
+    if (property_columns_[label].is_null()) {
       return elem_t();
     }
-    return property_columns_[label]->get_view(v);
+    return property_columns_[label].get_view(v);
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -360,22 +359,22 @@ class VertexPropertyVertexAccessor : public IAccessor {
   }
 
   RTAny eval_vertex(label_t label, vid_t v, size_t idx) const override {
-    if (property_columns_[label] == nullptr) {
+    if (property_columns_[label].is_null()) {
       return RTAny();
     }
-    return TypedConverter<T>::from_typed(property_columns_[label]->get_view(v));
+    return TypedConverter<T>::from_typed(property_columns_[label].get_view(v));
   }
 
   RTAny eval_vertex(label_t label, vid_t v, size_t idx, int) const override {
-    if (property_columns_[label] == nullptr) {
+    if (property_columns_[label].is_null()) {
       return RTAny(RTAnyType::kNull);
     }
-    return TypedConverter<T>::from_typed(property_columns_[label]->get_view(v));
+    return TypedConverter<T>::from_typed(property_columns_[label].get_view(v));
   }
 
   bool is_optional() const override {
     for (auto col : property_columns_) {
-      if (col == nullptr) {
+      if (col.is_null()) {
         return true;
       }
     }
@@ -384,75 +383,7 @@ class VertexPropertyVertexAccessor : public IAccessor {
   }
 
  private:
-  std::vector<const TypedColumn<elem_t>*> property_columns_;
-};
-
-template <>
-class VertexPropertyVertexAccessor<int64_t> : public IAccessor {
- public:
-  VertexPropertyVertexAccessor(const ReadTransaction& txn,
-                               const std::string& prop_name) {
-    int label_num = txn.schema().vertex_label_num();
-    property_columns_.resize(label_num, nullptr);
-    date_property_columns_.resize(label_num, nullptr);
-    for (int i = 0; i < label_num; ++i) {
-      auto col =
-          txn.get_vertex_property_column(static_cast<label_t>(i), prop_name)
-              .get();
-      if (col != nullptr) {
-        if (col->type() == PropertyType::Int64()) {
-          property_columns_[i] = dynamic_cast<const TypedColumn<int64_t>*>(col);
-        } else if (col->type() == PropertyType::Date()) {
-          date_property_columns_[i] =
-              dynamic_cast<const TypedColumn<Date>*>(col);
-        }
-      }
-    }
-  }
-
-  int64_t typed_eval_vertex(label_t label, vid_t v, size_t idx) const {
-    if (property_columns_[label] != nullptr) {
-      return property_columns_[label]->get_view(v);
-    } else if (date_property_columns_[label] != nullptr) {
-      return date_property_columns_[label]->get_view(v).milli_second;
-    } else {
-      return 0;
-    }
-  }
-
-  RTAny eval_path(size_t idx) const override {
-    LOG(FATAL) << "not supposed to reach here...";
-    return RTAny();
-  }
-
-  RTAny eval_vertex(label_t label, vid_t v, size_t idx) const override {
-    return TypedConverter<int64_t>::from_typed(
-        typed_eval_vertex(label, v, idx));
-  }
-
-  RTAny eval_vertex(label_t label, vid_t v, size_t idx, int) const override {
-    if (property_columns_[label] == nullptr &&
-        date_property_columns_[label] == nullptr) {
-      return RTAny(RTAnyType::kNull);
-    }
-    return TypedConverter<int64_t>::from_typed(
-        typed_eval_vertex(label, v, idx));
-  }
-
-  bool is_optional() const override {
-    for (size_t k = 0; k < property_columns_.size(); ++k) {
-      if (property_columns_[k] == nullptr &&
-          date_property_columns_[k] == nullptr) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
- private:
-  std::vector<const TypedColumn<int64_t>*> property_columns_;
-  std::vector<const TypedColumn<Date>*> date_property_columns_;
+  std::vector<GraphReadInterface::vertex_column_t<T>> property_columns_;
 };
 
 class EdgeIdPathAccessor : public IAccessor {
@@ -488,7 +419,7 @@ template <typename T>
 class EdgePropertyPathAccessor : public IAccessor {
  public:
   using elem_t = T;
-  EdgePropertyPathAccessor(const ReadTransaction& txn,
+  EdgePropertyPathAccessor(const GraphReadInterface& graph,
                            const std::string& prop_name, const Context& ctx,
                            int tag)
       : col_(*std::dynamic_pointer_cast<IEdgeColumn>(ctx.get(tag))) {}
@@ -525,20 +456,20 @@ template <typename T>
 class MultiPropsEdgePropertyPathAccessor : public IAccessor {
  public:
   using elem_t = T;
-  MultiPropsEdgePropertyPathAccessor(const ReadTransaction& txn,
+  MultiPropsEdgePropertyPathAccessor(const GraphReadInterface& graph,
                                      const std::string& prop_name,
                                      const Context& ctx, int tag)
       : col_(*std::dynamic_pointer_cast<IEdgeColumn>(ctx.get(tag))) {
     const auto& labels = col_.get_labels();
-    vertex_label_num_ = txn.schema().vertex_label_num();
-    edge_label_num_ = txn.schema().edge_label_num();
+    vertex_label_num_ = graph.schema().vertex_label_num();
+    edge_label_num_ = graph.schema().edge_label_num();
     prop_index_.resize(
         2 * vertex_label_num_ * vertex_label_num_ * edge_label_num_,
         std::numeric_limits<size_t>::max());
     for (auto& label : labels) {
       size_t idx = label.src_label * vertex_label_num_ * edge_label_num_ +
                    label.dst_label * edge_label_num_ + label.edge_label;
-      const auto& names = txn.schema().get_edge_property_names(
+      const auto& names = graph.schema().get_edge_property_names(
           label.src_label, label.dst_label, label.edge_label);
       for (size_t i = 0; i < names.size(); ++i) {
         if (names[i] == prop_name) {
@@ -638,7 +569,7 @@ template <typename T>
 class EdgePropertyEdgeAccessor : public IAccessor {
  public:
   using elem_t = T;
-  EdgePropertyEdgeAccessor(const ReadTransaction& txn,
+  EdgePropertyEdgeAccessor(const GraphReadInterface& graph,
                            const std::string& name) {}
 
   elem_t typed_eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
@@ -663,27 +594,27 @@ template <typename T>
 class MultiPropsEdgePropertyEdgeAccessor : public IAccessor {
  public:
   using elem_t = T;
-  MultiPropsEdgePropertyEdgeAccessor(const ReadTransaction& txn,
+  MultiPropsEdgePropertyEdgeAccessor(const GraphReadInterface& graph,
                                      const std::string& name) {
-    edge_label_num_ = txn.schema().edge_label_num();
-    vertex_label_num_ = txn.schema().vertex_label_num();
+    edge_label_num_ = graph.schema().edge_label_num();
+    vertex_label_num_ = graph.schema().vertex_label_num();
     indexs.resize(2 * vertex_label_num_ * vertex_label_num_ * edge_label_num_,
                   std::numeric_limits<size_t>::max());
     for (label_t src_label = 0; src_label < vertex_label_num_; ++src_label) {
-      auto src = txn.schema().get_vertex_label_name(src_label);
+      auto src = graph.schema().get_vertex_label_name(src_label);
       for (label_t dst_label = 0; dst_label < vertex_label_num_; ++dst_label) {
-        auto dst = txn.schema().get_vertex_label_name(dst_label);
+        auto dst = graph.schema().get_vertex_label_name(dst_label);
         for (label_t edge_label = 0; edge_label < edge_label_num_;
              ++edge_label) {
-          auto edge = txn.schema().get_edge_label_name(edge_label);
-          if (!txn.schema().exist(src, dst, edge)) {
+          auto edge = graph.schema().get_edge_label_name(edge_label);
+          if (!graph.schema().exist(src, dst, edge)) {
             continue;
           }
           size_t idx = src_label * vertex_label_num_ * edge_label_num_ +
                        dst_label * edge_label_num_ + edge_label;
           const std::vector<std::string>& names =
-              txn.schema().get_edge_property_names(src_label, dst_label,
-                                                   edge_label);
+              graph.schema().get_edge_property_names(src_label, dst_label,
+                                                     edge_label);
           for (size_t i = 0; i < names.size(); ++i) {
             if (names[i] == name) {
               indexs[idx] = i;
@@ -834,24 +765,26 @@ std::shared_ptr<IAccessor> create_context_value_accessor(const Context& ctx,
                                                          RTAnyType type);
 
 std::shared_ptr<IAccessor> create_vertex_property_path_accessor(
-    const ReadTransaction& txn, const Context& ctx, int tag, RTAnyType type,
-    const std::string& prop_name);
+    const GraphReadInterface& graph, const Context& ctx, int tag,
+    RTAnyType type, const std::string& prop_name);
 
 std::shared_ptr<IAccessor> create_vertex_property_vertex_accessor(
-    const ReadTransaction& txn, RTAnyType type, const std::string& prop_name);
+    const GraphReadInterface& graph, RTAnyType type,
+    const std::string& prop_name);
 
 std::shared_ptr<IAccessor> create_vertex_label_path_accessor(const Context& ctx,
                                                              int tag);
 
 std::shared_ptr<IAccessor> create_edge_property_path_accessor(
-    const ReadTransaction& txn, const std::string& prop_name,
+    const GraphReadInterface& graph, const std::string& prop_name,
     const Context& ctx, int tag, RTAnyType type);
 
 std::shared_ptr<IAccessor> create_edge_label_path_accessor(const Context& ctx,
                                                            int tag);
 
 std::shared_ptr<IAccessor> create_edge_property_edge_accessor(
-    const ReadTransaction& txn, const std::string& prop_name, RTAnyType type);
+    const GraphReadInterface& graph, const std::string& prop_name,
+    RTAnyType type);
 
 }  // namespace runtime
 

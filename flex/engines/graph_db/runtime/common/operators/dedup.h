@@ -19,19 +19,18 @@
 #include <set>
 #include <unordered_set>
 
-#include "flex/engines/graph_db/database/read_transaction.h"
 #include "flex/engines/graph_db/runtime/common/context.h"
+#include "flex/engines/graph_db/runtime/common/graph_interface.h"
 
 namespace gs {
 
 namespace runtime {
 
-
 class Dedup {
  public:
-  static void dedup(const ReadTransaction& txn, Context& ctx,
+  static void dedup(const GraphReadInterface& graph, Context& ctx,
                     const std::vector<size_t>& cols);
-  static void dedup(const ReadTransaction& txn, Context& ctx,
+  static void dedup(const GraphReadInterface& graph, Context& ctx,
                     const std::vector<size_t>& cols,
                     const std::vector<std::function<RTAny(size_t)>>& vars);
 };

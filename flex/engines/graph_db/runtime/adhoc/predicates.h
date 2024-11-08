@@ -15,10 +15,10 @@
 #ifndef RUNTIME_ADHOC_PREDICATES_H_
 #define RUNTIME_ADHOC_PREDICATES_H_
 
-#include "flex/engines/graph_db/database/read_transaction.h"
 #include "flex/engines/graph_db/runtime/adhoc/expr.h"
 #include "flex/engines/graph_db/runtime/adhoc/var.h"
 #include "flex/engines/graph_db/runtime/common/context.h"
+#include "flex/engines/graph_db/runtime/common/graph_interface.h"
 #include "flex/proto_generated_gie/expr.pb.h"
 
 namespace gs {
@@ -26,10 +26,10 @@ namespace gs {
 namespace runtime {
 
 struct GeneralPathPredicate {
-  GeneralPathPredicate(const ReadTransaction& txn, const Context& ctx,
+  GeneralPathPredicate(const GraphReadInterface& graph, const Context& ctx,
                        const std::map<std::string, std::string>& params,
                        const common::Expression& expr)
-      : expr_(txn, ctx, params, expr, VarType::kPathVar) {}
+      : expr_(graph, ctx, params, expr, VarType::kPathVar) {}
 
   bool operator()(size_t idx) const {
     auto val = expr_.eval_path(idx);
@@ -40,10 +40,10 @@ struct GeneralPathPredicate {
 };
 
 struct GeneralVertexPredicate {
-  GeneralVertexPredicate(const ReadTransaction& txn, const Context& ctx,
+  GeneralVertexPredicate(const GraphReadInterface& graph, const Context& ctx,
                          const std::map<std::string, std::string>& params,
                          const common::Expression& expr)
-      : expr_(txn, ctx, params, expr, VarType::kVertexVar) {}
+      : expr_(graph, ctx, params, expr, VarType::kVertexVar) {}
 
   bool operator()(label_t label, vid_t v, size_t path_idx) const {
     auto val = expr_.eval_vertex(label, v, path_idx);
@@ -70,10 +70,10 @@ struct ExactVertexPredicate {
 };
 
 struct GeneralEdgePredicate {
-  GeneralEdgePredicate(const ReadTransaction& txn, const Context& ctx,
+  GeneralEdgePredicate(const GraphReadInterface& graph, const Context& ctx,
                        const std::map<std::string, std::string>& params,
                        const common::Expression& expr)
-      : expr_(txn, ctx, params, expr, VarType::kEdgeVar) {}
+      : expr_(graph, ctx, params, expr, VarType::kEdgeVar) {}
 
   bool operator()(const LabelTriplet& label, vid_t src, vid_t dst,
                   const Any& edata, Direction dir, size_t path_idx) const {

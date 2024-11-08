@@ -9,7 +9,7 @@ static PropertyType get_vertex_pk_type(const Schema& schema, label_t label) {
   return std::get<0>(pk_types[0]);
 }
 
-WriteContext eval_load(const cypher::Load& opr, InsertTransaction& txn,
+WriteContext eval_load(const cypher::Load& opr, GraphInsertInterface& graph,
                        WriteContext&& ctx,
                        const std::map<std::string, std::string>& params) {
   CHECK(opr.kind() == cypher::Load_Kind::Load_Kind_CREATE)
@@ -17,7 +17,7 @@ WriteContext eval_load(const cypher::Load& opr, InsertTransaction& txn,
   auto& mappings = opr.mappings();
   int vertex_mapping_size = mappings.vertex_mappings_size();
   int edge_mapping_size = mappings.edge_mappings_size();
-  const auto& schema = txn.schema();
+  const auto& schema = graph.schema();
 
   for (int i = 0; i < vertex_mapping_size; ++i) {
     const auto& vertex_mapping = mappings.vertex_mappings(i);
@@ -55,7 +55,7 @@ WriteContext eval_load(const cypher::Load& opr, InsertTransaction& txn,
       for (size_t j = 0; j < properties.size(); ++j) {
         props.push_back(properties[j].get(i).to_any(vertex_prop_types[j]));
       }
-      txn.AddVertex(vertex_label_id, id_col.get(i).to_any(pk_type), props);
+      graph.AddVertex(vertex_label_id, id_col.get(i).to_any(pk_type), props);
     }
   }
 
@@ -97,8 +97,9 @@ WriteContext eval_load(const cypher::Load& opr, InsertTransaction& txn,
     CHECK(prop_names.size() < 2) << "Only support one property";
     if (prop_types.size() == 0) {
       for (int i = 0; i < ctx.row_num(); ++i) {
-        txn.AddEdge(src_label_id, src.get(i).to_any(src_pk_type), dst_label_id,
-                    dst.get(i).to_any(dst_pk_type), edge_label_id, Any());
+        graph.AddEdge(src_label_id, src.get(i).to_any(src_pk_type),
+                      dst_label_id, dst.get(i).to_any(dst_pk_type),
+                      edge_label_id, Any());
       }
     } else {
       const auto& edge_prop = edge_props[0];
@@ -107,9 +108,9 @@ WriteContext eval_load(const cypher::Load& opr, InsertTransaction& txn,
       const auto& prop_type = prop_types[0];
       const auto& prop_value = ctx.get(edge_prop.column().index());
       for (int i = 0; i < ctx.row_num(); ++i) {
-        txn.AddEdge(src_label_id, src.get(i).to_any(src_pk_type), dst_label_id,
-                    dst.get(i).to_any(dst_pk_type), edge_label_id,
-                    prop_value.get(i).to_any(prop_type));
+        graph.AddEdge(src_label_id, src.get(i).to_any(src_pk_type),
+                      dst_label_id, dst.get(i).to_any(dst_pk_type),
+                      edge_label_id, prop_value.get(i).to_any(prop_type));
       }
     }
 

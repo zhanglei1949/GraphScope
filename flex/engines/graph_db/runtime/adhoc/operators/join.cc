@@ -20,7 +20,7 @@
 namespace gs {
 namespace runtime {
 
-Context eval_join(const ReadTransaction& txn,
+Context eval_join(const GraphReadInterface& graph,
                   const std::map<std::string, std::string>& params,
                   const physical::Join& opr, Context&& ctx, Context&& ctx2) {
   JoinParams p;
@@ -42,7 +42,7 @@ Context eval_join(const ReadTransaction& txn,
   if (opr.has_condition()) {
     // ctx2.set_prev_context(&ctx);
     LOG(FATAL) << "join with condition" << opr.condition().DebugString();
-    // auto pred = parse_join_condition(txn, ctx, ctx2, params,
+    // auto pred = parse_join_condition(graph, ctx, ctx2, params,
     // opr.condition());
     if (opr.join_kind() == physical::Join_JoinKind::Join_JoinKind_INNER) {
       p.join_type = JoinKind::kInnerJoin;

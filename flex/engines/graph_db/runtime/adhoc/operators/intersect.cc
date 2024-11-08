@@ -20,7 +20,7 @@
 namespace gs {
 namespace runtime {
 
-Context eval_intersect(const ReadTransaction& txn,
+Context eval_intersect(const GraphReadInterface& graph,
                        const physical::Intersect& opr, Context&& ctx,
                        std::vector<Context>&& ctxs) {
   int32_t key = opr.key();

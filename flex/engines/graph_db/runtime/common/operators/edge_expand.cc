@@ -22,7 +22,7 @@ namespace gs {
 namespace runtime {
 
 static std::vector<LabelTriplet> get_expand_label_set(
-    const ReadTransaction& txn, const std::set<label_t>& label_set,
+    const GraphReadInterface& graph, const std::set<label_t>& label_set,
     const std::vector<LabelTriplet>& labels, Direction dir) {
   std::vector<LabelTriplet> label_triplets;
   if (dir == Direction::kOut) {
@@ -49,7 +49,8 @@ static std::vector<LabelTriplet> get_expand_label_set(
 }
 
 static Context expand_edge_without_predicate_optional_impl(
-    const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params) {
+    const GraphReadInterface& graph, Context&& ctx,
+    const EdgeExpandParams& params) {
   std::vector<size_t> shuffle_offset;
   // has only one label
   if (params.labels.size() == 1) {
@@ -61,7 +62,7 @@ static Context expand_edge_without_predicate_optional_impl(
       CHECK(!input_vertex_list.is_optional())
           << "not support optional vertex column as input currently";
       auto& triplet = params.labels[0];
-      auto props = txn.schema().get_edge_properties(
+      auto props = graph.schema().get_edge_properties(
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       PropertyType pt = PropertyType::kEmpty;
       if (!props.empty()) {
@@ -75,8 +76,8 @@ static Context expand_edge_without_predicate_optional_impl(
                                             vid_t v) {
         bool has_edge = false;
         if (label == triplet.src_label) {
-          auto oe_iter = txn.GetOutEdgeIterator(label, v, triplet.dst_label,
-                                                triplet.edge_label);
+          auto oe_iter = graph.GetOutEdgeIterator(label, v, triplet.dst_label,
+                                                  triplet.edge_label);
           while (oe_iter.IsValid()) {
             auto nbr = oe_iter.GetNeighbor();
             builder.push_back_opt(v, nbr, oe_iter.GetData(), Direction::kOut);
@@ -86,8 +87,8 @@ static Context expand_edge_without_predicate_optional_impl(
           }
         }
         if (label == triplet.dst_label) {
-          auto ie_iter = txn.GetInEdgeIterator(label, v, triplet.src_label,
-                                               triplet.edge_label);
+          auto ie_iter = graph.GetInEdgeIterator(label, v, triplet.src_label,
+                                                 triplet.edge_label);
           while (ie_iter.IsValid()) {
             auto nbr = ie_iter.GetNeighbor();
             builder.push_back_opt(nbr, v, ie_iter.GetData(), Direction::kIn);
@@ -112,7 +113,7 @@ static Context expand_edge_without_predicate_optional_impl(
       CHECK(!input_vertex_list.is_optional())
           << "not support optional vertex column as input currently";
       auto& triplet = params.labels[0];
-      auto props = txn.schema().get_edge_properties(
+      auto props = graph.schema().get_edge_properties(
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       PropertyType pt = PropertyType::kEmpty;
       if (!props.empty()) {
@@ -125,7 +126,7 @@ static Context expand_edge_without_predicate_optional_impl(
       foreach_vertex(input_vertex_list,
                      [&](size_t index, label_t label, vid_t v) {
                        if (label == triplet.src_label) {
-                         auto oe_iter = txn.GetOutEdgeIterator(
+                         auto oe_iter = graph.GetOutEdgeIterator(
                              label, v, triplet.dst_label, triplet.edge_label);
                          bool has_edge = false;
                          while (oe_iter.IsValid()) {
@@ -155,9 +156,10 @@ static Context expand_edge_without_predicate_optional_impl(
 }
 
 Context EdgeExpand::expand_edge_without_predicate(
-    const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params) {
+    const GraphReadInterface& graph, Context&& ctx,
+    const EdgeExpandParams& params) {
   if (params.is_optional) {
-    return expand_edge_without_predicate_optional_impl(txn, std::move(ctx),
+    return expand_edge_without_predicate_optional_impl(graph, std::move(ctx),
                                                        params);
   }
   std::vector<size_t> shuffle_offset;
@@ -169,7 +171,7 @@ Context EdgeExpand::expand_edge_without_predicate(
       label_t output_vertex_label = params.labels[0].src_label;
       label_t edge_label = params.labels[0].edge_label;
 
-      auto& props = txn.schema().get_edge_properties(
+      auto& props = graph.schema().get_edge_properties(
           params.labels[0].src_label, params.labels[0].dst_label,
           params.labels[0].edge_label);
       PropertyType pt = PropertyType::kEmpty;
@@ -189,7 +191,7 @@ Context EdgeExpand::expand_edge_without_predicate(
                        if (label != dst_label) {
                          return;
                        }
-                       auto ie_iter = txn.GetInEdgeIterator(
+                       auto ie_iter = graph.GetInEdgeIterator(
                            label, v, output_vertex_label, edge_label);
                        while (ie_iter.IsValid()) {
                          auto nbr = ie_iter.GetNeighbor();
@@ -209,7 +211,7 @@ Context EdgeExpand::expand_edge_without_predicate(
       label_t output_vertex_label = params.labels[0].dst_label;
       label_t edge_label = params.labels[0].edge_label;
 
-      auto& props = txn.schema().get_edge_properties(
+      auto& props = graph.schema().get_edge_properties(
           params.labels[0].src_label, params.labels[0].dst_label,
           params.labels[0].edge_label);
       PropertyType pt = PropertyType::kEmpty;
@@ -229,7 +231,7 @@ Context EdgeExpand::expand_edge_without_predicate(
                        if (label != src_label) {
                          return;
                        }
-                       auto oe_iter = txn.GetOutEdgeIterator(
+                       auto oe_iter = graph.GetOutEdgeIterator(
                            label, v, output_vertex_label, edge_label);
 
                        while (oe_iter.IsValid()) {
@@ -246,7 +248,7 @@ Context EdgeExpand::expand_edge_without_predicate(
     } else {
       auto& input_vertex_list =
           *std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
-      auto props = txn.schema().get_edge_properties(
+      auto props = graph.schema().get_edge_properties(
           params.labels[0].src_label, params.labels[0].dst_label,
           params.labels[0].edge_label);
       PropertyType pt = PropertyType::kEmpty;
@@ -258,8 +260,8 @@ Context EdgeExpand::expand_edge_without_predicate(
                                             vid_t v) {
         if (label == params.labels[0].src_label) {
           auto oe_iter =
-              txn.GetOutEdgeIterator(label, v, params.labels[0].dst_label,
-                                     params.labels[0].edge_label);
+              graph.GetOutEdgeIterator(label, v, params.labels[0].dst_label,
+                                       params.labels[0].edge_label);
           while (oe_iter.IsValid()) {
             auto nbr = oe_iter.GetNeighbor();
             builder.push_back_opt(v, nbr, oe_iter.GetData(), Direction::kOut);
@@ -269,8 +271,8 @@ Context EdgeExpand::expand_edge_without_predicate(
         }
         if (label == params.labels[0].dst_label) {
           auto ie_iter =
-              txn.GetInEdgeIterator(label, v, params.labels[0].src_label,
-                                    params.labels[0].edge_label);
+              graph.GetInEdgeIterator(label, v, params.labels[0].src_label,
+                                      params.labels[0].edge_label);
           while (ie_iter.IsValid()) {
             auto nbr = ie_iter.GetNeighbor();
             builder.push_back_opt(nbr, v, ie_iter.GetData(), Direction::kIn);
@@ -287,11 +289,11 @@ Context EdgeExpand::expand_edge_without_predicate(
         std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
     auto label_set = column->get_labels_set();
     auto labels =
-        get_expand_label_set(txn, label_set, params.labels, params.dir);
+        get_expand_label_set(graph, label_set, params.labels, params.dir);
     std::vector<std::pair<LabelTriplet, PropertyType>> label_props;
     std::vector<std::vector<PropertyType>> props_vec;
     for (auto& triplet : labels) {
-      auto& props = txn.schema().get_edge_properties(
+      auto& props = graph.schema().get_edge_properties(
           triplet.src_label, triplet.dst_label, triplet.edge_label);
       PropertyType pt = PropertyType::kEmpty;
       if (!props.empty()) {
@@ -314,7 +316,7 @@ Context EdgeExpand::expand_edge_without_predicate(
           foreach_vertex(
               input_vertex_list, [&](size_t index, label_t label, vid_t v) {
                 if (label == triplet.src_label) {
-                  auto oe_iter = txn.GetOutEdgeIterator(
+                  auto oe_iter = graph.GetOutEdgeIterator(
                       label, v, triplet.dst_label, triplet.edge_label);
                   while (oe_iter.IsValid()) {
                     auto nbr = oe_iter.GetNeighbor();
@@ -334,7 +336,7 @@ Context EdgeExpand::expand_edge_without_predicate(
           foreach_vertex(
               input_vertex_list, [&](size_t index, label_t label, vid_t v) {
                 if (label == triplet.dst_label) {
-                  auto ie_iter = txn.GetInEdgeIterator(
+                  auto ie_iter = graph.GetInEdgeIterator(
                       label, v, triplet.src_label, triplet.edge_label);
                   while (ie_iter.IsValid()) {
                     auto nbr = ie_iter.GetNeighbor();
@@ -359,7 +361,7 @@ Context EdgeExpand::expand_edge_without_predicate(
             for (auto& triplet : labels) {
               if (triplet.src_label == label) {
                 if (params.dir == Direction::kOut) {
-                  auto oe_iter = txn.GetOutEdgeIterator(
+                  auto oe_iter = graph.GetOutEdgeIterator(
                       label, v, triplet.dst_label, triplet.edge_label);
                   while (oe_iter.IsValid()) {
                     auto nbr = oe_iter.GetNeighbor();
@@ -377,7 +379,7 @@ Context EdgeExpand::expand_edge_without_predicate(
             for (auto& triplet : labels) {
               if (triplet.dst_label == label) {
                 if (params.dir == Direction::kIn) {
-                  auto ie_iter = txn.GetInEdgeIterator(
+                  auto ie_iter = graph.GetInEdgeIterator(
                       label, v, triplet.src_label, triplet.edge_label);
                   while (ie_iter.IsValid()) {
                     auto nbr = ie_iter.GetNeighbor();
@@ -402,8 +404,8 @@ Context EdgeExpand::expand_edge_without_predicate(
         foreach_vertex(input_vertex_list, [&](size_t index, label_t label,
                                               vid_t v) {
           if (label == labels[0].src_label) {
-            auto oe_iter = txn.GetOutEdgeIterator(label, v, labels[0].dst_label,
-                                                  labels[0].edge_label);
+            auto oe_iter = graph.GetOutEdgeIterator(
+                label, v, labels[0].dst_label, labels[0].edge_label);
             while (oe_iter.IsValid()) {
               auto nbr = oe_iter.GetNeighbor();
               builder.push_back_opt(v, nbr, oe_iter.GetData(), Direction::kOut);
@@ -412,8 +414,8 @@ Context EdgeExpand::expand_edge_without_predicate(
             }
           }
           if (label == labels[0].dst_label) {
-            auto ie_iter = txn.GetInEdgeIterator(label, v, labels[0].src_label,
-                                                 labels[0].edge_label);
+            auto ie_iter = graph.GetInEdgeIterator(
+                label, v, labels[0].src_label, labels[0].edge_label);
             while (ie_iter.IsValid()) {
               auto nbr = ie_iter.GetNeighbor();
               builder.push_back_opt(nbr, v, ie_iter.GetData(), Direction::kIn);
@@ -432,7 +434,7 @@ Context EdgeExpand::expand_edge_without_predicate(
             input_vertex_list, [&](size_t index, label_t label, vid_t v) {
               for (auto& triplet : labels) {
                 if (triplet.src_label == label) {
-                  auto oe_iter = txn.GetOutEdgeIterator(
+                  auto oe_iter = graph.GetOutEdgeIterator(
                       label, v, triplet.dst_label, triplet.edge_label);
                   while (oe_iter.IsValid()) {
                     auto nbr = oe_iter.GetNeighbor();
@@ -443,7 +445,7 @@ Context EdgeExpand::expand_edge_without_predicate(
                   }
                 }
                 if (triplet.dst_label == label) {
-                  auto ie_iter = txn.GetInEdgeIterator(
+                  auto ie_iter = graph.GetInEdgeIterator(
                       label, v, triplet.src_label, triplet.edge_label);
                   while (ie_iter.IsValid()) {
                     auto nbr = ie_iter.GetNeighbor();
@@ -466,7 +468,8 @@ Context EdgeExpand::expand_edge_without_predicate(
 }
 
 Context EdgeExpand::expand_vertex_without_predicate(
-    const ReadTransaction& txn, Context&& ctx, const EdgeExpandParams& params) {
+    const GraphReadInterface& graph, Context&& ctx,
+    const EdgeExpandParams& params) {
   std::shared_ptr<IVertexColumn> input_vertex_list =
       std::dynamic_pointer_cast<IVertexColumn>(ctx.get(params.v_tag));
   VertexColumnType input_vertex_list_type =
@@ -477,7 +480,7 @@ Context EdgeExpand::expand_vertex_without_predicate(
       auto casted_input_vertex_list =
           std::dynamic_pointer_cast<SLVertexColumnBase>(input_vertex_list);
       auto pair = expand_vertex_without_predicate_optional_impl(
-          txn, *casted_input_vertex_list, params.labels, params.dir);
+          graph, *casted_input_vertex_list, params.labels, params.dir);
       ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
       return ctx;
     } else {
@@ -488,12 +491,12 @@ Context EdgeExpand::expand_vertex_without_predicate(
         auto casted_input_vertex_list =
             std::dynamic_pointer_cast<SLVertexColumnBase>(input_vertex_list);
         auto pair = expand_vertex_without_predicate_optional_impl(
-            txn, *casted_input_vertex_list, params.labels, params.dir);
+            graph, *casted_input_vertex_list, params.labels, params.dir);
         ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
         return ctx;
       } else {
         auto pair = expand_vertex_without_predicate_impl(
-            txn, *casted_input_vertex_list, params.labels, params.dir);
+            graph, *casted_input_vertex_list, params.labels, params.dir);
         ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
         return ctx;
       }
@@ -503,14 +506,14 @@ Context EdgeExpand::expand_vertex_without_predicate(
       auto casted_input_vertex_list =
           std::dynamic_pointer_cast<MLVertexColumnBase>(input_vertex_list);
       auto pair = expand_vertex_without_predicate_optional_impl(
-          txn, *casted_input_vertex_list, params.labels, params.dir);
+          graph, *casted_input_vertex_list, params.labels, params.dir);
       ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
       return ctx;
     }
     auto casted_input_vertex_list =
         std::dynamic_pointer_cast<MLVertexColumn>(input_vertex_list);
     auto pair = expand_vertex_without_predicate_impl(
-        txn, *casted_input_vertex_list, params.labels, params.dir);
+        graph, *casted_input_vertex_list, params.labels, params.dir);
     ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
     return ctx;
   } else if (input_vertex_list_type == VertexColumnType::kMultiSegment) {
@@ -520,7 +523,7 @@ Context EdgeExpand::expand_vertex_without_predicate(
     auto casted_input_vertex_list =
         std::dynamic_pointer_cast<MSVertexColumn>(input_vertex_list);
     auto pair = expand_vertex_without_predicate_impl(
-        txn, *casted_input_vertex_list, params.labels, params.dir);
+        graph, *casted_input_vertex_list, params.labels, params.dir);
     ctx.set_with_reshuffle(params.alias, pair.first, pair.second);
     return ctx;
   } else {

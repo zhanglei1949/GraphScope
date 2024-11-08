@@ -16,6 +16,7 @@
 #define RUNTIME_ADHOC_RUNTIME_H_
 
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
+#include "flex/engines/graph_db/runtime/common/graph_interface.h"
 #include "flex/proto_generated_gie/physical.pb.h"
 
 namespace gs {
@@ -50,11 +51,11 @@ class OprTimer {
 };
 
 Context runtime_eval(const physical::PhysicalPlan& plan,
-                     const ReadTransaction& txn,
+                     const GraphReadInterface& txn,
                      const std::map<std::string, std::string>& params,
                      OprTimer& timer);
 WriteContext runtime_eval(const physical::PhysicalPlan& plan,
-                          InsertTransaction& txn,
+                          GraphInsertInterface& txn,
                           const std::map<std::string, std::string>& params,
                           OprTimer& timer);
 
