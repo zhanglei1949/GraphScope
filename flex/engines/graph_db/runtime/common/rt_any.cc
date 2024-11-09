@@ -738,8 +738,7 @@ void RTAny::sink_impl(common::Value* value) const {
   } else if (type_ == RTAnyType::kStringSetValue) {
     LOG(FATAL) << "not support string set sink";
   } else if (type_ == RTAnyType::kDate32) {
-    LOG(FATAL) << "not support date32 sink";
-    value->set_i64(value_.day.to_u32());
+    value->set_i64(value_.day.to_timestamp());
   } else if (type_ == RTAnyType::kTimestamp) {
     value->set_i64(value_.date.milli_second);
   } else if (type_ == RTAnyType::kBoolValue) {
