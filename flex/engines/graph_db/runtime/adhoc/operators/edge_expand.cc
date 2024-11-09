@@ -213,8 +213,8 @@ Context eval_edge_expand(const physical::EdgeExpand& opr,
         return ret;
       }
     } else {
-      auto ret =
-          EdgeExpand::expand_edge_without_predicate(graph, std::move(ctx), eep);
+      auto ret = EdgeExpand::expand_edge_without_predicate(
+          graph, std::move(ctx), eep, timer);
       timer.record_routine("#### expand_edge_without_predicate", tx);
       return ret;
     }

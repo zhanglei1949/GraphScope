@@ -38,6 +38,8 @@ struct EdgeExpandParams {
   bool is_optional;
 };
 
+class OprTimer;
+
 class EdgeExpand {
  public:
   template <typename PRED_T>
@@ -277,7 +279,8 @@ class EdgeExpand {
 
   static Context expand_edge_without_predicate(const GraphReadInterface& graph,
                                                Context&& ctx,
-                                               const EdgeExpandParams& params);
+                                               const EdgeExpandParams& params,
+                                               OprTimer& timer);
 
   template <typename PRED_T>
   static Context expand_vertex(const GraphReadInterface& graph, Context&& ctx,
