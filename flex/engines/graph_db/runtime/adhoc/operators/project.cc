@@ -17,6 +17,7 @@
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
 #include "flex/engines/graph_db/runtime/adhoc/runtime.h"
 #include "flex/engines/graph_db/runtime/adhoc/utils.h"
+#include "flex/engines/graph_db/runtime/common/columns/vertex_property_columns.h"
 
 namespace gs {
 
@@ -228,10 +229,26 @@ bool is_check_property_lt(const common::Expression& expr,
   return false;
 }
 
+bool is_get_vertex_property(const common::Expression& expr, int& tag,
+                            std::string& name) {
+  if (expr.operators_size() == 1 &&
+      expr.operators(0).item_case() == common::ExprOpr::kVar) {
+    auto var = expr.operators(0).var();
+    if (var.has_tag() && var.has_property()) {
+      tag = var.tag().id();
+      name = var.property().key().name();
+      return true;
+    }
+  }
+  return false;
+}
+
 Context eval_project(const physical::Project& opr,
                      const GraphReadInterface& graph, Context&& ctx,
                      const std::map<std::string, std::string>& params,
+                     OprTimer& timer,
                      const std::vector<common::IrDataType>& data_types) {
+  TimerUnit tx;
   bool is_append = opr.is_append();
   Context ret;
   if (is_append) {
@@ -496,34 +513,85 @@ Context eval_project(const physical::Project& opr,
           }
         }
       }
-      Expr expr(graph, ctx, params, m.expr(), VarType::kPathVar);
+
+      int vertex_tag = -1;
+      std::string property_name;
+      bool is_vp = false;
+      std::string vp_type;
+      bool prop_exists = true;
+      tx.start();
+      if (row_num != 0 &&
+          is_get_vertex_property(m.expr(), vertex_tag, property_name)) {
+        if (ctx.get(vertex_tag)->column_type() == ContextColumnType::kVertex) {
+          is_vp = true;
+          auto vertex_col =
+              std::dynamic_pointer_cast<IVertexColumn>(ctx.get(vertex_tag));
+          for (auto label : vertex_col->get_labels_set()) {
+            auto prop_type =
+                get_vertex_property_type(graph, label, property_name);
+            if (prop_type == PropertyType::Empty()) {
+              prop_exists = false;
+              break;
+            }
+          }
+        }
+      }
 
       int alias = -1;
       if (m.has_alias()) {
         alias = m.alias().value();
       }
       alias_ids.push_back(alias);
-      // compiler bug here, data_types[i] is none
-      if (data_types[i].type_case() == common::IrDataType::kDataType &&
-          data_types[i].data_type() == common::DataType::NONE) {
-        //        LOG(INFO) << "data type is none";
-        if (expr.type() == RTAnyType::kF64Value) {
-          common::IrDataType data_type;
-          data_type.set_data_type(common::DataType::DOUBLE);
-          auto col = build_column(data_type, expr, row_num);
+      bool success = false;
+      if (is_vp && prop_exists) {
+        auto vertex_col =
+            std::dynamic_pointer_cast<IVertexColumn>(ctx.get(vertex_tag));
+        auto col = create_vertex_property_column(
+            graph, vertex_col, property_name,
+            m.expr().operators(0).var().node_type().data_type());
+        if (col != nullptr) {
+          success = true;
+          auto vc_type = vertex_col->vertex_column_type();
+          if (vc_type == VertexColumnType::kSingle) {
+            vp_type = "project::ref_column-single";
+          } else if (vc_type == VertexColumnType::kMultiple) {
+            vp_type = "project::ref_column-multiple";
+          } else {
+            CHECK(vc_type == VertexColumnType::kMultiSegment);
+            vp_type = "project::ref_column-multi_segment";
+          }
           ret.set(alias, col);
-        } else {
-          LOG(FATAL) << "not support for "
-                     << static_cast<int>(expr.type().type_enum_);
         }
       }
-
-      else {
-        auto col = build_column(data_types[i], expr, row_num);
-        ret.set(alias, col);
+      if (!success) {
+        Expr expr(graph, ctx, params, m.expr(), VarType::kPathVar);
+        // compiler bug here, data_types[i] is none
+        if (data_types[i].type_case() == common::IrDataType::kDataType &&
+            data_types[i].data_type() == common::DataType::NONE) {
+          //        LOG(INFO) << "data type is none";
+          if (expr.type() == RTAnyType::kF64Value) {
+            common::IrDataType data_type;
+            data_type.set_data_type(common::DataType::DOUBLE);
+            auto col = build_column(data_type, expr, row_num);
+            ret.set(alias, col);
+          } else {
+            LOG(FATAL) << "not support for "
+                       << static_cast<int>(expr.type().type_enum_);
+          }
+        } else {
+          auto col = build_column(data_types[i], expr, row_num);
+          ret.set(alias, col);
+        }
+      }
+      if (success) {
+        vp_type = "project::ref_column-" + vp_type;
+        timer.record_routine(vp_type, tx);
+      } else {
+        timer.record_routine("project::mappings_size_equal-expr", tx);
       }
     }
   } else {
+    tx.start();
     for (int i = 0; i < mappings_size; ++i) {
       const physical::Project_ExprAlias& m = opr.mappings(i);
       {
@@ -544,6 +612,7 @@ Context eval_project(const physical::Project& opr,
       auto col = build_column_beta(expr, row_num);
       ret.set(alias, col);
     }
+    timer.record_routine("project::mappings_size_not_equal", tx);
   }
   ret.update_tag_ids(alias_ids);
 
@@ -585,11 +654,13 @@ bool project_order_by_fusable(
   std::set<int> order_by_keys;
   for (int k_i = 0; k_i < order_by_keys_num; ++k_i) {
     if (!order_by_opr.pairs(k_i).has_key()) {
-      // LOG(INFO) << "order by - " << k_i << " -th pair has no key, fallback";
+      // LOG(INFO) << "order by - " << k_i << " -th pair has no key,
+      // fallback";
       return false;
     }
     if (!order_by_opr.pairs(k_i).key().has_tag()) {
-      // LOG(INFO) << "order by - " << k_i << " -th pair has no tag, fallback";
+      // LOG(INFO) << "order by - " << k_i << " -th pair has no tag,
+      // fallback";
       return false;
     }
     if (!(order_by_opr.pairs(k_i).key().tag().item_case() ==
@@ -601,7 +672,8 @@ bool project_order_by_fusable(
   }
   if (data_types.size() == order_by_keys.size()) {
     // LOG(INFO)
-    //     << "all column is required, partial project is not needed, fallback";
+    //     << "all column is required, partial project is not needed,
+    //     fallback";
     return false;
   }
   for (auto key : order_by_keys) {
@@ -612,26 +684,6 @@ bool project_order_by_fusable(
     }
   }
 
-  return true;
-}
-
-bool is_property_expr(const common::Expression& expr, int& tag_id,
-                      std::string& property_name) {
-  if (expr.operators_size() != 1) {
-    LOG(INFO) << "AAAA";
-    return false;
-  }
-  if (!expr.operators(0).has_var()) {
-    LOG(INFO) << "AAAA";
-    return false;
-  }
-  if (!expr.operators(0).var().has_property() ||
-      !expr.operators(0).var().has_tag()) {
-    LOG(INFO) << "AAAA";
-    return false;
-  }
-  tag_id = expr.operators(0).var().tag().id();
-  property_name = expr.operators(0).var().property().key().name();
   return true;
 }
 
@@ -674,7 +726,8 @@ Context eval_project_order_by(
             CHECK(!ctx.exist(first_key_tag));
             int tag_id;
             std::string property_name;
-            if (is_property_expr(m.expr(), tag_id, property_name)) {
+            // TODO: use ref columns
+            if (is_get_vertex_property(m.expr(), tag_id, property_name)) {
               if (ctx.get(tag_id)->column_type() ==
                   ContextColumnType::kVertex) {
                 tx.start();
@@ -776,7 +829,8 @@ Context eval_project_order_by(
   return ret;
 }
 
-// for insert transaction, lazy evaluation as we don't have the type information
+// for insert transaction, lazy evaluation as we don't have the type
+// information
 WriteContext eval_project(const physical::Project& opr,
                           const GraphInsertInterface& graph, WriteContext&& ctx,
                           const std::map<std::string, std::string>& params) {

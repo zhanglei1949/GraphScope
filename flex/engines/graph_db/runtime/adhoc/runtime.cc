@@ -554,13 +554,13 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
         } else {
           t.start();
           ret = eval_project(opr.opr().project(), graph, std::move(ret), params,
-                             data_types);
+                             timer, data_types);
           timer.record_opr("project", t);
         }
       } else {
         t.start();
         ret = eval_project(opr.opr().project(), graph, std::move(ret), params,
-                           data_types);
+                           timer, data_types);
         timer.record_opr("project", t);
       }
     } break;

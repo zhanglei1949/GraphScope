@@ -16,6 +16,7 @@
 #include "flex/engines/graph_db/runtime/adhoc/expr.h"
 #include "flex/engines/graph_db/runtime/adhoc/operators/operators.h"
 #include "flex/engines/graph_db/runtime/adhoc/runtime.h"
+#include "flex/engines/graph_db/runtime/common/columns/vertex_property_columns.h"
 
 namespace gs {
 
@@ -197,8 +198,10 @@ Context eval_select_date_within(
     const algebra::Select& opr, const GraphReadInterface& graph, Context&& ctx,
     const std::map<std::string, std::string>& params, int date_tag, int month) {
   std::vector<size_t> offsets;
-  auto& date_col =
-      *std::dynamic_pointer_cast<ValueColumn<Day>>(ctx.get(date_tag));
+  // auto& date_col =
+  //     *std::dynamic_pointer_cast<ValueColumn<Day>>(ctx.get(date_tag));
+  auto& date_col = *std::dynamic_pointer_cast<SLVertexPropertyColumn<Day>>(
+      ctx.get(date_tag));
 
   size_t row_num = ctx.row_num();
   int next_month = (month % 12) + 1;

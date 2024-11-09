@@ -99,22 +99,125 @@ void Context::reshuffle(const std::vector<size_t>& offsets) {
   bool head_shuffled = false;
   std::vector<std::shared_ptr<IContextColumn>> new_cols;
 
+  std::unordered_map<std::shared_ptr<IContextColumn>,
+                     std::shared_ptr<IContextColumn>>
+      vertex_to_new_vertex;
+  std::unordered_map<std::shared_ptr<IContextColumn>, int> vertex_ref_count;
+  bool head_scaned = false;
   for (auto col : columns) {
     if (col == nullptr) {
-      new_cols.push_back(nullptr);
-
       continue;
     }
     if (col == head) {
-      head = col->shuffle(offsets);
-      new_cols.push_back(head);
+      head_scaned = true;
+    }
+    if (col->column_type() == ContextColumnType::kVertexProperty ||
+        col->column_type() == ContextColumnType::kVertexId) {
+      vertex_ref_count[col->get_vertex_column()]++;
+    } else {
+      vertex_ref_count[col]++;
+    }
+  }
+  if (!head_scaned && head != nullptr) {
+    if (head->column_type() == ContextColumnType::kVertexProperty ||
+        head->column_type() == ContextColumnType::kVertexId) {
+      vertex_ref_count[head->get_vertex_column()]++;
+    } else {
+      vertex_ref_count[head]++;
+    }
+  }
+
+  for (auto col : columns) {
+    if (col == nullptr) {
+      new_cols.push_back(nullptr);
+      continue;
+    }
+    if (col == head) {
+      if (col->column_type() == ContextColumnType::kVertexProperty ||
+          col->column_type() == ContextColumnType::kVertexId) {
+        auto vertex_col = col->get_vertex_column();
+        if (vertex_ref_count[vertex_col] == 1) {
+          auto new_col = col->shuffle(offsets);
+          new_cols.push_back(new_col);
+        } else {
+          auto iter = vertex_to_new_vertex.find(vertex_col);
+          std::shared_ptr<IContextColumn> new_vertex_col(nullptr);
+          if (iter != vertex_to_new_vertex.end()) {
+            new_vertex_col = iter->second;
+          } else {
+            new_vertex_col = vertex_col->shuffle(offsets);
+            vertex_to_new_vertex[vertex_col] = new_vertex_col;
+          }
+          CHECK(new_vertex_col != nullptr);
+          new_cols.push_back(col->set_vertex_column(new_vertex_col));
+        }
+      } else {
+        auto iter = vertex_to_new_vertex.find(col);
+        if (iter != vertex_to_new_vertex.end()) {
+          new_cols.push_back(iter->second);
+        } else {
+          auto new_col = col->shuffle(offsets);
+          new_cols.push_back(new_col);
+          vertex_to_new_vertex[col] = new_col;
+        }
+      }
+      head = new_cols.back();
       head_shuffled = true;
     } else {
-      new_cols.push_back(col->shuffle(offsets));
+      if (col->column_type() == ContextColumnType::kVertexProperty ||
+          col->column_type() == ContextColumnType::kVertexId) {
+        auto vertex_col = col->get_vertex_column();
+        if (vertex_ref_count[vertex_col] == 1) {
+          auto new_col = col->shuffle(offsets);
+          new_cols.push_back(new_col);
+        } else {
+          auto iter = vertex_to_new_vertex.find(vertex_col);
+          std::shared_ptr<IContextColumn> new_vertex_col(nullptr);
+          if (iter != vertex_to_new_vertex.end()) {
+            new_vertex_col = iter->second;
+          } else {
+            new_vertex_col = vertex_col->shuffle(offsets);
+            vertex_to_new_vertex[vertex_col] = new_vertex_col;
+          }
+          new_cols.push_back(col->set_vertex_column(new_vertex_col));
+        }
+      } else {
+        auto iter = vertex_to_new_vertex.find(col);
+        if (iter != vertex_to_new_vertex.end()) {
+          new_cols.push_back(iter->second);
+        } else {
+          auto new_col = col->shuffle(offsets);
+          new_cols.push_back(new_col);
+          vertex_to_new_vertex[col] = new_col;
+        }
+      }
     }
   }
   if (!head_shuffled && head != nullptr) {
-    head = head->shuffle(offsets);
+    if (head->column_type() == ContextColumnType::kVertexProperty ||
+        head->column_type() == ContextColumnType::kVertexId) {
+      auto vertex_col = head->get_vertex_column();
+      if (vertex_ref_count[vertex_col] == 1) {
+        head = head->shuffle(offsets);
+      } else {
+        auto iter = vertex_to_new_vertex.find(vertex_col);
+        std::shared_ptr<IContextColumn> new_vertex_col(nullptr);
+        if (iter != vertex_to_new_vertex.end()) {
+          new_vertex_col = iter->second;
+        } else {
+          new_vertex_col = vertex_col->shuffle(offsets);
+          vertex_to_new_vertex[vertex_col] = new_vertex_col;
+        }
+        head = head->set_vertex_column(new_vertex_col);
+      }
+    } else {
+      auto iter = vertex_to_new_vertex.find(head);
+      if (iter != vertex_to_new_vertex.end()) {
+        head = iter->second;
+      } else {
+        head = head->shuffle(offsets);
+      }
+    }
   }
   std::swap(new_cols, columns);
   if (offset_ptr != nullptr) {

@@ -33,6 +33,8 @@ enum class ContextColumnType {
   kValue,
   kPath,
   kOptionalValue,
+  kVertexProperty,
+  kVertexId,
 };
 
 class ISigColumn {
@@ -190,6 +192,17 @@ class IContextColumn {
  public:
   IContextColumn() = default;
   virtual ~IContextColumn() = default;
+
+  virtual const std::shared_ptr<IContextColumn> get_vertex_column() const {
+    LOG(FATAL) << "not implemented for " << this->column_info();
+    return nullptr;
+  }
+
+  virtual std::shared_ptr<IContextColumn> set_vertex_column(
+      std::shared_ptr<IContextColumn> vertices) const {
+    LOG(FATAL) << "not implemented for " << this->column_info();
+    return nullptr;
+  }
 
   virtual size_t size() const {
     LOG(FATAL) << "not implemented for " << this->column_info();

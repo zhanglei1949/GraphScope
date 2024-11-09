@@ -116,6 +116,11 @@ Var::Var(const GraphReadInterface& graph, const Context& ctx,
       } else {
         getter_ = std::make_shared<PathIdPathAccessor>(ctx, tag);
       }
+    } else if (ctx.get(tag)->column_type() ==
+               ContextColumnType::kVertexProperty) {
+      getter_ = create_context_value_accessor(ctx, tag, type_);
+    } else if (ctx.get(tag)->column_type() == ContextColumnType::kVertexId) {
+      getter_ = create_context_value_accessor(ctx, tag, type_);
     } else {
       LOG(FATAL) << "not support for " << ctx.get(tag)->column_info();
     }
