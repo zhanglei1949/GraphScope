@@ -620,15 +620,17 @@ Context eval_tc(const physical::EdgeExpand& ee_opr0,
       d0_set[u] = true;
       d0_vec.push_back(u);
     });
-    csr1.foreach_edges(v, [&](vid_t nbr1, const Date&) {
-      csr2.foreach_edges(nbr1, [&](vid_t nbr2, const grape::EmptyType&) {
+    for (auto& e1 : csr1.get_edges(v)) {
+      auto nbr1 = e1.get_neighbor();
+      for (auto& e2 : csr2.get_edges(nbr1)) {
+        auto nbr2 = e2.get_neighbor();
         if (d0_set[nbr2]) {
           builder1.push_back_opt(nbr1);
           builder2.push_back_opt(nbr2);
           offsets.push_back(idx);
         }
-      });
-    });
+      }
+    }
     for (auto u : d0_vec) {
       d0_set[u] = false;
     }

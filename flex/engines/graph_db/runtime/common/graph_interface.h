@@ -101,6 +101,68 @@ class EdgeIterator {
 };
 
 template <typename EDATA_T>
+class AdjListView {
+  class nbr_iterator {
+    // const_nbr_t provide two methods:
+    // 1. vid_t get_neighbor() const;
+    // 2. const EDATA_T& get_data() const;
+    using const_nbr_t = typename gs::MutableNbrSlice<EDATA_T>::const_nbr_t;
+    using const_nbr_ptr_t =
+        typename gs::MutableNbrSlice<EDATA_T>::const_nbr_ptr_t;
+
+   public:
+    nbr_iterator(const_nbr_ptr_t ptr, const_nbr_ptr_t end,
+                 timestamp_t timestamp)
+        : ptr_(ptr), end_(end), timestamp_(timestamp) {
+      while (ptr_ != end_ && ptr_->get_timestamp() > timestamp_) {
+        ++ptr_;
+      }
+    }
+
+    const_nbr_t& operator*() const { return *ptr_; }
+
+    const_nbr_ptr_t operator->() const { return ptr_; }
+
+    nbr_iterator& operator++() {
+      ++ptr_;
+      while (ptr_ != end_ && ptr_->get_timestamp() > timestamp_) {
+        ++ptr_;
+      }
+      return *this;
+    }
+
+    bool operator==(const nbr_iterator& rhs) const {
+      return (ptr_ == rhs.ptr_);
+    }
+
+    bool operator!=(const nbr_iterator& rhs) const {
+      return (ptr_ != rhs.ptr_);
+    }
+
+   private:
+    const_nbr_ptr_t ptr_;
+    const_nbr_ptr_t end_;
+    timestamp_t timestamp_;
+  };
+
+ public:
+  using slice_t = gs::MutableNbrSlice<EDATA_T>;
+  AdjListView(const slice_t& slice, timestamp_t timestamp)
+      : edges_(slice), timestamp_(timestamp) {}
+
+  nbr_iterator begin() const {
+    return nbr_iterator(edges_.begin(), edges_.end(), timestamp_);
+  }
+  nbr_iterator end() const {
+    return nbr_iterator(edges_.end(), edges_.end(), timestamp_);
+  }
+
+ private:
+  slice_t edges_;
+  timestamp_t timestamp_;
+};
+
+template <typename EDATA_T>
 class GraphView {
  public:
   GraphView() : csr_(nullptr), timestamp_(0), unsorted_since_(0) {}
@@ -111,26 +173,15 @@ class GraphView {
 
   bool is_null() const { return csr_ == nullptr; }
 
+  AdjListView<EDATA_T> get_edges(vid_t v) const {
+    return AdjListView<EDATA_T>(csr_->get_edges(v), timestamp_);
+  }
+
   /*
    * void func(vid_t v, const EDATA_T& data) {
    *     // do something
    * }
    */
-  template <typename FUNC_T>
-  void foreach_edges(vid_t v, const FUNC_T& func) const {
-    const auto& edges = csr_->get_edges(v);
-    auto ptr = edges.begin();
-    auto end = edges.end();
-    while (ptr != end) {
-      if (ptr->timestamp > timestamp_) {
-        ++ptr;
-        continue;
-      }
-      func(ptr->neighbor, ptr->data);
-      ++ptr;
-    }
-  }
-
   template <typename FUNC_T>
   void foreach_edges_gt(vid_t v, const EDATA_T& min_value,
                         const FUNC_T& func) const {
@@ -234,6 +285,8 @@ class GraphReadInterface {
 
   template <typename T>
   using vertex_array_t = graph_interface_impl::VertexArray<T>;
+
+  static constexpr vid_t kInvalidVid = std::numeric_limits<vid_t>::max();
 
   GraphReadInterface(const gs::ReadTransaction& txn) : txn_(txn) {}
   ~GraphReadInterface() {}

@@ -75,16 +75,18 @@ iterative_expand_vertex_on_graph_view(
           builder.push_back_opt(pair.first);
           offsets.push_back(pair.second);
 
-          view.foreach_edges(pair.first, [&](vid_t nbr, const EDATA_T& edata) {
-            output_list.emplace_back(nbr, pair.second);
-          });
+          auto es = view.get_edges(pair.first);
+          for (auto& e : es) {
+            output_list.emplace_back(e.get_neighbor(), pair.second);
+          }
         }
       }
     } else if (depth < lower) {
       for (auto& pair : input_list) {
-        view.foreach_edges(pair.first, [&](vid_t nbr, const EDATA_T& edata) {
-          output_list.emplace_back(nbr, pair.second);
-        });
+        auto es = view.get_edges(pair.first);
+        for (auto& e : es) {
+          output_list.emplace_back(e.get_neighbor(), pair.second);
+        }
       }
     }
     ++depth;
@@ -139,22 +141,26 @@ iterative_expand_vertex_on_dual_graph_view(
           builder.push_back_opt(pair.first);
           offsets.push_back(pair.second);
 
-          iview.foreach_edges(pair.first, [&](vid_t nbr, const EDATA_T& edata) {
-            output_list.emplace_back(nbr, pair.second);
-          });
-          oview.foreach_edges(pair.first, [&](vid_t nbr, const EDATA_T& edata) {
-            output_list.emplace_back(nbr, pair.second);
-          });
+          auto ies = iview.get_edges(pair.first);
+          for (auto& e : ies) {
+            output_list.emplace_back(e.get_neighbor(), pair.second);
+          }
+          auto oes = oview.get_edges(pair.first);
+          for (auto& e : oes) {
+            output_list.emplace_back(e.get_neighbor(), pair.second);
+          }
         }
       }
     } else if (depth < lower) {
       for (auto& pair : input_list) {
-        iview.foreach_edges(pair.first, [&](vid_t nbr, const EDATA_T& edata) {
-          output_list.emplace_back(nbr, pair.second);
-        });
-        oview.foreach_edges(pair.first, [&](vid_t nbr, const EDATA_T& edata) {
-          output_list.emplace_back(nbr, pair.second);
-        });
+        auto ies = iview.get_edges(pair.first);
+        for (auto& e : ies) {
+          output_list.emplace_back(e.get_neighbor(), pair.second);
+        }
+        auto oes = oview.get_edges(pair.first);
+        for (auto& e : oes) {
+          output_list.emplace_back(e.get_neighbor(), pair.second);
+        }
       }
     }
     ++depth;
@@ -181,8 +187,8 @@ void sssp_dir(const GraphReadInterface::graph_view_t<EDATA_T>& view,
   std::vector<vid_t> next;
   cur.push_back(v);
   int depth = 0;
-  static constexpr vid_t invalid_vid = std::numeric_limits<vid_t>::max();
-  GraphReadInterface::vertex_array_t<vid_t> parent(vertices, invalid_vid);
+  GraphReadInterface::vertex_array_t<vid_t> parent(
+      vertices, GraphReadInterface::kInvalidVid);
 
   while (depth < upper && !cur.empty()) {
     if (depth >= lower) {
@@ -219,22 +225,24 @@ void sssp_dir(const GraphReadInterface::graph_view_t<EDATA_T>& view,
             path_impls.emplace_back(impl);
             offsets.push_back(idx);
           }
-          view.foreach_edges(u, [&](vid_t nbr, const EDATA_T& edata) {
-            if (parent[nbr] == invalid_vid) {
+          for (auto& e : view.get_edges(u)) {
+            auto nbr = e.get_neighbor();
+            if (parent[nbr] == GraphReadInterface::kInvalidVid) {
               parent[nbr] = u;
               next.push_back(nbr);
             }
-          });
+          }
         }
       }
     } else {
       for (auto u : cur) {
-        view.foreach_edges(u, [&](vid_t nbr, const EDATA_T& edata) {
-          if (parent[nbr] == invalid_vid) {
+        for (auto& e : view.get_edges(u)) {
+          auto nbr = e.get_neighbor();
+          if (parent[nbr] == GraphReadInterface::kInvalidVid) {
             parent[nbr] = u;
             next.push_back(nbr);
           }
-        });
+        }
       }
     }
     ++depth;
@@ -257,8 +265,8 @@ void sssp_both_dir(const GraphReadInterface::graph_view_t<EDATA_T>& view0,
   std::vector<vid_t> next;
   cur.push_back(v);
   int depth = 0;
-  static constexpr vid_t invalid_vid = std::numeric_limits<vid_t>::max();
-  GraphReadInterface::vertex_array_t<vid_t> parent(vertices, invalid_vid);
+  GraphReadInterface::vertex_array_t<vid_t> parent(
+      vertices, GraphReadInterface::kInvalidVid);
 
   while (depth < upper && !cur.empty()) {
     if (depth >= lower) {
@@ -295,34 +303,38 @@ void sssp_both_dir(const GraphReadInterface::graph_view_t<EDATA_T>& view0,
             path_impls.emplace_back(impl);
             offsets.push_back(idx);
           }
-          view0.foreach_edges(u, [&](vid_t nbr, const EDATA_T& edata) {
-            if (parent[nbr] == invalid_vid) {
+          for (auto& e : view0.get_edges(u)) {
+            auto nbr = e.get_neighbor();
+            if (parent[nbr] == GraphReadInterface::kInvalidVid) {
               parent[nbr] = u;
               next.push_back(nbr);
             }
-          });
-          view1.foreach_edges(u, [&](vid_t nbr, const EDATA_T& edata) {
-            if (parent[nbr] == invalid_vid) {
+          }
+          for (auto& e : view1.get_edges(u)) {
+            auto nbr = e.get_neighbor();
+            if (parent[nbr] == GraphReadInterface::kInvalidVid) {
               parent[nbr] = u;
               next.push_back(nbr);
             }
-          });
+          }
         }
       }
     } else {
       for (auto u : cur) {
-        view0.foreach_edges(u, [&](vid_t nbr, const EDATA_T& edata) {
-          if (parent[nbr] == invalid_vid) {
+        for (auto& e : view0.get_edges(u)) {
+          auto nbr = e.get_neighbor();
+          if (parent[nbr] == GraphReadInterface::kInvalidVid) {
             parent[nbr] = u;
             next.push_back(nbr);
           }
-        });
-        view1.foreach_edges(u, [&](vid_t nbr, const EDATA_T& edata) {
-          if (parent[nbr] == invalid_vid) {
+        }
+        for (auto& e : view1.get_edges(u)) {
+          auto nbr = e.get_neighbor();
+          if (parent[nbr] == GraphReadInterface::kInvalidVid) {
             parent[nbr] = u;
             next.push_back(nbr);
           }
-        });
+        }
       }
     }
     ++depth;
@@ -368,34 +380,38 @@ void sssp_both_dir_with_order_by_length_limit(
             path_len_builder.push_back_opt(depth);
             offsets.push_back(idx);
           }
-          view0.foreach_edges(u, [&](vid_t nbr, const EDATA_T& edata) {
+          for (auto& e : view0.get_edges(u)) {
+            auto nbr = e.get_neighbor();
             if (!vis[nbr]) {
               vis[nbr] = true;
               next.push_back(nbr);
             }
-          });
-          view1.foreach_edges(u, [&](vid_t nbr, const EDATA_T& edata) {
+          }
+          for (auto& e : view1.get_edges(u)) {
+            auto nbr = e.get_neighbor();
             if (!vis[nbr]) {
               vis[nbr] = true;
               next.push_back(nbr);
             }
-          });
+          }
         }
       }
     } else {
       for (auto u : cur) {
-        view0.foreach_edges(u, [&](vid_t nbr, const EDATA_T& edata) {
+        for (auto& e : view0.get_edges(u)) {
+          auto nbr = e.get_neighbor();
           if (!vis[nbr]) {
             vis[nbr] = true;
             next.push_back(nbr);
           }
-        });
-        view1.foreach_edges(u, [&](vid_t nbr, const EDATA_T& edata) {
+        }
+        for (auto& e : view1.get_edges(u)) {
+          auto nbr = e.get_neighbor();
           if (!vis[nbr]) {
             vis[nbr] = true;
             next.push_back(nbr);
           }
-        });
+        }
       }
     }
     ++depth;

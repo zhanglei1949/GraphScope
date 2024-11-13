@@ -1031,7 +1031,7 @@ struct AnyConverter<int64_t> {
   }
 
   static const int64_t& from_any(const Any& value) {
-    CHECK(value.type == PropertyType::kInt64);
+    assert(value.type == PropertyType::kInt64);
     return value.value.l;
   }
 

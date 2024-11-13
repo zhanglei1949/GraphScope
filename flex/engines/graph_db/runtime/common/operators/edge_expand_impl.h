@@ -41,12 +41,14 @@ expand_vertex_on_graph_view(
   std::vector<size_t> offsets;
   size_t idx = 0;
   for (auto v : input.vertices()) {
-    view.foreach_edges(v, [&](vid_t nbr, const EDATA_T& data) {
-      if (pred(input_label, v, nbr_label, nbr, e_label, dir, data)) {
-        builder.push_back_opt(nbr);
+    auto es = view.get_edges(v);
+    for (auto& e : es) {
+      if (pred(input_label, v, nbr_label, e.get_neighbor(), e_label, dir,
+               e.get_data())) {
+        builder.push_back_opt(e.get_neighbor());
         offsets.push_back(idx);
       }
-    });
+    }
     ++idx;
   }
 
@@ -58,7 +60,7 @@ inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_np_se(const GraphReadInterface& graph,
                     const SLVertexColumn& input, label_t nbr_label,
                     label_t edge_label, Direction dir, const PRED_T& pred) {
-  // LOG(INFO) << "!!!!!!!!!!!!! hit A";
+  // LOG(INFO) << "AAAA";
   label_t input_label = input.label();
   CHECK((dir == Direction::kIn) || (dir == Direction::kOut));
   GraphReadInterface::graph_view_t<EDATA_T> view =
@@ -88,13 +90,15 @@ expand_vertex_on_graph_view_optional(
         return;
       }
       bool found = false;
-      view.foreach_edges(v, [&](vid_t nbr, const EDATA_T& data) {
-        if (pred(input_label, v, nbr_label, nbr, e_label, dir, data)) {
-          builder.push_back_opt(nbr);
+      auto es = view.get_edges(v);
+      for (auto& e : es) {
+        if (pred(input_label, v, nbr_label, e.get_neighbor(), e_label, dir,
+                 e.get_data())) {
+          builder.push_back_opt(e.get_neighbor());
           offsets.push_back(idx);
           found = true;
         }
-      });
+      }
       if (!found) {
         builder.push_back_null();
         offsets.push_back(idx);
@@ -104,13 +108,15 @@ expand_vertex_on_graph_view_optional(
     const auto& col = dynamic_cast<const SLVertexColumn&>(input);
     col.foreach_vertex([&](size_t idx, label_t l, vid_t v) {
       bool found = false;
-      view.foreach_edges(v, [&](vid_t nbr, const EDATA_T& data) {
-        if (pred(input_label, v, nbr_label, nbr, e_label, dir, data)) {
-          builder.push_back_opt(nbr);
+      auto es = view.get_edges(v);
+      for (auto& e : es) {
+        if (pred(input_label, v, nbr_label, e.get_neighbor(), e_label, dir,
+                 e.get_data())) {
+          builder.push_back_opt(e.get_neighbor());
           offsets.push_back(idx);
           found = true;
         }
-      });
+      }
       if (!found) {
         builder.push_back_null();
         offsets.push_back(idx);
@@ -144,6 +150,8 @@ expand_vertex_np_me_sp(
     const GraphReadInterface& graph, const SLVertexColumn& input,
     const std::vector<std::tuple<label_t, label_t, Direction>>& label_dirs,
     const PRED_T& pred) {
+  // here
+  // LOG(INFO) << "AAAA";
   std::vector<GraphReadInterface::graph_view_t<EDATA_T>> views;
   label_t input_label = input.label();
   std::vector<label_t> nbr_labels;
@@ -181,12 +189,14 @@ expand_vertex_np_me_sp(
         label_t nbr_label = std::get<0>(label_dirs[csr_idx]);
         label_t edge_label = std::get<1>(label_dirs[csr_idx]);
         Direction dir = std::get<2>(label_dirs[csr_idx]);
-        csr.foreach_edges(v, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(input_label, v, nbr_label, nbr, edge_label, dir, data)) {
-            builder.push_back_opt(nbr);
+        auto es = csr.get_edges(v);
+        for (auto& e : es) {
+          if (pred(input_label, v, nbr_label, e.neighbor, edge_label, dir,
+                   e.data)) {
+            builder.push_back_opt(e.neighbor);
             offsets.push_back(idx);
           }
-        });
+        }
         ++csr_idx;
       }
       ++idx;
@@ -204,12 +214,14 @@ expand_vertex_np_me_sp(
         label_t nbr_label = std::get<0>(label_dirs[csr_idx]);
         label_t edge_label = std::get<1>(label_dirs[csr_idx]);
         Direction dir = std::get<2>(label_dirs[csr_idx]);
-        csr.foreach_edges(v, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(input_label, v, nbr_label, nbr, edge_label, dir, data)) {
-            builder.push_back_vertex({nbr_label, nbr});
+        auto es = csr.get_edges(v);
+        for (auto& e : es) {
+          if (pred(input_label, v, nbr_label, e.get_neighbor(), edge_label, dir,
+                   e.get_data())) {
+            builder.push_back_vertex({nbr_label, e.get_neighbor()});
             offsets.push_back(idx);
           }
-        });
+        }
         ++csr_idx;
       }
       ++idx;
@@ -224,12 +236,14 @@ expand_vertex_np_me_sp(
       idx = 0;
       builder.start_label(nbr_label);
       for (auto v : input.vertices()) {
-        csr.foreach_edges(v, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(input_label, v, nbr_label, nbr, edge_label, dir, data)) {
-            builder.push_back_opt(nbr);
+        auto es = csr.get_edges(v);
+        for (auto& e : es) {
+          if (pred(input_label, v, nbr_label, e.get_neighbor(), edge_label, dir,
+                   e.get_data())) {
+            builder.push_back_opt(e.get_neighbor());
             offsets.push_back(idx);
           }
-        });
+        }
         ++idx;
       }
       ++csr_idx;
@@ -289,13 +303,15 @@ expand_vertex_np_me_sp_optional(
         label_t nbr_label = std::get<0>(label_dirs[csr_idx]);
         label_t edge_label = std::get<1>(label_dirs[csr_idx]);
         Direction dir = std::get<2>(label_dirs[csr_idx]);
-        csr.foreach_edges(v, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(input_label, v, nbr_label, nbr, edge_label, dir, data)) {
-            builder.push_back_opt(nbr);
+        auto es = csr.get_edges(v);
+        for (auto& e : es) {
+          if (pred(input_label, v, nbr_label, e.get_neighbor(), edge_label, dir,
+                   e.get_data())) {
+            builder.push_back_opt(e.get_neighbor());
             offsets.push_back(idx);
             found = true;
           }
-        });
+        }
         ++csr_idx;
       }
       if (!found) {
@@ -316,12 +332,14 @@ expand_vertex_np_me_sp_optional(
         label_t nbr_label = std::get<0>(label_dirs[csr_idx]);
         label_t edge_label = std::get<1>(label_dirs[csr_idx]);
         Direction dir = std::get<2>(label_dirs[csr_idx]);
-        csr.foreach_edges(v, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(input_label, v, nbr_label, nbr, edge_label, dir, data)) {
-            builder.push_back_vertex({nbr_label, nbr});
+        auto es = csr.get_edges(v);
+        for (auto& e : es) {
+          if (pred(input_label, v, nbr_label, e.get_neighbor(), edge_label, dir,
+                   e.get_data())) {
+            builder.push_back_vertex({nbr_label, e.get_neighbor()});
             offsets.push_back(idx);
           }
-        });
+        }
         ++csr_idx;
       }
       ++idx;
@@ -340,13 +358,15 @@ expand_vertex_np_me_sp_optional(
           return;
         }
         bool found = false;
-        csr.foreach_edges(v, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(input_label, v, nbr_label, nbr, edge_label, dir, data)) {
-            builder.push_back_opt(VertexRecord{nbr_label, nbr});
+        auto es = csr.get_edges(v);
+        for (auto& e : es) {
+          if (pred(input_label, v, nbr_label, e.get_neighbor(), edge_label, dir,
+                   e.get_data())) {
+            builder.push_back_opt({nbr_label, e.get_neighbor()});
             offsets.push_back(idx);
             found = true;
           }
-        });
+        }
         // fix me
         if (!found) {
           builder.push_back_null();
@@ -444,23 +464,26 @@ expand_vertex_np_se(
     SLVertexColumnBuilder builder(*nbr_labels_set.begin());
     if (all_exist) {
       input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
-        views[l].foreach_edges(vid, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(l, vid, nbr_labels[l], nbr, edge_labels[l], dirs[l], data)) {
-            builder.push_back_opt(nbr);
+        auto es = views[l].get_edges(vid);
+        for (auto& e : es) {
+          if (pred(l, vid, nbr_labels[l], e.get_neighbor(), edge_labels[l],
+                   dirs[l], e.get_data())) {
+            builder.push_back_opt(e.get_neighbor());
             offsets.push_back(idx);
           }
-        });
+        }
       });
     } else {
       input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
         if (!views[l].is_null()) {
-          views[l].foreach_edges(vid, [&](vid_t nbr, const EDATA_T& data) {
-            if (pred(l, vid, nbr_labels[l], nbr, edge_labels[l], dirs[l],
-                     data)) {
-              builder.push_back_opt(nbr);
+          auto es = views[l].get_edges(vid);
+          for (auto& e : es) {
+            if (pred(l, vid, nbr_labels[l], e.neighbor, edge_labels[l], dirs[l],
+                     e.data)) {
+              builder.push_back_opt(e.neighbor);
               offsets.push_back(idx);
             }
-          });
+          }
         }
       });
     }
@@ -469,23 +492,26 @@ expand_vertex_np_se(
     MLVertexColumnBuilder builder;
     if (all_exist) {
       input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
-        views[l].foreach_edges(vid, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(l, vid, nbr_labels[l], nbr, edge_labels[l], dirs[l], data)) {
-            builder.push_back_vertex({nbr_labels[l], nbr});
+        auto es = views[l].get_edges(vid);
+        for (auto& e : es) {
+          if (pred(l, vid, nbr_labels[l], e.get_neighbor(), edge_labels[l],
+                   dirs[l], e.get_data())) {
+            builder.push_back_vertex({nbr_labels[l], e.get_neighbor()});
             offsets.push_back(idx);
           }
-        });
+        }
       });
     } else {
       input.foreach_vertex([&](size_t idx, label_t l, vid_t vid) {
         if (!views[l].is_null()) {
-          views[l].foreach_edges(vid, [&](vid_t nbr, const EDATA_T& data) {
-            if (pred(l, vid, nbr_labels[l], nbr, edge_labels[l], dirs[l],
-                     data)) {
-              builder.push_back_vertex({nbr_labels[l], nbr});
+          auto es = views[l].get_edges(vid);
+          for (auto& e : es) {
+            if (pred(l, vid, nbr_labels[l], e.get_neighbor(), edge_labels[l],
+                     dirs[l], e.get_data())) {
+              builder.push_back_vertex({nbr_labels[l], e.get_neighbor()});
               offsets.push_back(idx);
             }
-          });
+          }
         }
       });
     }
@@ -543,13 +569,14 @@ expand_vertex_np_se(
       auto& view = views[l];
       if (!view.is_null()) {
         for (auto vid : input.seg_vertices(k)) {
-          view.foreach_edges(vid, [&](vid_t nbr, const EDATA_T& data) {
-            if (pred(l, vid, nbr_labels[l], nbr, edge_labels[l], dirs[l],
-                     data)) {
-              builder.push_back_opt(nbr);
+          auto es = view.get_edges(vid);
+          for (auto& e : es) {
+            if (pred(l, vid, nbr_labels[l], e.get_neighbor(), edge_labels[l],
+                     dirs[l], e.get_data())) {
+              builder.push_back_opt(e.get_neighbor());
               offsets.push_back(idx);
             }
-          });
+          }
           ++idx;
         }
       } else {
@@ -568,12 +595,14 @@ expand_vertex_np_se(
         label_t nbr_label = nbr_labels[l];
         builder.start_label(nbr_label);
         for (auto vid : input.seg_vertices(k)) {
-          view.foreach_edges(vid, [&](vid_t nbr, const EDATA_T& data) {
-            if (pred(l, vid, nbr_label, nbr, edge_labels[l], dirs[l], data)) {
-              builder.push_back_opt(nbr);
+          auto es = view.get_edges(vid);
+          for (auto& e : es) {
+            if (pred(l, vid, nbr_label, e.get_neighbor(), edge_labels[l],
+                     dirs[l], e.get_data())) {
+              builder.push_back_opt(e.get_neighbor());
               offsets.push_back(idx);
             }
-          });
+          }
           ++idx;
         }
       } else {
@@ -629,12 +658,14 @@ expand_vertex_np_me_sp(
         label_t nbr_label = std::get<0>(label_dirs_map[l][csr_idx]);
         label_t edge_label = std::get<1>(label_dirs_map[l][csr_idx]);
         Direction dir = std::get<2>(label_dirs_map[l][csr_idx]);
-        view.foreach_edges(vid, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(l, vid, nbr_label, nbr, edge_label, dir, data)) {
-            builder.push_back_opt(nbr);
+        auto es = view.get_edges(vid);
+        for (auto& e : es) {
+          if (pred(l, vid, nbr_label, e.get_neighbor(), edge_label, dir,
+                   e.get_data())) {
+            builder.push_back_opt(e.get_neighbor());
             offsets.push_back(idx);
           }
-        });
+        }
         ++csr_idx;
       }
     });
@@ -647,12 +678,14 @@ expand_vertex_np_me_sp(
         label_t nbr_label = std::get<0>(label_dirs_map[l][csr_idx]);
         label_t edge_label = std::get<1>(label_dirs_map[l][csr_idx]);
         Direction dir = std::get<2>(label_dirs_map[l][csr_idx]);
-        view.foreach_edges(vid, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(l, vid, nbr_label, nbr, edge_label, dir, data)) {
-            builder.push_back_vertex({nbr_label, nbr});
+        auto es = view.get_edges(vid);
+        for (auto& e : es) {
+          if (pred(l, vid, nbr_label, e.get_neighbor(), edge_label, dir,
+                   e.get_data())) {
+            builder.push_back_vertex({nbr_label, e.get_neighbor()});
             offsets.push_back(idx);
           }
-        });
+        }
         ++csr_idx;
       }
     });
@@ -711,13 +744,15 @@ expand_vertex_np_me_sp_optional(
         label_t nbr_label = std::get<0>(label_dirs_map[l][csr_idx]);
         label_t edge_label = std::get<1>(label_dirs_map[l][csr_idx]);
         Direction dir = std::get<2>(label_dirs_map[l][csr_idx]);
-        view.foreach_edges(vid, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(l, vid, nbr_label, nbr, edge_label, dir, data)) {
-            builder.push_back_opt(nbr);
+        auto es = view.get_edges(vid);
+        for (auto& e : es) {
+          if (pred(l, vid, nbr_label, e.get_neighbor(), edge_label, dir,
+                   e.get_data())) {
+            builder.push_back_opt(e.get_neighbor());
             offsets.push_back(idx);
             found = true;
           }
-        });
+        }
         ++csr_idx;
       }
       if (!found) {
@@ -740,13 +775,15 @@ expand_vertex_np_me_sp_optional(
         label_t nbr_label = std::get<0>(label_dirs_map[l][csr_idx]);
         label_t edge_label = std::get<1>(label_dirs_map[l][csr_idx]);
         Direction dir = std::get<2>(label_dirs_map[l][csr_idx]);
-        view.foreach_edges(vid, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(l, vid, nbr_label, nbr, edge_label, dir, data)) {
-            builder.push_back_vertex({nbr_label, nbr});
+        auto es = view.get_edges(vid);
+        for (auto& e : es) {
+          if (pred(l, vid, nbr_label, e.get_neighbor(), edge_label, dir,
+                   e.get_data())) {
+            builder.push_back_opt({nbr_label, e.get_neighbor()});
             offsets.push_back(idx);
             found = true;
           }
-        });
+        }
         ++csr_idx;
       }
       if (!found) {
@@ -804,12 +841,14 @@ expand_vertex_np_me_sp(
         label_t nbr_label = std::get<0>(label_dirs_map[l][csr_idx]);
         label_t edge_label = std::get<1>(label_dirs_map[l][csr_idx]);
         Direction dir = std::get<2>(label_dirs_map[l][csr_idx]);
-        view.foreach_edges(vid, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(l, vid, nbr_label, nbr, edge_label, dir, data)) {
-            builder.push_back_opt(nbr);
+        auto es = view.get_edges(vid);
+        for (auto& e : es) {
+          if (pred(l, vid, nbr_label, e.get_neighbor(), edge_label, dir,
+                   e.get_data())) {
+            builder.push_back_opt(e.get_neighbor());
             offsets.push_back(idx);
           }
-        });
+        }
         ++csr_idx;
       }
     });
@@ -824,12 +863,13 @@ expand_vertex_np_me_sp(
         label_t nbr_label = std::get<0>(label_dirs_map[l][csr_idx]);
         label_t edge_label = std::get<1>(label_dirs_map[l][csr_idx]);
         Direction dir = std::get<2>(label_dirs_map[l][csr_idx]);
-        view.foreach_edges(vid, [&](vid_t nbr, const EDATA_T& data) {
-          if (pred(l, vid, nbr_label, nbr, edge_label, dir, data)) {
-            builder.push_back_vertex({nbr_label, nbr});
+        auto es = view.get_edges(vid);
+        for (auto& e : es) {
+          if (pred(l, vid, nbr_label, e.neighbor, edge_label, dir, e.data)) {
+            builder.push_back_vertex({nbr_label, e.neighbor});
             offsets.push_back(idx);
           }
-        });
+        }
         ++csr_idx;
       }
     });
@@ -1300,13 +1340,14 @@ expand_edge_ep_se(const GraphReadInterface& graph, const SLVertexColumn& input,
         graph.GetIncomingGraphView<EDATA_T>(input_label, nbr_label, edge_label);
     size_t idx = 0;
     for (auto v : input.vertices()) {
-      view.foreach_edges(v, [&](vid_t nbr, const EDATA_T& ed) {
-        Any edata = AnyConverter<EDATA_T>::to_any(ed);
-        if (pred(triplet, nbr, v, edata, dir, idx)) {
-          builder.push_back_opt(nbr, v, ed);
+      auto es = view.get_edges(v);
+      for (auto& e : es) {
+        Any edata = AnyConverter<EDATA_T>::to_any(e.get_data());
+        if (pred(triplet, v, e.get_neighbor(), edata, dir, idx)) {
+          builder.push_back_opt(v, e.get_neighbor(), e.get_data());
           offsets.push_back(idx);
         }
-      });
+      }
       ++idx;
     }
   } else {
@@ -1315,13 +1356,14 @@ expand_edge_ep_se(const GraphReadInterface& graph, const SLVertexColumn& input,
         graph.GetOutgoingGraphView<EDATA_T>(input_label, nbr_label, edge_label);
     size_t idx = 0;
     for (auto v : input.vertices()) {
-      view.foreach_edges(v, [&](vid_t nbr, const EDATA_T& ed) {
-        Any edata = AnyConverter<EDATA_T>::to_any(ed);
-        if (pred(triplet, v, nbr, edata, dir, idx)) {
-          builder.push_back_opt(v, nbr, ed);
+      auto es = view.get_edges(v);
+      for (auto& e : es) {
+        Any edata = AnyConverter<EDATA_T>::to_any(e.get_data());
+        if (pred(triplet, v, e.get_neighbor(), edata, dir, idx)) {
+          builder.push_back_opt(v, e.get_neighbor(), e.get_data());
           offsets.push_back(idx);
         }
-      });
+      }
       ++idx;
     }
   }
