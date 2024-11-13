@@ -60,7 +60,6 @@ inline std::pair<std::shared_ptr<IContextColumn>, std::vector<size_t>>
 expand_vertex_np_se(const GraphReadInterface& graph,
                     const SLVertexColumn& input, label_t nbr_label,
                     label_t edge_label, Direction dir, const PRED_T& pred) {
-  // LOG(INFO) << "AAAA";
   label_t input_label = input.label();
   CHECK((dir == Direction::kIn) || (dir == Direction::kOut));
   GraphReadInterface::graph_view_t<EDATA_T> view =
@@ -150,8 +149,6 @@ expand_vertex_np_me_sp(
     const GraphReadInterface& graph, const SLVertexColumn& input,
     const std::vector<std::tuple<label_t, label_t, Direction>>& label_dirs,
     const PRED_T& pred) {
-  // here
-  // LOG(INFO) << "AAAA";
   std::vector<GraphReadInterface::graph_view_t<EDATA_T>> views;
   label_t input_label = input.label();
   std::vector<label_t> nbr_labels;
@@ -191,9 +188,9 @@ expand_vertex_np_me_sp(
         Direction dir = std::get<2>(label_dirs[csr_idx]);
         auto es = csr.get_edges(v);
         for (auto& e : es) {
-          if (pred(input_label, v, nbr_label, e.neighbor, edge_label, dir,
-                   e.data)) {
-            builder.push_back_opt(e.neighbor);
+          if (pred(input_label, v, nbr_label, e.get_neighbor(), edge_label, dir,
+                   e.get_data())) {
+            builder.push_back_opt(e.get_neighbor());
             offsets.push_back(idx);
           }
         }
@@ -478,9 +475,9 @@ expand_vertex_np_se(
         if (!views[l].is_null()) {
           auto es = views[l].get_edges(vid);
           for (auto& e : es) {
-            if (pred(l, vid, nbr_labels[l], e.neighbor, edge_labels[l], dirs[l],
-                     e.data)) {
-              builder.push_back_opt(e.neighbor);
+            if (pred(l, vid, nbr_labels[l], e.get_neighbor(), edge_labels[l],
+                     dirs[l], e.get_data())) {
+              builder.push_back_opt(e.get_neighbor());
               offsets.push_back(idx);
             }
           }
@@ -865,8 +862,9 @@ expand_vertex_np_me_sp(
         Direction dir = std::get<2>(label_dirs_map[l][csr_idx]);
         auto es = view.get_edges(vid);
         for (auto& e : es) {
-          if (pred(l, vid, nbr_label, e.neighbor, edge_label, dir, e.data)) {
-            builder.push_back_vertex({nbr_label, e.neighbor});
+          if (pred(l, vid, nbr_label, e.get_neighbor(), edge_label, dir,
+                   e.get_data())) {
+            builder.push_back_vertex({nbr_label, e.get_neighbor()});
             offsets.push_back(idx);
           }
         }
@@ -1343,8 +1341,8 @@ expand_edge_ep_se(const GraphReadInterface& graph, const SLVertexColumn& input,
       auto es = view.get_edges(v);
       for (auto& e : es) {
         Any edata = AnyConverter<EDATA_T>::to_any(e.get_data());
-        if (pred(triplet, v, e.get_neighbor(), edata, dir, idx)) {
-          builder.push_back_opt(v, e.get_neighbor(), e.get_data());
+        if (pred(triplet, e.get_neighbor(), v, edata, dir, idx)) {
+          builder.push_back_opt(e.get_neighbor(), v, e.get_data());
           offsets.push_back(idx);
         }
       }
