@@ -601,7 +601,7 @@ static std::unique_ptr<ExprBase> build_expr(
         opr_stack.pop();
         auto rhs = opr_stack.top();
         opr_stack.pop();
-        CHECK(lhs.has_var());
+        assert(lhs.has_var());
         if (rhs.has_const_()) {
           auto key =
               std::make_unique<VariableExpr>(graph, ctx, lhs.var(), var_type);
@@ -725,7 +725,7 @@ static std::unique_ptr<ExprBase> build_expr(
         auto key = op.key_vals(i).key();
         auto val = op.key_vals(i).val();
         auto any = parse_const_value(key);
-        CHECK(any.type() == RTAnyType::kStringValue);
+        assert(any.type() == RTAnyType::kStringValue);
         {
           auto str = any.as_string();
           keys_vec.push_back(std::string(str));
@@ -787,7 +787,7 @@ static std::unique_ptr<ExprBase> parse_expression_impl(
           opr_stack2.push(opr_stack.top());
           opr_stack.pop();
         }
-        CHECK(!opr_stack.empty());
+        assert(!opr_stack.empty());
         opr_stack.pop();
       } else if (brace == common::ExprOpr::Brace::ExprOpr_Brace_RIGHT_BRACE) {
         opr_stack.emplace(*it);

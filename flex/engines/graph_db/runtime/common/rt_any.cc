@@ -394,55 +394,52 @@ bool RTAny::as_bool() const {
   if (type_ == RTAnyType::kNull) {
     return false;
   }
-  CHECK(type_ == RTAnyType::kBoolValue)
-      << "type_ = " << static_cast<int>(type_.type_enum_);
+  assert(type_ == RTAnyType::kBoolValue);
   return value_.b_val;
 }
 int RTAny::as_int32() const {
-  CHECK(type_ == RTAnyType::kI32Value)
-      << "type_ = " << static_cast<int>(type_.type_enum_);
+  assert(type_ == RTAnyType::kI32Value);
   return value_.i32_val;
 }
 int64_t RTAny::as_int64() const {
-  CHECK(type_ == RTAnyType::kI64Value)
-      << "type_ = " << static_cast<int>(type_.type_enum_);
+  assert(type_ == RTAnyType::kI64Value);
   return value_.i64_val;
 }
 uint64_t RTAny::as_uint64() const {
-  CHECK(type_ == RTAnyType::kU64Value);
+  assert(type_ == RTAnyType::kU64Value);
   return value_.u64_val;
 }
 Day RTAny::as_date32() const {
-  CHECK(type_ == RTAnyType::kDate32);
+  assert(type_ == RTAnyType::kDate32);
   return value_.day;
 }
 
 Date RTAny::as_timestamp() const {
-  CHECK(type_ == RTAnyType::kTimestamp);
+  assert(type_ == RTAnyType::kTimestamp);
   return value_.date;
 }
 
 double RTAny::as_double() const {
-  CHECK(type_ == RTAnyType::kF64Value);
+  assert(type_ == RTAnyType::kF64Value);
   return value_.f64_val;
 }
 
 VertexRecord RTAny::as_vertex() const {
-  CHECK(type_ == RTAnyType::kVertex);
+  assert(type_ == RTAnyType::kVertex);
   return value_.vertex;
 }
 
 const EdgeRecord& RTAny::as_edge() const {
-  CHECK(type_ == RTAnyType::kEdge);
+  assert(type_ == RTAnyType::kEdge);
   return value_.edge;
 }
 const std::set<std::string>& RTAny::as_string_set() const {
-  CHECK(type_ == RTAnyType::kStringSetValue);
+  assert(type_ == RTAnyType::kStringSetValue);
   return *value_.str_set;
 }
 
 Set RTAny::as_set() const {
-  CHECK(type_ == RTAnyType::kSet);
+  assert(type_ == RTAnyType::kSet);
   return value_.set;
 }
 
@@ -458,27 +455,27 @@ std::string_view RTAny::as_string() const {
 }
 
 List RTAny::as_list() const {
-  CHECK(type_ == RTAnyType::kList);
+  assert(type_ == RTAnyType::kList);
   return value_.list;
 }
 
 Path RTAny::as_path() const {
-  CHECK(type_ == RTAnyType::kPath);
+  assert(type_ == RTAnyType::kPath);
   return value_.p;
 }
 
 Tuple RTAny::as_tuple() const {
-  CHECK(type_ == RTAnyType::kTuple);
+  assert(type_ == RTAnyType::kTuple);
   return value_.t;
 }
 
 Map RTAny::as_map() const {
-  CHECK(type_ == RTAnyType::kMap);
+  assert(type_ == RTAnyType::kMap);
   return value_.map;
 }
 
 Relation RTAny::as_relation() const {
-  CHECK(type_ == RTAnyType::kRelation);
+  assert(type_ == RTAnyType::kRelation);
   return value_.relation;
 }
 
@@ -636,7 +633,7 @@ RTAny RTAny::operator+(const RTAny& other) const {
 }
 
 RTAny RTAny::operator-(const RTAny& other) const {
-  // CHECK(type_ == other.type_);
+  // assert(type_ == other.type_);
 
   if (type_ == RTAnyType::kI64Value && other.type_ == RTAnyType::kI32Value) {
     return RTAny::from_int64(value_.i64_val - other.value_.i32_val);
@@ -656,7 +653,7 @@ RTAny RTAny::operator-(const RTAny& other) const {
 }
 
 RTAny RTAny::operator/(const RTAny& other) const {
-  // CHECK(type_ == other.type_);
+  // assert(type_ == other.type_);
   bool has_i64 = false;
   bool has_f64 = false;
   double left_f64 = 0;

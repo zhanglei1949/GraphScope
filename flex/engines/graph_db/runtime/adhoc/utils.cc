@@ -476,7 +476,7 @@ std::shared_ptr<IContextColumn> build_topN_property_column(
     const GraphReadInterface& graph, std::shared_ptr<IContextColumn> col,
     const std::string& property_name, size_t limit, bool asc,
     std::vector<size_t>& offsets) {
-  CHECK(col->column_type() == ContextColumnType::kVertex);
+  assert(col->column_type() == ContextColumnType::kVertex);
   auto vc = std::dynamic_pointer_cast<IVertexColumn>(col);
   if (vc->vertex_column_type() == VertexColumnType::kMultiSegment) {
     auto casted_col = std::dynamic_pointer_cast<MSVertexColumn>(vc);
@@ -495,7 +495,7 @@ std::shared_ptr<IContextColumn> build_topN_property_column(
       CHECK(found);
     }
     for (size_t k = 1; k < types.size(); ++k) {
-      CHECK(types[k] == types[0]);
+      assert(types[k] == types[0]);
     }
     auto prop_type = *types.begin();
     if (prop_type == PropertyType::Date()) {

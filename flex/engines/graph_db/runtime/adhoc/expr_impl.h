@@ -88,17 +88,16 @@ class VertexWithInSetExpr : public ExprBase {
                       std::unique_ptr<ExprBase>&& key,
                       std::unique_ptr<ExprBase>&& val_set)
       : key_(std::move(key)), val_set_(std::move(val_set)) {
-    CHECK(key_->type() == RTAnyType::kVertex);
-    CHECK(val_set_->type() == RTAnyType::kSet);
+    assert(key_->type() == RTAnyType::kVertex);
+    assert(val_set_->type() == RTAnyType::kSet);
   }
   RTAny eval_path(size_t idx) const override {
     auto key = key_->eval_path(idx).as_vertex();
     auto set = val_set_->eval_path(idx).as_set();
-    CHECK(set.impl_ != nullptr);
+    assert(set.impl_ != nullptr);
     auto ptr = dynamic_cast<SetImpl<VertexRecord>*>(set.impl_);
-    CHECK(ptr != nullptr);
-    return RTAny::from_bool(
-        dynamic_cast<SetImpl<VertexRecord>*>(set.impl_)->exists(key));
+    assert(ptr != nullptr);
+    return RTAny::from_bool(ptr->exists(key));
   }
 
   RTAny eval_vertex(label_t label, vid_t v, size_t idx) const override {
@@ -130,8 +129,8 @@ class VertexWithInListExpr : public ExprBase {
                        std::unique_ptr<ExprBase>&& key,
                        std::unique_ptr<ExprBase>&& val_list)
       : key_(std::move(key)), val_list_(std::move(val_list)) {
-    CHECK(key_->type() == RTAnyType::kVertex);
-    CHECK(val_list_->type() == RTAnyType::kList);
+    assert(key_->type() == RTAnyType::kVertex);
+    assert(val_list_->type() == RTAnyType::kList);
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -182,19 +181,19 @@ class WithInExpr : public ExprBase {
              std::unique_ptr<ExprBase>&& key, const common::Value& array)
       : key_(std::move(key)) {
     if constexpr (std::is_same_v<T, int64_t>) {
-      CHECK(array.item_case() == common::Value::kI64Array);
+      assert(array.item_case() == common::Value::kI64Array);
       size_t len = array.i64_array().item_size();
       for (size_t idx = 0; idx < len; ++idx) {
         container_.push_back(array.i64_array().item(idx));
       }
     } else if constexpr (std::is_same_v<T, int32_t>) {
-      CHECK(array.item_case() == common::Value::kI32Array);
+      assert(array.item_case() == common::Value::kI32Array);
       size_t len = array.i32_array().item_size();
       for (size_t idx = 0; idx < len; ++idx) {
         container_.push_back(array.i32_array().item(idx));
       }
     } else if constexpr (std::is_same_v<T, std::string>) {
-      CHECK(array.item_case() == common::Value::kStrArray);
+      assert(array.item_case() == common::Value::kStrArray);
       size_t len = array.str_array().item_size();
       for (size_t idx = 0; idx < len; ++idx) {
         container_.push_back(array.str_array().item(idx));
@@ -564,7 +563,7 @@ class TypedTupleExpr : public ExprBase {
  public:
   TypedTupleExpr(std::array<std::unique_ptr<ExprBase>, sizeof...(Args)>&& exprs)
       : exprs_(std::move(exprs)) {
-    CHECK(exprs.size() == sizeof...(Args));
+    assert(exprs.size() == sizeof...(Args));
   }
 
   template <std::size_t... Is>
@@ -618,7 +617,7 @@ class MapExpr : public ExprBase {
   MapExpr(std::vector<std::string>&& keys,
           std::vector<std::unique_ptr<ExprBase>>&& values)
       : keys(std::move(keys)), value_exprs(std::move(values)) {
-    CHECK(keys.size() == values.size());
+    assert(keys.size() == values.size());
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -686,7 +685,7 @@ class RelationshipsExpr : public ListExprBase {
  public:
   RelationshipsExpr(std::unique_ptr<ExprBase>&& args) : args(std::move(args)) {}
   RTAny eval_path(size_t idx) const override {
-    CHECK(args->type() == RTAnyType::kPath) << "invalid type";
+    assert(args->type() == RTAnyType::kPath);
     auto path = args->eval_path(idx).as_path();
     auto rels = path.relationships();
     auto ptr = ListImpl<Relation>::make_list_impl(std::move(rels));
@@ -731,7 +730,7 @@ class NodesExpr : public ListExprBase {
  public:
   NodesExpr(std::unique_ptr<ExprBase>&& args) : args(std::move(args)) {}
   RTAny eval_path(size_t idx) const override {
-    CHECK(args->type() == RTAnyType::kPath) << "invalid type";
+    assert(args->type() == RTAnyType::kPath);
     auto path = args->eval_path(idx).as_path();
     auto nodes = path.nodes();
     auto ptr = ListImpl<VertexRecord>::make_list_impl(std::move(nodes));
@@ -777,7 +776,7 @@ class StartNodeExpr : public ExprBase {
  public:
   StartNodeExpr(std::unique_ptr<ExprBase>&& args) : args(std::move(args)) {}
   RTAny eval_path(size_t idx) const override {
-    CHECK(args->type() == RTAnyType::kRelation) << "invalid type";
+    assert(args->type() == RTAnyType::kRelation);
     auto path = args->eval_path(idx).as_relation();
     auto node = path.start_node();
     return RTAny::from_vertex(node);
@@ -814,7 +813,7 @@ class EndNodeExpr : public ExprBase {
  public:
   EndNodeExpr(std::unique_ptr<ExprBase>&& args) : args(std::move(args)) {}
   RTAny eval_path(size_t idx) const override {
-    CHECK(args->type() == RTAnyType::kRelation) << "invalid type";
+    assert(args->type() == RTAnyType::kRelation);
     auto path = args->eval_path(idx).as_relation();
     auto node = path.end_node();
     return RTAny::from_vertex(node);

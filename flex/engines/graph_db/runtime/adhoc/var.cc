@@ -38,7 +38,7 @@ Var::Var(const GraphReadInterface& graph, const Context& ctx,
   if (type_ == RTAnyType::kUnknown) {
     if (pb.has_tag()) {
       tag = pb.tag().id();
-      CHECK(ctx.get(tag) != nullptr);
+      assert(ctx.get(tag) != nullptr);
       type_ = ctx.get(tag)->elem_type();
     } else if (pb.has_property() && pb.property().has_label()) {
       type_ = RTAnyType::kI64Value;
@@ -48,8 +48,7 @@ Var::Var(const GraphReadInterface& graph, const Context& ctx,
   }
 
   if (pb.has_tag() || var_type == VarType::kPathVar) {
-    CHECK(ctx.get(tag) != nullptr)
-        << "tag not found - " << tag << " " << pb.DebugString();
+    assert(ctx.get(tag) != nullptr);
     if (ctx.get(tag)->column_type() == ContextColumnType::kVertex) {
       if (pb.has_property()) {
         auto& pt = pb.property();

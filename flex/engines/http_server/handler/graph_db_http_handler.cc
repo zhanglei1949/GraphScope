@@ -148,7 +148,7 @@ class stored_proc_handler : public StoppableHandler {
                          shard_concurrency),
         dispatcher_(shard_concurrency) {
     auto& executors = get_executors();
-    CHECK(executors.size() >= StoppableHandler::shard_id());
+    assert(executors.size() >= StoppableHandler::shard_id());
     executors[StoppableHandler::shard_id()].reserve(shard_concurrency);
     hiactor::scope_builder builder;
     LOG(INFO) << "Creating stored proc handler on shard id: "
@@ -458,7 +458,7 @@ class adhoc_runtime_query_handler : public StoppableHandler {
                          shard_concurrency),
         executor_idx_(0) {
     auto& executor_refs = get_executors();
-    CHECK(executor_refs.size() >= StoppableHandler::shard_id());
+    assert(executor_refs.size() >= StoppableHandler::shard_id());
     executor_refs[StoppableHandler::shard_id()].reserve(shard_concurrency_);
     {
       hiactor::scope_builder builder;
@@ -633,7 +633,7 @@ class adhoc_query_handler : public StoppableHandler {
                          shard_concurrency),
         executor_idx_(0) {
     auto& executor_refs = get_executors();
-    CHECK(executor_refs.size() >= StoppableHandler::shard_id());
+    assert(executor_refs.size() >= StoppableHandler::shard_id());
     executor_refs[StoppableHandler::shard_id()].reserve(shard_concurrency_);
     {
       hiactor::scope_builder builder;
@@ -646,7 +646,7 @@ class adhoc_query_handler : public StoppableHandler {
       }
     }
     auto& codegen_actor_refs = get_codegen_actors();
-    CHECK(codegen_actor_refs.size() >= StoppableHandler::shard_id());
+    assert(codegen_actor_refs.size() >= StoppableHandler::shard_id());
     {
       hiactor::scope_builder builder;
       builder.set_shard(StoppableHandler::shard_id())
@@ -863,7 +863,7 @@ graph_db_http_handler::graph_db_http_handler(uint16_t http_port,
       actors_running_(true) {
   current_graph_query_handlers_.resize(shard_num);
   all_graph_query_handlers_.resize(shard_num);
-  adhoc_query_handlers_.resize(shard_num); 
+  adhoc_query_handlers_.resize(shard_num);
   vertex_handlers_.resize(shard_num);
   edge_handlers_.resize(shard_num);
   if (enable_adhoc_handlers_) {

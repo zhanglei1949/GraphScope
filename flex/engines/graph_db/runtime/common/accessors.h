@@ -258,9 +258,8 @@ class ContextValueAccessor : public IAccessor {
   using elem_t = T;
   ContextValueAccessor(const Context& ctx, int tag)
       : col_(*std::dynamic_pointer_cast<IValueColumn<elem_t>>(ctx.get(tag))) {
-    CHECK(std::dynamic_pointer_cast<IValueColumn<elem_t>>(ctx.get(tag)) !=
-          nullptr)
-        << " " << ctx.get(tag)->column_info();
+    assert(std::dynamic_pointer_cast<IValueColumn<elem_t>>(ctx.get(tag)) !=
+           nullptr);
   }
 
   elem_t typed_eval_path(size_t idx) const { return col_.get_value(idx); }
@@ -485,11 +484,11 @@ class MultiPropsEdgePropertyPathAccessor : public IAccessor {
     auto val = e.prop_;
     auto id = get_index(e.label_triplet_);
     if (e.prop_.type.type_enum_ != RTAnyType::RTAnyTypeImpl::kRecordView) {
-      CHECK(id == 0);
+      assert(id == 0);
       return RTAny(val);
     } else {
       auto rv = val.as<RecordView>();
-      CHECK(id != std::numeric_limits<size_t>::max());
+      assert(id != std::numeric_limits<size_t>::max());
       return RTAny(rv[id]);
     }
   }
@@ -500,14 +499,14 @@ class MultiPropsEdgePropertyPathAccessor : public IAccessor {
     auto id = get_index(e.label_triplet_);
 
     if (e.prop_.type.type_enum_ != RTAnyType::RTAnyTypeImpl::kRecordView) {
-      CHECK(id == 0);
+      assert(id == 0);
       elem_t ret = e.prop_.as<elem_t>();
 
       return ret;
 
     } else {
       auto rv = val.as<RecordView>();
-      CHECK(id != std::numeric_limits<size_t>::max());
+      assert(id != std::numeric_limits<size_t>::max());
       auto tmp = rv[id];
       elem_t ret;
       ConvertAny<T>::to(tmp, ret);
@@ -630,11 +629,11 @@ class MultiPropsEdgePropertyEdgeAccessor : public IAccessor {
                          const Any& data, size_t idx) const {
     T ret;
     if (data.type != PropertyType::RecordView()) {
-      CHECK(get_index(label) == 0);
+      assert(get_index(label) == 0);
       ConvertAny<T>::to(data, ret);
     } else {
       auto id = get_index(label);
-      CHECK(id != std::numeric_limits<size_t>::max());
+      assert(id != std::numeric_limits<size_t>::max());
       auto view = data.AsRecordView();
       ConvertAny<T>::to(view[id], ret);
     }

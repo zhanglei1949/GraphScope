@@ -92,7 +92,7 @@ class EdgeExpand {
                            auto nbr = ie_iter.GetNeighbor();
                            if (pred(params.labels[0], nbr, v, ie_iter.GetData(),
                                     Direction::kIn, index)) {
-                             CHECK(ie_iter.GetData().type == pt);
+                             assert(ie_iter.GetData().type == pt);
                              builder.push_back_opt(nbr, v, ie_iter.GetData());
                              shuffle_offset.push_back(index);
                            }
@@ -134,7 +134,7 @@ class EdgeExpand {
                            auto nbr = oe_iter.GetNeighbor();
                            if (pred(params.labels[0], v, nbr, oe_iter.GetData(),
                                     Direction::kOut, index)) {
-                             CHECK(oe_iter.GetData().type == pt);
+                             assert(oe_iter.GetData().type == pt);
                              builder.push_back_opt(v, nbr, oe_iter.GetData());
                              shuffle_offset.push_back(index);
                            }
@@ -168,7 +168,6 @@ class EdgeExpand {
             input_vertex_list, [&](size_t index, label_t label, vid_t v) {
               for (auto& label_prop : label_props) {
                 auto& triplet = label_prop.first;
-                auto& pt = label_prop.second;
                 if (label == triplet.src_label) {
                   auto oe_iter = graph.GetOutEdgeIterator(
                       label, v, triplet.dst_label, triplet.edge_label);
@@ -176,7 +175,7 @@ class EdgeExpand {
                     auto nbr = oe_iter.GetNeighbor();
                     if (pred(triplet, v, nbr, oe_iter.GetData(),
                              Direction::kOut, index)) {
-                      CHECK(oe_iter.GetData().type == pt);
+                      assert(oe_iter.GetData().type == label_prop.second);
                       builder.push_back_opt(triplet, v, nbr, oe_iter.GetData(),
                                             Direction::kOut);
                       shuffle_offset.push_back(index);
@@ -191,7 +190,7 @@ class EdgeExpand {
                     auto nbr = ie_iter.GetNeighbor();
                     if (pred(triplet, nbr, v, ie_iter.GetData(), Direction::kIn,
                              index)) {
-                      CHECK(ie_iter.GetData().type == pt);
+                      assert(ie_iter.GetData().type == label_prop.second);
                       builder.push_back_opt(triplet, nbr, v, ie_iter.GetData(),
                                             Direction::kIn);
                       shuffle_offset.push_back(index);
@@ -222,7 +221,6 @@ class EdgeExpand {
             input_vertex_list, [&](size_t index, label_t label, vid_t v) {
               for (auto& label_prop : label_props) {
                 auto& triplet = label_prop.first;
-                auto& pt = label_prop.second;
                 if (label != triplet.src_label)
                   continue;
                 auto oe_iter = graph.GetOutEdgeIterator(
@@ -231,7 +229,7 @@ class EdgeExpand {
                   auto nbr = oe_iter.GetNeighbor();
                   if (pred(triplet, v, nbr, oe_iter.GetData(), Direction::kOut,
                            index)) {
-                    CHECK(oe_iter.GetData().type == pt);
+                    assert(oe_iter.GetData().type == label_prop.second);
                     builder.push_back_opt(triplet, v, nbr, oe_iter.GetData());
                     shuffle_offset.push_back(index);
                   }

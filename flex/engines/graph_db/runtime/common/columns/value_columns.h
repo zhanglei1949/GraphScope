@@ -337,7 +337,7 @@ class ListValueColumnBuilder : public ListValueColumnBuilderBase {
 
   void reserve(size_t size) override { data_.reserve(size); }
   void push_back_elem(const RTAny& val) override {
-    CHECK(val.type() == RTAnyType::kList);
+    assert(val.type() == RTAnyType::kList);
     data_.emplace_back(val.as_list());
   }
 
@@ -463,7 +463,7 @@ class SetValueColumnBuilder : public IContextColumnBuilder {
   void reserve(size_t size) override { data_.reserve(size); }
 
   void push_back_elem(const RTAny& val) override {
-    CHECK(val.type() == RTAnyType::kSet);
+    assert(val.type() == RTAnyType::kSet);
     data_.push_back(val.as_set());
   }
 
@@ -573,7 +573,7 @@ class MapValueColumnBuilder : public IContextColumnBuilder {
   void reserve(size_t size) override { values_.reserve(size); }
 
   void push_back_elem(const RTAny& val) override {
-    CHECK(val.type() == RTAnyType::kMap);
+    assert(val.type() == RTAnyType::kMap);
     auto map = val.as_map();
     std::vector<RTAny> values;
     const auto& [_, vals] = map.key_vals();

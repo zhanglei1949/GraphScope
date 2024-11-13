@@ -1015,7 +1015,7 @@ class EdgePropVec : public EdgePropVecBase {
   PropertyType type() const override { return AnyConverter<T>::type(); }
 
   void set_any(size_t idx, EdgePropVecBase* other, size_t other_idx) override {
-    CHECK(dynamic_cast<EdgePropVec<T>*>(other) != nullptr);
+    assert(dynamic_cast<EdgePropVec<T>*>(other) != nullptr);
     set(idx, dynamic_cast<EdgePropVec<T>*>(other)->get_view(other_idx));
   }
 
