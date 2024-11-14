@@ -219,18 +219,17 @@ Context eval_select(const algebra::Select& opr, const GraphReadInterface& graph,
   int vertex_tag = -1;
   int set_tag = -1;
   vid_t vid{};
-  double t = -grape::GetCurrentTime();
+  TimerUnit t;
+  t.start();
   if (is_vertex_ne_id(graph, opr.predicate(), ctx, params, vertex_tag, vid)) {
     auto ret = eval_select_vertex_ne_id(opr, graph, std::move(ctx), params,
                                         vertex_tag, vid);
-    t += grape::GetCurrentTime();
     timer.record_routine("select::vertex_ne_id", t);
     return ret;
   }
   if (is_vertex_within_set(opr.predicate(), ctx, vertex_tag, set_tag)) {
     auto ret = eval_select_vertex_within_set(opr, graph, std::move(ctx), params,
                                              vertex_tag, set_tag);
-    t += grape::GetCurrentTime();
     timer.record_routine("select::vertex_within_set", t);
     return ret;
   }
@@ -239,7 +238,6 @@ Context eval_select(const algebra::Select& opr, const GraphReadInterface& graph,
   if (is_date_within(opr, graph, ctx, params, date_tag, month)) {
     auto ret = eval_select_date_within(opr, graph, std::move(ctx), params,
                                        date_tag, month);
-    t += grape::GetCurrentTime();
     timer.record_routine("select::date_within", t);
     return ret;
   }
@@ -265,7 +263,6 @@ Context eval_select(const algebra::Select& opr, const GraphReadInterface& graph,
   }
 
   ctx.reshuffle(offsets);
-  t += grape::GetCurrentTime();
   timer.record_routine("select::default", t);
   return ctx;
 }

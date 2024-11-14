@@ -159,8 +159,9 @@ Context EdgeExpand::expand_edge_without_predicate(
     const GraphReadInterface& graph, Context&& ctx,
     const EdgeExpandParams& params) {
   if (params.is_optional) {
-    return expand_edge_without_predicate_optional_impl(graph, std::move(ctx),
-                                                       params);
+    auto ret = expand_edge_without_predicate_optional_impl(
+        graph, std::move(ctx), params);
+    return ret;
   }
   std::vector<size_t> shuffle_offset;
 

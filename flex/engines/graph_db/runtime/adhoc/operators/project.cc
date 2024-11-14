@@ -497,6 +497,7 @@ Context eval_project(const physical::Project& opr,
         }
       }
       Expr expr(graph, ctx, params, m.expr(), VarType::kPathVar);
+
       int alias = -1;
       if (m.has_alias()) {
         alias = m.alias().value();
@@ -639,6 +640,7 @@ Context eval_project_order_by(
     const GraphReadInterface& graph, Context&& ctx, OprTimer& timer,
     const std::map<std::string, std::string>& params,
     const std::vector<common::IrDataType>& data_types) {
+  TimerUnit tx;
   int mappings_size = project_opr.mappings_size();
 
   int order_by_keys_num = order_by_opr.pairs_size();
@@ -675,12 +677,15 @@ Context eval_project_order_by(
             if (is_property_expr(m.expr(), tag_id, property_name)) {
               if (ctx.get(tag_id)->column_type() ==
                   ContextColumnType::kVertex) {
+                tx.start();
                 auto col = build_topN_property_column(
                     graph, ctx.get(tag_id), property_name, limit, asc, offsets);
                 if (col != nullptr) {
                   success = true;
                   ctx.reshuffle(offsets);
                   ctx.set(first_key_tag, col);
+                  timer.record_routine(
+                      "project_order_by:topN_by_vertex_property", tx);
                   added_alias_in_preproject.push_back(first_key_tag);
                   row_num = ctx.row_num();
                   break;
@@ -689,6 +694,7 @@ Context eval_project_order_by(
                 }
               }
             }
+            tx.start();
             Expr expr(graph, ctx, params, m.expr(), VarType::kPathVar);
             auto col = build_topN_column(data_types[i], expr, row_num, limit,
                                          asc, offsets);
@@ -696,6 +702,7 @@ Context eval_project_order_by(
               success = true;
               ctx.reshuffle(offsets);
               ctx.set(first_key_tag, col);
+              timer.record_routine("project_order_by:topN_by_expr", tx);
               added_alias_in_preproject.push_back(first_key_tag);
               row_num = ctx.row_num();
             } else {
@@ -739,10 +746,9 @@ Context eval_project_order_by(
     }
   }
 
-  double t1 = -grape::GetCurrentTime();
+  tx.start();
   ctx = eval_order_by(order_by_opr, graph, std::move(ctx), timer, !success);
-  t1 += grape::GetCurrentTime();
-  timer.record_routine("project_order_by:order_by", t1);
+  timer.record_routine("project_order_by:order_by", tx);
 
   row_num = ctx.row_num();
   Context ret;

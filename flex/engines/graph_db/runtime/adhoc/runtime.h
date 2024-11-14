@@ -23,19 +23,70 @@ namespace gs {
 
 namespace runtime {
 
+class TimerUnit {
+ public:
+  TimerUnit() = default;
+  ~TimerUnit() = default;
+
+  void start() {
+#ifdef RT_PROFILE
+    start_ = -grape::GetCurrentTime();
+#endif
+  }
+
+  double elapsed() const {
+#ifdef RT_PROFILE
+    return start_ + grape::GetCurrentTime();
+#else
+    return 0;
+#endif
+  }
+
+ private:
+#ifdef RT_PROFILE
+  double start_;
+#endif
+};
+
 class OprTimer {
  public:
   OprTimer() = default;
   ~OprTimer() = default;
 
-  void add_total(double time) { total_time_ += time; }
+  void add_total(double time) {
+#ifdef RT_PROFILE
+    total_time_ += time;
+#endif
+  }
 
   void record_opr(const std::string& opr, double time) {
+#ifdef RT_PROFILE
     opr_timers_[opr] += time;
+#endif
   }
 
   void record_routine(const std::string& routine, double time) {
+#ifdef RT_PROFILE
     routine_timers_[routine] += time;
+#endif
+  }
+
+  void add_total(const TimerUnit& tu) {
+#ifdef RT_PROFILE
+    total_time_ += tu.elapsed();
+#endif
+  }
+
+  void record_opr(const std::string& opr, const TimerUnit& tu) {
+#ifdef RT_PROFILE
+    opr_timers_[opr] += tu.elapsed();
+#endif
+  }
+
+  void record_routine(const std::string& routine, const TimerUnit& tu) {
+#ifdef RT_PROFILE
+    routine_timers_[routine] += tu.elapsed();
+#endif
   }
 
   void output(const std::string& path) const;
@@ -45,9 +96,11 @@ class OprTimer {
   OprTimer& operator+=(const OprTimer& other);
 
  private:
+#ifdef RT_PROFILE
   std::map<std::string, double> opr_timers_;
   std::map<std::string, double> routine_timers_;
   double total_time_ = 0;
+#endif
 };
 
 Context runtime_eval(const physical::PhysicalPlan& plan,

@@ -15,6 +15,7 @@ option(BUILD_DOC "Whether to build doc" OFF)
 option(BUILD_ODPS_FRAGMENT_LOADER "Whether to build odps fragment loader" OFF)
 option(USE_PTHASH "Whether to use pthash" OFF)
 option(OPTIMIZE_FOR_HOST "Whether to optimize on host" ON) # Whether to build optimized code on host
+option(RUNTIME_PROFILE "Whether profile the execution of runtime" OFF)
 
 #print options
 message(STATUS "Build test: ${BUILD_TEST}")
@@ -39,6 +40,11 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 if(USE_PTHASH)
     message("Use PTHash")
     add_definitions(-DUSE_PTHASH)
+endif()
+
+if(RUNTIME_PROFILE)
+    message("Profile the execution of runtime")
+    add_definitions(-DRT_PROFILE)
 endif()
 
 execute_process(COMMAND uname -r OUTPUT_VARIABLE LINUX_KERNEL_VERSION)

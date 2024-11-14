@@ -56,7 +56,8 @@ Context eval_path_expand_v(const physical::PathExpand& opr,
     if (query_params.has_predicate()) {
       LOG(FATAL) << "not support";
     } else {
-      return PathExpand::edge_expand_v(graph, std::move(ctx), pep);
+      auto ret = PathExpand::edge_expand_v(graph, std::move(ctx), pep);
+      return ret;
     }
   } else {
     LOG(FATAL) << "not support";
@@ -173,8 +174,9 @@ Context eval_shortest_path(const physical::PathExpand& opr,
     CHECK(graph.GetVertexIndex(spp.labels[0].dst_label, vertex, vid))
         << "vertex not found";
     auto v = std::make_pair(spp.labels[0].dst_label, vid);
-    return PathExpand::single_source_single_dest_shortest_path(
+    auto ret = PathExpand::single_source_single_dest_shortest_path(
         graph, std::move(ctx), spp, v);
+    return ret;
   } else {
     if (v_opr.has_params() && v_opr.params().has_predicate()) {
       auto sp_vertex_pred = parse_special_vertex_predicate(
