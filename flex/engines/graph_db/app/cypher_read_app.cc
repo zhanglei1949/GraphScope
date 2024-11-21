@@ -47,7 +47,12 @@ bool CypherReadApp::Query(const GraphDBSession& graph, Decoder& input,
 
   // LOG(INFO) << "plan: " << plan.DebugString();
 
+#if 0
   gs::runtime::GraphReadInterface gri(txn);
+#else
+  gs::runtime::graph_interface_impl::DummyGraph g;
+  gs::runtime::GraphReadInterface gri(g);
+#endif
   auto ctx = runtime::runtime_eval(plan, gri, params, timer_);
 
   runtime::eval_sink_encoder(ctx, gri, output);

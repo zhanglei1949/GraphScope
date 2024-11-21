@@ -8,7 +8,12 @@ namespace gs {
 
 bool AdhocReadApp::Query(const GraphDBSession& graph, Decoder& input,
                          Encoder& output) {
+#if 0
   auto txn = graph.GetReadTransaction();
+#else
+  runtime::graph_interface_impl::DummyGraph g;
+  runtime::GraphReadInterface txn(g);
+#endif
 
   std::string_view plan_str = input.get_bytes();
   physical::PhysicalPlan plan;

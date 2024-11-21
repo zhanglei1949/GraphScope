@@ -10,7 +10,7 @@ project (
   LANGUAGES CXX)
 
 
-option(BUILD_TEST "Whether to build test" ON)
+option(BUILD_TEST "Whether to build test" OFF)
 option(BUILD_DOC "Whether to build doc" OFF)
 option(BUILD_ODPS_FRAGMENT_LOADER "Whether to build odps fragment loader" OFF)
 option(USE_PTHASH "Whether to use pthash" OFF)
@@ -210,7 +210,7 @@ macro(install_without_export_flex_target target)
 endmacro()
 
 add_subdirectory(utils)
-add_subdirectory(codegen)
+#add_subdirectory(codegen)
 add_subdirectory(storages)
 add_subdirectory(engines)
 add_subdirectory(bin)

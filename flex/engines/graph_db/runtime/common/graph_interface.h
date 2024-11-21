@@ -24,6 +24,8 @@ namespace gs {
 
 namespace runtime {
 
+#if 0
+
 namespace graph_interface_impl {
 
 using gs::label_t;
@@ -351,6 +353,327 @@ class GraphReadInterface {
  private:
   const gs::ReadTransaction& txn_;
 };
+
+#else
+
+// A dummy graph class to make the code compile
+
+namespace graph_interface_impl {
+class DummyGraph {
+ public:
+  DummyGraph() {}
+  ~DummyGraph() {}
+
+  const Schema& schema() const { return schema_; }
+
+ private:
+  Schema schema_;
+};
+
+template <typename PROP_T>
+class VertexColumn {
+ public:
+  VertexColumn(const std::shared_ptr<ColumnBase>& column) {}
+  VertexColumn() {}
+
+  PROP_T get_view(vid_t v) const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return PROP_T();
+  }
+
+  bool is_null() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return false;
+  }
+};
+
+class VertexSet {
+ public:
+  VertexSet(vid_t size) {}
+  ~VertexSet() {}
+
+  class iterator {
+   public:
+    iterator(vid_t v) {}
+    ~iterator() {}
+
+    vid_t operator*() const {
+      LOG(FATAL) << "NOT IMPLEMENTED";
+      return 0;
+    }
+
+    iterator& operator++() {
+      LOG(FATAL) << "NOT IMPLEMENTED";
+      return *this;
+    }
+
+    bool operator==(const iterator& rhs) const {
+      LOG(FATAL) << "NOT IMPLEMENTED";
+      return false;
+    }
+
+    bool operator!=(const iterator& rhs) const {
+      LOG(FATAL) << "NOT IMPLEMENTED";
+      return false;
+    }
+  };
+
+  iterator begin() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return iterator(0);
+  }
+  iterator end() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return iterator(0);
+  }
+  size_t size() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return 0;
+  }
+};
+class EdgeIterator {
+ public:
+  EdgeIterator() {}
+  ~EdgeIterator() {}
+
+  Any GetData() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return Any();
+  }
+  bool IsValid() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return false;
+  }
+  void Next() { LOG(FATAL) << "NOT IMPLEMENTED"; }
+  vid_t GetNeighbor() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return 0;
+  }
+  label_t GetNeighborLabel() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return 0;
+  }
+  label_t GetEdgeLabel() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return 0;
+  }
+};
+
+template <typename EDATA_T>
+class Nbr {
+ public:
+  Nbr() {}
+  ~Nbr() {}
+
+  vid_t get_neighbor() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return 0;
+  }
+
+  EDATA_T get_data() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return EDATA_T();
+  }
+};
+
+template <typename EDATA_T>
+class AdjListView {
+  class nbr_iterator {
+    // const_nbr_t provide two methods:
+    // 1. vid_t get_neighbor() const;
+    // 2. const EDATA_T& get_data() const;
+    // using const_nbr_t = typename gs::MutableNbrSlice<EDATA_T>::const_nbr_t;
+    // using const_nbr_ptr_t =
+    //     typename gs::MutableNbrSlice<EDATA_T>::const_nbr_ptr_t;
+    using const_nbr_t = const Nbr<EDATA_T>;
+    using const_nbr_ptr_t = const Nbr<EDATA_T>*;
+
+   public:
+    nbr_iterator() {}
+
+    const_nbr_t& operator*() const {
+      LOG(FATAL) << "NOT IMPLEMENTED";
+      return dummy;
+    }
+
+    const_nbr_ptr_t operator->() const {
+      LOG(FATAL) << "NOT IMPLEMENTED";
+      return nullptr;
+    }
+
+    nbr_iterator& operator++() {
+      LOG(FATAL) << "NOT IMPLEMENTED";
+      return *this;
+    }
+
+    bool operator==(const nbr_iterator& rhs) const {
+      LOG(FATAL) << "NOT IMPLEMENTED";
+      return false;
+    }
+
+    bool operator!=(const nbr_iterator& rhs) const {
+      LOG(FATAL) << "NOT IMPLEMENTED";
+      return false;
+    }
+
+   private:
+    Nbr<EDATA_T> dummy;
+  };
+
+ public:
+  // using slice_t = gs::MutableNbrSlice<EDATA_T>;
+  AdjListView() {}
+
+  nbr_iterator begin() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return nbr_iterator();
+  }
+  nbr_iterator end() const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return nbr_iterator();
+  }
+};
+
+template <typename EDATA_T>
+class GraphView {
+ public:
+  GraphView() {}
+
+  bool is_null() const { return false; }
+
+  AdjListView<EDATA_T> get_edges(vid_t v) const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return AdjListView<EDATA_T>();
+  }
+
+  /*
+   * void func(vid_t v, const EDATA_T& data) {
+   *     // do something
+   * }
+   */
+  template <typename FUNC_T>
+  void foreach_edges_gt(vid_t v, const EDATA_T& min_value,
+                        const FUNC_T& func) const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+  }
+
+  template <typename FUNC_T>
+  void foreach_edges_lt(vid_t v, const EDATA_T& max_value,
+                        const FUNC_T& func) const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+  }
+};
+
+template <typename T>
+class VertexArray {
+ public:
+  VertexArray() {}
+  VertexArray(const VertexSet& keys, const T& val) {}
+  ~VertexArray() {}
+
+  void Init(const VertexSet& keys, const T& val) {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+  }
+
+  typename std::vector<T>::reference operator[](vid_t v) {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return data_[v];
+  }
+  typename std::vector<T>::const_reference operator[](vid_t v) const {
+    LOG(FATAL) << "NOT IMPLEMENTED";
+    return data_[v];
+  }
+
+ private:
+  std::vector<T> data_;
+};
+}  // namespace graph_interface_impl
+
+class GraphReadInterface {
+ public:
+  template <typename PROP_T>
+  using vertex_column_t = typename graph_interface_impl::VertexColumn<PROP_T>;
+
+  using vertex_set_t = typename graph_interface_impl::VertexSet;
+
+  using edge_iterator_t = typename graph_interface_impl::EdgeIterator;
+
+  template <typename EDATA_T>
+  using graph_view_t = typename graph_interface_impl::GraphView<EDATA_T>;
+
+  template <typename T>
+  using vertex_array_t = typename graph_interface_impl::VertexArray<T>;
+
+  static constexpr vid_t kInvalidVid = std::numeric_limits<vid_t>::max();
+
+  GraphReadInterface(const graph_interface_impl::DummyGraph& graph)
+      : graph_(graph) {}
+  ~GraphReadInterface() {}
+
+  template <typename PROP_T>
+  vertex_column_t<PROP_T> GetVertexColumn(label_t label,
+                                          const std::string& prop_name) const {
+    LOG(INFO) << "NOT IMPLEMENTED";
+    return vertex_column_t<PROP_T>();
+  }
+
+  vertex_set_t GetVertexSet(label_t label) const {
+    LOG(INFO) << "NOT IMPLEMENTED";
+    return vertex_set_t(0);
+  }
+
+  bool GetVertexIndex(label_t label, const Any& id, vid_t& index) const {
+    LOG(INFO) << "NOT IMPLEMENTED";
+    return false;
+  }
+
+  Any GetVertexId(label_t label, vid_t index) const {
+    LOG(INFO) << "NOT IMPLEMENTED";
+    return Any();
+  }
+
+  Any GetVertexProperty(label_t label, vid_t index, int prop_id) const {
+    LOG(INFO) << "NOT IMPLEMENTED";
+    return Any();
+  }
+
+  edge_iterator_t GetOutEdgeIterator(label_t label, vid_t v,
+                                     label_t neighbor_label,
+                                     label_t edge_label) const {
+    LOG(INFO) << "NOT IMPLEMENTED";
+    return edge_iterator_t();
+  }
+
+  edge_iterator_t GetInEdgeIterator(label_t label, vid_t v,
+                                    label_t neighbor_label,
+                                    label_t edge_label) const {
+    LOG(INFO) << "NOT IMPLEMENTED";
+    return edge_iterator_t();
+  }
+
+  template <typename EDATA_T>
+  graph_view_t<EDATA_T> GetOutgoingGraphView(label_t v_label,
+                                             label_t neighbor_label,
+                                             label_t edge_label) const {
+    LOG(INFO) << "NOT IMPLEMENTED";
+    return graph_view_t<EDATA_T>();
+  }
+
+  template <typename EDATA_T>
+  graph_view_t<EDATA_T> GetIncomingGraphView(label_t v_label,
+                                             label_t neighbor_label,
+                                             label_t edge_label) const {
+    LOG(INFO) << "NOT IMPLEMENTED";
+    return graph_view_t<EDATA_T>();
+  }
+
+  const Schema& schema() const { return graph_.schema(); }
+
+ private:
+  const graph_interface_impl::DummyGraph& graph_;
+};
+
+#endif
 
 class GraphInsertInterface {
  public:

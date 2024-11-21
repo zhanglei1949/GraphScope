@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
                                       "shard number of actor system")(
       "data-path,d", bpo::value<std::string>(), "data directory path")(
       "graph-config,g", bpo::value<std::string>(), "graph schema config file")(
-      "query-file,q", bpo::value<std::string>(), "query file")(
+      "query-file,q", bpo::value<std::string>()->required(), "query file")(
       "params_file,p", bpo::value<std::string>(), "params file")(
       "query-num,n", bpo::value<int>()->default_value(0))(
       "output-file,o", bpo::value<std::string>(), "output file")(
@@ -147,9 +147,16 @@ int main(int argc, char** argv) {
   LOG(INFO) << "Finished loading graph, elapsed " << t0 << " s";
   std::string req_file = vm["query-file"].as<std::string>();
   std::string query = read_pb(req_file);
+#if 0
   auto txn = db.GetReadTransaction();
+#else
+  gs::runtime::graph_interface_impl::DummyGraph g;
+  gs::runtime::GraphReadInterface txn(g);
+#endif
   std::vector<std::map<std::string, std::string>> map;
-  load_params(vm["params_file"].as<std::string>(), map);
+  if (vm.count("params_file")) {
+    load_params(vm["params_file"].as<std::string>(), map);
+  }
   size_t params_num = map.size();
 
   physical::PhysicalPlan pb;
