@@ -155,3 +155,6 @@ flex/interactive/sdk/python/gs_interactive/rest.py
 
 
 **/.cache/
+
+
+CMakeFiles/

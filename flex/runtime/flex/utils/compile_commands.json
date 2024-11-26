@@ -1,0 +1,242 @@
+[
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/accessors.cc.o -c /workspaces/GraphScope/flex/runtime/common/accessors.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/accessors.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/columns/edge_columns.cc.o -c /workspaces/GraphScope/flex/runtime/common/columns/edge_columns.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/columns/edge_columns.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/columns/path_columns.cc.o -c /workspaces/GraphScope/flex/runtime/common/columns/path_columns.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/columns/path_columns.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/columns/value_columns.cc.o -c /workspaces/GraphScope/flex/runtime/common/columns/value_columns.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/columns/value_columns.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/columns/vertex_columns.cc.o -c /workspaces/GraphScope/flex/runtime/common/columns/vertex_columns.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/columns/vertex_columns.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/context.cc.o -c /workspaces/GraphScope/flex/runtime/common/context.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/context.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/operators/dedup.cc.o -c /workspaces/GraphScope/flex/runtime/common/operators/dedup.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/operators/dedup.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/operators/edge_expand.cc.o -c /workspaces/GraphScope/flex/runtime/common/operators/edge_expand.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/operators/edge_expand.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/operators/edge_expand_impl.cc.o -c /workspaces/GraphScope/flex/runtime/common/operators/edge_expand_impl.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/operators/edge_expand_impl.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/operators/intersect.cc.o -c /workspaces/GraphScope/flex/runtime/common/operators/intersect.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/operators/intersect.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/operators/join.cc.o -c /workspaces/GraphScope/flex/runtime/common/operators/join.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/operators/join.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/operators/path_expand.cc.o -c /workspaces/GraphScope/flex/runtime/common/operators/path_expand.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/operators/path_expand.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/operators/path_expand_impl.cc.o -c /workspaces/GraphScope/flex/runtime/common/operators/path_expand_impl.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/operators/path_expand_impl.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/operators/scan.cc.o -c /workspaces/GraphScope/flex/runtime/common/operators/scan.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/operators/scan.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/operators/sink.cc.o -c /workspaces/GraphScope/flex/runtime/common/operators/sink.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/operators/sink.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/operators/union.cc.o -c /workspaces/GraphScope/flex/runtime/common/operators/union.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/operators/union.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/rt_any.cc.o -c /workspaces/GraphScope/flex/runtime/common/rt_any.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/rt_any.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_common_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_common.dir/common/types.cc.o -c /workspaces/GraphScope/flex/runtime/common/types.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/common/types.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/expr.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/expr.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/expr.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/expr_impl.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/expr_impl.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/expr_impl.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/dedup.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/dedup.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/dedup.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/edge_expand.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/edge_expand.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/edge_expand.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/get_v.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/get_v.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/get_v.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/group_by.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/group_by.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/group_by.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/intersect.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/intersect.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/intersect.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/join.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/join.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/join.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/limit.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/limit.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/limit.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/load.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/load.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/load.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/order_by.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/order_by.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/order_by.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/path_expand.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/path_expand.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/path_expand.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/project.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/project.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/project.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/scan.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/scan.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/scan.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/select.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/select.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/select.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/sink.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/sink.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/sink.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/unfold.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/unfold.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/unfold.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/operators/union.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/operators/union.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/operators/union.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/runtime.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/runtime.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/runtime.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/utils.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/utils.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/utils.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils",
+  "command": "/usr/bin/c++ -Druntime_adhoc_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/runtime_adhoc.dir/adhoc/var.cc.o -c /workspaces/GraphScope/flex/runtime/adhoc/var.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/adhoc/var.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils/utils",
+  "command": "/usr/bin/c++ -Dflex_utils_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/flex_utils.dir/app_utils.cc.o -c /workspaces/GraphScope/flex/runtime/utils/app_utils.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/utils/app_utils.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils/utils",
+  "command": "/usr/bin/c++ -Dflex_utils_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/flex_utils.dir/arrow_utils.cc.o -c /workspaces/GraphScope/flex/runtime/utils/arrow_utils.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/utils/arrow_utils.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils/utils",
+  "command": "/usr/bin/c++ -Dflex_utils_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/flex_utils.dir/error_pb/interactive.pb.cc.o -c /workspaces/GraphScope/flex/runtime/utils/error_pb/interactive.pb.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/utils/error_pb/interactive.pb.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils/utils",
+  "command": "/usr/bin/c++ -Dflex_utils_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/flex_utils.dir/property/column.cc.o -c /workspaces/GraphScope/flex/runtime/utils/property/column.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/utils/property/column.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils/utils",
+  "command": "/usr/bin/c++ -Dflex_utils_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/flex_utils.dir/property/table.cc.o -c /workspaces/GraphScope/flex/runtime/utils/property/table.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/utils/property/table.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils/utils",
+  "command": "/usr/bin/c++ -Dflex_utils_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/flex_utils.dir/property/types.cc.o -c /workspaces/GraphScope/flex/runtime/utils/property/types.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/utils/property/types.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils/utils",
+  "command": "/usr/bin/c++ -Dflex_utils_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/flex_utils.dir/result.cc.o -c /workspaces/GraphScope/flex/runtime/utils/result.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/utils/result.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils/utils",
+  "command": "/usr/bin/c++ -Dflex_utils_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/flex_utils.dir/service_utils.cc.o -c /workspaces/GraphScope/flex/runtime/utils/service_utils.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/utils/service_utils.cc"
+},
+{
+  "directory": "/workspaces/GraphScope/flex/runtime/utils/utils",
+  "command": "/usr/bin/c++ -Dflex_utils_EXPORTS -I/workspaces/GraphScope/flex/runtime -I/workspaces/GraphScope/flex/runtime/utils -I/workspaces/GraphScope/flex/runtime/utils/utils -isystem /usr/local/include/mimalloc-1.8 -fPIC -o CMakeFiles/flex_utils.dir/yaml_utils.cc.o -c /workspaces/GraphScope/flex/runtime/utils/yaml_utils.cc",
+  "file": "/workspaces/GraphScope/flex/runtime/utils/yaml_utils.cc"
+}
+]
