@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-syntax = "proto3";
+syntax = "proto2";
 package common;
 option java_package = "com.alibaba.graphscope.gaia.proto";
 option java_outer_classname = "OuterExpression";
@@ -32,7 +32,7 @@ message AllKey {}
 
 // Use `NameOrId` as key item, which is the same as `Option<NameOrId>`
 message NameOrIdKey {
-  common.NameOrId key = 1;
+  optional common.NameOrId key = 1;
 }
 
 message Property {
@@ -110,11 +110,11 @@ enum Arithmetic {
 
 message Variable {
   // The alias of a graph relation, which is required for a variable
-  common.NameOrId tag = 1;
+  optional common.NameOrId tag = 1;
   // The property of a nested attribute (vertex/edge) of a graph relation, r.a.key, optional
-  Property property = 2;
+  optional Property property = 2;
   // The data of type of Property
-  common.IrDataType node_type = 3;
+  optional common.IrDataType node_type = 3;
 }
 
 // Path function to rechieve properties of each vertex or edge (or both) in a path.
@@ -127,8 +127,8 @@ message PathFunction {
   // rechieve properties from a path to a map
   message PathElementKeyValues {
     message PathElementKeyValue {
-      common.Value key = 1;
-      Property val = 2;
+      optional common.Value key = 1;
+      optional Property val = 2;
     }
     repeated PathElementKeyValue key_vals = 1;
   }
@@ -139,7 +139,7 @@ message PathFunction {
     VERTEX_EDGE = 2;
   }
   // The alias of a graph path
-  common.NameOrId tag = 1;
+  optional common.NameOrId tag = 1;
   oneof path_key {
     // e.g., project name, and return the property of each entry in the path, 
     // and return [marko, josh]
@@ -151,8 +151,8 @@ message PathFunction {
     // and return [{name: marko, age: 29}, {name: josh, age: 27}]
     PathElementKeyValues map = 4;
   }
-  FuncOpt opt = 5;
-  common.IrDataType node_type = 6;
+  optional FuncOpt opt = 5;
+  optional common.IrDataType node_type = 6;
 }
 
 message VariableKeys {
@@ -160,7 +160,7 @@ message VariableKeys {
 }
 
 message VariableKeyValue {
-  common.Value key = 1;
+  optional common.Value key = 1;
   oneof value {
     Variable val = 2;
     PathFunction path_func = 3;
@@ -185,23 +185,23 @@ message VariableKeyValues {
 
 // dynamic param
 message DynamicParam {
-  string name = 1;
-  int32 index = 2;
-  common.IrDataType data_type = 3;
+  optional string name = 1;
+  optional int32 index = 2;
+  optional common.IrDataType data_type = 3;
 }
 
 message Case {
   // Pair of when <expr> then <expr>
   message WhenThen {
-    Expression when_expression = 1;
-    Expression then_result_expression = 2;
+    optional Expression when_expression = 1;
+    optional Expression then_result_expression = 2;
   }
   // A case operator always follows with a sequence of when_then pairs, e.g.
   // CASE WHEN a.name == 'Marko' THEN 1
   //      WHEN a.name == 'John' THEN 2
   repeated WhenThen when_then_expressions = 1;
   // The trailed else expression:  ELSE 3
-  Expression else_result_expression = 2;
+  optional Expression else_result_expression = 2;
 }
 
 // extract interval from a given expression which should be of temporal type 
@@ -215,12 +215,12 @@ message Extract {
     SECOND = 5;
     MILLISECOND = 6;
   }
-  Interval interval = 1;
+  optional Interval interval = 1;
 }
 
 // denote time interval, i.e. 3 DAYS, 4 HOURS, 5 MINUTES
 message TimeInterval {
-    Extract.Interval interval = 1;
+    optional Extract.Interval interval = 1;
 
     oneof value {
         common.Value const = 2;
@@ -229,7 +229,7 @@ message TimeInterval {
 }
 
 message DateTimeMinus {
-    Extract.Interval interval = 1;
+    optional Extract.Interval interval = 1;
 }
 
 // e.g., supposing p1 refers to path[v1->v2->v3], p2 refers to path[v5->v4->v3],
@@ -241,15 +241,15 @@ message PathConcat {
     END = 1;
   }
   message ConcatPathInfo {
-    Variable path_tag = 1;
-    Endpoint endpoint = 2;
+    optional Variable path_tag = 1;
+    optional Endpoint endpoint = 2;
   }
-  ConcatPathInfo left = 1;
-  ConcatPathInfo right = 2;
+  optional ConcatPathInfo left = 1;
+  optional ConcatPathInfo right = 2;
 }
 
 message UserDefinedFunction {
-    string name = 1;
+    optional string name = 1;
     repeated Expression parameters = 2;
 }
 
@@ -280,7 +280,7 @@ message ExprOpr {
     UserDefinedFunction udf_func = 18;
   }
   // The data of type of ExprOpr
-  common.IrDataType node_type = 12;
+  optional common.IrDataType node_type = 12;
 }
 
 // An inner representation of an expression

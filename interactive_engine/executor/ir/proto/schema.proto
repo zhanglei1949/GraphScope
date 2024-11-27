@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-syntax = "proto3";
+syntax = "proto2";
 package schema;
 
 option java_package = "com.alibaba.graphscope.gaia.proto";
@@ -23,28 +23,28 @@ option java_outer_classname = "OuterSchema";
 import "common.proto";
 
 message LabelMeta {
-  int32 id = 1;
-  string name = 2;
+  optional int32 id = 1;
+  optional string name = 2;
 }
 
 message ColumnMeta {
-  LabelMeta key = 1;
-  common.DataType data_type = 2;
+  optional LabelMeta key = 1;
+  optional common.DataType data_type = 2;
   // Whether this column is a part of a primary key
-  bool is_primary_key = 3;
+  optional bool is_primary_key = 3;
 }
 
 message EntityMeta {
-  LabelMeta label = 1;
+  optional LabelMeta label = 1;
   repeated ColumnMeta columns = 2;
 }
 
 message RelationMeta {
   message LabelPair {
-    LabelMeta src = 1;
-    LabelMeta dst = 2;
+    optional LabelMeta src = 1;
+    optional LabelMeta dst = 2;
   }
-  LabelMeta label = 1;
+  optional LabelMeta label = 1;
   repeated LabelPair entity_pairs = 2;
   repeated ColumnMeta columns = 3;
 }
@@ -55,7 +55,7 @@ message Schema {
   // the relations (edges)
   repeated RelationMeta relations = 2;
   // is the table (label)'s name mapped as an id
-  bool is_table_id = 3;
+  optional bool is_table_id = 3;
   // is the column (property)'s name mapped as an id
-  bool is_column_id = 4;
+  optional bool is_column_id = 4;
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-syntax = "proto3";
+syntax = "proto2";
 package common;
 option java_package = "com.alibaba.graphscope.gaia.proto";
 option java_outer_classname = "DataType";
@@ -34,25 +34,25 @@ message GraphDataType {
   // Specifically, for an edge, the labels of its src and dst vertices can be further specified.
   message GraphElementLabel {
     // the label of vertex or edge
-    int32 label = 1;
+    optional int32 label = 1;
     // optional field, denoting the label of the src vertex of the edge
-    google.protobuf.Int32Value src_label  = 2;
+    optional google.protobuf.Int32Value src_label  = 2;
     // optional field, denoting the label of the dst vertex of the edge
-    google.protobuf.Int32Value dst_label  = 3;
+    optional google.protobuf.Int32Value dst_label  = 3;
   }
   // GraphElementTypeField represents the definition of a field in the structured GraphElementType
   // In common, it denotes the type of properties.
   message GraphElementTypeField {
-    common.NameOrId prop_id = 1;
-    common.DataType type = 2;
+    optional common.NameOrId prop_id = 1;
+    optional common.DataType type = 2;
   }
   // GraphElementType represents the type of the graph element,
   // consisting the GraphElementLabel (of vertex or edge), and the corresponding property types.
   message GraphElementType {
-    GraphElementLabel label = 1;
+    optional GraphElementLabel label = 1;
     repeated GraphElementTypeField props = 2;
   }
-  GraphElementOpt element_opt = 1;
+  optional GraphElementOpt element_opt = 1;
   repeated GraphElementType graph_data_type = 2;
 }
 

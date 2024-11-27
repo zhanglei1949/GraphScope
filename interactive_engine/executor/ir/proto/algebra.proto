@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-syntax = "proto3";
+syntax = "proto2";
 package algebra;
 option java_package = "com.alibaba.graphscope.gaia.proto";
 option java_outer_classname = "GraphAlgebra";
@@ -26,8 +26,8 @@ import "type.proto";
 import "google/protobuf/wrappers.proto";
 
 message MetaData {
-  common.IrDataType type = 1;
-  int32 alias = 2;
+  optional common.IrDataType type = 1;
+  optional  int32 alias = 2;
 }
 
 // We have several logical operators that are similar to physical operators (e.g., Project, GroupBy etc.),
@@ -38,16 +38,16 @@ message MetaData {
 message Project {
   message ExprAlias {
     // The expression to be aliased
-    common.Expression expr = 1;
+    optional  common.Expression expr = 1;
     // The alias that is either given by the query or by the system
-    common.NameOrId alias = 2;
+    optional common.NameOrId alias = 2;
   }
   // A list of [expression -> alias] to be projected from the graph relation.
   // e.g., project_{a.birthday / 100 % 100 as birth_month }
   repeated ExprAlias mappings = 1;
   // An indicator to tell the runtime whether the projected value is appending to or replacing
   // existing relation.
-  bool is_append = 2;
+  optional bool is_append = 2;
   // The datatype of output results
   repeated MetaData meta_data = 3;
 }
@@ -55,7 +55,7 @@ message Project {
 // To filter a relation based on a given predicate
 message Select {
   // A predicate formulated as an expression tree
-  common.Expression predicate = 1;
+  optional common.Expression predicate = 1;
 }
 
 // Join two relations based on certain predicate.
@@ -82,7 +82,7 @@ message Join {
   // participants.
   repeated common.Variable left_keys = 1;
   repeated common.Variable right_keys = 2;
-  JoinKind kind = 3;
+  optional JoinKind kind = 3;
 }
 
 // Union multiple relations
@@ -99,7 +99,7 @@ message Union {
 // is R[a, b, c, ..., array], where for each tuple r of R,  r.array = r1.array <intersect> r2.array
 message Intersect {
   repeated int32 parents = 1;
-  common.NameOrId key = 2;
+  optional common.NameOrId key = 2;
 }
 
 message GroupBy {
@@ -123,16 +123,16 @@ message GroupBy {
     // TODO(longbin) An expression here is a more general form
     repeated common.Variable vars = 1;
     // The aggregate function
-    Aggregate aggregate = 2;
+    optional Aggregate aggregate = 2;
     // The alias for the aggregated value
-    common.NameOrId alias = 3;
+    optional common.NameOrId alias = 3;
   }
   message KeyAlias {
     // The key to perform grouping
     // TODO(longbin) An expression here is a more general form
-    common.Variable key = 1;
+    optional common.Variable key = 1;
     // The alias for the key
-    common.NameOrId alias = 2;
+    optional common.NameOrId alias = 2;
   }
   // A collection of key-alias mappings
   repeated KeyAlias mappings = 1;
@@ -153,12 +153,12 @@ message OrderBy {
       DESC = 2;
     }
     // TODO(longbin) An expression here is a more general form
-    common.Variable key = 1;
-    Order order = 2;
+    optional common.Variable key = 1;
+    optional Order order = 2;
   }
   repeated OrderingPair pairs = 2;
   // A size limit. `OrderBy.Limit` is equivalent to the `Topk` operation
-  Range limit = 3;
+  optional Range limit = 3;
 }
 
 message Dedup {
@@ -168,23 +168,23 @@ message Dedup {
 
 message Unfold {
   // The tag of a graph relation that **must** refer to a data of collection type
-  common.NameOrId tag = 1;
+  optional common.NameOrId tag = 1;
   // The alias tag for the elements that are unfolded from the collection
-  common.NameOrId alias = 2;
+  optional common.NameOrId alias = 2;
   // The type for the unfold value
-  MetaData meta_data = 3;
+  optional MetaData meta_data = 3;
 }
 
 message Range {
   // The lower bound of the range, included
-  int32 lower = 1;
+  optional int32 lower = 1;
   // The upper bound of the range, **excluded**
-  int32 upper = 2;
+  optional int32 upper = 2;
 }
 
 message Limit {
   // The limit range, e.g., limit(10) will be represented by Range {lower = 0, upper = 10}
-  Range range = 1;
+  optional Range range = 1;
 }
 
 // To define a predicate of {{k1, cmp, v1} and {k2, cmp, v2}} or ...,
@@ -194,13 +194,13 @@ message IndexPredicate {
   // A triplet defines that a key must be **equal** to a given value.
   // The value can be a constant value, or a dynamic parameter.
   message Triplet {
-    common.Property key = 1;
+    optional common.Property key = 1;
     oneof value {
          common.Value const = 2;
          common.DynamicParam param = 3;
     }
     // TODO(longbin) More comparators (gt, ge, lt, le, ne) other than equivalence (eq or within) may be required
-    common.Logical cmp = 4;
+    optional common.Logical cmp = 4;
   }
   // A collection of `Triplet` that forms a logical **AND** of all `Predicate`s.
   message AndPredicate {
@@ -217,14 +217,14 @@ message QueryParams {
   // The required columns of the table.
   repeated common.NameOrId columns = 2;
   // Can specify to get all columns of the table
-  bool is_all_columns = 3;
+  optional bool is_all_columns = 3;
   // The size limit
-  Range limit = 4;
+  optional Range limit = 4;
   // The optional predicate for the data tuple, which may be pushed down to the storage service
-  common.Expression predicate = 5;
+  optional common.Expression predicate = 5;
   // Define the sampling ratio, while querying vertex/edge.
   // 1.0 by default for deterministic case.
-  double sample_ratio = 6;
+  optional double sample_ratio = 6;
   // Extra parameters for general-purpose usage
   map<string, string> extra = 7;
 }
@@ -240,16 +240,16 @@ message Scan {
     // Scanning a relational table
     TABLE = 2;
   }
-  ScanOpt scan_opt = 1;
+  optional ScanOpt scan_opt = 1;
   // The alias of the item if it is a vertex or edge
-  common.NameOrId alias = 2;
+  optional common.NameOrId alias = 2;
   // The required parameters for the scan
-  QueryParams params = 3;
+  optional QueryParams params = 3;
   // The optional filtering predicate for the field that have been indexed
-  IndexPredicate idx_predicate = 4;
+  optional IndexPredicate idx_predicate = 4;
   // The flag that indicates SCAN + COUNT
-  bool is_count_only = 5;
-  MetaData meta_data = 6;
+  optional bool is_count_only = 5;
+  optional MetaData meta_data = 6;
 }
 
 // It is typical to use the operator together with EdgeExpand or PathExpand, with the functionality of
@@ -266,20 +266,20 @@ message GetV {
     BOTH = 3;
   }
   // The tag that refers to the edge/path where the end vertex will be retrieved
-  common.NameOrId tag = 1;
+  optional common.NameOrId tag = 1;
   // Determine what vertex to get from the tagged object
-  VOpt opt = 2;
+  optional VOpt opt = 2;
   // The query parameters of getting vertices
-  QueryParams params = 3;
+  optional QueryParams params = 3;
   // The alias of this vertex
-  common.NameOrId alias = 4;
-  MetaData meta_data = 5;
+  optional common.NameOrId alias = 4;
+  optional MetaData meta_data = 5;
 }
 
 // To tag the current data with an alias
 message As {
   // The alias to give if any, this is especially helpful when the entity now refers to the head of the record
-  common.NameOrId alias = 1;
+  optional common.NameOrId alias = 1;
 }
 
 message EdgeExpand {
@@ -294,29 +294,29 @@ message EdgeExpand {
     DEGREE = 2;
   }
   // The tag that refers to the starting vertex
-  common.NameOrId v_tag = 1;
+  optional common.NameOrId v_tag = 1;
   // The direction of the expanded edge
-  Direction direction = 2;
+  optional Direction direction = 2;
   // The query parameters define the condition that the edge/end vertex must satisfy.
   // Note that whether the query parameters apply to the edge or end vertex depends on
   // the `is_edge` indicator, with one exception that the `tables` parameter in `EdgeExpand`
   // **always** applies to the edge for now (may be fixed later) .
-  QueryParams params = 3;
+  optional QueryParams params = 3;
   // An optional alias for the object of the expansion
-  common.NameOrId alias = 4;
+  optional common.NameOrId alias = 4;
   // Expand option, i.e., expand vertices/edges/degree.
-  ExpandOpt expand_opt = 5;
-  MetaData meta_data = 6;
+  optional ExpandOpt expand_opt = 5;
+  optional MetaData meta_data = 6;
   // Whether the expand is optional, if true, the expand will return a `None` if the edge does not exist
-  bool is_optional = 7;
+  optional bool is_optional = 7;
 }
 
 message PathExpand {
   // The expand base of PathExpand
   message ExpandBase {
     // Can either be a single EdgeExpand (with ExpandOpt = Vertex), or EdgeExpand (with ExpandOpt = Edge) + GetV
-    EdgeExpand edge_expand = 1;
-    GetV get_V = 2;
+    optional EdgeExpand edge_expand = 1;
+    optional GetV get_V = 2;
   }
   enum PathOpt {
     // an arbitrary path, in which both vertex/edge may duplicate
@@ -337,22 +337,22 @@ message PathExpand {
      ALL_V_E = 2;
   }
   // A path expansion has a base expansion
-  ExpandBase base = 1;
+  optional ExpandBase base = 1;
   // The tag that refers to the starting vertex
-  common.NameOrId start_tag = 2;
+  optional common.NameOrId start_tag = 2;
   // An optional alias for the object of the expansion
-  common.NameOrId alias = 3;
+  optional common.NameOrId alias = 3;
   // The range that defines the minimum and maximum number of hops of the path expansion.
   // This is optional, if not set, the minimum number is 1, and the maximum is INT_MAX
-  Range hop_range = 4;
+  optional Range hop_range = 4;
   // Path option, including to expand an arbitrary path or a simple path
-  PathOpt path_opt = 5;
+  optional PathOpt path_opt = 5;
   // Result option, including to take end vertex (EndV), or whole path (AllV), for this expansion
-  ResultOpt result_opt = 6;
+  optional ResultOpt result_opt = 6;
   // A condition formulated as an expression predicate
-  common.Expression condition = 7;
+  optional common.Expression condition = 7;
   // Whether the expand is optional, if true, the expand will return a `None` if the path does not exist
-  bool is_optional = 8;
+  optional bool is_optional = 8;
 }
 
 /*
@@ -386,13 +386,13 @@ message ShortestPathExpand {
 // of input relations, and then the result of the subtask will be joined back to each input tuple.
 message Apply {
   // Define how to join the result of the subtask back to the original relation
-  Join.JoinKind join_kind = 1;
+  optional Join.JoinKind join_kind = 1;
   // To project on certain tags of the input relation to execute the subtask
   repeated common.NameOrId tags = 2;
   // The subtask will be perform on certain tags as keys of the input relation
-  int32 subtask = 3;
+  optional int32 subtask = 3;
   // Define the alias of output from `Apply`
-  common.NameOrId alias = 4;
+  optional common.NameOrId alias = 4;
 }
 
 message SegmentApply {
@@ -401,7 +401,7 @@ message SegmentApply {
   // into the properties of a vertex/edge that the tag refers to.
   repeated common.NameOrId keys = 1;
   // A base of apply operation that is conducted on each group of the relations instead of tuple
-  Apply apply_subtask = 2;
+  optional Apply apply_subtask = 2;
 }
 
 message Pattern {
@@ -415,11 +415,11 @@ message Pattern {
   }
   // A sentence defines a match
   message Sentence {
-    common.NameOrId start = 1;
+    optional common.NameOrId start = 1;
     repeated Binder binders = 2;
-    common.NameOrId end = 3;
+    optional common.NameOrId end = 3;
     /// Define how to attach this sentence to the other one
-    Join.JoinKind join_kind = 4;
+    optional Join.JoinKind join_kind = 4;
   }
   repeated Sentence sentences = 1;
   repeated MetaData meta_data = 2;
@@ -428,11 +428,11 @@ message Pattern {
 message Sample {
   message SampleByRatio {
     // The sample ratio
-    double ratio = 1;
+    optional double ratio = 1;
   }
   message SampleByNum {
     // The sample number
-    int32 num = 1;
+    optional int32 num = 1;
   }
   message SampleType {
     oneof inner {
@@ -441,11 +441,11 @@ message Sample {
     }
   }
   // The type of sampling
-  SampleType sample_type = 1;
+  optional SampleType sample_type = 1;
   // The seed for random number generator, which is optional
-  google.protobuf.Int32Value seed = 2;
+  optional google.protobuf.Int32Value seed = 2;
   // The variable refer to the sample weight, which is optional
-  common.Variable sample_weight = 3;
+  optional common.Variable sample_weight = 3;
 }
 
 message Sink {
@@ -458,7 +458,7 @@ message Sink {
   // Define the tags of columns to sink. If no tags given, sink all **tagged** columns by default.
   repeated common.NameOrIdKey tags = 1;
   // Define the target of sink, e.g., to Client as default, to Graph such as Vineyard etc.
-  SinkTarget sink_target = 2;
+  optional SinkTarget sink_target = 2;
 }
 
 message SinkDefault {
@@ -469,17 +469,17 @@ message SinkDefault {
     TAG = 3;
   }
   message IdNameMapping {
-    int32 id = 1;
-    string name = 2;
-    MetaType meta_type = 3;
+    optional int32 id = 1;
+    optional string name = 2;
+    optional MetaType meta_type = 3;
   }
   // The mapping of id to name given certain `MetaType`
   repeated IdNameMapping id_name_mappings = 1;
 }
 
 message SinkVineyard {
-  string graph_name = 1;
-  schema.Schema graph_schema = 2;
+  optional string graph_name = 1;
+  optional schema.Schema graph_schema = 2;
 }
 
 // A dummy node to delegate a source opr for multiple scan cases.
@@ -520,7 +520,7 @@ message LogicalPlan {
   }
   message Node {
     // The node's operator
-    Operator opr = 1;
+    optional Operator opr = 1;
     // The children operators' identifiers, where the id refers to its array index in the plan
     repeated int32 children = 2;
   }
