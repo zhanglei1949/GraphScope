@@ -16,9 +16,9 @@
 #ifndef STORAGES_RT_MUTABLE_GRAPH_LOADER_BASIC_FRAGMENT_LOADER_H_
 #define STORAGES_RT_MUTABLE_GRAPH_LOADER_BASIC_FRAGMENT_LOADER_H_
 
+#include "flex/engines/graph_db/runtime/common/schema.h"
 #include "flex/storages/rt_mutable_graph/file_names.h"
 #include "flex/storages/rt_mutable_graph/mutable_property_fragment.h"
-#include "flex/storages/rt_mutable_graph/schema.h"
 
 namespace gs {
 

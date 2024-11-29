@@ -17,11 +17,12 @@
 #define FLEX_STORAGES_METADATA_GRAPH_META_STORE_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "flex/storages/rt_mutable_graph/schema.h"
+#include "flex/engines/graph_db/runtime/common/schema.h"
 #include "flex/utils/property/types.h"
 #include "flex/utils/result.h"
 #include "flex/utils/service_utils.h"

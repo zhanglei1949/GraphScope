@@ -19,8 +19,8 @@
 
 #include "flex/engines/graph_db/runtime/common/graph_interface.h"
 #include "flex/engines/graph_db/runtime/common/rt_any.h"
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/proto_generated_gie/expr.pb.h"
-#include "flex/storages/rt_mutable_graph/types.h"
 
 namespace gs {
 

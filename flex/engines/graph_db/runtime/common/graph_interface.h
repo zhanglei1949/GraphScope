@@ -16,9 +16,8 @@
 #ifndef RUNTIME_COMMON_GRAPH_INTERFACE_H_
 #define RUNTIME_COMMON_GRAPH_INTERFACE_H_
 
-#include "flex/engines/graph_db/database/insert_transaction.h"
-#include "flex/engines/graph_db/database/read_transaction.h"
-#include "flex/storages/rt_mutable_graph/types.h"
+#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/engines/graph_db/runtime/common/types.h"
 
 namespace gs {
 
@@ -675,29 +674,30 @@ class GraphReadInterface {
 
 #endif
 
-class GraphInsertInterface {
- public:
-  GraphInsertInterface(gs::InsertTransaction& txn) : txn_(txn) {}
-  ~GraphInsertInterface() {}
+// class GraphInsertInterface {
+//  public:
+//   GraphInsertInterface(gs::InsertTransaction& txn) : txn_(txn) {}
+//   ~GraphInsertInterface() {}
 
-  bool AddVertex(label_t label, const Any& id, const std::vector<Any>& props) {
-    return txn_.AddVertex(label, id, props);
-  }
+//   bool AddVertex(label_t label, const Any& id, const std::vector<Any>& props)
+//   {
+//     return txn_.AddVertex(label, id, props);
+//   }
 
-  bool AddEdge(label_t src_label, const Any& src, label_t dst_label,
-               const Any& dst, label_t edge_label, const Any& prop) {
-    return txn_.AddEdge(src_label, src, dst_label, dst, edge_label, prop);
-  }
+//   bool AddEdge(label_t src_label, const Any& src, label_t dst_label,
+//                const Any& dst, label_t edge_label, const Any& prop) {
+//     return txn_.AddEdge(src_label, src, dst_label, dst, edge_label, prop);
+//   }
 
-  void Commit() { txn_.Commit(); }
+//   void Commit() { txn_.Commit(); }
 
-  void Abort() { txn_.Abort(); }
+//   void Abort() { txn_.Abort(); }
 
-  const Schema& schema() const { return txn_.schema(); }
+//   const Schema& schema() const { return txn_.schema(); }
 
- private:
-  gs::InsertTransaction& txn_;
-};
+//  private:
+//   gs::InsertTransaction& txn_;
+// };
 
 }  // namespace runtime
 

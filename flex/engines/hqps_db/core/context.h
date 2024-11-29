@@ -19,8 +19,8 @@ limitations under the License.
 #include <type_traits>
 #include <vector>
 
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/engines/hqps_db/core/utils/hqps_utils.h"
-#include "flex/storages/rt_mutable_graph/types.h"
 #include "grape/types.h"
 
 namespace gs {

@@ -17,6 +17,7 @@
 
 #include <climits>
 
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/engines/hqps_db/core/context.h"
 #include "flex/engines/hqps_db/core/params.h"
 #include "flex/engines/hqps_db/core/utils/hqps_utils.h"
@@ -24,7 +25,6 @@
 #include "flex/engines/hqps_db/structures/multi_vertex_set/multi_label_vertex_set.h"
 #include "flex/engines/hqps_db/structures/multi_vertex_set/row_vertex_set.h"
 #include "flex/engines/hqps_db/structures/path.h"
-#include "flex/storages/rt_mutable_graph/types.h"
 #include "flex/utils/property/column.h"
 #include "grape/utils/bitset.h"
 

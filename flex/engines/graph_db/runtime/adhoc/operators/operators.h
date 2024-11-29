@@ -161,18 +161,20 @@ void eval_sink_encoder(const Context& ctx, const GraphReadInterface& graph,
 void eval_sink_beta(const Context& ctx, const GraphReadInterface& graph,
                     Encoder& output);
 
-WriteContext eval_project(const physical::Project& opr,
-                          const GraphInsertInterface& graph, WriteContext&& ctx,
-                          const std::map<std::string, std::string>& params);
+// WriteContext eval_project(const physical::Project& opr,
+//                           const GraphInsertInterface& graph, WriteContext&&
+//                           ctx, const std::map<std::string, std::string>&
+//                           params);
 
-WriteContext eval_load(const cypher::Load& opr, GraphInsertInterface& graph,
-                       WriteContext&& ctx,
-                       const std::map<std::string, std::string>& params);
+// WriteContext eval_load(const cypher::Load& opr, GraphInsertInterface& graph,
+//                        WriteContext&& ctx,
+//                        const std::map<std::string, std::string>& params);
 
-WriteContext eval_unfold(const physical::Unfold& opr, WriteContext&& ctx);
+// WriteContext eval_unfold(const physical::Unfold& opr, WriteContext&& ctx);
 
-WriteContext eval_dedup(const algebra::Dedup& opr,
-                        const GraphInsertInterface& graph, WriteContext&& ctx);
+// WriteContext eval_dedup(const algebra::Dedup& opr,
+//                         const GraphInsertInterface& graph, WriteContext&&
+//                         ctx);
 
 }  // namespace runtime
 

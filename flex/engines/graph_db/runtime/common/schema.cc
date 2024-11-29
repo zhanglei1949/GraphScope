@@ -13,14 +13,14 @@
  * limitations under the License.
  */
 
-#include "flex/storages/rt_mutable_graph/schema.h"
+#include "flex/engines/graph_db/runtime/common/schema.h"
 #include "flex/utils/exception.h"
 
 #include <yaml-cpp/yaml.h>
 
 namespace gs {
 
-Schema::Schema() : has_multi_props_edge_(false) {};
+Schema::Schema() : has_multi_props_edge_(false){};
 Schema::~Schema() = default;
 
 void Schema::Clear() {

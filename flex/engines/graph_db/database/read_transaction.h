@@ -19,9 +19,9 @@
 #include <limits>
 #include <utility>
 
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/storages/rt_mutable_graph/csr/mutable_csr.h"
 #include "flex/storages/rt_mutable_graph/mutable_property_fragment.h"
-#include "flex/storages/rt_mutable_graph/types.h"
 
 namespace gs {
 

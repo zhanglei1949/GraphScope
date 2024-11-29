@@ -767,67 +767,67 @@ Context runtime_eval(const physical::PhysicalPlan& plan,
   return ret;
 }
 
-WriteContext runtime_eval_impl(const physical::PhysicalPlan& plan,
-                               WriteContext&& ctx, GraphInsertInterface& graph,
-                               const std::map<std::string, std::string>& params,
-                               OprTimer& timer) {
-  TimerUnit t;
-  int opr_num = plan.plan_size();
-  WriteContext ret = ctx;
-  for (int i = 0; i < opr_num; ++i) {
-    const physical::PhysicalOpr& opr = plan.plan(i);
-    assert(opr.has_opr());
-    switch (opr.opr().op_kind_case()) {
-    case physical::PhysicalOpr_Operator::OpKindCase::kProject: {
-      t.start();
-      ret = eval_project(opr.opr().project(), graph, std::move(ret), params);
-      timer.record_opr("project", t);
-      break;
-    }
-    case physical::PhysicalOpr_Operator::OpKindCase::kLoad: {
-      t.start();
-      ret = eval_load(opr.opr().load(), graph, std::move(ret), params);
-      timer.record_opr("load", t);
-      break;
-    }
-    case physical::PhysicalOpr_Operator::OpKindCase::kSink: {
-      t.start();
-      graph.Commit();
-      timer.record_opr("commit", t);
-      break;
-    }
-    case physical::PhysicalOpr_Operator::OpKindCase::kUnfold: {
-      t.start();
-      ret = eval_unfold(opr.opr().unfold(), std::move(ret));
-      timer.record_opr("unfold", t);
-      break;
-    }
-    case physical::PhysicalOpr_Operator::OpKindCase::kDedup: {
-      t.start();
-      ret = eval_dedup(opr.opr().dedup(), graph, std::move(ret));
-      timer.record_opr("dedup", t);
-      break;
-    }
-    default: {
-      LOG(FATAL) << "opr not support..." << opr.DebugString();
-      break;
-    }
-    }
-  }
+// WriteContext runtime_eval_impl(const physical::PhysicalPlan& plan,
+//                                WriteContext&& ctx, GraphInsertInterface&
+//                                graph, const std::map<std::string,
+//                                std::string>& params, OprTimer& timer) {
+//   TimerUnit t;
+//   int opr_num = plan.plan_size();
+//   WriteContext ret = ctx;
+//   for (int i = 0; i < opr_num; ++i) {
+//     const physical::PhysicalOpr& opr = plan.plan(i);
+//     assert(opr.has_opr());
+//     switch (opr.opr().op_kind_case()) {
+//     case physical::PhysicalOpr_Operator::OpKindCase::kProject: {
+//       t.start();
+//       ret = eval_project(opr.opr().project(), graph, std::move(ret), params);
+//       timer.record_opr("project", t);
+//       break;
+//     }
+//     case physical::PhysicalOpr_Operator::OpKindCase::kLoad: {
+//       t.start();
+//       ret = eval_load(opr.opr().load(), graph, std::move(ret), params);
+//       timer.record_opr("load", t);
+//       break;
+//     }
+//     case physical::PhysicalOpr_Operator::OpKindCase::kSink: {
+//       t.start();
+//       graph.Commit();
+//       timer.record_opr("commit", t);
+//       break;
+//     }
+//     case physical::PhysicalOpr_Operator::OpKindCase::kUnfold: {
+//       t.start();
+//       ret = eval_unfold(opr.opr().unfold(), std::move(ret));
+//       timer.record_opr("unfold", t);
+//       break;
+//     }
+//     case physical::PhysicalOpr_Operator::OpKindCase::kDedup: {
+//       t.start();
+//       ret = eval_dedup(opr.opr().dedup(), graph, std::move(ret));
+//       timer.record_opr("dedup", t);
+//       break;
+//     }
+//     default: {
+//       LOG(FATAL) << "opr not support..." << opr.DebugString();
+//       break;
+//     }
+//     }
+//   }
 
-  return ctx;
-}
-// for insert transaction
-WriteContext runtime_eval(const physical::PhysicalPlan& plan,
-                          GraphInsertInterface& graph,
-                          const std::map<std::string, std::string>& params,
-                          OprTimer& timer) {
-  TimerUnit t;
-  t.start();
-  auto ret = runtime_eval_impl(plan, WriteContext(), graph, params, timer);
-  timer.add_total(t);
-  return ret;
-}
+//   return ctx;
+// }
+// // for insert transaction
+// WriteContext runtime_eval(const physical::PhysicalPlan& plan,
+//                           GraphInsertInterface& graph,
+//                           const std::map<std::string, std::string>& params,
+//                           OprTimer& timer) {
+//   TimerUnit t;
+//   t.start();
+//   auto ret = runtime_eval_impl(plan, WriteContext(), graph, params, timer);
+//   timer.add_total(t);
+//   return ret;
+// }
 
 }  // namespace runtime
 

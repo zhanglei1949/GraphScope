@@ -14,10 +14,10 @@
  */
 #include <climits>
 #include <vector>
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/engines/hqps_db/core/context.h"
 #include "flex/engines/hqps_db/core/params.h"
 #include "flex/engines/hqps_db/structures/multi_vertex_set/row_vertex_set.h"
-#include "flex/storages/rt_mutable_graph/types.h"
 
 #include "flex/engines/hqps_db/database/mutable_csr_interface.h"
 #include "flex/engines/hqps_db/structures/path.h"

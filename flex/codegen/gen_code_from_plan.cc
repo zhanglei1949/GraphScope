@@ -26,7 +26,7 @@ limitations under the License.
 
 #include "flex/codegen/src/hqps_generator.h"
 #include "flex/codegen/src/pegasus_generator.h"
-#include "flex/storages/rt_mutable_graph/schema.h"
+#include "flex/engines/graph_db/runtime/common/schema.h"
 
 namespace bpo = boost::program_options;
 

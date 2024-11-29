@@ -21,8 +21,8 @@
 #include <regex>
 #include <string>
 // #include "grape/grape.h"
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/engines/hqps_db/core/utils/hqps_type.h"
-#include "flex/storages/rt_mutable_graph/types.h"
 #include "flex/utils/property/types.h"
 
 #include "grape/types.h"

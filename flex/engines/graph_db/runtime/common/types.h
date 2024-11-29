@@ -18,10 +18,19 @@
 
 #include <string>
 
-#include "flex/storages/rt_mutable_graph/types.h"
 #include "flex/utils/property/types.h"
 
 namespace gs {
+
+using timestamp_t = uint32_t;
+using vid_t = uint32_t;
+using label_t = uint8_t;
+
+enum class EdgeStrategy {
+  kNone,
+  kSingle,
+  kMultiple,
+};
 
 namespace runtime {
 
@@ -84,6 +93,28 @@ struct LabelTriplet {
 }  // namespace runtime
 
 }  // namespace gs
+
+namespace std {
+
+// operator << for EdgeStrategy
+inline ostream& operator<<(ostream& os, const gs::EdgeStrategy& strategy) {
+  switch (strategy) {
+  case gs::EdgeStrategy::kNone:
+    os << "None";
+    break;
+  case gs::EdgeStrategy::kSingle:
+    os << "Single";
+    break;
+  case gs::EdgeStrategy::kMultiple:
+    os << "Multiple";
+    break;
+  default:
+    os << "Unknown";
+    break;
+  }
+  return os;
+}
+}  // namespace std
 
 namespace std {
 

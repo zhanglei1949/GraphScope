@@ -16,8 +16,8 @@
 #ifndef STORAGES_RT_MUTABLE_GRAPH_CSR_ADJ_LIST_H_
 #define STORAGES_RT_MUTABLE_GRAPH_CSR_ADJ_LIST_H_
 
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/storages/rt_mutable_graph/csr/nbr.h"
-#include "flex/storages/rt_mutable_graph/types.h"
 #include "flex/utils/allocators.h"
 
 namespace gs {

@@ -16,7 +16,6 @@
 #ifndef RUNTIME_COMMON_ACCESSORS_H_
 #define RUNTIME_COMMON_ACCESSORS_H_
 
-#include "flex/engines/graph_db/database/read_transaction.h"
 #include "flex/engines/graph_db/runtime/common/columns/edge_columns.h"
 #include "flex/engines/graph_db/runtime/common/columns/path_columns.h"
 #include "flex/engines/graph_db/runtime/common/columns/value_columns.h"

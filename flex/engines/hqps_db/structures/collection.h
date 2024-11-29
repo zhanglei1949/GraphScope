@@ -19,10 +19,10 @@
 #include <unordered_set>
 #include <vector>
 
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/engines/hqps_db/core/null_record.h"
 #include "flex/engines/hqps_db/core/utils/hqps_utils.h"
 #include "flex/engines/hqps_db/core/utils/props.h"
-#include "flex/storages/rt_mutable_graph/types.h"
 #include "grape/utils/bitset.h"
 
 #include <boost/functional/hash.hpp>
@@ -434,9 +434,7 @@ class CountBuilder {
     return true;
   }
 
-  Collection<int64_t> Build() {
-    return Collection<int64_t>(std::move(vec_));
-  }
+  Collection<int64_t> Build() { return Collection<int64_t>(std::move(vec_)); }
 
  private:
   std::vector<int64_t> vec_;

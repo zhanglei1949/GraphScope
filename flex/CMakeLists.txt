@@ -16,6 +16,7 @@ option(BUILD_ODPS_FRAGMENT_LOADER "Whether to build odps fragment loader" OFF)
 option(USE_PTHASH "Whether to use pthash" OFF)
 option(OPTIMIZE_FOR_HOST "Whether to optimize on host" ON) # Whether to build optimized code on host
 option(RUNTIME_PROFILE "Whether profile the execution of runtime" OFF)
+option(BUILD_RUNTIME_ONLY "Whether to build runtime only" OFF)
 
 #print options
 message(STATUS "Build test: ${BUILD_TEST}")
@@ -211,15 +212,18 @@ endmacro()
 
 add_subdirectory(utils)
 #add_subdirectory(codegen)
-add_subdirectory(storages)
+if (NOT BUILD_RUNTIME_ONLY)
+    add_subdirectory(storages)
+    add_subdirectory(bin)
+    if (OPENTELEMETRY_CPP_FOUND)
+        add_subdirectory(otel)
+    endif()
+    if (BUILD_TEST)
+        add_subdirectory(tests)
+    endif()
+endif()
 add_subdirectory(engines)
-add_subdirectory(bin)
-if (OPENTELEMETRY_CPP_FOUND)
-    add_subdirectory(otel)
-endif()
-if (BUILD_TEST)
-   add_subdirectory(tests)
-endif()
+
 
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/flex-config.in.cmake

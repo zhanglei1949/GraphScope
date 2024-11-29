@@ -16,8 +16,7 @@
 #ifndef GRAPHSCOPE_FRAGMENT_SCHEMA_H_
 #define GRAPHSCOPE_FRAGMENT_SCHEMA_H_
 
-#include "flex/engines/hqps_db/core/utils/hqps_utils.h"
-#include "flex/storages/rt_mutable_graph/types.h"
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/utils/id_indexer.h"
 #include "flex/utils/property/table.h"
 #include "flex/utils/property/types.h"

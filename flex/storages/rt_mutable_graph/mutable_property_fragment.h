@@ -20,11 +20,11 @@
 #include <tuple>
 #include <vector>
 
-#include "flex/storages/rt_mutable_graph/schema.h"
+#include "flex/engines/graph_db/runtime/common/schema.h"
 
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/storages/rt_mutable_graph/csr/mutable_csr.h"
 #include "flex/storages/rt_mutable_graph/dual_csr.h"
-#include "flex/storages/rt_mutable_graph/types.h"
 #include "flex/utils/arrow_utils.h"
 #include "flex/utils/indexers.h"
 #include "flex/utils/property/table.h"

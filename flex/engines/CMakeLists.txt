@@ -1,6 +1,6 @@
-
 add_subdirectory(graph_db)
-add_subdirectory(bsp)
-add_subdirectory(http_server)
-add_subdirectory(hqps_db)
-
+if (NOT BUILD_RUNTIME_ONLY)
+    add_subdirectory(bsp)
+    add_subdirectory(http_server)
+    add_subdirectory(hqps_db)
+endif()

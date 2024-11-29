@@ -18,7 +18,7 @@
 
 #include "grape/types.h"
 
-#include "flex/storages/rt_mutable_graph/types.h"
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/utils/property/column.h"
 #include "flex/utils/property/table.h"
 #include "flex/utils/property/types.h"

@@ -19,40 +19,40 @@ limitations under the License.
 #include <stdint.h>
 #include <iostream>
 
-namespace gs {
+// namespace gs {
 
-enum class EdgeStrategy {
-  kNone,
-  kSingle,
-  kMultiple,
-};
+// enum class EdgeStrategy {
+//   kNone,
+//   kSingle,
+//   kMultiple,
+// };
 
-using timestamp_t = uint32_t;
-using vid_t = uint32_t;
-using label_t = uint8_t;
+// using timestamp_t = uint32_t;
+// using vid_t = uint32_t;
+// using label_t = uint8_t;
 
-}  // namespace gs
+// }  // namespace gs
 
-namespace std {
+// namespace std {
 
-// operator << for EdgeStrategy
-inline ostream& operator<<(ostream& os, const gs::EdgeStrategy& strategy) {
-  switch (strategy) {
-  case gs::EdgeStrategy::kNone:
-    os << "None";
-    break;
-  case gs::EdgeStrategy::kSingle:
-    os << "Single";
-    break;
-  case gs::EdgeStrategy::kMultiple:
-    os << "Multiple";
-    break;
-  default:
-    os << "Unknown";
-    break;
-  }
-  return os;
-}
-}  // namespace std
+// // operator << for EdgeStrategy
+// inline ostream& operator<<(ostream& os, const gs::EdgeStrategy& strategy) {
+//   switch (strategy) {
+//   case gs::EdgeStrategy::kNone:
+//     os << "None";
+//     break;
+//   case gs::EdgeStrategy::kSingle:
+//     os << "Single";
+//     break;
+//   case gs::EdgeStrategy::kMultiple:
+//     os << "Multiple";
+//     break;
+//   default:
+//     os << "Unknown";
+//     break;
+//   }
+//   return os;
+// }
+// }  // namespace std
 
 #endif  // STORAGES_RT_MUTABLE_GRAPH_TYPES_H_

@@ -2,7 +2,7 @@
 #define ENGINES_HQPS_ENGINE_UTILS_TYPE_UTILS_H_
 
 #include <limits>
-#include "flex/storages/rt_mutable_graph/types.h"
+#include "flex/engines/graph_db/runtime/common/types.h"
 
 namespace gs {
 struct Dist {

@@ -18,8 +18,8 @@
 
 #include <limits>
 
-#include "flex/storages/rt_mutable_graph/schema.h"
-#include "flex/storages/rt_mutable_graph/types.h"
+#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/utils/allocators.h"
 #include "flex/utils/property/types.h"
 #include "grape/serialization/in_archive.h"

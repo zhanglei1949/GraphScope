@@ -16,7 +16,7 @@
 #ifndef GRAPHSCOPE_DATABASE_SINGLE_VERTEX_INSERT_TRANSACTION_H_
 #define GRAPHSCOPE_DATABASE_SINGLE_VERTEX_INSERT_TRANSACTION_H_
 
-#include "flex/storages/rt_mutable_graph/types.h"
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/utils/allocators.h"
 #include "flex/utils/property/types.h"
 #include "grape/serialization/in_archive.h"

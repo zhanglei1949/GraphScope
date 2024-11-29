@@ -107,10 +107,10 @@ Context runtime_eval(const physical::PhysicalPlan& plan,
                      const GraphReadInterface& txn,
                      const std::map<std::string, std::string>& params,
                      OprTimer& timer);
-WriteContext runtime_eval(const physical::PhysicalPlan& plan,
-                          GraphInsertInterface& txn,
-                          const std::map<std::string, std::string>& params,
-                          OprTimer& timer);
+// WriteContext runtime_eval(const physical::PhysicalPlan& plan,
+//                           GraphInsertInterface& txn,
+//                           const std::map<std::string, std::string>& params,
+//                           OprTimer& timer);
 
 }  // namespace runtime
 

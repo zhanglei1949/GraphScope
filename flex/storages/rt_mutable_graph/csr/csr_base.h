@@ -19,8 +19,8 @@
 #include <string>
 #include <vector>
 
+#include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/storages/rt_mutable_graph/csr/nbr.h"
-#include "flex/storages/rt_mutable_graph/types.h"
 
 namespace gs {
 
