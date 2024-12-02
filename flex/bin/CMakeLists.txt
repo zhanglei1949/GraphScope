@@ -36,6 +36,15 @@ endif()
 # install the script
 install(PROGRAMS load_plan_and_gen.sh DESTINATION bin)
 
+# find_package(ICU REQUIRED)  
+# if (ICU_FOUND)  
+#     message(STATUS "ICU include: ${ICU_INCLUDE_DIRS}")  
+#     message(STATUS "ICU libraries: ${ICU_LIBRARIES}")
+#     include_directories(${ICU_INCLUDE_DIRS})  
+# else()  
+#     message(FATAL_ERROR "ICU not found")
+# endif()
+
 
 include_directories(${Boost_INCLUDE_DIRS})
 add_executable(bulk_loader bulk_loader.cc)
@@ -45,3 +54,13 @@ install_without_export_flex_target(bulk_loader)
 add_executable(stored_procedure_runner stored_procedure_runner.cc)
 target_link_libraries(stored_procedure_runner flex_rt_mutable_graph flex_utils flex_graph_db ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES} ${Boost_LIBRARIES})
 install_without_export_flex_target(stored_procedure_runner)
+
+add_executable(wal_sender wal_sender.c)
+add_executable(wal_writer wal_writer.c)
+# add -lm to link math library
+
+target_link_libraries(wal_sender PUBLIC ${POSTGRESS_LIB_PATH} ${POSTGRESS_PORT_LIB_PATH} ${POSTGRESS_COMMON_LIB_PATH} ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT} ZLIB::ZLIB)
+target_link_libraries(wal_sender PUBLIC m)
+
+target_link_libraries(wal_writer PUBLIC ${POSTGRESS_LIB_PATH} ${POSTGRESS_PORT_LIB_PATH} ${POSTGRESS_COMMON_LIB_PATH} ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT} ZLIB::ZLIB)
+target_link_libraries(wal_writer PUBLIC m)

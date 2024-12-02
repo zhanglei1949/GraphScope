@@ -10,3 +10,6 @@
 	path = learning_engine/graphlearn-for-pytorch
 	url = https://github.com/alibaba/graphlearn-for-pytorch.git
 
+[submodule "flex/third_party/postgres"]
+	path = flex/third_party/postgres
+	url = https://github.com/postgres/postgres.git

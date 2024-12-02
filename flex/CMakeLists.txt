@@ -7,7 +7,7 @@ string(REGEX REPLACE "\n$" "" FLEX_VERSION "${FLEX_VERSION}")
 project (
   Flex
   VERSION ${FLEX_VERSION}
-  LANGUAGES CXX)
+  LANGUAGES C CXX)
 
 
 option(BUILD_TEST "Whether to build test" ON)
@@ -96,6 +96,9 @@ include_directories(SYSTEM ${LIBGRAPELITE_INCLUDE_DIRS}/grape/analytical_apps)
 # find Threads------------------------------------------------------------------
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 find_package(Threads REQUIRED)
+
+find_package(ZLIB REQUIRED)  
+
 
 # find glog---------------------------------------------------------------------
 include("cmake/FindGlog.cmake")
@@ -222,6 +225,15 @@ macro(install_without_export_flex_target target)
     )
 endmacro()
 
+get_filename_component(POSTGRESS_LIB_PATH ../third_party/postgres/src/backend/libpostgres.a ABSOLUTE)
+get_filename_component(POSTGRESS_PORT_LIB_PATH ../third_party/postgres/src/port/libpgport_srv.a ABSOLUTE)
+get_filename_component(POSTGRESS_COMMON_LIB_PATH ../third_party/postgres/src/common/libpgcommon_srv.a ABSOLUTE)
+message(STATUS "Postgres lib path: ${POSTGRESS_LIB_PATH}")
+message(STATUS "Postgres port lib path: ${POSTGRESS_PORT_LIB_PATH}")
+message(STATUS "Postgres common lib path: ${POSTGRESS_COMMON_LIB_PATH}")
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/postgres/src/include)
+
+add_subdirectory(adaptor)
 add_subdirectory(utils)
 add_subdirectory(codegen)
 add_subdirectory(storages)
@@ -233,7 +245,6 @@ endif()
 if (BUILD_TEST)
    add_subdirectory(tests)
 endif()
-
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/flex-config.in.cmake
                ${CMAKE_CURRENT_BINARY_DIR}/flex-config.cmake @ONLY)
