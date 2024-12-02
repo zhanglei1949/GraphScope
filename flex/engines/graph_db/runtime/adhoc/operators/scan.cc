@@ -264,7 +264,7 @@ Context eval_scan(const physical::Scan& scan_opr,
     const auto& scan_opr_params = scan_opr.params();
     for (const auto& table : scan_opr_params.tables()) {
       // exclude invalid vertex label id
-      if (graph.schema().vertex_label_num() <= table.id()) {
+      if (graph.schema().vertex_label_num() <= (label_t) table.id()) {
         continue;
       }
       scan_params.tables.push_back(table.id());
