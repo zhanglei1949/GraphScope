@@ -98,6 +98,7 @@
 #include "common/file_perm.h"
 #include "common/pg_prng.h"
 #include "lib/ilist.h"
+#include "access/heapam_xlog.h"
 #include "libpq/libpq.h"
 #include "libpq/pqsignal.h"
 #include "pg_getopt.h"
@@ -1605,6 +1606,16 @@ ConfigurePostmasterWaitSet(bool accept_connections)
 	}
 }
 
+static void flex_write_xlog(){
+	printf("In flex_write_xlog\n");
+	printf("Begin log insert");
+	XLogBeginInsert();
+	XLogRegisterData((char *) "Hello World", 11);
+	uint8		info = XLOG_HEAP_INSERT;
+	XLogRecPtr	recptr = XLogInsert(RM_HEAP_ID, info);
+	printf("End log insert %d", recptr);
+}
+
 /*
  * Main idle loop of postmaster
  */
@@ -1635,6 +1646,7 @@ ServerLoop(void)
 		 */
 		for (int i = 0; i < nevents; i++)
 		{
+			printf("Got event %d\n", events[i].events);
 			if (events[i].events & WL_LATCH_SET)
 				ResetLatch(MyLatch);
 
@@ -2230,6 +2242,7 @@ handle_pm_child_exit_signal(SIGNAL_ARGS)
 static void
 process_pm_child_exit(void)
 {
+	printf("%d In postmaster, process_pm_child_exit\n", getpid());
 	int			pid;			/* process id of dead child process */
 	int			exitstatus;		/* its exit status */
 
@@ -2565,6 +2578,7 @@ static void
 CleanupBackend(Backend *bp,
 			   int exitstatus)	/* child's exit status. */
 {
+	printf("%d In postmaster, CleanupBackend\n", getpid());
 	char		namebuf[MAXPGPATH];
 	char	   *procname;
 	bool		crashed = false;
@@ -3151,6 +3165,7 @@ PostmasterStateMachine(void)
 static void
 LaunchMissingBackgroundProcesses(void)
 {
+	printf("%d In postmaster, LaunchMissingBackgroundProcesses\n", getpid());
 	/* Syslogger is active in all states */
 	if (SysLoggerPID == 0 && Logging_collector)
 		SysLoggerPID = SysLogger_Start();
@@ -3190,14 +3205,14 @@ LaunchMissingBackgroundProcesses(void)
 	 * autovacuum might update relfrozenxid for empty tables before the
 	 * physical files are put in place.
 	 */
-	if (!IsBinaryUpgrade && AutoVacPID == 0 &&
-		(AutoVacuumingActive() || start_autovac_launcher) &&
-		pmState == PM_RUN)
-	{
-		AutoVacPID = StartChildProcess(B_AUTOVAC_LAUNCHER);
-		if (AutoVacPID != 0)
-			start_autovac_launcher = false; /* signal processed */
-	}
+	// if (!IsBinaryUpgrade && AutoVacPID == 0 &&
+	// 	(AutoVacuumingActive() || start_autovac_launcher) &&
+	// 	pmState == PM_RUN)
+	// {
+	// 	AutoVacPID = StartChildProcess(B_AUTOVAC_LAUNCHER);
+	// 	if (AutoVacPID != 0)
+	// 		start_autovac_launcher = false; /* signal processed */
+	// }
 
 	/*
 	 * If WAL archiving is enabled always, we are allowed to start archiver
@@ -3255,8 +3270,11 @@ LaunchMissingBackgroundProcesses(void)
 		WalSummarizerPID = StartChildProcess(B_WAL_SUMMARIZER);
 
 	/* Get other worker processes running, if needed */
-	if (StartWorkerNeeded || HaveCrashedWorker)
+	if (StartWorkerNeeded || HaveCrashedWorker){
+		printf("StartWorkerNeeded = %d, HaveCrashedWorker = %d\n", StartWorkerNeeded, HaveCrashedWorker);
 		maybe_start_bgworkers();
+	}
+	printf("End of LaunchMissingBackgroundProcesses\n");
 }
 
 /*
