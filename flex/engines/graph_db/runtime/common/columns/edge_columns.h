@@ -58,6 +58,8 @@ static inline void get_edge_data(EdgePropVecBase* prop, size_t idx,
         dynamic_cast<EdgePropVec<Day>*>(prop)->get_view(idx);
   } else if (prop->type() == PropertyType::kRecordView) {
     // edge_data.type = RTAnyType::kRecordView;
+    edge_data.type = RTAnyType::kRecordView;
+    edge_data.value.record_view = dynamic_cast<EdgePropVec<RecordView>*>(prop)->get_view(idx);
   } else {
     edge_data.type = RTAnyType::kUnknown;
   }
@@ -83,8 +85,11 @@ static inline void set_edge_data(EdgePropVecBase* col, size_t idx,
     dynamic_cast<EdgePropVec<Date>*>(col)->set(idx, edge_data.value.date_val);
   } else if (edge_data.type == RTAnyType::kDate32) {
     dynamic_cast<EdgePropVec<Day>*>(col)->set(idx, edge_data.value.day_val);
-  } else {
-    // LOG(FATAL) << "not support for " << edge_data.type;
+  } else if (edge_data.type == RTAnyType::kRecordView) {
+    dynamic_cast<EdgePropVec<RecordView>*>(col)->set(idx, edge_data.value.record_view);
+  }
+  else {
+    LOG(FATAL) << "not support for " << static_cast<int>(edge_data.type.type_enum_);
   }
 }
 

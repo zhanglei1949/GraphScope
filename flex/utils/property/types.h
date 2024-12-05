@@ -294,6 +294,15 @@ struct RecordView {
   template <typename T>
   T get_field(int col_id) const;
 
+  bool operator==(const RecordView& other) const {
+    if (size() != other.size()) {
+      return false;
+    }
+    return table == other.table && offset == other.offset;
+  }
+
+  std::string to_string() const;
+
   size_t offset;
   const Table* table;
 };
@@ -1365,7 +1374,8 @@ inline ostream& operator<<(ostream& os, gs::PropertyType pt) {
     os << "date";
   } else if (pt == gs::PropertyType::Day()) {
     os << "day";
-  } else if (pt == gs::PropertyType::StringView()) {
+  } else if (pt == gs::PropertyType::StringView() ||
+             pt == gs::PropertyType::String()) {
     os << "string";
   } else if (pt == gs::PropertyType::StringMap()) {
     os << "string_map";
@@ -1373,6 +1383,11 @@ inline ostream& operator<<(ostream& os, gs::PropertyType pt) {
     os << "varchar(" << pt.additional_type_info.max_length << ")";
   } else if (pt == gs::PropertyType::VertexGlobalId()) {
     os << "vertex_global_id";
+  } else if (pt == gs::PropertyType::Label()) {
+    os << "label";
+  } else if (pt == gs::PropertyType::RecordView() ||
+             pt == gs::PropertyType::Record()) {
+    os << "record_view";
   } else {
     os << "unknown";
   }

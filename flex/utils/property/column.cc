@@ -157,6 +157,8 @@ std::shared_ptr<ColumnBase> CreateColumn(
       return std::make_shared<LongColumn>(strategy);
     } else if (type == PropertyType::kUInt32) {
       return std::make_shared<UIntColumn>(strategy);
+    } else if (type == PropertyType::kUInt16) {
+      return std::make_shared<UInt16Column>(strategy);
     } else if (type == PropertyType::kUInt64) {
       return std::make_shared<ULongColumn>(strategy);
     } else if (type == PropertyType::kDouble) {

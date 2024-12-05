@@ -90,6 +90,10 @@ Any RecordView::operator[](size_t col_id) const {
   return table->get_column_by_id(col_id)->get(offset);
 }
 
+std::string RecordView::to_string() const {
+  return "RecordView:";
+}
+
 Record::Record(size_t len) : len(len) { props = new Any[len]; }
 
 Record::Record(const Record& record) {
