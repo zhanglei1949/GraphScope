@@ -775,6 +775,9 @@ static void sink_any(const Any& any, common::Value* value) {
     // do nothing
     value->mutable_none();
   }
+  else if (any.type == PropertyType::Float()){
+    value->set_f64(any.AsFloat());
+  }
   else {
     LOG(FATAL) << "Any value: " << any.to_string()
                << ", type = " << any.type.type_enum;
