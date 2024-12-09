@@ -63,10 +63,10 @@ public class GraphSchemaType extends RelRecordType {
             boolean isNullable) {
         super(StructKind.NONE, fields, isNullable);
         this.scanOpt = scanOpt;
-        Preconditions.checkArgument(
-                labelType.getLabelsEntry().size() == 1,
-                "can not use label=%s to init GraphSchemaType with single label",
-                labelType);
+        // Preconditions.checkArgument(
+        //         labelType.getLabelsEntry().size() == 1,
+        //         "can not use label=%s to init GraphSchemaType with single label",
+        //         labelType);
         this.labelType = labelType;
         this.fuzzySchemaTypes = ImmutableList.of();
     }

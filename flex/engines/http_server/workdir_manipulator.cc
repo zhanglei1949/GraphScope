@@ -15,6 +15,7 @@
 
 #include "flex/engines/http_server/workdir_manipulator.h"
 #include "flex/engines/http_server/codegen_proxy.h"
+#include "flex/engines/hqps_db/core/utils/hqps_utils.h"
 
 #include <boost/uuid/uuid.hpp>             // uuid class
 #include <boost/uuid/uuid_generators.hpp>  // generators

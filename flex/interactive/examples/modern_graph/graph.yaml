@@ -57,11 +57,6 @@ schema:
           relation: MANY_TO_MANY
           x_csr_params:
             sort_on_compaction: TRUE
-      properties:
-        - property_id: 0
-          property_name: weight
-          property_type:
-            primitive_type: DT_DOUBLE
     - type_id: 1
       type_name: created
       description: A created edge type
@@ -74,3 +69,7 @@ schema:
           property_name: weight
           property_type:
             primitive_type: DT_DOUBLE
+        - property_id: 1
+          property_name: since
+          property_type:
+            primitive_type: DT_SIGNED_INT32

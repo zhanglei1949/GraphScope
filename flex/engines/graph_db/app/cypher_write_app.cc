@@ -44,12 +44,12 @@ bool CypherWriteApp::Query(GraphDBSession& graph, Decoder& input,
     }
   }
 
-  const auto& plan = plan_cache_[query];
+  // const auto& plan = plan_cache_[query];
 
   // LOG(INFO) << "plan: " << plan.DebugString();
 
-  gs::runtime::GraphInsertInterface gri(txn);
-  auto ctx = runtime::runtime_eval(plan, gri, params, timer_);
+  // gs::runtime::GraphInsertInterface gri(txn);
+  // auto ctx = runtime::runtime_eval(plan, gri, params, timer_);
 
   // runtime::eval_sink_encoder(ctx, gri, output);
   return true;

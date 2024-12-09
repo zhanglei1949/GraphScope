@@ -1,6 +1,7 @@
 file(GLOB_RECURSE COMMON_SOURCES "common/*.cc")
 add_library(runtime_common SHARED ${COMMON_SOURCES})
 target_link_libraries(runtime_common ${Boost_LIBRARIES} flex_utils hqps_plan_proto ${GLOG_LIBRARIES})
+target_link_libraries(runtime_common flex_rt_mutable_graph)
 install_flex_target(runtime_common)
 
 file(GLOB_RECURSE ADHOC_SOURCES "adhoc/*.cc")

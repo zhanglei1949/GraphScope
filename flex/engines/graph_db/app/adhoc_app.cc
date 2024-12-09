@@ -8,7 +8,7 @@ namespace gs {
 
 bool AdhocReadApp::Query(const GraphDBSession& graph, Decoder& input,
                          Encoder& output) {
-#if 0
+#if 1
   auto txn = graph.GetReadTransaction();
 #else
   runtime::graph_interface_impl::DummyGraph g;

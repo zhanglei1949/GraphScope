@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
   LOG(INFO) << "Finished loading graph, elapsed " << t0 << " s";
   std::string req_file = vm["query-file"].as<std::string>();
   std::string query = read_pb(req_file);
-#if 0
+#if 1
   auto txn = db.GetReadTransaction();
 #else
   gs::runtime::graph_interface_impl::DummyGraph g;

@@ -47,7 +47,7 @@ bool CypherReadApp::Query(const GraphDBSession& graph, Decoder& input,
 
   // LOG(INFO) << "plan: " << plan.DebugString();
 
-#if 0
+#if 1
   gs::runtime::GraphReadInterface gri(txn);
 #else
   gs::runtime::graph_interface_impl::DummyGraph g;

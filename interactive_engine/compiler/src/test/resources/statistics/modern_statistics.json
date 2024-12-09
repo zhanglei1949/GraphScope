@@ -5,12 +5,12 @@
         {
             "type_id": 0,
             "type_name": "person", 
-            "count": 3
+            "count": 4
         },
         {
             "type_id": 1,
             "type_name": "software",
-            "count": 3
+            "count": 2
         }
     ],
     "edge_type_statistics": [

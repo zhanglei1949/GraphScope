@@ -18,12 +18,13 @@
 
 #include "flex/engines/graph_db/runtime/common/schema.h"
 #include "flex/engines/graph_db/runtime/common/types.h"
+#include "flex/engines/graph_db/database/read_transaction.h"
 
 namespace gs {
 
 namespace runtime {
 
-#if 0
+#if 1
 
 namespace graph_interface_impl {
 

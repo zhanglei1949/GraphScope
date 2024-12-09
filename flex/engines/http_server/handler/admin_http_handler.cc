@@ -23,6 +23,7 @@
 #include "flex/engines/http_server/generated/actor/admin_actor_ref.act.autogen.h"
 #include "flex/engines/http_server/types.h"
 #include "flex/engines/http_server/workdir_manipulator.h"
+#include "flex/engines/hqps_db/core/utils/hqps_utils.h"
 #include "flex/third_party/httplib.h"
 
 #include <glog/logging.h>

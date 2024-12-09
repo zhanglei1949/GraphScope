@@ -32,10 +32,10 @@ compiler:
   meta:
     reader:
       schema:
-        uri: /data/flex_ldbc_snb/configs/graph_for_compiler.yaml
+        uri: /tmp/interactive_workspace/data/modern_graph/graph.yaml
         interval: 1000 # ms
       statistics:
-        uri: /data/flex_ldbc_snb/configs/ldbc_30_statistics.json
+        uri: /workspaces/GraphScope/interactive_engine/compiler/src/test/resources/statistics/modern_statistics.json
         interval: 86400000 # ms
   endpoint:
     default_listen_address: localhost
