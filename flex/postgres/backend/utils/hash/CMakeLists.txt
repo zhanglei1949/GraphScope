@@ -1,0 +1,1 @@
+add_library(flex_postgres_hash STATIC "dynahash.c" "pg_crc.c")

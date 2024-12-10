@@ -32,8 +32,8 @@
 
 #include "bootstrap/bootstrap.h"
 #include "common/username.h"
-// #include "postmaster/postmaster.h"
-#include "flex/adaptor/bin/postmaster.h"
+#include "postmaster/postmaster.h"
+// #include "flex/adaptor/bin/postmaster.h"
 #include "tcop/tcopprot.h"
 #include "utils/help_config.h"
 #include "utils/memutils.h"
@@ -194,7 +194,7 @@ main(int argc, char *argv[])
 		GucInfoMain();
 	else{
 		printf("Entering PostmasterMain...");
-		FlexPostmasterMain(argc, argv);
+		PostmasterMain(argc, argv);
 	}
 	/* the functions above should not return */
 	abort();

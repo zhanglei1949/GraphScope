@@ -1,0 +1,1 @@
+add_library(flex_postgres_fmgr STATIC "fmgr.c" "dfmgr.c" "funcapi.c")

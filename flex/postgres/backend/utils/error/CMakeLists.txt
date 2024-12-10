@@ -1,0 +1,1 @@
+add_library(flex_postgres_error STATIC "assert.c" "csvlog.c" "elog.c" "jsonlog.c")

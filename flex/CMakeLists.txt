@@ -235,6 +235,7 @@ message(STATUS "Postgres common lib path: ${POSTGRESS_COMMON_LIB_PATH}")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/postgres/src/include)
 
 add_subdirectory(adaptor)
+add_subdirectory(postgres)
 add_subdirectory(utils)
 add_subdirectory(codegen)
 add_subdirectory(storages)

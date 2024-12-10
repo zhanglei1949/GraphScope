@@ -1,0 +1,1 @@
+add_library(flex_postgres_rewrite STATIC "rewriteDefine.c" "rewriteHandler.c" "rewriteManip.c" "rewriteRemove.c" "rewriteSearchCycle.c" "rewriteSupport.c" "rowsecurity.c")

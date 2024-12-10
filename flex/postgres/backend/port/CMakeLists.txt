@@ -1,0 +1,1 @@
+add_library(flex_postgres_port STATIC "atomics.c" "posix_sema.c" "sysv_shmem.c")

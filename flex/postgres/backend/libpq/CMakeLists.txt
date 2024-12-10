@@ -1,0 +1,2 @@
+add_library(flex_postgres_libpq STATIC "auth.c" "auth-sasl.c" "auth-scram.c" "be-fsstubs.c" "be-secure.c" "be-secure-common.c" "crypt.c" "hba.c" "ifaddr.c" "pqcomm.c" "pqformat.c" "pqmq.c" "pqsignal.c")
+target_link_libraries(flex_postgres_libpq ${POSTGRESS_COMMON_LIB_PATH} ${POSTGRESS_PORT_LIB_PATH})
