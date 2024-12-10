@@ -20,7 +20,7 @@
 #include <string>
 
 #include "flex/engines/graph_db/database/graph_db.h"
-#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/utils/schema.h"
 #include "flex/engines/http_server/types.h"
 #include "flex/storages/metadata/graph_meta_store.h"
 #include "flex/storages/rt_mutable_graph/loading_config.h"

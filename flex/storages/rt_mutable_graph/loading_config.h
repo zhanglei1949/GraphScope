@@ -26,7 +26,7 @@
 #include <unordered_set>
 #include "arrow/api.h"
 #include "arrow/csv/options.h"
-#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/utils/schema.h"
 #include "flex/utils/arrow_utils.h"
 #include "flex/utils/yaml_utils.h"
 

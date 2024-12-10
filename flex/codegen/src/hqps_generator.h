@@ -33,7 +33,7 @@ limitations under the License.
 #include "flex/codegen/src/hqps/hqps_select_builder.h"
 #include "flex/codegen/src/hqps/hqps_sink_builder.h"
 #include "flex/codegen/src/hqps/hqps_sort_builder.h"
-#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/utils/schema.h"
 #include "flex/proto_generated_gie/physical.pb.h"
 
 namespace gs {

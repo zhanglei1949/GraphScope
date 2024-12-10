@@ -23,6 +23,8 @@
 #include "flex/utils/result.h"
 #include "flex/utils/yaml_utils.h"
 
+#include <boost/functional/hash.hpp>
+
 namespace gs {
 
 class Schema {
@@ -228,12 +230,17 @@ class Schema {
   const std::unordered_map<std::string, std::pair<PropertyType, uint8_t>>&
   get_vprop_name_to_type_and_index(label_t label) const;
 
+  static uint64_t encode_unique_vertex_id(label_t label_id, vid_t vid);
+  static int64_t encode_unique_edge_id(uint32_t label_id, vid_t src, vid_t dst);
+
+  uint32_t generate_edge_label_id(label_t src_label_id, label_t dst_label_id,
+                                label_t edge_label_id) const;
  private:
+   uint32_t insert_edge_triplet(label_t src_label_id, label_t dst_label_id,
+                                label_t edge_label_id);
   label_t vertex_label_to_index(const std::string& label);
 
   label_t edge_label_to_index(const std::string& label);
-
-  uint32_t generate_edge_label(label_t src, label_t dst, label_t edge) const;
 
   IdIndexer<std::string, label_t> vlabel_indexer_;
   IdIndexer<std::string, label_t> elabel_indexer_;
@@ -262,8 +269,32 @@ class Schema {
   std::string description_;
   std::string version_;
   bool has_multi_props_edge_;
+  std::unordered_map<std::tuple<label_t, label_t, label_t>, uint32_t, boost::hash<std::tuple<label_t, label_t, label_t>>> edge_label_triplet_to_id_;
+  std::vector<std::tuple<label_t, label_t, label_t>> edge_label_id_to_triplet_;
 };
 
 }  // namespace gs
+
+namespace std {
+
+// operator << for EdgeStrategy
+inline ostream& operator<<(ostream& os, const gs::EdgeStrategy& strategy) {
+  switch (strategy) {
+  case gs::EdgeStrategy::kNone:
+    os << "None";
+    break;
+  case gs::EdgeStrategy::kSingle:
+    os << "Single";
+    break;
+  case gs::EdgeStrategy::kMultiple:
+    os << "Multiple";
+    break;
+  default:
+    os << "Unknown";
+    break;
+  }
+  return os;
+}
+}  // namespace std
 
 #endif  // GRAPHSCOPE_FRAGMENT_SCHEMA_H_

@@ -461,7 +461,7 @@ class SinkOp {
           label = labels[1];
         }
         vertex->mutable_label()->set_id(label);
-        vertex->set_id(encode_unique_vertex_id(label, vids[i]));
+        vertex->set_id(Schema::encode_unique_vertex_id(label, vids[i]));
         // set properties.
         auto columns = column_ptrs[label];
         for (size_t j = 0; j < columns.size(); ++j) {
@@ -500,7 +500,7 @@ class SinkOp {
           new_col->mutable_name_or_id()->set_id(tag_id);
           auto vertex =
               new_col->mutable_entry()->mutable_element()->mutable_vertex();
-          vertex->set_id(encode_unique_vertex_id(label, vids[i]));
+          vertex->set_id(Schema::encode_unique_vertex_id(label, vids[i]));
           vertex->mutable_label()->set_id(label);
           // set properties.
           auto columns = column_ptrs[label];
@@ -547,7 +547,7 @@ class SinkOp {
         new_col->mutable_name_or_id()->set_id(tag_id);
         auto vertex =
             new_col->mutable_entry()->mutable_element()->mutable_vertex();
-        vertex->set_id(encode_unique_vertex_id(label, vids[i]));
+        vertex->set_id(Schema::encode_unique_vertex_id(label, vids[i]));
         vertex->mutable_label()->set_id(label);
         for (size_t j = 0; j < column_ptrs.size(); ++j) {
           auto& column_ptr = column_ptrs[j];
@@ -579,7 +579,7 @@ class SinkOp {
           new_col->mutable_name_or_id()->set_id(tag_id);
           auto vertex =
               new_col->mutable_entry()->mutable_element()->mutable_vertex();
-          vertex->set_id(encode_unique_vertex_id(label, vids[i]));
+          vertex->set_id(Schema::encode_unique_vertex_id(label, vids[i]));
           vertex->mutable_label()->set_id(label);
           for (size_t j = 0; j < column_ptrs.size(); ++j) {
             auto& column_ptr = column_ptrs[j];
@@ -915,7 +915,7 @@ class SinkOp {
           continue;
         }
         mutable_vertex->mutable_label()->set_id(label);
-        mutable_vertex->set_id(encode_unique_vertex_id(label, vertices_vec[i]));
+        mutable_vertex->set_id(Schema::encode_unique_vertex_id(label, vertices_vec[i]));
         // label must be set
         auto cur_column_ptrs = column_ptrs[label_vec_ind];
         for (size_t j = 0; j < cur_column_ptrs.size(); ++j) {
@@ -953,7 +953,7 @@ class SinkOp {
           }
           mutable_vertex->mutable_label()->set_id(label);
           mutable_vertex->set_id(
-              encode_unique_vertex_id(label, vertices_vec[i]));
+              Schema::encode_unique_vertex_id(label, vertices_vec[i]));
           // label must be set
           auto cur_column_ptrs = column_ptrs[label_vec_ind];
           for (size_t j = 0; j < cur_column_ptrs.size(); ++j) {
@@ -1003,10 +1003,10 @@ class SinkOp {
             unique_edge_label, iter.GetSrc(),
             iter.GetDst()));  // Currently we don't have a unique id for edge.
         mutable_edge->set_src_id(
-            encode_unique_vertex_id(iter.GetSrcLabel(), iter.GetSrc()));
+            Schema::encode_unique_vertex_id(iter.GetSrcLabel(), iter.GetSrc()));
         mutable_edge->mutable_src_label()->set_id(iter.GetSrcLabel());
         mutable_edge->set_dst_id(
-            encode_unique_vertex_id(iter.GetDstLabel(), iter.GetDst()));
+            Schema::encode_unique_vertex_id(iter.GetDstLabel(), iter.GetDst()));
         mutable_edge->mutable_dst_label()->set_id(iter.GetDstLabel());
 
         auto prop_names = iter.GetPropNames();
@@ -1040,10 +1040,10 @@ class SinkOp {
               unique_edge_label, iter.GetSrc(),
               iter.GetDst()));  // Currently we don't have a unique id for edge.
           mutable_edge->set_src_id(
-              encode_unique_vertex_id(iter.GetSrcLabel(), iter.GetSrc()));
+              Schema::encode_unique_vertex_id(iter.GetSrcLabel(), iter.GetSrc()));
           mutable_edge->mutable_src_label()->set_id(iter.GetSrcLabel());
           mutable_edge->set_dst_id(
-              encode_unique_vertex_id(iter.GetDstLabel(), iter.GetDst()));
+              Schema::encode_unique_vertex_id(iter.GetDstLabel(), iter.GetDst()));
           mutable_edge->mutable_dst_label()->set_id(iter.GetDstLabel());
           auto prop_names = iter.GetPropNames();
           if (prop_names.size() > 0) {
@@ -1128,46 +1128,33 @@ class SinkOp {
     label_id_t label;
     std::tie(label, vid) = path.GetNode(path.length() - 1);
     auto vertex = mutable_path.add_path()->mutable_vertex();
-    vertex->set_id(encode_unique_vertex_id(label, vid));
+    vertex->set_id(Schema::encode_unique_vertex_id(label, vid));
     vertex->mutable_label()->set_id(label);
   }
 
-  static uint64_t encode_unique_vertex_id(label_id_t label_id, vid_t vid) {
-    // encode label_id and vid to a unique vid
-    GlobalId global_id(label_id, vid);
-    return global_id.global_id;
-  }
+  // static uint64_t encode_unique_vertex_id(label_id_t label_id, vid_t vid) {
+  //   // encode label_id and vid to a unique vid
+  //   GlobalId global_id(label_id, vid);
+  //   return global_id.global_id;
+  // }
 
-  static int64_t encode_unique_edge_id(uint32_t label_id, vid_t src,
-                                       vid_t dst) {
-    // We assume label_id is only used by 24 bits.
-    int64_t unique_edge_id = label_id;
-    static constexpr int num_bits = sizeof(int64_t) * 8 - sizeof(uint32_t) * 8;
-    unique_edge_id = unique_edge_id << num_bits;
-    // bitmask for top 44 bits set to 1
-    int64_t bitmask = 0xFFFFFFFFFF000000;
-    // 24 bit | 20 bit | 20 bit
-    if (bitmask & (int64_t) src || bitmask & (int64_t) dst) {
-      LOG(ERROR) << "src or dst is too large to be encoded in 20 bits: " << src
-                 << " " << dst;
-    }
-    unique_edge_id = unique_edge_id | (src << 20);
-    unique_edge_id = unique_edge_id | dst;
-    return unique_edge_id;
-  }
-
-  // actually produce uint24_t.
-  static uint32_t generate_edge_label_id(label_id_t src_label_id,
-                                         label_id_t dst_label_id,
-                                         label_id_t edge_label_id) {
-    uint32_t unique_edge_label_id = src_label_id;
-    static constexpr int num_bits = sizeof(label_id_t) * 8;
-    unique_edge_label_id = unique_edge_label_id << num_bits;
-    unique_edge_label_id = unique_edge_label_id | dst_label_id;
-    unique_edge_label_id = unique_edge_label_id << num_bits;
-    unique_edge_label_id = unique_edge_label_id | edge_label_id;
-    return unique_edge_label_id;
-  }
+  // static int64_t encode_unique_edge_id(uint32_t label_id, vid_t src,
+  //                                      vid_t dst) {
+  //   // We assume label_id is only used by 24 bits.
+  //   int64_t unique_edge_id = label_id;
+  //   static constexpr int num_bits = sizeof(int64_t) * 8 - sizeof(uint32_t) * 8;
+  //   unique_edge_id = unique_edge_id << num_bits;
+  //   // bitmask for top 44 bits set to 1
+  //   int64_t bitmask = 0xFFFFFFFFFF000000;
+  //   // 24 bit | 20 bit | 20 bit
+  //   if (bitmask & (int64_t) src || bitmask & (int64_t) dst) {
+  //     LOG(ERROR) << "src or dst is too large to be encoded in 20 bits: " << src
+  //                << " " << dst;
+  //   }
+  //   unique_edge_id = unique_edge_id | (src << 20);
+  //   unique_edge_id = unique_edge_id | dst;
+  //   return unique_edge_id;
+  // }
 };
 }  // namespace gs
 

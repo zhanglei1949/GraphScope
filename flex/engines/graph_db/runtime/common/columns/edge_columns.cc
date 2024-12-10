@@ -21,12 +21,13 @@ namespace runtime {
 
 std::shared_ptr<IContextColumn> SDSLEdgeColumn::shuffle(
     const std::vector<size_t>& offsets) const {
-  std::vector<PropertyType> sub_types;
-  if (prop_type_ == PropertyType::kRecordView) {
-    sub_types = std::dynamic_pointer_cast<TypedColumn<RecordView>>(prop_col_)
-                    ->sub_types();
-  }
-  SDSLEdgeColumnBuilder builder(dir_, label_, prop_type_, sub_types);
+  // std::vector<PropertyType> sub_types;
+  // if (prop_type_ == PropertyType::kRecordView) {
+  //   sub_types = std::dynamic_pointer_cast<TypedColumn<RecordView>>(prop_col_)
+  //                   ->sub_types();
+  // }
+  // SDSLEdgeColumnBuilder builder(dir_, label_, prop_type_, sub_types);
+  SDSLEdgeColumnBuilder builder(dir_, label_, prop_type_);
   size_t new_row_num = offsets.size();
   builder.reserve(new_row_num);
 

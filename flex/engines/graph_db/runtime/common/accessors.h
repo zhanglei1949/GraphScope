@@ -139,7 +139,7 @@ class VertexGIdPathAccessor : public IAccessor {
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& v = vertex_col_.get_vertex(idx);
-    return encode_unique_vertex_id(v.label_, v.vid_);
+    return Schema::encode_unique_vertex_id(v.label_, v.vid_);
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -318,7 +318,7 @@ class VertexGIdVertexAccessor : public IAccessor {
   VertexGIdVertexAccessor() {}
 
   elem_t typed_eval_vertex(label_t label, vid_t v, size_t idx) const {
-    return encode_unique_vertex_id(label, v);
+    return Schema::encode_unique_vertex_id(label, v);
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -598,11 +598,11 @@ class MultiPropsEdgePropertyEdgeAccessor : public IAccessor {
     vertex_label_num_ = graph.schema().vertex_label_num();
     indexs.resize(2 * vertex_label_num_ * vertex_label_num_ * edge_label_num_,
                   std::numeric_limits<size_t>::max());
-    for (label_t src_label = 0; src_label < vertex_label_num_; ++src_label) {
+    for (label_t src_label = 0; src_label < (label_t) vertex_label_num_; ++src_label) {
       auto src = graph.schema().get_vertex_label_name(src_label);
-      for (label_t dst_label = 0; dst_label < vertex_label_num_; ++dst_label) {
+      for (label_t dst_label = 0; dst_label <(label_t) vertex_label_num_; ++dst_label) {
         auto dst = graph.schema().get_vertex_label_name(dst_label);
-        for (label_t edge_label = 0; edge_label < edge_label_num_;
+        for (label_t edge_label = 0; edge_label < (label_t)edge_label_num_;
              ++edge_label) {
           auto edge = graph.schema().get_edge_label_name(edge_label);
           if (!graph.schema().exist(src, dst, edge)) {

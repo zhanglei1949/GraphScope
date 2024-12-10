@@ -22,7 +22,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/utils/schema.h"
 #include "flex/utils/property/types.h"
 #include "flex/utils/result.h"
 #include "flex/utils/service_utils.h"

@@ -97,7 +97,7 @@ void BasicFragmentLoader::append_edge_loading_progress(
 }
 
 void BasicFragmentLoader::init_loading_status_file() {
-  for (label_t v_label = 0; v_label < vertex_label_num_; v_label++) {
+  for (label_t v_label = 0; v_label < (label_t) vertex_label_num_; v_label++) {
     auto label_name = schema_.get_vertex_label_name(v_label);
     append_vertex_loading_progress(label_name, LoadingStatus::kLoading);
   }
@@ -119,7 +119,7 @@ void BasicFragmentLoader::init_loading_status_file() {
 }
 
 void BasicFragmentLoader::init_vertex_data() {
-  for (label_t v_label = 0; v_label < vertex_label_num_; v_label++) {
+  for (label_t v_label = 0; v_label < (label_t) vertex_label_num_; v_label++) {
     auto& v_data = vertex_data_[v_label];
     auto label_name = schema_.get_vertex_label_name(v_label);
     auto& property_types = schema_.get_vertex_properties(v_label);
@@ -165,12 +165,12 @@ void BasicFragmentLoader::AddVertexBatch(
 }
 
 const IndexerType& BasicFragmentLoader::GetLFIndexer(label_t v_label) const {
-  CHECK(v_label < vertex_label_num_);
+  CHECK(v_label < (label_t) vertex_label_num_);
   return lf_indexers_[v_label];
 }
 
 IndexerType& BasicFragmentLoader::GetLFIndexer(label_t v_label) {
-  CHECK(v_label < vertex_label_num_);
+  CHECK(v_label < (label_t)vertex_label_num_);
   return lf_indexers_[v_label];
 }
 

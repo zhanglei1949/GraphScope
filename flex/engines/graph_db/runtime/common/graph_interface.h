@@ -16,7 +16,7 @@
 #ifndef RUNTIME_COMMON_GRAPH_INTERFACE_H_
 #define RUNTIME_COMMON_GRAPH_INTERFACE_H_
 
-#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/utils/schema.h"
 #include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/engines/graph_db/database/read_transaction.h"
 

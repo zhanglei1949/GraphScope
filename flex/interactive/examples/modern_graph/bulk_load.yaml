@@ -66,6 +66,15 @@ edge_mappings:
       - column:
           index: 1
           name: id
+    column_mappings:
+      - column:
+          index: 2
+          name: weight
+        property: weight
+      - column:
+          index: 3
+          name: since
+        property: since
   - type_triplet:
       edge: created
       source_vertex: person

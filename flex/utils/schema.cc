@@ -13,8 +13,9 @@
  * limitations under the License.
  */
 
-#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/utils/schema.h"
 #include "flex/utils/exception.h"
+#include "flex/engines/graph_db/runtime/common/types.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -41,6 +42,8 @@ void Schema::Clear() {
   plugin_name_to_path_and_id_.clear();
   plugin_dir_.clear();
   has_multi_props_edge_ = false;
+  edge_label_triplet_to_id_.clear();
+  edge_label_id_to_triplet_.clear();
 }
 
 void Schema::add_vertex_label(
@@ -78,7 +81,7 @@ void Schema::add_edge_label(const std::string& src_label,
   label_t edge_label_id = edge_label_to_index(edge_label);
 
   uint32_t label_id =
-      generate_edge_label(src_label_id, dst_label_id, edge_label_id);
+      insert_edge_triplet(src_label_id, dst_label_id, edge_label_id);
   eproperties_[label_id] = properties;
   if (properties.size() > 1) {
     has_multi_props_edge_ = true;
@@ -132,7 +135,7 @@ const std::vector<std::string>& Schema::get_vertex_property_names(
 const std::vector<std::string>& Schema::get_vertex_property_names(
     label_t label) const {
   THROW_EXCEPTION_IF(
-      label >= vprop_names_.size(),
+      label >= (label_t) vprop_names_.size(),
       "Fail to get vertex property names: " + std::to_string(label) +
           ", out of range of vprop_names_ " +
           std::to_string(vprop_names_.size()));
@@ -147,7 +150,7 @@ const std::string& Schema::get_vertex_description(
 
 const std::string& Schema::get_vertex_description(label_t label) const {
   THROW_EXCEPTION_IF(
-      label >= v_descriptions_.size(),
+      label >= (label_t) v_descriptions_.size(),
       "Fail to get vertex description: " + std::to_string(label) +
           ", out of range of v_descriptions_ " +
           std::to_string(v_descriptions_.size()));
@@ -158,7 +161,7 @@ const std::vector<StorageStrategy>& Schema::get_vertex_storage_strategies(
     const std::string& label) const {
   label_t index = get_vertex_label_id(label);
   THROW_EXCEPTION_IF(
-      index >= vprop_storage_.size(),
+      index >= (label_t) vprop_storage_.size(),
       "Fail to get vertex storage strategies: " + std::to_string(index) +
           ", out of range of vprop_storage_ " +
           std::to_string(vprop_storage_.size()));
@@ -180,13 +183,16 @@ bool Schema::exist(const std::string& src_label, const std::string& dst_label,
   label_t src = get_vertex_label_id(src_label);
   label_t dst = get_vertex_label_id(dst_label);
   label_t edge = get_edge_label_id(edge_label);
-  uint32_t index = generate_edge_label(src, dst, edge);
+  uint32_t index = generate_edge_label_id(src, dst, edge);
   return eproperties_.find(index) != eproperties_.end();
 }
 
 bool Schema::exist(label_t src_label, label_t dst_label,
                    label_t edge_label) const {
-  uint32_t index = generate_edge_label(src_label, dst_label, edge_label);
+  uint32_t index = generate_edge_label_id(src_label, dst_label, edge_label);
+  if (index == std::numeric_limits<uint32_t>::max()) {
+    return false;
+  }
   return eproperties_.find(index) != eproperties_.end();
 }
 
@@ -196,21 +202,21 @@ const std::vector<PropertyType>& Schema::get_edge_properties(
   label_t src = get_vertex_label_id(src_label);
   label_t dst = get_vertex_label_id(dst_label);
   label_t edge = get_edge_label_id(label);
-  uint32_t index = generate_edge_label(src, dst, edge);
+  uint32_t index = generate_edge_label_id(src, dst, edge);
   return eproperties_.at(index);
 }
 
 const std::vector<PropertyType>& Schema::get_edge_properties(
     label_t src_label, label_t dst_label, label_t label) const {
   THROW_EXCEPTION_IF(
-      src_label >= vlabel_indexer_.size(),
+      src_label >= (label_t) vlabel_indexer_.size(),
       "vertex label " + std::to_string(src_label) + " not found");
   THROW_EXCEPTION_IF(
-      dst_label >= vlabel_indexer_.size(),
+      dst_label >= (label_t) vlabel_indexer_.size(),
       "vertex label " + std::to_string(dst_label) + " not found");
-  THROW_EXCEPTION_IF(label >= elabel_indexer_.size(),
+  THROW_EXCEPTION_IF(label >= (label_t) elabel_indexer_.size(),
                      "edge label " + std::to_string(label) + " not found");
-  uint32_t index = generate_edge_label(src_label, dst_label, label);
+  uint32_t index = generate_edge_label_id(src_label, dst_label, label);
   return eproperties_.at(index);
 }
 
@@ -226,14 +232,14 @@ std::string Schema::get_edge_description(const std::string& src_label,
 std::string Schema::get_edge_description(label_t src_label, label_t dst_label,
                                          label_t label) const {
   THROW_EXCEPTION_IF(
-      src_label >= vlabel_indexer_.size(),
+      src_label >= (label_t) vlabel_indexer_.size(),
       "vertex label " + std::to_string(src_label) + " not found");
   THROW_EXCEPTION_IF(
-      dst_label >= vlabel_indexer_.size(),
+      dst_label >= (label_t) vlabel_indexer_.size(),
       "vertex label " + std::to_string(dst_label) + " not found");
-  THROW_EXCEPTION_IF(label >= elabel_indexer_.size(),
+  THROW_EXCEPTION_IF(label >= (label_t) elabel_indexer_.size(),
                      "edge label " + std::to_string(label) + " not found");
-  uint32_t index = generate_edge_label(src_label, dst_label, label);
+  uint32_t index = generate_edge_label_id(src_label, dst_label, label);
   THROW_EXCEPTION_IF(index >= e_descriptions_.size(),
                      "Fail to get edge description: " + std::to_string(index) +
                          ", out of range of e_descriptions_ " +
@@ -243,7 +249,7 @@ std::string Schema::get_edge_description(label_t src_label, label_t dst_label,
 
 PropertyType Schema::get_edge_property(label_t src, label_t dst,
                                        label_t edge) const {
-  uint32_t index = generate_edge_label(src, dst, edge);
+  uint32_t index = generate_edge_label_id(src, dst, edge);
   auto& vec = eproperties_.at(index);
   return vec.empty() ? PropertyType::kEmpty : vec[0];
 }
@@ -260,14 +266,14 @@ const std::vector<std::string>& Schema::get_edge_property_names(
     const label_t& src_label, const label_t& dst_label,
     const label_t& label) const {
   THROW_EXCEPTION_IF(
-      src_label >= vlabel_indexer_.size(),
+      src_label >= (label_t) vlabel_indexer_.size(),
       "vertex label " + std::to_string(src_label) + " not found");
   THROW_EXCEPTION_IF(
-      dst_label >= vlabel_indexer_.size(),
+      dst_label >= (label_t) vlabel_indexer_.size(),
       "vertex label " + std::to_string(dst_label) + " not found");
-  THROW_EXCEPTION_IF(label >= elabel_indexer_.size(),
+  THROW_EXCEPTION_IF(label >= (label_t) elabel_indexer_.size(),
                      "edge label " + std::to_string(label) + " not found");
-  uint32_t index = generate_edge_label(src_label, dst_label, label);
+  uint32_t index = generate_edge_label_id(src_label, dst_label, label);
   return eprop_names_.at(index);
 }
 
@@ -277,7 +283,7 @@ bool Schema::valid_edge_property(const std::string& src_label,
   label_t src = get_vertex_label_id(src_label);
   label_t dst = get_vertex_label_id(dst_label);
   label_t edge = get_edge_label_id(label);
-  uint32_t index = generate_edge_label(src, dst, edge);
+  uint32_t index = generate_edge_label_id(src, dst, edge);
   return eproperties_.find(index) != eproperties_.end();
 }
 
@@ -287,7 +293,7 @@ EdgeStrategy Schema::get_outgoing_edge_strategy(
   label_t src = get_vertex_label_id(src_label);
   label_t dst = get_vertex_label_id(dst_label);
   label_t edge = get_edge_label_id(label);
-  uint32_t index = generate_edge_label(src, dst, edge);
+  uint32_t index = generate_edge_label_id(src, dst, edge);
   return oe_strategy_.at(index);
 }
 
@@ -297,7 +303,7 @@ EdgeStrategy Schema::get_incoming_edge_strategy(
   label_t src = get_vertex_label_id(src_label);
   label_t dst = get_vertex_label_id(dst_label);
   label_t edge = get_edge_label_id(label);
-  uint32_t index = generate_edge_label(src, dst, edge);
+  uint32_t index = generate_edge_label_id(src, dst, edge);
   return ie_strategy_.at(index);
 }
 
@@ -307,7 +313,7 @@ bool Schema::outgoing_edge_mutable(const std::string& src_label,
   label_t src = get_vertex_label_id(src_label);
   label_t dst = get_vertex_label_id(dst_label);
   label_t edge = get_edge_label_id(label);
-  uint32_t index = generate_edge_label(src, dst, edge);
+  uint32_t index = generate_edge_label_id(src, dst, edge);
   return oe_mutability_.at(index);
 }
 
@@ -317,7 +323,7 @@ bool Schema::incoming_edge_mutable(const std::string& src_label,
   label_t src = get_vertex_label_id(src_label);
   label_t dst = get_vertex_label_id(dst_label);
   label_t edge = get_edge_label_id(label);
-  uint32_t index = generate_edge_label(src, dst, edge);
+  uint32_t index = generate_edge_label_id(src, dst, edge);
   return ie_mutability_.at(index);
 }
 
@@ -327,7 +333,7 @@ bool Schema::get_sort_on_compaction(const std::string& src_label,
   label_t src = get_vertex_label_id(src_label);
   label_t dst = get_vertex_label_id(dst_label);
   label_t edge = get_edge_label_id(label);
-  uint32_t index = generate_edge_label(src, dst, edge);
+  uint32_t index = generate_edge_label_id(src, dst, edge);
   THROW_EXCEPTION_IF(
       sort_on_compactions_.find(index) == sort_on_compactions_.end(),
       "Fail to get sort on compaction: " + std::to_string(index) +
@@ -366,7 +372,7 @@ std::string Schema::get_edge_label_name(label_t index) const {
 
 const std::vector<std::tuple<PropertyType, std::string, size_t>>&
 Schema::get_vertex_primary_key(label_t index) const {
-  THROW_EXCEPTION_IF(index >= v_primary_keys_.size(),
+  THROW_EXCEPTION_IF(index >= (label_t) v_primary_keys_.size(),
                      "Fail to get vertex primary key: " +
                          std::to_string(index) + ", out of range");
   return v_primary_keys_[index];
@@ -380,7 +386,7 @@ void Schema::Serialize(std::unique_ptr<grape::LocalIOAdaptor>& writer) const {
   arc << v_primary_keys_ << vproperties_ << vprop_names_ << vprop_storage_
       << eproperties_ << eprop_names_ << ie_strategy_ << oe_strategy_
       << ie_mutability_ << oe_mutability_ << sort_on_compactions_ << max_vnum_
-      << v_descriptions_ << e_descriptions_ << description_ << version_;
+      << v_descriptions_ << e_descriptions_ << description_ << version_ << edge_label_id_to_triplet_;
   CHECK(writer->WriteArchive(arc));
 }
 
@@ -393,7 +399,7 @@ void Schema::Deserialize(std::unique_ptr<grape::LocalIOAdaptor>& reader) {
   arc >> v_primary_keys_ >> vproperties_ >> vprop_names_ >> vprop_storage_ >>
       eproperties_ >> eprop_names_ >> ie_strategy_ >> oe_strategy_ >>
       ie_mutability_ >> oe_mutability_ >> sort_on_compactions_ >> max_vnum_ >>
-      v_descriptions_ >> e_descriptions_ >> description_ >> version_;
+      v_descriptions_ >> e_descriptions_ >> description_ >> version_ >> edge_label_id_to_triplet_;
   has_multi_props_edge_ = false;
   for (auto& eprops : eproperties_) {
     if (eprops.second.size() > 1) {
@@ -409,12 +415,16 @@ void Schema::Deserialize(std::unique_ptr<grape::LocalIOAdaptor>& reader) {
           std::make_pair(vproperties_[i][j], j);
     }
   }
+  edge_label_triplet_to_id_.clear();
+  for (size_t i = 0; i < edge_label_id_to_triplet_.size(); i++) {
+    edge_label_triplet_to_id_.emplace(edge_label_id_to_triplet_[i], i);
+  }
 }
 
 label_t Schema::vertex_label_to_index(const std::string& label) {
   label_t ret;
   vlabel_indexer_.add(label, ret);
-  if (vproperties_.size() <= ret) {
+  if ((label_t) vproperties_.size() <= ret) {
     vproperties_.resize(ret + 1);
     vprop_storage_.resize(ret + 1);
     max_vnum_.resize(ret + 1);
@@ -432,16 +442,16 @@ label_t Schema::edge_label_to_index(const std::string& label) {
   return ret;
 }
 
-uint32_t Schema::generate_edge_label(label_t src, label_t dst,
-                                     label_t edge) const {
-  uint32_t ret = 0;
-  ret |= src;
-  ret <<= 8;
-  ret |= dst;
-  ret <<= 8;
-  ret |= edge;
-  return ret;
-}
+// uint32_t Schema::generate_edge_label_id(label_t src, label_t dst,
+//                                      label_t edge) const {
+//   uint32_t ret = 0;
+//   ret |= src;
+//   ret <<= 8;
+//   ret |= dst;
+//   ret <<= 8;
+//   ret |= edge;
+//   return ret;
+// }
 
 bool Schema::Equals(const Schema& other) const {
   // When compare two schemas, we only compare the properties and strategies
@@ -1339,7 +1349,7 @@ bool Schema::has_multi_props_edge() const { return has_multi_props_edge_; }
 bool Schema::vertex_has_property(const std::string& label,
                                  const std::string& prop) const {
   auto v_label_id = get_vertex_label_id(label);
-  THROW_EXCEPTION_IF(v_label_id >= vprop_names_.size(),
+  THROW_EXCEPTION_IF(v_label_id >= (label_t) vprop_names_.size(),
                      "vertex label id out of range of vprop_names_");
   auto& v_prop_names = vprop_names_[v_label_id];
   return std::find(v_prop_names.begin(), v_prop_names.end(), prop) !=
@@ -1350,7 +1360,7 @@ bool Schema::vertex_has_property(const std::string& label,
 bool Schema::vertex_has_primary_key(const std::string& label,
                                     const std::string& prop) const {
   auto v_label_id = get_vertex_label_id(label);
-  THROW_EXCEPTION_IF(v_label_id >= v_primary_keys_.size(),
+  THROW_EXCEPTION_IF(v_label_id >= (label_t) v_primary_keys_.size(),
                      "vertex label id out of range of v_primary_keys_");
   auto& keys = v_primary_keys_[v_label_id];
   for (size_t i = 0; i < keys.size(); ++i) {
@@ -1368,7 +1378,7 @@ bool Schema::edge_has_property(const std::string& src_label,
   auto e_label_id = get_edge_label_id(edge_label);
   auto src_label_id = get_vertex_label_id(src_label);
   auto dst_label_id = get_vertex_label_id(dst_label);
-  auto label_id = generate_edge_label(src_label_id, dst_label_id, e_label_id);
+  auto label_id = generate_edge_label_id(src_label_id, dst_label_id, e_label_id);
   if (eprop_names_.find(label_id) == eprop_names_.end()) {
     LOG(FATAL) << "edge label " << edge_label << ": (" << src_label << ", "
                << dst_label << ") not found,  e_label_id "
@@ -1404,7 +1414,10 @@ bool Schema::has_edge_label(const std::string& src_label,
 
 bool Schema::has_edge_label(label_t src_label, label_t dst_label,
                             label_t edge_label) const {
-  uint32_t e_label_id = generate_edge_label(src_label, dst_label, edge_label);
+  uint32_t e_label_id = generate_edge_label_id(src_label, dst_label, edge_label);
+  if (e_label_id == std::numeric_limits<uint32_t>::max()) {
+    return false;
+  }
   return eprop_names_.find(e_label_id) != eprop_names_.end();
 }
 
@@ -1443,5 +1456,48 @@ const std::vector<std::string> Schema::COMPATIBLE_VERSIONS = {
              // default version, if no version is specified
     "v0.1"   // v0.1 is the version after schema unified
 };
+
+uint64_t Schema::encode_unique_vertex_id(label_t label_id, vid_t vid) {
+  // encode label_id and vid to a unique vid
+  GlobalId global_id(label_id, vid);
+  return global_id.global_id;
+}
+
+uint32_t Schema::generate_edge_label_id(label_t src_label_id, label_t dst_label_id,
+                                label_t edge_label_id) const {
+  auto tuple = std::make_tuple(src_label_id, dst_label_id, edge_label_id);
+  if (edge_label_triplet_to_id_.find(tuple) == edge_label_triplet_to_id_.end()) {
+    return std::numeric_limits<uint32_t>::max();
+  }
+  return edge_label_triplet_to_id_.at(tuple);
+}
+
+uint32_t Schema::insert_edge_triplet(label_t src_label_id, label_t dst_label_id,
+                                     label_t edge_label_id) {
+  auto tuple = std::make_tuple(src_label_id, dst_label_id, edge_label_id);
+  if (edge_label_triplet_to_id_.find(tuple) == edge_label_triplet_to_id_.end()) {
+    edge_label_triplet_to_id_.emplace(tuple, edge_label_triplet_to_id_.size());
+    edge_label_id_to_triplet_.emplace_back(tuple);
+  }
+  CHECK(edge_label_triplet_to_id_.size() == edge_label_id_to_triplet_.size());
+  return edge_label_triplet_to_id_.at(tuple);
+}
+
+int64_t Schema::encode_unique_edge_id(uint32_t label_id, vid_t src, vid_t dst) {
+  // We assume label_id is only used by 24 bits.
+  int64_t unique_edge_id = label_id;
+  static constexpr int num_bits = sizeof(int64_t) * 8 - sizeof(uint32_t) * 8;
+  unique_edge_id = unique_edge_id << num_bits;
+  // bitmask for top 44 bits set to 1
+  int64_t bitmask = 0xFFFFFFFFFF000000;
+  // 24 bit | 20 bit | 20 bit
+  if (bitmask & (int64_t) src || bitmask & (int64_t) dst) {
+    LOG(ERROR) << "src or dst is too large to be encoded in 20 bits: " << src
+               << " " << dst;
+  }
+  unique_edge_id = unique_edge_id | (src << 20);
+  unique_edge_id = unique_edge_id | dst;
+  return unique_edge_id;
+}
 
 }  // namespace gs

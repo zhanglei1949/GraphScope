@@ -26,7 +26,7 @@ limitations under the License.
 #include "flex/codegen/src/graph_types.h"
 #include "flex/codegen/src/hqps/hqps_expr_builder.h"
 #include "flex/codegen/src/pb_parser/query_params_parser.h"
-#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/utils/schema.h"
 #include "flex/proto_generated_gie/algebra.pb.h"
 #include "flex/proto_generated_gie/common.pb.h"
 #include "flex/proto_generated_gie/physical.pb.h"

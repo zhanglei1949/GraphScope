@@ -16,7 +16,7 @@
 #ifndef STORAGES_RT_MUTABLE_GRAPH_LOADER_BASIC_FRAGMENT_LOADER_H_
 #define STORAGES_RT_MUTABLE_GRAPH_LOADER_BASIC_FRAGMENT_LOADER_H_
 
-#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/utils/schema.h"
 #include "flex/storages/rt_mutable_graph/file_names.h"
 #include "flex/storages/rt_mutable_graph/mutable_property_fragment.h"
 
@@ -71,7 +71,7 @@ class BasicFragmentLoader {
   template <typename KEY_T>
   void FinishAddingVertex(label_t v_label,
                           const IdIndexer<KEY_T, vid_t>& indexer) {
-    CHECK(v_label < vertex_label_num_);
+    CHECK(v_label < (label_t)vertex_label_num_);
     std::string filename =
         vertex_map_prefix(schema_.get_vertex_label_name(v_label));
     auto primary_keys = schema_.get_vertex_primary_key(v_label);

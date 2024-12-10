@@ -20,7 +20,7 @@
 #include <tuple>
 #include <vector>
 
-#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/utils/schema.h"
 
 #include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/storages/rt_mutable_graph/csr/mutable_csr.h"

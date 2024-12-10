@@ -40,6 +40,16 @@ inline bool operator<(const EmptyType& lhs, const EmptyType& rhs) {
 
 namespace gs {
 
+using timestamp_t = uint32_t;
+using vid_t = uint32_t;
+using label_t = int64_t;
+
+enum class EdgeStrategy {
+  kNone,
+  kSingle,
+  kMultiple,
+};
+
 // primitive types
 static constexpr const char* DT_UNSIGNED_INT8 = "DT_UNSIGNED_INT8";
 static constexpr const char* DT_UNSIGNED_INT16 = "DT_UNSIGNED_INT16";

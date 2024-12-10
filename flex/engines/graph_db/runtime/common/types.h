@@ -19,25 +19,15 @@
 #include <string>
 
 #include "flex/utils/property/types.h"
+#include "flex/utils/schema.h"
 
 namespace gs {
 
-using timestamp_t = uint32_t;
-using vid_t = uint32_t;
-using label_t = uint8_t;
-
-enum class EdgeStrategy {
-  kNone,
-  kSingle,
-  kMultiple,
-};
-
 namespace runtime {
 
-uint64_t encode_unique_vertex_id(label_t label_id, vid_t vid);
-uint32_t generate_edge_label_id(label_t src_label_id, label_t dst_label_id,
-                                label_t edge_label_id);
-int64_t encode_unique_edge_id(uint32_t label_id, vid_t src, vid_t dst);
+using label_t = gs::label_t;
+
+
 enum class Direction {
   kOut,
   kIn,
@@ -94,27 +84,6 @@ struct LabelTriplet {
 
 }  // namespace gs
 
-namespace std {
-
-// operator << for EdgeStrategy
-inline ostream& operator<<(ostream& os, const gs::EdgeStrategy& strategy) {
-  switch (strategy) {
-  case gs::EdgeStrategy::kNone:
-    os << "None";
-    break;
-  case gs::EdgeStrategy::kSingle:
-    os << "Single";
-    break;
-  case gs::EdgeStrategy::kMultiple:
-    os << "Multiple";
-    break;
-  default:
-    os << "Unknown";
-    break;
-  }
-  return os;
-}
-}  // namespace std
 
 namespace std {
 

@@ -18,7 +18,7 @@
 
 #include <limits>
 
-#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/utils/schema.h"
 #include "flex/engines/graph_db/runtime/common/types.h"
 #include "flex/utils/allocators.h"
 #include "flex/utils/property/types.h"

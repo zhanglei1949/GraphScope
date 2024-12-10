@@ -806,7 +806,7 @@ static void sink_edge_data(const EdgeData& any, common::Value* value) {
 void sink_vertex(const GraphReadInterface& graph, const VertexRecord& vertex,
                  results::Vertex* v) {
   v->mutable_label()->set_id(vertex.label_);
-  v->set_id(encode_unique_vertex_id(vertex.label_, vertex.vid_));
+  v->set_id(Schema::encode_unique_vertex_id(vertex.label_, vertex.vid_));
   //  TODO: add properties
   const auto& names = graph.schema().get_vertex_property_names(vertex.label_);
   for (size_t i = 0; i < names.size(); ++i) {
@@ -901,12 +901,12 @@ void RTAny::sink(const GraphReadInterface& graph, int id,
     auto [label, src, dst, prop, dir] = this->as_edge();
     e->mutable_src_label()->set_id(label.src_label);
     e->mutable_dst_label()->set_id(label.dst_label);
-    auto edge_label = generate_edge_label_id(label.src_label, label.dst_label,
+    auto edge_label = graph.schema().generate_edge_label_id(label.src_label, label.dst_label,
                                              label.edge_label);
     e->mutable_label()->set_id(label.edge_label);
-    e->set_src_id(encode_unique_vertex_id(label.src_label, src));
-    e->set_dst_id(encode_unique_vertex_id(label.dst_label, dst));
-    e->set_id(encode_unique_edge_id(edge_label, src, dst));
+    e->set_src_id(Schema::encode_unique_vertex_id(label.src_label, src));
+    e->set_dst_id(Schema::encode_unique_vertex_id(label.dst_label, dst));
+    e->set_id(graph.schema().encode_unique_edge_id(edge_label, src, dst));
     auto& prop_names = graph.schema().get_edge_property_names(
         label.src_label, label.dst_label, label.edge_label);
     if (prop_names.size() == 1) {

@@ -39,7 +39,7 @@ UpdateTransaction::UpdateTransaction(MutablePropertyFragment& graph,
 
   vertex_label_num_ = graph_.schema().vertex_label_num();
   edge_label_num_ = graph_.schema().edge_label_num();
-  for (label_t idx = 0; idx < vertex_label_num_; ++idx) {
+  for (label_t idx = 0; idx < (label_t)vertex_label_num_; ++idx) {
     if (graph_.lf_indexers_[idx].get_type() == PropertyType::kInt64) {
       added_vertices_.emplace_back(
           std::make_shared<IdIndexer<int64_t, vid_t>>());
@@ -543,7 +543,7 @@ void UpdateTransaction::IngestWal(MutablePropertyFragment& graph,
   size_t vertex_label_num = graph.schema().vertex_label_num();
   size_t edge_label_num = graph.schema().edge_label_num();
 
-  for (label_t idx = 0; idx < vertex_label_num; ++idx) {
+  for (label_t idx = 0; idx < (label_t)vertex_label_num; ++idx) {
     if (graph.lf_indexers_[idx].get_type() == PropertyType::kInt64) {
       added_vertices.emplace_back(
           std::make_shared<IdIndexer<int64_t, vid_t>>());
@@ -755,7 +755,7 @@ void UpdateTransaction::batch_commit(UpdateBatch& batch) {
 }
 
 void UpdateTransaction::applyVerticesUpdates() {
-  for (label_t label = 0; label < vertex_label_num_; ++label) {
+  for (label_t label = 0; label < (label_t)vertex_label_num_; ++label) {
     std::vector<std::pair<vid_t, Any>> added_vertices;
     vid_t added_vertices_num = added_vertices_[label]->size();
     for (vid_t v = 0; v < added_vertices_num; ++v) {
@@ -796,9 +796,9 @@ void UpdateTransaction::applyVerticesUpdates() {
 }
 
 void UpdateTransaction::applyEdgesUpdates() {
-  for (label_t src_label = 0; src_label < vertex_label_num_; ++src_label) {
-    for (label_t dst_label = 0; dst_label < vertex_label_num_; ++dst_label) {
-      for (label_t edge_label = 0; edge_label < edge_label_num_; ++edge_label) {
+  for (label_t src_label = 0; src_label < (label_t)vertex_label_num_; ++src_label) {
+    for (label_t dst_label = 0; dst_label < (label_t)vertex_label_num_; ++dst_label) {
+      for (label_t edge_label = 0; edge_label < (label_t)edge_label_num_; ++edge_label) {
         size_t oe_csr_index =
             get_out_csr_index(src_label, dst_label, edge_label);
         for (auto& pair : updated_edge_data_[oe_csr_index]) {
@@ -852,9 +852,9 @@ void UpdateTransaction::applyEdgesUpdates() {
     }
   }
 
-  for (label_t src_label = 0; src_label < vertex_label_num_; ++src_label) {
-    for (label_t dst_label = 0; dst_label < vertex_label_num_; ++dst_label) {
-      for (label_t edge_label = 0; edge_label < edge_label_num_; ++edge_label) {
+  for (label_t src_label = 0; src_label < (label_t)vertex_label_num_; ++src_label) {
+    for (label_t dst_label = 0; dst_label < (label_t)vertex_label_num_; ++dst_label) {
+      for (label_t edge_label = 0; edge_label < (label_t)edge_label_num_; ++edge_label) {
         size_t ie_csr_index =
             get_in_csr_index(src_label, dst_label, edge_label);
         for (auto& pair : updated_edge_data_[ie_csr_index]) {

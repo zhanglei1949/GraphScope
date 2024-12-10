@@ -39,7 +39,7 @@ install(PROGRAMS load_plan_and_gen.sh DESTINATION bin)
 
 
 include_directories(${Boost_INCLUDE_DIRS})
-add_executable(bulk_loader bulk_loader.cc ../engines/graph_db/runtime/common/schema.cc)
+add_executable(bulk_loader bulk_loader.cc)
 target_link_libraries(bulk_loader flex_rt_mutable_graph flex_utils  ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES} ${Boost_LIBRARIES})
 install_without_export_flex_target(bulk_loader)
 

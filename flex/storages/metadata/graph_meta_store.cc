@@ -18,7 +18,7 @@
 #include <iostream>
 #include <string>
 
-#include "flex/engines/graph_db/runtime/common/schema.h"
+#include "flex/utils/schema.h"
 #include "flex/storages/metadata/graph_meta_store.h"
 #include "flex/utils/yaml_utils.h"
 
