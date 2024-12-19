@@ -1935,7 +1935,8 @@ PerformWalRecovery(void)
 static void
 ApplyWalRecord(XLogReaderState *xlogreader, XLogRecord *record, TimeLineID *replayTLI)
 {
-	printf("Apply Wal Record %d, timeline %d\n", record->xl_tot_len, *replayTLI);
+	// printf("Apply Wal Record %d, timeline %d\n", record->xl_tot_len, *replayTLI);
+	ereport(LOG, (errmsg("ApplyWalRecord id %d, len %d, timeline %d", record->xl_xid, record->xl_tot_len, *replayTLI)));
 	ErrorContextCallback errcallback;
 	bool		switchedTLI = false;
 

@@ -30,6 +30,7 @@
 #include "flex/engines/graph_db/database/single_vertex_insert_transaction.h"
 #include "flex/engines/graph_db/database/update_transaction.h"
 #include "flex/engines/graph_db/database/version_manager.h"
+#include "flex/engines/graph_db/database/wal/wal_parser.h"
 #include "flex/storages/rt_mutable_graph/loader/loader_factory.h"
 #include "flex/storages/rt_mutable_graph/loading_config.h"
 #include "flex/storages/rt_mutable_graph/mutable_property_fragment.h"
@@ -49,7 +50,8 @@ struct GraphDBConfig {
         warmup(false),
         enable_monitoring(false),
         enable_auto_compaction(false),
-        memory_level(1) {}
+        memory_level(1),
+        wal_writer_type("local") {}
 
   Schema schema;
   std::string data_dir;
@@ -65,6 +67,8 @@ struct GraphDBConfig {
     3 - force hugepages;
   */
   int memory_level;
+  std::string
+      wal_writer_type;  // local, postgres, or other customized wal writer
 };
 
 class GraphDB {
@@ -152,14 +156,15 @@ class GraphDB {
  private:
   bool registerApp(const std::string& path, uint8_t index = 0);
 
-  void ingestWals(const std::vector<std::string>& wals,
-                  const std::string& work_dir, int thread_num);
+  void ingestWals(IWalParser& parser, const std::string& work_dir,
+                  int thread_num);
 
   void initApps(
       const std::unordered_map<std::string, std::pair<std::string, uint8_t>>&
           plugins);
 
-  void openWalAndCreateContexts(const std::string& data_dir_path,
+  void openWalAndCreateContexts(const std::string& wal_writer_type,
+                                const std::string& data_dir,
                                 MemoryStrategy allocator_strategy);
 
   void showAppMetrics() const;

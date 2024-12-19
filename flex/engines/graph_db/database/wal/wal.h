@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef GRAPHSCOPE_DATABASE_WAL_H_
-#define GRAPHSCOPE_DATABASE_WAL_H_
+#ifndef GRAPHSCOPE_DATABASE_WAL_WAL_H_
+#define GRAPHSCOPE_DATABASE_WAL_WAL_H_
 
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -47,45 +47,30 @@ struct UpdateWalUnit {
   size_t size{0};
 };
 
-class WalWriter {
-  static constexpr size_t TRUNC_SIZE = 1ul << 30;
-
+/**
+ * The interface of wal writer.
+ */
+class IWalWriter {
  public:
-  WalWriter() : fd_(-1), file_size_(0), file_used_(0) {}
-  ~WalWriter() { close(); }
+  virtual ~IWalWriter() {}
+  /**
+   * Open a wal file. In our design, each thread has its own wal file.
+   * The uri could be a file_path or a remote connection string.
+   */
+  virtual void open(const std::string& uri, int thread_id) = 0;
 
-  void open(const std::string& prefix, int thread_id);
+  /**
+   * Close the wal writer. If a remote connection is hold by the wal writer,
+   * it should be closed.
+   */
+  virtual void close() = 0;
 
-  void close();
-
-  void append(const char* data, size_t length);
-
- private:
-  int fd_;
-  size_t file_size_;
-  size_t file_used_;
-};
-
-class WalsParser {
- public:
-  WalsParser(const std::vector<std::string>& paths);
-  ~WalsParser();
-
-  uint32_t last_ts() const;
-  const WalContentUnit& get_insert_wal(uint32_t ts) const;
-  const std::vector<UpdateWalUnit>& update_wals() const;
-
- private:
-  std::vector<int> fds_;
-  std::vector<void*> mmapped_ptrs_;
-  std::vector<size_t> mmapped_size_;
-  WalContentUnit* insert_wal_list_;
-  size_t insert_wal_list_size_;
-  uint32_t last_ts_{0};
-
-  std::vector<UpdateWalUnit> update_wal_list_;
+  /**
+   * Append data to the wal file.
+   */
+  virtual bool append(const char* data, size_t length) = 0;
 };
 
 }  // namespace gs
 
-#endif  // GRAPHSCOPE_DATABASE_WAL_H_
+#endif  // GRAPHSCOPE_DATABASE_WAL_WAL_H_

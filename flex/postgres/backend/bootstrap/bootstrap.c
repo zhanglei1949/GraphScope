@@ -196,6 +196,7 @@ CheckerModeMain(void)
 void
 BootstrapModeMain(int argc, char *argv[], bool check_only)
 {
+	printf("Running BootstrapModeMain...\n");
 	int			i;
 	char	   *progname = argv[0];
 	int			flag;
@@ -290,16 +291,19 @@ BootstrapModeMain(int argc, char *argv[], bool check_only)
 		write_stderr("%s: invalid command-line arguments\n", progname);
 		proc_exit(1);
 	}
+	printf("Finished parsing command line arguments...\n");
 
 	/* Acquire configuration parameters */
 	if (!SelectConfigFiles(userDoption, progname))
 		proc_exit(1);
+	printf("Selected config files...\n");
 
 	/*
 	 * Validate we have been given a reasonable-looking DataDir and change
 	 * into it
 	 */
 	checkDataDir();
+	printf("Checked data directory...\n");
 	ChangeToDataDir();
 
 	CreateDataDirLockFile(false);
@@ -307,6 +311,7 @@ BootstrapModeMain(int argc, char *argv[], bool check_only)
 	SetProcessingMode(BootstrapProcessing);
 	IgnoreSystemIndexes = true;
 
+	printf("InitializeMaxBackends...\n");
 	InitializeMaxBackends();
 
 	InitializeFastPathLocks();
@@ -324,12 +329,14 @@ BootstrapModeMain(int argc, char *argv[], bool check_only)
 		CheckerModeMain();
 		abort();
 	}
+	printf("InitProcess...\n");
 
 	/*
 	 * Do backend-like initialization for bootstrap mode
 	 */
 	InitProcess();
 
+	printf("base init\n");
 	BaseInit();
 
 	bootstrap_signals();
@@ -342,6 +349,7 @@ BootstrapModeMain(int argc, char *argv[], bool check_only)
 	if (pg_link_canary_is_frontend())
 		elog(ERROR, "backend is incorrectly linked to frontend functions");
 
+	printf("init postgres\n");
 	InitPostgres(NULL, InvalidOid, NULL, InvalidOid, 0, NULL);
 
 	/* Initialize stuff for bootstrap-file processing */
@@ -355,6 +363,7 @@ BootstrapModeMain(int argc, char *argv[], bool check_only)
 	 * Process bootstrap input.
 	 */
 	StartTransactionCommand();
+	printf("boot_yyparse\n");
 	boot_yyparse();
 	CommitTransactionCommand();
 
@@ -367,6 +376,7 @@ BootstrapModeMain(int argc, char *argv[], bool check_only)
 	/* Clean up and exit */
 	cleanup();
 	proc_exit(0);
+	printf("bootstrap mode proc_exit\n");
 }
 
 

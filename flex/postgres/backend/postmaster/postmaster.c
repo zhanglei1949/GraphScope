@@ -878,7 +878,7 @@ PostmasterMain(int argc, char *argv[])
 	 * Register the apply launcher.  It's probably a good idea to call this
 	 * before any modules had a chance to take the background worker slots.
 	 */
-	ApplyLauncherRegister();
+	// ApplyLauncherRegister();
 
 	/*
 	 * process any libraries that should be preloaded at postmaster start
@@ -1333,12 +1333,12 @@ PostmasterMain(int argc, char *argv[])
 	/* Start bgwriter and checkpointer so they can help with recovery */
 	printf("%d In post Master, Starting background processes\n", getpid());
 	if (CheckpointerPID == 0){
-		printf("%d In post Master, Starting Checkpointer\n", getpid());
+		// printf("%d In post Master, Starting Checkpointer\n", getpid());
 		// CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
 	}
 	if (BgWriterPID == 0){
-		printf("%d In post Master, Starting BgWriter\n", getpid());
-		BgWriterPID = StartChildProcess(B_BG_WRITER);
+		// printf("%d In post Master, Starting BgWriter\n", getpid());
+		// BgWriterPID = StartChildProcess(B_BG_WRITER);
 	}
 
 	/*
@@ -3163,12 +3163,12 @@ LaunchMissingBackgroundProcesses(void)
 		pmState == PM_HOT_STANDBY || pmState == PM_STARTUP)
 	{
 		if (CheckpointerPID == 0){
-			CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
-			printf("CheckpointerPID = %d\n", CheckpointerPID);
+			// CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
+			// printf("CheckpointerPID = %d\n", CheckpointerPID);
 		}
 		if (BgWriterPID == 0){
-			BgWriterPID = StartChildProcess(B_BG_WRITER);
-			printf("BgWriterPID = %d\n", BgWriterPID);
+			// BgWriterPID = StartChildProcess(B_BG_WRITER);
+			// printf("BgWriterPID = %d\n", BgWriterPID);
 		}
 	}
 

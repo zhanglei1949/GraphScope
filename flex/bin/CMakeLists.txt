@@ -25,14 +25,14 @@ endif()
 # install_without_export_flex_target(flex_analytical_engine)
 
 
-# if(Hiactor_FOUND)
-#         add_executable(interactive_server interactive_server.cc)
-#         target_link_libraries(interactive_server flex_utils flex_graph_db flex_server flex_plan_proto flex_utils ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
-#         if (OPENTELEMETRY_CPP_FOUND)
-#                 target_link_libraries(interactive_server otel)
-#         endif()
-#         install_without_export_flex_target(interactive_server)
-# endif()
+if(Hiactor_FOUND)
+        add_executable(interactive_server interactive_server.cc)
+        target_link_libraries(interactive_server flex_utils flex_graph_db flex_server flex_plan_proto flex_utils ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
+        if (OPENTELEMETRY_CPP_FOUND)
+                target_link_libraries(interactive_server otel)
+        endif()
+        install_without_export_flex_target(interactive_server)
+endif()
 # install the script
 install(PROGRAMS load_plan_and_gen.sh DESTINATION bin)
 

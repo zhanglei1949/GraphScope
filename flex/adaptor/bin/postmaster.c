@@ -595,11 +595,14 @@ FlexPostmasterMain(int argc, char *argv[])
 					ParseLongOption(optarg, &name, &value);
 					if (!value)
 					{
-						if (opt == '-')
+						if (opt == '-'){
+							ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+										 errmsg("fail to parseLongOption, %s", optarg)));
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),
 									 errmsg("--%s requires a value",
 											optarg)));
+						}
 						else
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),
@@ -883,7 +886,7 @@ FlexPostmasterMain(int argc, char *argv[])
 	 * Register the apply launcher.  It's probably a good idea to call this
 	 * before any modules had a chance to take the background worker slots.
 	 */
-	ApplyLauncherRegister();
+	// ApplyLauncherRegister();
 
 	/*
 	 * process any libraries that should be preloaded at postmaster start
@@ -1337,14 +1340,14 @@ FlexPostmasterMain(int argc, char *argv[])
 
 	/* Start bgwriter and checkpointer so they can help with recovery */
 	printf("%d In post Master, Starting background processes\n", getpid());
-	if (CheckpointerPID == 0){
-		printf("%d In post Master, Starting Checkpointer\n", getpid());
-		CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
-	}
-	if (BgWriterPID == 0){
-		printf("%d In post Master, Starting BgWriter\n", getpid());
-		BgWriterPID = StartChildProcess(B_BG_WRITER);
-	}
+	// if (CheckpointerPID == 0){
+	// 	printf("%d In post Master, Starting Checkpointer\n", getpid());
+	// 	CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
+	// }
+	// if (BgWriterPID == 0){
+	// 	printf("%d In post Master, Starting BgWriter\n", getpid());
+	// 	BgWriterPID = StartChildProcess(B_BG_WRITER);
+	// }
 
 	/*
 	 * We're ready to rock and roll...
@@ -2986,8 +2989,8 @@ PostmasterStateMachine(void)
 				 */
 				Assert(Shutdown > NoShutdown);
 				/* Start the checkpointer if not running */
-				if (CheckpointerPID == 0)
-					CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
+				// if (CheckpointerPID == 0)
+				// 	CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
 				/* And tell it to shut down */
 				if (CheckpointerPID != 0)
 				{
@@ -3186,8 +3189,8 @@ LaunchMissingBackgroundProcesses(void)
 			// printf("CheckpointerPID = %d\n", CheckpointerPID);
 		}
 		if (BgWriterPID == 0){
-			BgWriterPID = StartChildProcess(B_BG_WRITER);
-			printf("BgWriterPID = %d\n", BgWriterPID);
+			// BgWriterPID = StartChildProcess(B_BG_WRITER);
+			// printf("BgWriterPID = %d\n", BgWriterPID);
 		}
 	}
 

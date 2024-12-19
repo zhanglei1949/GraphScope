@@ -281,6 +281,7 @@ static bool call_enum_check_hook(struct config_enum *conf, int *newval,
 ConfigVariable *
 ProcessConfigFileInternal(GucContext context, bool applySettings, int elevel)
 {
+	printf("ProcessConfigFileInternal\n");
 	bool		error = false;
 	bool		applying = false;
 	const char *ConfFileWithError;
@@ -531,6 +532,7 @@ ProcessConfigFileInternal(GucContext context, bool applySettings, int elevel)
 	/*
 	 * Now apply the values from the config file.
 	 */
+	printf("Applying the values from the config file\n");
 	for (item = head; item; item = item->next)
 	{
 		char	   *pre_value = NULL;
@@ -1529,6 +1531,7 @@ check_GUC_init(struct config_generic *gconf)
 void
 InitializeGUCOptions(void)
 {
+	printf("InitializeGUCOptions\n");
 	HASH_SEQ_STATUS status;
 	GUCHashEntry *hentry;
 
@@ -1536,11 +1539,13 @@ InitializeGUCOptions(void)
 	 * Before log_line_prefix could possibly receive a nonempty setting, make
 	 * sure that timezone processing is minimally alive (see elog.c).
 	 */
+	printf("pg_timezone_initialize\n");
 	pg_timezone_initialize();
 
 	/*
 	 * Create GUCMemoryContext and build hash table of all GUC variables.
 	 */
+	printf("build_guc_variables\n");
 	build_guc_variables();
 
 	/*
@@ -1574,6 +1579,7 @@ InitializeGUCOptions(void)
 	 * environment variables.  Process those settings.
 	 */
 	InitializeGUCOptionsFromEnvironment();
+	printf("InitializeGUCOptions end\n");
 }
 
 /*
@@ -1783,6 +1789,7 @@ RemoveGUCFromLists(struct config_generic *gconf)
 bool
 SelectConfigFiles(const char *userDoption, const char *progname)
 {
+	printf("SelectConfigFiles\n");
 	char	   *configdir;
 	char	   *fname;
 	bool		fname_is_malloced;
@@ -1859,7 +1866,9 @@ SelectConfigFiles(const char *userDoption, const char *progname)
 	 * data_directory parameter is picked up to determine the data directory,
 	 * so that we can read the PG_AUTOCONF_FILENAME file next time.
 	 */
+	printf("ProcessConfigFile\n");
 	ProcessConfigFile(PGC_POSTMASTER);
+	printf("ProcessConfigFile end\n");
 
 	/*
 	 * If the data_directory GUC variable has been set, use that as DataDir;
@@ -1900,7 +1909,9 @@ SelectConfigFiles(const char *userDoption, const char *progname)
 	 * since we have to determine the DataDir before we can find the autoconf
 	 * file, the alternatives seem worse.)
 	 */
+	printf("ProcessConfigFile for second time\n");
 	ProcessConfigFile(PGC_POSTMASTER);
+	printf("ProcessConfigFile for second time end\n");
 
 	/*
 	 * If timezone_abbreviations wasn't set in the configuration file, install
@@ -1909,7 +1920,9 @@ SelectConfigFiles(const char *userDoption, const char *progname)
 	 * when InitializeGUCOptions runs, so the bootstrap default value cannot
 	 * be the real desired default.
 	 */
+	printf("pg_timezone_abbrev_initialize\n");
 	pg_timezone_abbrev_initialize();
+	printf("pg_timezone_abbrev_initialize end\n");
 
 	/*
 	 * Figure out where pg_hba.conf is, and make sure the path is absolute.

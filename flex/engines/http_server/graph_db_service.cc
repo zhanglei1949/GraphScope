@@ -96,6 +96,7 @@ void openGraph(const gs::GraphId& graph_id,
   gs::GraphDBConfig config(schema_res.value(), data_dir,
                            service_config.shard_num);
   config.memory_level = service_config.memory_level;
+  config.wal_writer_type = service_config.wal_writer_type;
   if (config.memory_level >= 2) {
     config.enable_auto_compaction = true;
   }

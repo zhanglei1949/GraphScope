@@ -6678,11 +6678,12 @@ ShutdownXLOG(int code, Datum arg)
 		if (XLogArchivingActive())
 			RequestXLogSwitch(false);
 		// printf("Don't create checkpoint\n");
-		printf("Not Creating checkpoint in ShutdownXLOG\n");
+		// printf("Not Creating checkpoint in ShutdownXLOG\n");
 		// get the value of enviroment variable, IS_INITDB
 		// char *is_initdb = getenv("IS_INITDB");
 		// if (is_initdb != NULL && strcmp(is_initdb, "true") == 0)
-		// CreateCheckPoint(CHECKPOINT_IS_SHUTDOWN | CHECKPOINT_IMMEDIATE);
+		ereport(LOG, (errmsg("CreateCheckpoint in ShutdownXLOG")));
+		CreateCheckPoint(CHECKPOINT_IS_SHUTDOWN | CHECKPOINT_IMMEDIATE);
 		// CreateCheckPoint(CHECKPOINT_IS_SHUTDOWN | CHECKPOINT_IMMEDIATE);
 	}
 }

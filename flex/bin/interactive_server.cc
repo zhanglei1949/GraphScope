@@ -147,7 +147,9 @@ int main(int argc, char** argv) {
       "memory-level,m", bpo::value<unsigned>()->default_value(1),
       "memory allocation strategy")("enable-adhoc-handler",
                                     bpo::value<bool>()->default_value(false),
-                                    "whether to enable adhoc handler");
+                                    "whether to enable adhoc handler")(
+      "wal-writer-type", bpo::value<std::string>()->default_value("local"),
+      "wal writer type");
 
   setenv("TZ", "Asia/Shanghai", 1);
   tzset();
@@ -181,6 +183,7 @@ int main(int argc, char** argv) {
   service_config.start_compiler = vm["start-compiler"].as<bool>();
   service_config.memory_level = vm["memory-level"].as<unsigned>();
   service_config.enable_adhoc_handler = vm["enable-adhoc-handler"].as<bool>();
+  service_config.wal_writer_type = vm["wal-writer-type"].as<std::string>();
 
   // Config log level
   gs::config_log_level(service_config.log_level, service_config.verbose_level);
