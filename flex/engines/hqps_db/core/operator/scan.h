@@ -126,6 +126,10 @@ class Scan {
   static vertex_set_t ScanVertexWithGid(const GRAPH_INTERFACE& graph,
                                         const label_id_t& v_label_id,
                                         std::vector<gid_t>&& gids) {
+    if constexpr (std::is_same_v<gid_t, int64_t> ||
+                  std::is_same_v<gid_t, uint64_t>) {
+      LOG(FATAL) << "Unsupported gid_t type";
+    }
     std::vector<vertex_id_t> lids;
     auto vnum = graph.vertex_num(v_label_id);
     for (auto gid : gids) {
@@ -180,6 +184,10 @@ class Scan {
       const GRAPH_INTERFACE& graph,
       const std::array<label_id_t, num_labels>& v_label_ids,
       std::vector<gid_t>&& gids) {
+    if constexpr (std::is_same_v<gid_t, int64_t> ||
+                  std::is_same_v<gid_t, uint64_t>) {
+      LOG(FATAL) << "Unsupported gid_t type";
+    }
     std::unordered_map<label_id_t, size_t> label_to_index;
 
     size_t valid_label_num = 0;
@@ -302,6 +310,10 @@ class Scan {
       const GRAPH_INTERFACE& graph,
       const std::array<label_id_t, num_labels>& v_label_ids,
       std::vector<gid_t>&& gids, FilterT&& filter) {
+    if constexpr (std::is_same_v<gid_t, int64_t> ||
+                  std::is_same_v<gid_t, uint64_t>) {
+      LOG(FATAL) << "Unsupported gid_t type";
+    }
     std::unordered_map<label_id_t, size_t> label_to_index;
     size_t valid_label_num = 0;
     for (size_t i = 0; i < num_labels; ++i) {

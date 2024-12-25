@@ -90,9 +90,7 @@ Any RecordView::operator[](size_t col_id) const {
   return table->get_column_by_id(col_id)->get(offset);
 }
 
-std::string RecordView::to_string() const {
-  return "RecordView:";
-}
+std::string RecordView::to_string() const { return "RecordView:"; }
 
 Record::Record(size_t len) : len(len) { props = new Any[len]; }
 
@@ -456,26 +454,48 @@ grape::OutArchive& operator>>(grape::OutArchive& out_archive, LabelKey& value) {
 }
 
 GlobalId::label_id_t GlobalId::get_label_id(gid_t gid) {
+  if constexpr (std::is_same_v<vid_t, uint64_t> ||
+                std::is_same_v<vid_t, int64_t>) {
+    LOG(FATAL) << "Invalid vid type";
+  }
   return static_cast<label_id_t>(gid >> label_id_offset);
 }
 
 GlobalId::vid_t GlobalId::get_vid(gid_t gid) {
+  if constexpr (std::is_same_v<vid_t, uint64_t> ||
+                std::is_same_v<vid_t, int64_t>) {
+    LOG(FATAL) << "Invalid vid type";
+  }
   return static_cast<vid_t>(gid & vid_mask);
 }
 
 GlobalId::GlobalId() : global_id(0) {}
 
 GlobalId::GlobalId(label_id_t label_id, vid_t vid) {
+  if constexpr (std::is_same_v<vid_t, uint64_t> ||
+                std::is_same_v<vid_t, int64_t>) {
+    // When vid_t is 64 bit, we don't encode label_id in global_id.
+    global_id = vid;
+  }
   global_id = (static_cast<uint64_t>(label_id) << label_id_offset) | vid;
 }
 
 GlobalId::GlobalId(gid_t gid) : global_id(gid) {}
 
 GlobalId::label_id_t GlobalId::label_id() const {
+  if constexpr (std::is_same_v<vid_t, uint64_t> ||
+                std::is_same_v<vid_t, int64_t>) {
+    LOG(ERROR) << "Invalid vid type";
+    return GlobalId::label_id_t();
+  }
   return static_cast<label_id_t>(global_id >> label_id_offset);
 }
 
 GlobalId::vid_t GlobalId::vid() const {
+  if constexpr (std::is_same_v<vid_t, uint64_t> ||
+                std::is_same_v<vid_t, int64_t>) {
+    return static_cast<vid_t>(global_id);
+  }
   return static_cast<vid_t>(global_id & vid_mask);
 }
 
@@ -512,7 +532,8 @@ Any ConvertStringToAny(const std::string& value, const gs::PropertyType& type) {
     return gs::Any(gs::Date(static_cast<int64_t>(std::stoll(value))));
   } else if (type == gs::PropertyType::Day()) {
     return gs::Any(gs::Day(static_cast<int64_t>(std::stoll(value))));
-  } else if (type == gs::PropertyType::String() || type == gs::PropertyType::StringMap()) {
+  } else if (type == gs::PropertyType::String() ||
+             type == gs::PropertyType::StringMap()) {
     return gs::Any(std::string(value));
   } else if (type == gs::PropertyType::Int64()) {
     return gs::Any(static_cast<int64_t>(std::stoll(value)));

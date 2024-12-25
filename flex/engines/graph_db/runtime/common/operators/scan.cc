@@ -14,6 +14,7 @@
  */
 
 #include "flex/engines/graph_db/runtime/common/operators/scan.h"
+#include <type_traits>
 
 namespace gs {
 namespace runtime {
@@ -40,6 +41,10 @@ Context Scan::find_vertex_with_id(const GraphReadInterface& graph,
       gid = pk.AsInt32();
     } else {
       LOG(FATAL) << "Unsupported primary key type";
+    }
+    if constexpr (std::is_same_v<vid_t, uint64_t> ||
+                  std::is_same_v<vid_t, int64_t>) {
+      LOG(FATAL) << "Unsupported vid type";
     }
     if (GlobalId::get_label_id(gid) == label) {
       vid = GlobalId::get_vid(gid);

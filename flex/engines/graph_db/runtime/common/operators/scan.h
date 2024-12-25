@@ -106,6 +106,10 @@ class Scan {
   static Context filter_gids(const GraphReadInterface& graph,
                              const ScanParams& params, const PRED_T& predicate,
                              const std::vector<int64_t>& gids) {
+    if constexpr (std::is_same_v<vid_t, int64_t> ||
+                  std::is_same_v<vid_t, uint64_t>) {
+      LOG(FATAL) << "Unsupported vid_t type for filter_gids";
+    }
     Context ctx;
     if (params.tables.size() == 1) {
       label_t label = params.tables[0];
@@ -217,6 +221,10 @@ class Scan {
         builder.push_back_opt(vid);
       }
     } else {
+      if constexpr (std::is_same_v<vid_t, int64_t> ||
+                    std::is_same_v<vid_t, uint64_t>) {
+        LOG(FATAL) << "Unsupported vid_t type";
+      }
       int64_t gid = expr();
       if (GlobalId::get_label_id(gid) == label) {
         builder.push_back_opt(GlobalId::get_vid(gid));
