@@ -18,7 +18,7 @@
 
 #include <climits>
 #include <vector>
-#include "flex/engines/graph_db/database/wal/wal.h"
+#include "flex/engines/graph_db/database/wal.h"
 
 namespace gs {
 

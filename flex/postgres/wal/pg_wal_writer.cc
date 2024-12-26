@@ -13,24 +13,32 @@
  * limitations under the License.
  */
 
-#include "flex/engines/graph_db/database/wal/pg_wal_writer.h"
-#include "flex/engines/graph_db/database/wal/wal_writer_factory.h"
+#include "flex/postgres/wal/pg_wal_writer.h"
+#include "flex/engines/graph_db/database/wal_writer_factory.h"
 
-#include "flex/engines/graph_db/database/wal/pg/pg_wal_utils.h"
+#include "flex/postgres/wal/pg_wal_utils.h"
 
 #include <chrono>
 #include <filesystem>
 
 namespace gs {
 
+void PGWalWriter::Init() {
+  WalWriterFactory::RegisterWalWriter(
+      "postgres", static_cast<WalWriterFactory::wal_writer_initializer_t>(
+                      &PGWalWriter::Make));
+}
+
 std::unique_ptr<IWalWriter> PGWalWriter::Make() {
+  LOG(INFO) << "Create PGWalWriter";
   return std::unique_ptr<IWalWriter>(new PGWalWriter());
 }
 
 void PGWalWriter::open(const std::string& prefix, int thread_id) {
   path_ = prefix;
   thread_id_ = thread_id;
-  StartPostMaster(path_.c_str());
+  LOG(INFO) << "Open PGWalWriter";
+  // StartPostMaster(path_);
   /*
    * Start the postmaster in this process to handle the wal writing. It will
    * create several subprocesses.
@@ -39,16 +47,20 @@ void PGWalWriter::open(const std::string& prefix, int thread_id) {
    *
    * The wal will be written to the directory specified by the path_.
    */
+
+  // Read the parsed wals from the socket.
+  // ReadWalsFromSocket();
 }
 
-void PGWalWriter::close() { StopPostMaster(); }
+void PGWalWriter::close() {LOG(INFO) << "Close PGWalWriter: " << thread_id_;}
 
 bool PGWalWriter::append(const char* data, size_t length) {
+  LOG(INFO) << "Write wal content: " << std::string(data, length);
   return WriteWal(data, length);
 }
 
 const bool PGWalWriter::registered_ = WalWriterFactory::RegisterWalWriter(
-    "local", static_cast<WalWriterFactory::wal_writer_initializer_t>(
-                 &PGWalWriter::Make));
+    "postgres", static_cast<WalWriterFactory::wal_writer_initializer_t>(
+                    &PGWalWriter::Make));
 
 }  // namespace gs

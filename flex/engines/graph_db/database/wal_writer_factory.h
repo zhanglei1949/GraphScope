@@ -18,8 +18,8 @@
 
 #include <memory>
 #include <unordered_map>
-#include "flex/engines/graph_db/database/wal/wal.h"
-#include "flex/engines/graph_db/database/wal/wal_parser.h"
+#include "flex/engines/graph_db/database/wal.h"
+#include "flex/engines/graph_db/database/wal_parser.h"
 
 namespace gs {
 

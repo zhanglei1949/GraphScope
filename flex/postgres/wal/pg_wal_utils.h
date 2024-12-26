@@ -16,22 +16,21 @@
 #ifndef ENGINES_GRAPH_DB_DATABASE_WAL_PG_PG_WAL_UTILS_H_
 #define ENGINES_GRAPH_DB_DATABASE_WAL_PG_PG_WAL_UTILS_H_
 
-#include <stdbool.h>
-#include <stddef.h>
+#include <string>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// #ifdef __cplusplus
+// extern "C" {
+// #endif
+
+
+// #ifdef __cplusplus
+// }
+// #endif
 
 /**
  * The wrapper of the postgres wal related functions.
  */
-void StartPostMaster(const char* path);
-void StopPostMaster();
+void StartPostMaster(const std::string& path);
 bool WriteWal(const char* data, size_t length);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif  // ENGINES_GRAPH_DB_DATABASE_WAL_PG_PG_WAL_UTILS_H_

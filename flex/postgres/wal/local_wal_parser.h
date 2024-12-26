@@ -17,13 +17,14 @@
 #define ENGINES_GRAPH_DB_DATABASE_WAL_LOCAL_WAL_PARSER_H_
 
 #include <vector>
-#include "flex/engines/graph_db/database/wal/wal.h"
-#include "flex/engines/graph_db/database/wal/wal_parser.h"
+#include "flex/engines/graph_db/database/wal.h"
+#include "flex/engines/graph_db/database/wal_parser.h"
 
 namespace gs {
 
 class LocalWalParser : public IWalParser {
  public:
+ static void Init();
   static std::unique_ptr<IWalParser> Make(const std::string& wal_dir) {
     return std::unique_ptr<IWalParser>(new LocalWalParser(wal_dir));
   }

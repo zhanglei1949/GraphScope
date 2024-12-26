@@ -148,6 +148,7 @@ static bool XLogCompressBackupBlock(const char *page, uint16 hole_offset,
 void
 XLogBeginInsert(void)
 {
+	ereport(LOG, (errmsg("Try to call XLogBeginInsert")));
 	Assert(max_registered_block_id == 0);
 	Assert(mainrdata_last == (XLogRecData *) &mainrdata_head);
 	Assert(mainrdata_len == 0);

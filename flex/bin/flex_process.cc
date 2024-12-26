@@ -1,3 +1,8 @@
+#include "postmaster/flex_process.h"
+#include <iostream>
+#include <string>
+#include "flex/bin/flex_process_init.h"
+
 /** Copyright 2020 Alibaba Group Holding Limited.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -121,10 +126,15 @@ void config_log_level(int log_level, int verbose_level) {
 /**
  * The main entrance for InteractiveServer.
  */
-int main(int argc, char** argv) {
+int callFlexMain(int argc, char** argv) {
   // block sigint and sigterm in main thread, let seastar handle it
   gs::blockSignal(SIGINT);
   gs::blockSignal(SIGTERM);
+  
+  gs::LocalWalWriter::Init();
+  gs::PGWalWriter::Init();
+  gs::LocalWalParser::Init();
+  gs::PGWalParser::Init();
 
   bpo::options_description desc("Usage:");
   desc.add_options()("help,h", "Display help messages")(
@@ -157,11 +167,6 @@ int main(int argc, char** argv) {
 
   setenv("TZ", "Asia/Shanghai", 1);
   tzset();
-
-  gs::LocalWalWriter::Init();
-  gs::PGWalWriter::Init();
-  gs::LocalWalParser::Init();
-  gs::PGWalParser::Init();
 
   bpo::variables_map vm;
   bpo::store(bpo::command_line_parser(argc, argv).options(desc).run(), vm);
@@ -268,4 +273,40 @@ int main(int argc, char** argv) {
 #endif
 
   return 0;
+}
+
+void FlexMain(char* startup_data, size_t startup_data_len) {
+  std::cout << "-----------Init FlexMain-----------" << std::endl;
+  std::cout << "pid: " << getpid() << std::endl;
+  FLexMainInit();
+  // Run a command
+  std::string command =
+      "/workspaces/GraphScope/flex/build/bin/interactive_server -w "
+      "/tmp/interactive_workspace/ -c "
+      "/workspaces/GraphScope/flex/tests/hqps/interactive_config_test.yaml "
+      "--enable-admin-service true "
+      "--wal-writer-type postgres";
+  std::cout << "Running command: " << command << std::endl;
+  //   ereport(LOG, (errmsg("Running command: %s", command.c_str())));
+  // system(command);
+  int argc = 9;
+  char** argv = new char*[argc];
+  for (int i = 0; i < argc; i++) {
+    argv[i] = new char[100];
+  }
+  // argv[0] = "/workspaces/GraphScope/flex/build/bin/interactive_server";
+  strcpy(argv[0], "/workspaces/GraphScope/flex/build/bin/interactive_server");
+  // argv[1] = "-w";
+  strcpy(argv[1], "-w");
+  strcpy(argv[2], "/tmp/interactive_workspace/");
+  strcpy(argv[3], "-c");
+  strcpy(argv[4],
+         "/workspaces/GraphScope/flex/tests/hqps/interactive_config_test.yaml");
+  strcpy(argv[5], "--enable-admin-service");
+  strcpy(argv[6], "true");
+  strcpy(argv[7], "--wal-writer-type");
+  strcpy(argv[8], "postgres");
+  callFlexMain(argc, argv);
+  //   ereport(LOG, (errmsg("Command finished")));
+  exit(0);
 }

@@ -187,6 +187,12 @@ Result<std::vector<char>> GraphDBSession::Eval(const std::string& input) {
   }
 }
 
+void GraphDBSession::WriteWal(const std::string& wal_content) {
+  LOG(INFO) << "Write wal content: " << wal_content << " logger: " << logger_.type();
+  logger_.append(wal_content.c_str(), wal_content.size());
+  LOG(INFO) << "Write wal content done";
+}
+
 void GraphDBSession::GetAppInfo(Encoder& result) { db_.GetAppInfo(result); }
 
 int GraphDBSession::SessionId() const { return thread_id_; }

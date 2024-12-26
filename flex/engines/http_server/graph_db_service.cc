@@ -192,6 +192,7 @@ void GraphDBService::init(const ServiceConfig& config) {
 }
 
 GraphDBService::~GraphDBService() {
+  LOG(INFO) << "GraphDBService is shutting down in process: " << getpid();
   if (actor_sys_) {
     actor_sys_->terminate();
   }
@@ -266,6 +267,7 @@ void GraphDBService::run_and_wait_for_exit() {
   while (running_.load(std::memory_order_relaxed)) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
+  LOG(INFO) << "GraphDBService is exiting ...";
   query_hdl_->stop();
   if (admin_hdl_) {
     admin_hdl_->stop();

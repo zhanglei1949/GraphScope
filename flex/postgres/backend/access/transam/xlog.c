@@ -5638,6 +5638,7 @@ StartupXLOG(void)
 	 * been initialized and before we accept connections or begin WAL replay.
 	 */
 	StartupCLOG();
+	ereport(LOG, (errmsg("After StartupCLOG")));
 
 	/*
 	 * Startup MultiXact. We need to do this early to be able to replay
@@ -5715,6 +5716,8 @@ StartupXLOG(void)
 
 	RedoRecPtr = XLogCtl->RedoRecPtr = XLogCtl->Insert.RedoRecPtr = checkPoint.redo;
 	doPageWrites = lastFullPageWrites;
+
+	ereport(LOG, (errmsg("Before recovery")));
 
 	/* REDO */
 	if (InRecovery)

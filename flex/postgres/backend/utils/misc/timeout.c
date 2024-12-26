@@ -168,8 +168,12 @@ enable_timeout(TimeoutId id, TimestampTz now, TimestampTz fin_time,
 	 * If this timeout was already active, momentarily disable it.  We
 	 * interpret the call as a directive to reschedule the timeout.
 	 */
-	if (all_timeouts[id].active)
-		remove_timeout_index(find_active_timeout(id));
+	if (all_timeouts[id].active){
+    if (find_active_timeout(id) >= 0)
+    {
+      remove_timeout_index(find_active_timeout(id));
+    }
+  }
 
 	/*
 	 * Find out the index where to insert the new timeout.  We sort by
@@ -692,8 +696,12 @@ disable_timeout(TimeoutId id, bool keep_indicator)
 	disable_alarm();
 
 	/* Find the timeout and remove it from the active list. */
-	if (all_timeouts[id].active)
-		remove_timeout_index(find_active_timeout(id));
+	if (all_timeouts[id].active){
+    if (find_active_timeout(id) >= 0)
+    {
+      remove_timeout_index(find_active_timeout(id));
+    }
+  }
 
 	/* Mark it inactive, whether it was active or not. */
 	if (!keep_indicator)
@@ -731,8 +739,12 @@ disable_timeouts(const DisableTimeoutParams *timeouts, int count)
 
 		Assert(all_timeouts[id].timeout_handler != NULL);
 
-		if (all_timeouts[id].active)
-			remove_timeout_index(find_active_timeout(id));
+		if (all_timeouts[id].active){
+      if (find_active_timeout(id) >= 0)
+      {
+        remove_timeout_index(find_active_timeout(id));
+      }
+    }
 
 		if (!timeouts[i].keep_indicator)
 			all_timeouts[id].indicator = false;

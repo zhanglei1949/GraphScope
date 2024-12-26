@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "flex/engines/graph_db/database/wal/wal_writer_factory.h"
+#include "flex/engines/graph_db/database/wal_writer_factory.h"
 #include <dlfcn.h>
 #include <memory>
 #include <utility>
@@ -64,7 +64,13 @@ std::unique_ptr<IWalParser> WalWriterFactory::CreateWalParser(
   if (iter != know_parsers_.end()) {
     return iter->second(wal_dir);
   } else {
-    LOG(FATAL) << "Unknown wal writer: " << wal_writer_type;
+    LOG(ERROR) << "Unknown wal parser: " << wal_writer_type;
+    iter = know_parsers_.find("local");  // TODO: remove this
+    if (iter != know_parsers_.end()) {
+      return iter->second(wal_dir);
+    } else {
+      LOG(FATAL) << "Unknown wal parser: local";
+    }
   }
 }
 

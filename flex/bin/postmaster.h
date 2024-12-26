@@ -15,22 +15,26 @@
 
 #include "miscadmin.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* GUC options */
 extern PGDLLIMPORT bool EnableSSL;
 extern PGDLLIMPORT int SuperuserReservedConnections;
 extern PGDLLIMPORT int ReservedConnections;
 extern PGDLLIMPORT int PostPortNumber;
 extern PGDLLIMPORT int Unix_socket_permissions;
-extern PGDLLIMPORT char *Unix_socket_group;
-extern PGDLLIMPORT char *Unix_socket_directories;
-extern PGDLLIMPORT char *ListenAddresses;
+extern PGDLLIMPORT char* Unix_socket_group;
+extern PGDLLIMPORT char* Unix_socket_directories;
+extern PGDLLIMPORT char* ListenAddresses;
 extern PGDLLIMPORT bool ClientAuthInProgress;
 extern PGDLLIMPORT int PreAuthDelay;
 extern PGDLLIMPORT int AuthenticationTimeout;
 extern PGDLLIMPORT bool Log_connections;
 extern PGDLLIMPORT bool log_hostname;
 extern PGDLLIMPORT bool enable_bonjour;
-extern PGDLLIMPORT char *bonjour_name;
+extern PGDLLIMPORT char* bonjour_name;
 extern PGDLLIMPORT bool restart_after_crash;
 extern PGDLLIMPORT bool remove_temp_files_after_crash;
 extern PGDLLIMPORT bool send_abort_for_crash;
@@ -45,39 +49,40 @@ extern PGDLLIMPORT int postmaster_alive_fds[2];
  * Constants that represent which of postmaster_alive_fds is held by
  * postmaster, and which is used in children to check for postmaster death.
  */
-#define POSTMASTER_FD_WATCH		0	/* used in children to check for
-									 * postmaster death */
-#define POSTMASTER_FD_OWN		1	/* kept open by postmaster only */
+#define POSTMASTER_FD_WATCH                                  \
+  0                         /* used in children to check for \
+                             * postmaster death */
+#define POSTMASTER_FD_OWN 1 /* kept open by postmaster only */
 #endif
 
-extern PGDLLIMPORT const char *progname;
+extern PGDLLIMPORT const char* progname;
 
 extern PGDLLIMPORT bool redirection_done;
 extern PGDLLIMPORT bool LoadedSSL;
 
-extern void PostmasterMain(int argc, char *argv[]) pg_attribute_noreturn();
+extern void FlexPostmasterMain(int argc, char* argv[]) pg_attribute_noreturn();
 extern void ClosePostmasterPorts(bool am_syslogger);
 extern void InitProcessGlobals(void);
 
-extern int	MaxLivePostmasterChildren(void);
+extern int MaxLivePostmasterChildren(void);
 
 extern bool PostmasterMarkPIDForWorkerNotify(int);
 
 #ifdef WIN32
-extern void pgwin32_register_deadchild_callback(HANDLE procHandle, DWORD procId);
+extern void pgwin32_register_deadchild_callback(HANDLE procHandle,
+                                                DWORD procId);
 #endif
 
 /* defined in globals.c */
-extern PGDLLIMPORT struct ClientSocket *MyClientSocket;
+extern PGDLLIMPORT struct ClientSocket* MyClientSocket;
 
 /* prototypes for functions in launch_backend.c */
-extern pid_t postmaster_child_launch(BackendType child_type,
-									 char *startup_data,
-									 size_t startup_data_len,
-									 struct ClientSocket *client_sock);
-const char *PostmasterChildName(BackendType child_type);
+extern pid_t postmaster_child_launch(BackendType child_type, char* startup_data,
+                                     size_t startup_data_len,
+                                     struct ClientSocket* client_sock);
+const char* PostmasterChildName(BackendType child_type);
 #ifdef EXEC_BACKEND
-extern void SubPostmasterMain(int argc, char *argv[]) pg_attribute_noreturn();
+extern void SubPostmasterMain(int argc, char* argv[]) pg_attribute_noreturn();
 #endif
 
 /*
@@ -90,6 +95,10 @@ extern void SubPostmasterMain(int argc, char *argv[]) pg_attribute_noreturn();
  * compute 4*MaxBackends without any overflow check.  This is rechecked in the
  * relevant GUC check hooks and in RegisterBackgroundWorker().
  */
-#define MAX_BACKENDS	0x3FFFF
+#define MAX_BACKENDS 0x3FFFF
 
-#endif							/* _POSTMASTER_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _POSTMASTER_H */

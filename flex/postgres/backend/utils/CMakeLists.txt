@@ -1,7 +1,7 @@
 # add_subdirectory(activity)
 # add_subdirectory(adt)
 # add_subdirectory(cache)
-# add_subdirectory(error)
+add_subdirectory(error)
 # add_subdirectory(fmgr)
 # add_subdirectory(hash)
 # add_subdirectory(init)

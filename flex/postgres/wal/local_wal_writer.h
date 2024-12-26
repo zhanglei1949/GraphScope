@@ -18,13 +18,14 @@
 
 #include <memory>
 #include <unordered_map>
-#include "flex/engines/graph_db/database/wal/wal.h"
-#include "flex/engines/graph_db/database/wal/wal_writer_factory.h"
+#include "flex/engines/graph_db/database/wal.h"
+#include "flex/engines/graph_db/database/wal_writer_factory.h"
 
 namespace gs {
 
 class LocalWalWriter : public IWalWriter {
  public:
+  static void Init();
   static std::unique_ptr<IWalWriter> Make();
 
   static constexpr size_t TRUNC_SIZE = 1ul << 30;
@@ -33,6 +34,7 @@ class LocalWalWriter : public IWalWriter {
   void open(const std::string& path, int thread_id) override;
   void close() override;
   bool append(const char* data, size_t length) override;
+  std::string type() const override { return "local"; }
 
  private:
   int thread_id_;

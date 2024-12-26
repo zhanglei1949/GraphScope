@@ -91,6 +91,8 @@ class GraphDBSession {
 
   Result<std::vector<char>> Eval(const std::string& input);
 
+  void WriteWal(const std::string& wal_content);
+
   void GetAppInfo(Encoder& result);
 
   int SessionId() const;

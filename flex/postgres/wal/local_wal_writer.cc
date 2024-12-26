@@ -13,13 +13,19 @@
  * limitations under the License.
  */
 
-#include "flex/engines/graph_db/database/wal/Local_wal_writer.h"
-#include "flex/engines/graph_db/database/wal/wal_writer_factory.h"
+#include "flex/postgres/wal/local_wal_writer.h"
+#include "flex/engines/graph_db/database/wal_writer_factory.h"
 
 #include <chrono>
 #include <filesystem>
 
 namespace gs {
+
+void LocalWalWriter::Init() {
+  WalWriterFactory::RegisterWalWriter(
+      "local", static_cast<WalWriterFactory::wal_writer_initializer_t>(
+                   &LocalWalWriter::Make));
+}
 
 std::unique_ptr<IWalWriter> LocalWalWriter::Make() {
   return std::unique_ptr<IWalWriter>(new LocalWalWriter());

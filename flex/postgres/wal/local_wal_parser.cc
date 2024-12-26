@@ -13,13 +13,18 @@
  * limitations under the License.
  */
 
-#include "flex/engines/graph_db/database/wal/local_wal_parser.h"
-#include "flex/engines/graph_db/database/wal/wal_writer_factory.h"
+#include "flex/postgres/wal/local_wal_parser.h"
+#include "flex/engines/graph_db/database/wal_writer_factory.h"
 
 namespace gs {
 
 static constexpr size_t MAX_WALS_NUM = 134217728;
 
+void LocalWalParser::Init() {
+  WalWriterFactory::RegisterWalParser(
+      "local", static_cast<WalWriterFactory::wal_parser_initializer_t>(
+                   &LocalWalParser::Make));
+}
 LocalWalParser::LocalWalParser(const std::string& wal_dir)
     : insert_wal_list_(NULL), insert_wal_list_size_(0) {
   if (!std::filesystem::exists(wal_dir)) {

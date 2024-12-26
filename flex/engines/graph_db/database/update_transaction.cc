@@ -18,7 +18,7 @@
 
 #include "flex/engines/graph_db/database/update_transaction.h"
 #include "flex/engines/graph_db/database/version_manager.h"
-#include "flex/engines/graph_db/database/wal/wal.h"
+#include "flex/engines/graph_db/database/wal.h"
 #include "flex/storages/rt_mutable_graph/file_names.h"
 #include "flex/storages/rt_mutable_graph/mutable_property_fragment.h"
 

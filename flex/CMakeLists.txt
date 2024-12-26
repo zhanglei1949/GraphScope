@@ -79,6 +79,7 @@ else ()
 endif ()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -Werror -std=c++17 -Wall -fPIC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp -fPIC")
 if (OPTIMIZE_FOR_HOST)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif()

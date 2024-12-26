@@ -22,9 +22,8 @@
 #include "flex/engines/graph_db/app/hqps_app.h"
 #include "flex/engines/graph_db/app/server_app.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
-#include "flex/engines/graph_db/database/wal/local_wal_parser.h"
-#include "flex/engines/graph_db/database/wal/wal.h"
-#include "flex/engines/graph_db/database/wal/wal_writer_factory.h"
+#include "flex/engines/graph_db/database/wal.h"
+#include "flex/engines/graph_db/database/wal_writer_factory.h"
 #include "flex/utils/yaml_utils.h"
 
 #include "flex/third_party/httplib.h"
@@ -33,11 +32,13 @@ namespace gs {
 
 struct SessionLocalContext {
   SessionLocalContext(GraphDB& db, const std::string& work_dir, int thread_id,
-                      MemoryStrategy allocator_strategy)
+                      MemoryStrategy allocator_strategy,
+                      std::unique_ptr<IWalWriter> in_logger)
       : allocator(allocator_strategy,
                   (allocator_strategy != MemoryStrategy::kSyncToFile
                        ? ""
                        : thread_local_allocator_prefix(work_dir, thread_id))),
+        logger(std::move(in_logger)),
         session(db, allocator, *logger, work_dir, thread_id) {}
   ~SessionLocalContext() { logger->close(); }
   Allocator allocator;
@@ -448,24 +449,21 @@ void GraphDB::initApps(
 void GraphDB::openWalAndCreateContexts(const std::string& wal_writer_type,
                                        const std::string& data_dir,
                                        MemoryStrategy allocator_strategy) {
+  WalWriterFactory::Init();
   contexts_ = static_cast<SessionLocalContext*>(
       aligned_alloc(4096, sizeof(SessionLocalContext) * thread_num_));
   std::filesystem::create_directories(allocator_dir(data_dir));
-  for (int i = 0; i < thread_num_; ++i) {
-    new (&contexts_[i])
-        SessionLocalContext(*this, data_dir, i, allocator_strategy);
-  }
-  WalWriterFactory::Init();
   std::string wal_dir_path = wal_dir(data_dir);
+  for (int i = 0; i < thread_num_; ++i) {
+    new (&contexts_[i]) SessionLocalContext(
+        *this, data_dir, i, allocator_strategy,
+        std::move(WalWriterFactory::CreateWalWriter(wal_writer_type)));
+    contexts_[i].logger->open(wal_dir_path, i);
+  }
+
   auto wal_parser =
       WalWriterFactory::CreateWalParser(wal_writer_type, wal_dir_path);
   ingestWals(*wal_parser, data_dir, thread_num_);
-
-  for (int i = 0; i < thread_num_; ++i) {
-    contexts_[i].logger =
-        std::move(WalWriterFactory::CreateWalWriter(wal_writer_type));
-    contexts_[i].logger->open(wal_dir_path, i);
-  }
 
   initApps(graph_.schema().GetPlugins());
   VLOG(1) << "Successfully restore load plugins";

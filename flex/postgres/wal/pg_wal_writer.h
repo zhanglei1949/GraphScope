@@ -13,13 +13,13 @@
  * limitations under the License.
  */
 
-#ifndef ENGINES_GRAPH_DB_DATABASE_WAL_LOCAL_WAL_WRITER_H_
-#define ENGINES_GRAPH_DB_DATABASE_WAL_LOCAL_WAL_WRITER_H_
+#ifndef ENGINES_GRAPH_DB_DATABASE_WAL_PG_WAL_WRITER_H_
+#define ENGINES_GRAPH_DB_DATABASE_WAL_PG_WAL_WRITER_H_
 
 #include <memory>
 #include <unordered_map>
-#include "flex/engines/graph_db/database/wal/wal.h"
-#include "flex/engines/graph_db/database/wal/wal_writer_factory.h"
+#include "flex/engines/graph_db/database/wal.h"
+#include "flex/engines/graph_db/database/wal_writer_factory.h"
 
 namespace gs {
 
@@ -28,6 +28,7 @@ namespace gs {
  */
 class PGWalWriter : public IWalWriter {
  public:
+  static void Init();
   static std::unique_ptr<IWalWriter> Make();
 
   PGWalWriter() = default;
@@ -35,6 +36,7 @@ class PGWalWriter : public IWalWriter {
   void open(const std::string& path, int thread_id) override;
   void close() override;
   bool append(const char* data, size_t length) override;
+  std::string type() const override { return "postgres"; }
 
  private:
   std::string path_;  // Path to the pg wal directory
@@ -45,4 +47,4 @@ class PGWalWriter : public IWalWriter {
 
 }  // namespace gs
 
-#endif  // ENGINES_GRAPH_DB_DATABASE_WAL_LOCAL_WAL_WRITER_H_
+#endif  // ENGINES_GRAPH_DB_DATABASE_WAL_PG_WAL_WRITER_H_

@@ -53,6 +53,8 @@ struct UpdateWalUnit {
 class IWalWriter {
  public:
   virtual ~IWalWriter() {}
+
+  virtual std::string type() const = 0;
   /**
    * Open a wal file. In our design, each thread has its own wal file.
    * The uri could be a file_path or a remote connection string.

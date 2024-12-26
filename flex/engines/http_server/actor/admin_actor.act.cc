@@ -1099,6 +1099,11 @@ seastar::future<admin_query_result> admin_actor::stop_service(
 seastar::future<admin_query_result> admin_actor::service_status(
     query_param&& query_param) {
   auto& graph_db_service = GraphDBService::get();
+  auto& graph_db = gs::GraphDB::get();
+  auto& sess = graph_db.GetSession(hiactor::local_shard_id());
+  LOG(INFO) << "Got sess";
+  sess.WriteWal("test writing wal");
+  LOG(INFO) << "Write wal";
   auto query_port = graph_db_service.get_query_port();
   auto running_graph_res = metadata_store_->GetRunningGraph();
   rapidjson::Document res(rapidjson::kObjectType);
