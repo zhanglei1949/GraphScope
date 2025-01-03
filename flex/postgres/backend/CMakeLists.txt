@@ -23,6 +23,8 @@ list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "libpq/*")
 # Remove lauch_backend.c
 list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "postmaster/launch_backend.c")
 
+list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "wait_event_funcs_data.c")
+
 # append utils/mmgr/portalmem.c
 list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/utils/mmgr/portalmem.c)
 list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/utils/adt/regexp.c)
@@ -37,7 +39,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/postgres/src/i
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../engines/http_server/)
 
 add_library(flex_postgres_backend STATIC ${BACKEND_SRC_FILES})
-target_link_libraries(flex_postgres_backend PUBLIC flex_postgres_nodes
+target_link_libraries(flex_postgres_backend PUBLIC flex_postgres_timezone flex_postgres_nodes
     flex_postgres_rewrite flex_postgres_libpq flex_postgres_port  flex_postgres_regex ${POSTGRESS_PORT_LIB_PATH} ${POSTGRESS_COMMON_LIB_PATH})
 
 

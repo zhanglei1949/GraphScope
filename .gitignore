@@ -170,3 +170,15 @@ flex/interactive/sdk/python/gs_interactive/rest.py
 link.txt
 
 CMakeFiles/
+
+flex/postgres/**/*.c
+flex/postgres/timezone/tznames/*.txt
+flex/postgres/timezone/data/tzdata.zi
+flex/postgres/timezone/known_abbrevs.txt
+flex/postgres/timezone/tznames/Australia
+flex/postgres/timezone/tznames/India
+flex/postgres/timezone/tznames/Default
+flex/postgres/timezone/tznames/Makefile
+flex/postgres/timezone/tznames/meson.build
+flex/postgres/timezone/objfiles.txt
+flex/postgres/timezone/tznames/README
