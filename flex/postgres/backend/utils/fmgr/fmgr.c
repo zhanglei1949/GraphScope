@@ -66,26 +66,6 @@ static void record_C_func(HeapTuple procedureTuple,
 /* extern so it's callable via JIT */
 extern Datum fmgr_security_definer(PG_FUNCTION_ARGS);
 
-// /*
-//  * Return whether a JIT provider has successfully been loaded, caching the
-//  * result.
-//  */
-// static bool
-// provider_init(void)
-// {
-// 	return false;
-// }
-
-// /*
-//  * SQL level function returning whether JIT is available in the current
-//  * backend. Will attempt to load JIT provider if necessary.
-//  */
-// Datum
-// pg_jit_available(PG_FUNCTION_ARGS)
-// {
-// 	PG_RETURN_BOOL(provider_init());
-// }
-
 
 /*
  * Lookup routines for builtin-function table.  We can search by either Oid

@@ -416,7 +416,6 @@ heap_xlog_delete(XLogReaderState *record)
 static void
 heap_xlog_insert(XLogReaderState *record)
 {
-	printf("Replay XLOG_HEAP_INSERT records.\n");
 	XLogRecPtr	lsn = record->EndRecPtr;
 	xl_heap_insert *xlrec = (xl_heap_insert *) XLogRecGetData(record);
 	Buffer		buffer;
@@ -1182,7 +1181,6 @@ heap_xlog_inplace(XLogReaderState *record)
 void
 heap_redo(XLogReaderState *record)
 {
-	printf("entering heap_redo\n");
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 
 	/*

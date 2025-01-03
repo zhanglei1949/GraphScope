@@ -1288,7 +1288,6 @@ HandleLogMemoryContextInterrupt(void)
 void
 ProcessLogMemoryContextInterrupt(void)
 {
-	printf("%d LOGGING MEMORY CONTEXTS\n", getpid());
 	LogMemoryContextPending = false;
 
 	/*

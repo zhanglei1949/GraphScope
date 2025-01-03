@@ -14,6 +14,7 @@
 
 #include "c.h"
 #include "common/fe_memutils.h"
+#include "nodes/nodes.h"
 #include "miscadmin.h"
 #include "postgres.h"
 

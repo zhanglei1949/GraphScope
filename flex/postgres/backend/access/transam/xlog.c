@@ -2368,7 +2368,6 @@ XLogWrite(XLogwrtRqst WriteRqst, TimeLineID tli, bool flexible)
 	
 	while (LogwrtResult.Write < WriteRqst.Write)
 	{
-		printf("%d XLogWrite current LogwrtResult.Write %lu, WriteRqst req %lu\n", getpid(),LogwrtResult.Write, WriteRqst.Write);
 		/*
 		 * Make sure we're not ahead of the insert process.  This could happen
 		 * if we're passed a bogus WriteRqst.Write that is past the end of the
@@ -2566,7 +2565,7 @@ XLogWrite(XLogwrtRqst WriteRqst, TimeLineID tli, bool flexible)
 	if (LogwrtResult.Flush < WriteRqst.Flush &&
 		LogwrtResult.Flush < LogwrtResult.Write)
 	{
-		printf("%d XLogWrite current LogwrtResult.Flush %lu, WriteRqst req %lu\n", getpid(),LogwrtResult.Flush, WriteRqst.Flush);
+		// printf("%d XLogWrite current LogwrtResult.Flush %lu, WriteRqst req %lu\n", getpid(),LogwrtResult.Flush, WriteRqst.Flush);
 		/*
 		 * Could get here without iterating above loop, in which case we might
 		 * have no open file or the wrong one.  However, we do not need to

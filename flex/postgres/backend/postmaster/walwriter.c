@@ -86,6 +86,8 @@ int			WalWriterFlushAfter = DEFAULT_WAL_WRITER_FLUSH_AFTER;
 void
 WalWriterMain(char *startup_data, size_t startup_data_len)
 {
+	ereport(LOG,
+			(errmsg("walwriter started")));
 	sigjmp_buf	local_sigjmp_buf;
 	MemoryContext walwriter_context;
 	int			left_till_hibernate;

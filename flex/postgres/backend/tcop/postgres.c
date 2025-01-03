@@ -1014,19 +1014,6 @@ pg_plan_queries(List *querytrees, const char *query_string, int cursorOptions,
 	return stmt_list;
 }
 
-static void 
-flex_exec_simple_query(const char* query_string) {
-	printf("In flex_exec_simple_query\n");
-	CommandDest dest = whereToSendOutput;
-	// Write xlog
-	XLogBeginInsert();
-	XLogRegisterData((char *) "Hello World", 11);
-	XLogRecPtr	recptr = XLogInsert(RM_XLOG_ID, XLOG_FLEX_WAL_REDO);
-	XLogFlush(recptr);
-	NullCommand(dest);
-	return ;
-}
-
 
 /*
  * exec_simple_query
@@ -4819,8 +4806,7 @@ PostgresMain(const char *dbname, const char *username)
 							exec_simple_query(query_string);
 					}
 					else{
-						// exec_simple_query(query_string);
-						flex_exec_simple_query(query_string);
+						exec_simple_query(query_string);
 					}
 
 					valgrind_report_error_query(query_string);

@@ -1271,14 +1271,14 @@ void FlexPostmasterMain(int argc, char* argv[]) {
 
   /* Start bgwriter and checkpointer so they can help with recovery */
   printf("%d In post Master, Starting background processes\n", getpid());
-  // if (CheckpointerPID == 0){
-  // 	printf("%d In post Master, Starting Checkpointer\n", getpid());
-  // 	CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
-  // }
-  // if (BgWriterPID == 0){
-  // 	printf("%d In post Master, Starting BgWriter\n", getpid());
-  // 	BgWriterPID = StartChildProcess(B_BG_WRITER);
-  // }
+  if (CheckpointerPID == 0){
+  	printf("%d In post Master, Starting Checkpointer\n", getpid());
+  	CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
+  }
+  if (BgWriterPID == 0){
+  	printf("%d In post Master, Starting BgWriter\n", getpid());
+  	BgWriterPID = StartChildProcess(B_BG_WRITER);
+  }
 
   // start flex interactive server
   ereport(LOG, (errmsg("start flex server in main process %d", getpid())));
@@ -1707,7 +1707,7 @@ static CAC_state canAcceptConnections(int backend_type) {
     else if (!FatalError && pmState == PM_STARTUP)
       return CAC_STARTUP; /* normal startup */
     else if (!FatalError && pmState == PM_FLEX) {
-      return CAC_FLEX; /* normal startup */
+      return CAC_STARTUP; /* normal startup */
     } else if (!FatalError && pmState == PM_RECOVERY)
       return CAC_NOTCONSISTENT; /* not yet at consistent recovery
                                  * state */
@@ -2794,8 +2794,8 @@ static void PostmasterStateMachine(void) {
          */
         Assert(Shutdown > NoShutdown);
         /* Start the checkpointer if not running */
-        // if (CheckpointerPID == 0)
-        // 	CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
+        if (CheckpointerPID == 0)
+        	CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
         /* And tell it to shut down */
         if (CheckpointerPID != 0) {
           signal_child(CheckpointerPID, SIGUSR2);
@@ -2970,12 +2970,12 @@ static void LaunchMissingBackgroundProcesses(void) {
   if (pmState == PM_RUN || pmState == PM_RECOVERY ||
       pmState == PM_HOT_STANDBY || pmState == PM_STARTUP) {
     if (CheckpointerPID == 0) {
-      // CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
-      // printf("CheckpointerPID = %d\n", CheckpointerPID);
+      CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
+      printf("CheckpointerPID = %d\n", CheckpointerPID);
     }
     if (BgWriterPID == 0) {
-      // BgWriterPID = StartChildProcess(B_BG_WRITER);
-      // printf("BgWriterPID = %d\n", BgWriterPID);
+      BgWriterPID = StartChildProcess(B_BG_WRITER);
+      printf("BgWriterPID = %d\n", BgWriterPID);
     }
   }
 

@@ -1353,7 +1353,6 @@ RecordTransactionCommit(void)
 	 */
 	if (!markXidCommitted)
 	{
-		printf("%d markXidCommitted false\n", getpid());
 		/*
 		 * We expect that every RelationDropStorage is followed by a catalog
 		 * update, and hence XID assignment, so we shouldn't get here with any
@@ -1407,7 +1406,6 @@ RecordTransactionCommit(void)
 	}
 	else
 	{
-		printf("%d markXidCommitted true\n", getpid());
 		bool		replorigin;
 
 		/*
@@ -1503,7 +1501,6 @@ RecordTransactionCommit(void)
 		 synchronous_commit > SYNCHRONOUS_COMMIT_OFF) ||
 		forceSyncCommit || nrels > 0)
 	{
-		printf("%d commit sync", getpid());
 		XLogFlush(XactLastRecEnd);
 
 		/*
@@ -2068,7 +2065,6 @@ AtSubCleanup_Memory(void)
 static void
 StartTransaction(void)
 {
-	printf("%d Start Transaction\n", getpid());
 	TransactionState s;
 	VirtualTransactionId vxid;
 
@@ -2166,14 +2162,11 @@ StartTransaction(void)
 	 */
 	vxid.procNumber = MyProcNumber;
 	vxid.localTransactionId = GetNextLocalTransactionId();
-	printf("%d Start Transaction vxid %d\n", getpid(), vxid.localTransactionId);
 
 	/*
 	 * Lock the virtual transaction id before we announce it in the proc array
 	 */
 	VirtualXactLockTableInsert(vxid);
-
-	printf("%d Lock Virtual Transaction%d \n", getpid(), vxid.localTransactionId);
 
 	/*
 	 * Advertise it in the proc array.  We assume assignment of
@@ -2236,7 +2229,6 @@ StartTransaction(void)
 static void
 CommitTransaction(void)
 {
-	printf("%d commit Transaction\n", getpid());
 	TransactionState s = CurrentTransactionState;
 	TransactionId latestXid;
 	bool		is_parallel_worker;
@@ -2327,9 +2319,7 @@ CommitTransaction(void)
 	 * transaction. This must happen before AtEOXact_RelationMap(), so that we
 	 * don't see committed-but-broken files after a crash.
 	 */
-	printf("%d smgrDoPendingSyncs\n", getpid());
 	smgrDoPendingSyncs(true, is_parallel_worker);
-	printf("%d smgrDoPendingSyncs done\n", getpid());
 
 	/* close large objects before lower-level cleanup */
 	AtEOXact_LargeObject(true);
@@ -2517,7 +2507,6 @@ CommitTransaction(void)
 	s->state = TRANS_DEFAULT;
 
 	RESUME_INTERRUPTS();
-	printf("%d Finish commit Transaction\n", getpid());
 }
 
 
