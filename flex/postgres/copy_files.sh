@@ -144,6 +144,11 @@ if ! grep -q "XLOG_FLEX_WAL_REDO" ${POSTGRES_INCLUDE_DIR}/catalog/pg_control.h; 
     sed -i '83i #define XLOG_FLEX_WAL_REDO      0xF0' ${POSTGRES_INCLUDE_DIR}/catalog/pg_control.h
 fi
 
+# add #define IOV_MAX __IOV_MAX to pg_iovec.h
+if ! grep -q "__IOV_MAX" ${POSTGRES_INCLUDE_DIR}/port/pg_iovec.h; then
+    sed -i '21i #define IOV_MAX __IOV_MAX' ${POSTGRES_INCLUDE_DIR}/port/pg_iovec.h
+fi
+
 # add extern C to headers. 
 # if xloginsert.h does not have extern C, add it
 if ! grep -q "extern \"C\"" ${POSTGRES_INCLUDE_DIR}/access/xloginsert.h; then
