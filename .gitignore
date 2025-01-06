@@ -182,3 +182,12 @@ flex/postgres/timezone/tznames/Makefile
 flex/postgres/timezone/tznames/meson.build
 flex/postgres/timezone/objfiles.txt
 flex/postgres/timezone/tznames/README
+
+
+!flex/postgres/backend/postmaster/post_master_main.c
+!flex/postgres/backend/postmaster/postmaster.c
+!flex/postgres/backend/postmaster/flex_process.cc
+!flex/postgres/backend/postmaster/flex_process.h
+!flex/postgres/backend/postmaster/launch_backend.c
+!flex/postgres/backend/postmaster/flex_process_init.h
+!flex/postgres/backend/postmaster/flex_process_init.c
