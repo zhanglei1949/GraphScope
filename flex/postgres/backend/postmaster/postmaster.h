@@ -57,10 +57,10 @@ extern PGDLLIMPORT int postmaster_alive_fds[2];
 
 extern PGDLLIMPORT const char* progname;
 
+extern void FlexPostmasterMain(int argc, char* argv[]) pg_attribute_noreturn();
 extern PGDLLIMPORT bool redirection_done;
 extern PGDLLIMPORT bool LoadedSSL;
 
-extern void FlexPostmasterMain(int argc, char* argv[]) pg_attribute_noreturn();
 extern void ClosePostmasterPorts(bool am_syslogger);
 extern void InitProcessGlobals(void);
 

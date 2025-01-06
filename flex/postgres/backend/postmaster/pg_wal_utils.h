@@ -30,7 +30,7 @@
 /**
  * The wrapper of the postgres wal related functions.
  */
-void StartPostMaster(const std::string& path);
+// void StartPostMaster(const std::string& path);
 bool WriteWal(const char* data, size_t length);
 
 #endif  // ENGINES_GRAPH_DB_DATABASE_WAL_PG_PG_WAL_UTILS_H_

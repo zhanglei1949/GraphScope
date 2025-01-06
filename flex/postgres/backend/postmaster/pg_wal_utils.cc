@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "flex/postgres/wal/pg_wal_utils.h"
+#include "flex/postgres/backend/postmaster/pg_wal_utils.h"
 // #include "flex/postgres/wal/pg/write_wal.h"
 
 #include <filesystem>
@@ -94,28 +94,28 @@ void initialize_database(const std::string& path) {
   std::cout << "Successfully initialized the database." << std::endl;
 }
 
-void StartPostMaster(const std::string& path) {
-  // Start the postmaster in this process to handle the wal writing. It will
-  // create several subprocesses.
-  //
-  // 1. WalWriter: It will write the wal to the disk.
-  //
-  // The wal will be written to the directory specified by the path_.
-  // In this function, we will do two things:
-  // 1. First findout the flex_initdb binary path, and use it to initialize the
-  // db directory.
-  //    The postgres database directory may contains some files that are not
-  //    needed by flex.
-  // 2. Use this binary to initialize the path directory.
-  // 3. Start the postmaster in this process.
-  std::cout << "initialize_database" << std::endl;
-  ereport(LOG, (errmsg("initialize_database")));
-  initialize_database(path);
-  XLogRecPtr ptr = GetInsertRecPtr();
-  std::cout << "The last wal record ptr is: " << ptr << std::endl;
-  // initialize_postmaster(path.c_str());
-  //(TODO) Use boost::subprocess to start the postmaster.
-}
+// void StartPostMaster(const std::string& path) {
+//   // Start the postmaster in this process to handle the wal writing. It will
+//   // create several subprocesses.
+//   //
+//   // 1. WalWriter: It will write the wal to the disk.
+//   //
+//   // The wal will be written to the directory specified by the path_.
+//   // In this function, we will do two things:
+//   // 1. First findout the flex_initdb binary path, and use it to initialize the
+//   // db directory.
+//   //    The postgres database directory may contains some files that are not
+//   //    needed by flex.
+//   // 2. Use this binary to initialize the path directory.
+//   // 3. Start the postmaster in this process.
+//   std::cout << "initialize_database" << std::endl;
+//   ereport(LOG, (errmsg("initialize_database")));
+//   initialize_database(path);
+//   XLogRecPtr ptr = GetInsertRecPtr();
+//   std::cout << "The last wal record ptr is: " << ptr << std::endl;
+//   // initialize_postmaster(path.c_str());
+//   //(TODO) Use boost::subprocess to start the postmaster.
+// }
 
 
 bool WriteWal(const char* data, size_t length) {

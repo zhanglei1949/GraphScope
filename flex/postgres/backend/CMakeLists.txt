@@ -21,11 +21,11 @@ list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "like_match.c")
 list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "libpq/*")
 
 # Remove lauch_backend.c
-# list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "postmaster/launch_backend.c")
+#list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "postmaster/launch_backend.c")
 # remove flex_process.cc
-# list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "postmaster/flex_process.cc")
+#list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "postmaster/flex_process.cc")
 # remove flex_process_init.c
-# list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "postmaster/flex_process_init.c")
+#list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "postmaster/flex_process_init.c")
 # remove post_master_main.c
 list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "postmaster/post_master_main.c")
 # filter postgres.c
@@ -43,6 +43,7 @@ list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/jit/jit.c)
 list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/utils/sort/sortsupport.c)
 list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/utils/adt/like_support.c)
 list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/commands/portalcmds.c)
+# list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/../wal/pg_wal_utils.cc)
 
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/postgres/src/interfaces/libpq)
@@ -54,10 +55,13 @@ target_link_libraries(flex_postgres_backend PUBLIC flex_postgres_timezone flex_p
     flex_postgres_rewrite flex_postgres_libpq flex_postgres_port  flex_postgres_regex ${POSTGRESS_PORT_LIB_PATH} ${POSTGRESS_COMMON_LIB_PATH} flex_server)
 
 
-add_executable(flex_postmaster ${CMAKE_CURRENT_SOURCE_DIR}/postmaster/post_master_main.c ${CMAKE_CURRENT_SOURCE_DIR}/postmaster/flex_process_init.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/postmaster/flex_process_init.c) #${CMAKE_CURRENT_SOURCE_DIR}/postmaster/launch_backend.c 
+add_executable(flex_postmaster ${CMAKE_CURRENT_SOURCE_DIR}/postmaster/post_master_main.c)
 #${CMAKE_CURRENT_SOURCE_DIR}/postmaster/flex_process.cc
-target_link_libraries(flex_postmaster PUBLIC flex_postgres_backend  flex_postgres_wal)
+#${CMAKE_CURRENT_SOURCE_DIR}/postmaster/launch_backend.c
+#${CMAKE_CURRENT_SOURCE_DIR}/postmaster/flex_process_init.c ) #
+#
+#
+target_link_libraries(flex_postmaster PUBLIC flex_postgres_backend flex_postgres_wal)
 
 
 #flex_server flex_graph_db

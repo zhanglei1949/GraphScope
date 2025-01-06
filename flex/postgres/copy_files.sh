@@ -5,7 +5,7 @@ POSTGRES_INCLUDE_DIR=${CUR_DIR}/../third_party/postgres/src/include
 POSTGRES_DEST_DIR=${CUR_DIR}
 
 # Delete all .c files in the destination directory
-find $POSTGRES_DEST_DIR -name "*.c" -type f -delete
+# find $POSTGRES_DEST_DIR -name "*.c" -type f -delete
 
 # cp -r $POSTGRES_ORIGIN_DIR/backend/* $POSTGRES_DEST_DIR/backend
 # cp -r $POSTGRES_ORIGIN_DIR/timezone/* $POSTGRES_DEST_DIR/timezone
@@ -129,4 +129,48 @@ sed -i '29i #include "utils/elog.h"' ${DEST_BACKEND_DIR}/utils/adt/levenshtein.c
 
 
 # add function declaration extern void FlexPostmasterMain(int argc, char* argv[]) pg_attribute_noreturn(); in postmaster.h line 60
-sed -i '60i extern void FlexPostmasterMain(int argc, char* argv[]) pg_attribute_noreturn;' ${DEST_BACKEND_DIR}/postmaster/postmaster.h
+# If FlexPostmasterMain is not declared in postmaster.h, then add it
+if ! grep -q "FlexPostmasterMain" ${DEST_BACKEND_DIR}/postmaster/postmaster.h; then
+    sed -i '60i extern void FlexPostmasterMain(int argc, char* argv[]) pg_attribute_noreturn();' ${DEST_BACKEND_DIR}/postmaster/postmaster.h
+fi
+
+# if B_FLEX not found in miscadmin.h, add \t B_FLEX,
+if ! grep -q "B_FLEX" ${POSTGRES_INCLUDE_DIR}/miscadmin.h; then
+    sed -i '355i B_FLEX,' ${POSTGRES_INCLUDE_DIR}/miscadmin.h
+fi
+
+# if XLOG_FLEX_WAL_REDO not found in ${POSTGRES_INCLUDE_DIR}/catalog/pg_control.h, add \t XLOG_FLEX_WAL_REDO,
+if ! grep -q "XLOG_FLEX_WAL_REDO" ${POSTGRES_INCLUDE_DIR}/catalog/pg_control.h; then
+    sed -i '83i #define XLOG_FLEX_WAL_REDO      0xF0' ${POSTGRES_INCLUDE_DIR}/catalog/pg_control.h
+fi
+
+# add extern C to headers. 
+# if xloginsert.h does not have extern C, add it
+if ! grep -q "extern \"C\"" ${POSTGRES_INCLUDE_DIR}/access/xloginsert.h; then
+    sed -i '41i #ifdef __cplusplus' ${POSTGRES_INCLUDE_DIR}/access/xloginsert.h
+    sed -i '42i extern "C" {' ${POSTGRES_INCLUDE_DIR}/access/xloginsert.h
+    sed -i '43i #endif' ${POSTGRES_INCLUDE_DIR}/access/xloginsert.h
+    sed -i '69i #ifdef __cplusplus' ${POSTGRES_INCLUDE_DIR}/access/xloginsert.h
+    sed -i '70i }' ${POSTGRES_INCLUDE_DIR}/access/xloginsert.h
+    sed -i '71i #endif' ${POSTGRES_INCLUDE_DIR}/access/xloginsert.h
+fi
+
+# add to xlog.h
+if ! grep -q "extern \"C\"" ${POSTGRES_INCLUDE_DIR}/access/xlog.h; then
+    sed -i '19i #ifdef __cplusplus' ${POSTGRES_INCLUDE_DIR}/access/xlog.h
+    sed -i '20i extern "C" {' ${POSTGRES_INCLUDE_DIR}/access/xlog.h
+    sed -i '21i #endif' ${POSTGRES_INCLUDE_DIR}/access/xlog.h
+    sed -i '315i #ifdef __cplusplus' ${POSTGRES_INCLUDE_DIR}/access/xlog.h
+    sed -i '316i }' ${POSTGRES_INCLUDE_DIR}/access/xlog.h
+    sed -i '317i #endif' ${POSTGRES_INCLUDE_DIR}/access/xlog.h
+fi
+
+# add elog.h
+if ! grep -q "extern \"C\"" ${POSTGRES_INCLUDE_DIR}/utils/elog.h; then
+    sed -i '20i #ifdef __cplusplus' ${POSTGRES_INCLUDE_DIR}/utils/elog.h
+    sed -i '21i extern "C" {' ${POSTGRES_INCLUDE_DIR}/utils/elog.h
+    sed -i '22i #endif' ${POSTGRES_INCLUDE_DIR}/utils/elog.h
+    sed -i '542i #ifdef __cplusplus' ${POSTGRES_INCLUDE_DIR}/utils/elog.h
+    sed -i '543i }' ${POSTGRES_INCLUDE_DIR}/utils/elog.h
+    sed -i '544i #endif' ${POSTGRES_INCLUDE_DIR}/utils/elog.h
+fi

@@ -1,4 +1,4 @@
-#include "postmaster/flex_process.h"
+#include "flex_process.h"
 #include <iostream>
 #include <string>
 #include "flex_process_init.h"

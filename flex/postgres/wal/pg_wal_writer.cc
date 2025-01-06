@@ -16,7 +16,7 @@
 #include "flex/postgres/wal/pg_wal_writer.h"
 #include "flex/engines/graph_db/database/wal_writer_factory.h"
 
-#include "flex/postgres/wal/pg_wal_utils.h"
+#include "flex/postgres/backend/postmaster/pg_wal_utils.h"
 
 #include <chrono>
 #include <filesystem>
