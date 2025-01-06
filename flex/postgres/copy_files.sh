@@ -64,7 +64,7 @@ do
 
     file_name=$(basename $file_path)
     mkdir -p $DEST_BACKEND_DIR/$dir_name
-    if [ $file_name == "main.c" ] || [ $file_name == "launch_backend.c" ]; then
+    if [ $file_name == "main.c" ] || [ $file_name == "launch_backend.c" ] || [ $file_name == "postmaster.c" ]; then
         echo "skip $file_path"
         continue
     fi
@@ -126,3 +126,7 @@ sed -i '26i #include <stdbool.h>' ${DEST_BACKEND_DIR}/utils/adt/levenshtein.c
 sed -i '27i #include <stddef.h>' ${DEST_BACKEND_DIR}/utils/adt/levenshtein.c
 sed -i '28i #include "c.h"' ${DEST_BACKEND_DIR}/utils/adt/levenshtein.c
 sed -i '29i #include "utils/elog.h"' ${DEST_BACKEND_DIR}/utils/adt/levenshtein.c
+
+
+# add function declaration extern void FlexPostmasterMain(int argc, char* argv[]) pg_attribute_noreturn(); in postmaster.h line 60
+sed -i '60i extern void FlexPostmasterMain(int argc, char* argv[]) pg_attribute_noreturn;' ${DEST_BACKEND_DIR}/postmaster/postmaster.h

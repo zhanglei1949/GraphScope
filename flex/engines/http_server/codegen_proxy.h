@@ -30,7 +30,6 @@
 #include "flex/utils/result.h"
 
 #include <boost/program_options.hpp>
-#include <hiactor/core/thread_resource_pool.hh>
 #include <seastar/core/future.hh>
 
 namespace server {

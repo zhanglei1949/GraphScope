@@ -1,7 +1,7 @@
 #include "postmaster/flex_process.h"
 #include <iostream>
 #include <string>
-#include "flex/bin/flex_process_init.h"
+#include "flex_process_init.h"
 
 /** Copyright 2020 Alibaba Group Holding Limited.
  *
@@ -38,11 +38,8 @@
 
 #include <glog/logging.h>
 
-namespace bpo = boost::program_options;
-
 namespace gs {
-
-std::string parse_codegen_dir(const bpo::variables_map& vm) {
+inline std::string parse_codegen_dir_v2(const bpo::variables_map& vm) {
   std::string codegen_dir;
 
   if (vm.count("codegen-dir") == 0) {
@@ -62,22 +59,10 @@ std::string parse_codegen_dir(const bpo::variables_map& vm) {
   }
   return codegen_dir;
 }
-
-void blockSignal(int sig) {
-  sigset_t set;
-  sigemptyset(&set);
-  sigaddset(&set, sig);
-  if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
-    perror("pthread_sigmask");
-  }
-}
-
-// When graph_schema is not specified, codegen proxy will use the running graph
-// schema in graph_db_service
-void init_codegen_proxy(const bpo::variables_map& vm,
-                        const std::string& engine_config_file,
-                        const std::string& graph_schema_file = "") {
-  std::string codegen_dir = parse_codegen_dir(vm);
+inline void init_codegen_proxy_v2(const bpo::variables_map& vm,
+                               const std::string& engine_config_file,
+                               const std::string& graph_schema_file = "") {
+  std::string codegen_dir = parse_codegen_dir_v2(vm);
   std::string codegen_bin;
   if (vm.count("codegen-bin") == 0) {
     LOG(INFO) << "codegen-bin is not specified";
@@ -91,35 +76,6 @@ void init_codegen_proxy(const bpo::variables_map& vm,
   }
   server::CodegenProxy::get().Init(codegen_dir, codegen_bin, engine_config_file,
                                    graph_schema_file);
-}
-
-void config_log_level(int log_level, int verbose_level) {
-  if (getenv("GLOG_minloglevel") != nullptr) {
-    FLAGS_stderrthreshold = atoi(getenv("GLOG_minloglevel"));
-  } else {
-    if (log_level == 0) {
-      FLAGS_minloglevel = 0;
-    } else if (log_level == 1) {
-      FLAGS_minloglevel = 1;
-    } else if (log_level == 2) {
-      FLAGS_minloglevel = 2;
-    } else if (log_level == 3) {
-      FLAGS_minloglevel = 3;
-    } else {
-      LOG(ERROR) << "Unsupported log level: " << log_level;
-    }
-  }
-
-  // If environment variable is set, we will use it
-  if (getenv("GLOG_v") != nullptr) {
-    FLAGS_v = atoi(getenv("GLOG_v"));
-  } else {
-    if (verbose_level >= 0) {
-      FLAGS_v = verbose_level;
-    } else {
-      LOG(ERROR) << "Unsupported verbose level: " << verbose_level;
-    }
-  }
 }
 }  // namespace gs
 
@@ -228,7 +184,7 @@ int callFlexMain(int argc, char** argv) {
     auto schema_file = server::WorkDirManipulator::GetGraphSchemaPath(
         service_config.default_graph);
     if (service_config.enable_adhoc_handler) {
-      gs::init_codegen_proxy(vm, engine_config_file);
+      gs::init_codegen_proxy_v2(vm, engine_config_file);
     }
   } else {
     LOG(INFO) << "Start query service only";
@@ -254,7 +210,7 @@ int callFlexMain(int argc, char** argv) {
 
     // The schema is loaded just to get the plugin dir and plugin list
     if (service_config.enable_adhoc_handler) {
-      gs::init_codegen_proxy(vm, engine_config_file, graph_schema_path);
+      gs::init_codegen_proxy_v2(vm, engine_config_file, graph_schema_path);
     }
     db.Close();
     auto load_res =

@@ -40,10 +40,53 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 #include <boost/filesystem.hpp>
+#include <boost/program_options.hpp>
 
+
+
+namespace bpo = boost::program_options;
 namespace gs {
 
 static constexpr const char* CODEGEN_BIN = "load_plan_and_gen.sh";
+
+
+
+inline void blockSignal(int sig) {
+  sigset_t set;
+  sigemptyset(&set);
+  sigaddset(&set, sig);
+  if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
+    perror("pthread_sigmask");
+  }
+}
+inline void config_log_level(int log_level, int verbose_level) {
+  if (getenv("GLOG_minloglevel") != nullptr) {
+    FLAGS_stderrthreshold = atoi(getenv("GLOG_minloglevel"));
+  } else {
+    if (log_level == 0) {
+      FLAGS_minloglevel = 0;
+    } else if (log_level == 1) {
+      FLAGS_minloglevel = 1;
+    } else if (log_level == 2) {
+      FLAGS_minloglevel = 2;
+    } else if (log_level == 3) {
+      FLAGS_minloglevel = 3;
+    } else {
+      LOG(ERROR) << "Unsupported log level: " << log_level;
+    }
+  }
+
+  // If environment variable is set, we will use it
+  if (getenv("GLOG_v") != nullptr) {
+    FLAGS_v = atoi(getenv("GLOG_v"));
+  } else {
+    if (verbose_level >= 0) {
+      FLAGS_v = verbose_level;
+    } else {
+      LOG(ERROR) << "Unsupported verbose level: " << verbose_level;
+    }
+  }
+}
 
 /// Util functions.
 inline int64_t GetCurrentTimeStamp() {

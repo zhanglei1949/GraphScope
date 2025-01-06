@@ -21,23 +21,30 @@
 #include "flex/engines/http_server/graph_db_service.h"
 #include "flex/engines/http_server/workdir_manipulator.h"
 #include "flex/otel/otel.h"
+#include "flex/postgres/wal/local_wal_parser.h"
+#include "flex/postgres/wal/local_wal_writer.h"
+#include "flex/postgres/wal/pg_wal_parser.h"
+#include "flex/postgres/wal/pg_wal_writer.h"
 #include "flex/storages/rt_mutable_graph/loading_config.h"
 #include "flex/utils/service_utils.h"
-#include "flex/postgres/wal/local_wal_writer.h"
-#include "flex/postgres/wal/pg_wal_writer.h"
-#include "flex/postgres/wal/local_wal_parser.h"
-#include "flex/postgres/wal/pg_wal_parser.h"
 
 #include <yaml-cpp/yaml.h>
 #include <boost/program_options.hpp>
 
 #include <glog/logging.h>
 
-namespace bpo = boost::program_options;
+// We need to declare progname here, since postgres need this symbol.
+// TODO(zhanglei): Revisit the dependency between postgres and flex. We should
+// avoid this kind of dependency.
+#ifdef __cplusplus
+extern "C" {
+const char* progname;
+}
+#endif
 
 namespace gs {
 
-std::string parse_codegen_dir(const bpo::variables_map& vm) {
+inline std::string parse_codegen_dir(const bpo::variables_map& vm) {
   std::string codegen_dir;
 
   if (vm.count("codegen-dir") == 0) {
@@ -57,21 +64,9 @@ std::string parse_codegen_dir(const bpo::variables_map& vm) {
   }
   return codegen_dir;
 }
-
-void blockSignal(int sig) {
-  sigset_t set;
-  sigemptyset(&set);
-  sigaddset(&set, sig);
-  if (pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
-    perror("pthread_sigmask");
-  }
-}
-
-// When graph_schema is not specified, codegen proxy will use the running graph
-// schema in graph_db_service
-void init_codegen_proxy(const bpo::variables_map& vm,
-                        const std::string& engine_config_file,
-                        const std::string& graph_schema_file = "") {
+inline void init_codegen_proxy(const bpo::variables_map& vm,
+                               const std::string& engine_config_file,
+                               const std::string& graph_schema_file = "") {
   std::string codegen_dir = parse_codegen_dir(vm);
   std::string codegen_bin;
   if (vm.count("codegen-bin") == 0) {
@@ -86,35 +81,6 @@ void init_codegen_proxy(const bpo::variables_map& vm,
   }
   server::CodegenProxy::get().Init(codegen_dir, codegen_bin, engine_config_file,
                                    graph_schema_file);
-}
-
-void config_log_level(int log_level, int verbose_level) {
-  if (getenv("GLOG_minloglevel") != nullptr) {
-    FLAGS_stderrthreshold = atoi(getenv("GLOG_minloglevel"));
-  } else {
-    if (log_level == 0) {
-      FLAGS_minloglevel = 0;
-    } else if (log_level == 1) {
-      FLAGS_minloglevel = 1;
-    } else if (log_level == 2) {
-      FLAGS_minloglevel = 2;
-    } else if (log_level == 3) {
-      FLAGS_minloglevel = 3;
-    } else {
-      LOG(ERROR) << "Unsupported log level: " << log_level;
-    }
-  }
-
-  // If environment variable is set, we will use it
-  if (getenv("GLOG_v") != nullptr) {
-    FLAGS_v = atoi(getenv("GLOG_v"));
-  } else {
-    if (verbose_level >= 0) {
-      FLAGS_v = verbose_level;
-    } else {
-      LOG(ERROR) << "Unsupported verbose level: " << verbose_level;
-    }
-  }
 }
 }  // namespace gs
 

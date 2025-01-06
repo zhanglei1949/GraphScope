@@ -15,6 +15,7 @@
 #include "flex/engines/http_server/codegen_proxy.h"
 #include "flex/engines/http_server/graph_db_service.h"
 #include "flex/engines/http_server/workdir_manipulator.h"
+#include <hiactor/core/thread_resource_pool.hh>
 
 namespace server {
 CodegenProxy& CodegenProxy::get() {

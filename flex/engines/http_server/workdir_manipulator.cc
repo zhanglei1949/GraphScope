@@ -17,6 +17,7 @@
 #include <rapidjson/document.h>
 #include "flex/engines/http_server/codegen_proxy.h"
 #include "service_utils.h"
+#include <hiactor/core/thread_resource_pool.hh>
 
 #include <boost/uuid/uuid.hpp>             // uuid class
 #include <boost/uuid/uuid_generators.hpp>  // generators

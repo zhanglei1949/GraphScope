@@ -25,14 +25,14 @@
 # install_without_export_flex_target(flex_analytical_engine)
 
 
-# if(Hiactor_FOUND)
-#         add_executable(interactive_server interactive_server.cc)
-#         target_link_libraries(interactive_server flex_utils flex_graph_db flex_postgres_wal flex_server flex_plan_proto flex_utils ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
-#         if (OPENTELEMETRY_CPP_FOUND)
-#                 target_link_libraries(interactive_server otel)
-#         endif()
-#         install_without_export_flex_target(interactive_server)
-# endif()
+if(Hiactor_FOUND)
+        add_executable(interactive_server interactive_server.cc)
+        target_link_libraries(interactive_server flex_utils flex_graph_db flex_postgres_wal flex_server flex_plan_proto flex_utils ${GLOG_LIBRARIES} ${GFLAGS_LIBRARIES})
+        if (OPENTELEMETRY_CPP_FOUND)
+                target_link_libraries(interactive_server otel)
+        endif()
+        install_without_export_flex_target(interactive_server)
+endif()
 # install the script
 install(PROGRAMS load_plan_and_gen.sh DESTINATION bin)
 
@@ -68,6 +68,6 @@ install(PROGRAMS load_plan_and_gen.sh DESTINATION bin)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../engines/http_server/)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/../utils/)
 
-add_executable(flex_postmaster ${CMAKE_CURRENT_SOURCE_DIR}/postmaster.c ${CMAKE_CURRENT_SOURCE_DIR}/post_master_main.c ${CMAKE_CURRENT_SOURCE_DIR}/syslogger.c ${CMAKE_CURRENT_SOURCE_DIR}/launch_backend.c
-                                ${CMAKE_CURRENT_SOURCE_DIR}/flex_process.cc ${CMAKE_CURRENT_SOURCE_DIR}/flex_process_init.c)
-target_link_libraries(flex_postmaster PUBLIC flex_postgres_backend flex_postgres_wal flex_graph_db flex_server ${GLOG_LIBRARY} ${POSTGRESS_PORT_LIB_PATH} ${POSTGRESS_COMMON_LIB_PATH} ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT} ZLIB::ZLIB m)
+#add_executable(flex_postmaster ${CMAKE_CURRENT_SOURCE_DIR}/postmaster.c ${CMAKE_CURRENT_SOURCE_DIR}/post_master_main.c ${CMAKE_CURRENT_SOURCE_DIR}/syslogger.c ${CMAKE_CURRENT_SOURCE_DIR}/launch_backend.c
+#                                ${CMAKE_CURRENT_SOURCE_DIR}/flex_process.cc ${CMAKE_CURRENT_SOURCE_DIR}/flex_process_init.c)
+#target_link_libraries(flex_postmaster PUBLIC flex_postgres_backend flex_postgres_wal flex_graph_db flex_server ${GLOG_LIBRARY} ${POSTGRESS_PORT_LIB_PATH} ${POSTGRESS_COMMON_LIB_PATH} ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT} ZLIB::ZLIB m)
