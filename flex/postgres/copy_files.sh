@@ -68,6 +68,12 @@ do
         echo "skip $file_path"
         continue
     fi
+
+    # skip timeout.c and xlogreader.c
+    if [ $file_name == "timeout.c" ] || [ $file_name == "xlogreader.c" ] ||  [ $file_name == "latch.c" ] || [ $file_name == "dfmgr.c" ]; then
+        echo "skip $file_path"
+        continue
+    fi
     
     #if file is pg_sema.c or pg_shmem.c, they are soft links, so skip them
     if [ $file_name == "pg_sema.c" ] || [ $file_name == "pg_shmem.c" ]; then

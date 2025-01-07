@@ -1280,13 +1280,6 @@ void FlexPostmasterMain(int argc, char* argv[]) {
   	BgWriterPID = StartChildProcess(B_BG_WRITER);
   }
 
-  // start flex interactive server
-  ereport(LOG, (errmsg("start flex server in main process %d", getpid())));
-  FlexPID = StartChildProcess(B_FLEX);
-  Assert(FlexPID != 0);
-  FlexStatus = STARTUP_NOT_RUNNING;
-  pmState = PM_FLEX;
-
   /*
    * We're ready to rock and roll...
    */
@@ -2122,8 +2115,10 @@ static void process_pm_child_exit(void) {
     dlist_mutable_iter iter;
 
     if (pid == FlexPID) {
-      LogChildExit(LOG, _("startup process"), pid, exitstatus);
-      ereport(LOG, (errmsg("aborting startup due to startup process failure")));
+      ereport(LOG, (errmsg("flex process exited")));
+      FlexPID = 0;
+      LogChildExit(LOG, _("flex process"), pid, exitstatus);
+      ereport(LOG, (errmsg("aborting startup due to flex process failure")));
       ExitPostmaster(1);
     }
 
@@ -2131,6 +2126,7 @@ static void process_pm_child_exit(void) {
      * Check if this child was a startup process.
      */
     if (pid == StartupPID) {
+      ereport(LOG, (errmsg("startup process exited")));
       StartupPID = 0;
 
       /*
@@ -2215,6 +2211,13 @@ static void process_pm_child_exit(void) {
       pmState = PM_RUN;
       connsAllowed = true;
 
+      // Wait for startup process to finish
+      // start flex interactive server
+      ereport(LOG, (errmsg("start flex server in main process %d", getpid())));
+      FlexPID = StartChildProcess(B_FLEX);
+      ereport(LOG, (errmsg("Flex pid: %d", FlexPID)));
+      Assert(FlexPID != 0);
+
       /*
        * At the next iteration of the postmaster's main loop, we will
        * crank up the background tasks like the autovacuum launcher and
@@ -2240,6 +2243,7 @@ static void process_pm_child_exit(void) {
      * necessary.  Any other exit condition is treated as a crash.
      */
     if (pid == BgWriterPID) {
+      ereport(LOG, (errmsg("background writer process exited")));
       BgWriterPID = 0;
       if (!EXIT_STATUS_0(exitstatus))
         HandleChildCrash(pid, exitstatus, _("background writer process"));
@@ -2250,6 +2254,7 @@ static void process_pm_child_exit(void) {
      * Was it the checkpointer?
      */
     if (pid == CheckpointerPID) {
+      ereport(LOG, (errmsg("checkpointer process exited")));
       CheckpointerPID = 0;
       if (EXIT_STATUS_0(exitstatus) && pmState == PM_SHUTDOWN) {
         /*
@@ -2296,6 +2301,7 @@ static void process_pm_child_exit(void) {
      * necessary.  Any other exit condition is treated as a crash.
      */
     if (pid == WalWriterPID) {
+      ereport(LOG, (errmsg("WAL writer process exited")));
       WalWriterPID = 0;
       if (!EXIT_STATUS_0(exitstatus))
         HandleChildCrash(pid, exitstatus, _("WAL writer process"));
@@ -2309,6 +2315,7 @@ static void process_pm_child_exit(void) {
      * next iteration of the postmaster's main loop.)
      */
     if (pid == WalReceiverPID) {
+      ereport(LOG, (errmsg("WAL receiver process exited")));
       WalReceiverPID = 0;
       if (!EXIT_STATUS_0(exitstatus) && !EXIT_STATUS_1(exitstatus))
         HandleChildCrash(pid, exitstatus, _("WAL receiver process"));
@@ -2321,6 +2328,7 @@ static void process_pm_child_exit(void) {
      * necessary.  Any other exit condition is treated as a crash.
      */
     if (pid == WalSummarizerPID) {
+      ereport(LOG, (errmsg("WAL summarizer process exited")));
       WalSummarizerPID = 0;
       if (!EXIT_STATUS_0(exitstatus))
         HandleChildCrash(pid, exitstatus, _("WAL summarizer process"));
@@ -2334,6 +2342,7 @@ static void process_pm_child_exit(void) {
      * crash.
      */
     if (pid == AutoVacPID) {
+      ereport(LOG, (errmsg("autovacuum launcher process exited")));
       AutoVacPID = 0;
       if (!EXIT_STATUS_0(exitstatus))
         HandleChildCrash(pid, exitstatus, _("autovacuum launcher process"));
@@ -2347,6 +2356,7 @@ static void process_pm_child_exit(void) {
      * postmaster's main loop, to retry archiving remaining files.
      */
     if (pid == PgArchPID) {
+      ereport(LOG, (errmsg("archiver process exited")));
       PgArchPID = 0;
       if (!EXIT_STATUS_0(exitstatus) && !EXIT_STATUS_1(exitstatus))
         HandleChildCrash(pid, exitstatus, _("archiver process"));
@@ -2355,6 +2365,7 @@ static void process_pm_child_exit(void) {
 
     /* Was it the system logger?  If so, try to start a new one */
     if (pid == SysLoggerPID) {
+      ereport(LOG, (errmsg("system logger process exited")));
       SysLoggerPID = 0;
       /* for safety's sake, launch new logger *first* */
       SysLoggerPID = SysLogger_Start();
@@ -2371,6 +2382,7 @@ static void process_pm_child_exit(void) {
      * loop, if necessary. Any other exit condition is treated as a crash.
      */
     if (pid == SlotSyncWorkerPID) {
+      ereport(LOG, (errmsg("slot sync worker process exited")));
       SlotSyncWorkerPID = 0;
       if (!EXIT_STATUS_0(exitstatus) && !EXIT_STATUS_1(exitstatus))
         HandleChildCrash(pid, exitstatus, _("slot sync worker process"));
@@ -2574,6 +2586,11 @@ static void HandleChildCrash(int pid, int exitstatus, const char* procname) {
     if (StartupPID != 0) {
       sigquit_child(StartupPID);
       StartupStatus = STARTUP_SIGNALED;
+    }
+
+    if (FlexPID != 0) {
+      sigquit_child(FlexPID);
+      FlexStatus = STARTUP_SIGNALED;
     }
 
     /* Take care of the bgwriter too */
@@ -2993,14 +3010,14 @@ static void LaunchMissingBackgroundProcesses(void) {
    * autovacuum might update relfrozenxid for empty tables before the
    * physical files are put in place.
    */
-  // if (!IsBinaryUpgrade && AutoVacPID == 0 &&
-  // 	(AutoVacuumingActive() || start_autovac_launcher) &&
-  // 	pmState == PM_RUN)
-  // {
-  // 	AutoVacPID = StartChildProcess(B_AUTOVAC_LAUNCHER);
-  // 	if (AutoVacPID != 0)
-  // 		start_autovac_launcher = false; /* signal processed */
-  // }
+  if (!IsBinaryUpgrade && AutoVacPID == 0 &&
+  	(AutoVacuumingActive() || start_autovac_launcher) &&
+  	pmState == PM_RUN)
+  {
+  	AutoVacPID = StartChildProcess(B_AUTOVAC_LAUNCHER);
+  	if (AutoVacPID != 0)
+  		start_autovac_launcher = false; /* signal processed */
+  }
 
   /*
    * If WAL archiving is enabled always, we are allowed to start archiver
@@ -3165,6 +3182,11 @@ static void TerminateChildren(int signal) {
     signal_child(StartupPID, signal);
     if (signal == SIGQUIT || signal == SIGKILL || signal == SIGABRT)
       StartupStatus = STARTUP_SIGNALED;
+  }
+  if (FlexPID != 0) {
+    signal_child(FlexPID, signal);
+    if (signal == SIGQUIT || signal == SIGKILL || signal == SIGABRT)
+      FlexStatus = STARTUP_SIGNALED;
   }
   if (BgWriterPID != 0)
     signal_child(BgWriterPID, signal);

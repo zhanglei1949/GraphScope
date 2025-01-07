@@ -19,6 +19,8 @@ list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "jit/*")
 list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "like_match.c")
 # exclude libpq
 list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "libpq/*")
+# exluce replication/libpqwalreceiver/*
+list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "replication/libpqwalreceiver/*")
 
 # Remove lauch_backend.c
 #list(FILTER BACKEND_SRC_FILES EXCLUDE REGEX "postmaster/launch_backend.c")
@@ -42,6 +44,10 @@ list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/utils/adt/pg_upgrade_s
 list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/jit/jit.c)
 list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/utils/sort/sortsupport.c)
 list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/utils/adt/like_support.c)
+list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/utils/init/globals.c)
+list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/utils/init/miscinit.c)
+list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/utils/init/postinit.c)
+list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/utils/init/usercontext.c)
 list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/commands/portalcmds.c)
 # list(APPEND BACKEND_SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/../wal/pg_wal_utils.cc)
 
@@ -62,6 +68,7 @@ add_executable(flex_postmaster ${CMAKE_CURRENT_SOURCE_DIR}/postmaster/post_maste
 #
 #
 target_link_libraries(flex_postmaster PUBLIC flex_postgres_backend flex_postgres_wal)
+target_link_options(flex_postmaster PUBLIC -export-dynamic)
 
 
 #flex_server flex_graph_db
