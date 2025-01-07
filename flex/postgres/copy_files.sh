@@ -70,7 +70,7 @@ do
     fi
 
     # skip timeout.c and xlogreader.c
-    if [ $file_name == "timeout.c" ] || [ $file_name == "xlogreader.c" ] ||  [ $file_name == "latch.c" ] || [ $file_name == "dfmgr.c" ]; then
+    if [ $file_name == "timeout.c" ] || [ $file_name == "xlogreader.c" ]; then
         echo "skip $file_path"
         continue
     fi
