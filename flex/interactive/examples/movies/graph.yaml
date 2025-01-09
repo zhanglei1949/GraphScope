@@ -6,7 +6,8 @@ schema:
       properties: 
         - property_name: id
           property_type:
-            primitive_type: DT_SIGNED_INT64
+            string:
+              long_text: ""
         - property_name: released
           property_type:
             primitive_type: DT_SIGNED_INT32
@@ -24,7 +25,8 @@ schema:
       properties:
         - property_name: id
           property_type:
-            primitive_type: DT_SIGNED_INT64
+            string:
+              long_text: ""
         - property_name: born
           property_type:
             primitive_type: DT_SIGNED_INT32
@@ -38,7 +40,8 @@ schema:
       properties:
         - property_name: id
           property_type:
-            primitive_type: DT_SIGNED_INT64
+            string:
+              long_text: ""
         - property_name: born
           property_type:
             primitive_type: DT_SIGNED_INT32
