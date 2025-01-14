@@ -249,6 +249,8 @@ void GraphDB::Swap(GraphDB& other) {
   }
   std::swap(thread_num_, other.thread_num_);
 
+  LOG(INFO) << "Before swap, graph has plugin num: "
+            << graph_->schema().GetPlugins().size();
   std::swap(graph_, other.graph_);
   version_manager_.swap(other.version_manager_);
 
@@ -261,6 +263,8 @@ void GraphDB::Swap(GraphDB& other) {
   std::swap(compact_thread_, other.compact_thread_);
 
   // std::this_thread::sleep_for(std::chrono::seconds(10));
+  LOG(INFO) << "After swap, graph has plugin num: "
+            << graph_->schema().GetPlugins().size();
   auto plugins = graph_->schema().GetPlugins();
   for (auto plugin : graph_->schema().GetPlugins()) {
     LOG(INFO) << "plugin: " << plugin.first << ", " << plugin.second.first
@@ -368,7 +372,7 @@ AppWrapper GraphDB::CreateApp(uint8_t app_type, int thread_id) {
 
 bool GraphDB::registerApp(const std::string& plugin_path, uint8_t index) {
   // this function will only be called when initializing the graph db
-  VLOG(10) << "Registering stored procedure at:" << std::to_string(index)
+  LOG(INFO) << "Registering stored procedure at:" << std::to_string(index)
            << ", path:" << plugin_path;
   if (!app_factories_[index] && app_paths_[index].empty()) {
     app_paths_[index] = plugin_path;
