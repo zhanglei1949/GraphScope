@@ -8,7 +8,7 @@ ARG ENABLE_COORDINATOR="false"
 SHELL ["/bin/bash", "-c"]
 
 # install debug tools
-RUN sudo apt-get update  && sudo apt-get install -y vim iputils-ping curl
+RUN sudo apt-get update  && sudo apt-get install -y vim iputils-ping curl rapidjson-dev
 
 # install arrow
 RUN cd /tmp && sudo apt-get update && sudo apt-get install -y -V ca-certificates lsb-release wget libcurl4-openssl-dev && \
@@ -35,7 +35,7 @@ cmake . -DCMAKE_INSTALL_PREFIX=/opt/flex -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_
 COPY --chown=graphscope:graphscope . /home/graphscope/GraphScope
 
 RUN . ${HOME}/.cargo/env  && cd ${HOME}/GraphScope/flex && \
-    git submodule update --init && mkdir build && cd build && cmake .. -DCMAKE_INSTALL_PREFIX=/opt/flex -DBUILD_DOC=OFF -DBUILD_ODPS_FRAGMENT_LOADER=ON && make -j && make install && \
+    git submodule update --init && mkdir build && cd build && cmake .. -DCMAKE_INSTALL_PREFIX=/opt/flex -DBUILD_DOC=OFF -DBUILD_ODPS_FRAGMENT_LOADER=ON -DBUILD_TEST=OFF && make -j && make install && \
     cd ~/GraphScope/interactive_engine/ && mvn clean package -Pexperimental -DskipTests && \
     cd ~/GraphScope/interactive_engine/compiler && cp target/compiler-0.0.1-SNAPSHOT.jar /opt/flex/lib/ && \
     cp target/libs/*.jar /opt/flex/lib/ && \
