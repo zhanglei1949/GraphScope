@@ -151,7 +151,7 @@ else ()
     endif()
 endif ()
 
-find_package(opentelemetry-cpp CONFIG)
+# find_package(opentelemetry-cpp CONFIG)
 if (OPENTELEMETRY_CPP_FOUND)
     message(STATUS "opentelemetry-cpp found")
     find_package(Protobuf REQUIRED)

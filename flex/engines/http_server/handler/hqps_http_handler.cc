@@ -218,38 +218,40 @@ seastar::future<std::unique_ptr<seastar::httpd::reply>> hqps_ic_handler::handle(
   executor_idx_ = (executor_idx_ + 1) % shard_concurrency_;
   // TODO(zhanglei): choose read or write based on the request, after the
   // read/write info is supported in physical plan
-  auto request_format = req->get_header(INTERACTIVE_REQUEST_FORMAT);
-  if (request_format.empty()) {
-    // If no format specfied, we use default format: proto
-    request_format = PROTOCOL_FORMAT;
-  }
-  if (request_format == JSON_FORMAT) {
-    req->content.append(gs::GraphDBSession::kCypherJson, 1);
-  } else if (request_format == PROTOCOL_FORMAT) {
-    req->content.append(gs::GraphDBSession::kCypherInternalProcedure, 1);
-  } else if (request_format == ENCODER_FORMAT) {
-    req->content.append(gs::GraphDBSession::kCppEncoder, 1);
-  } else {
-    LOG(ERROR) << "Unsupported request format: " << request_format;
-    rep->set_status(seastar::httpd::reply::status_type::internal_server_error);
-    rep->write_body("bin", seastar::sstring("Unsupported request format!"));
-    rep->done();
-    return seastar::make_ready_future<std::unique_ptr<seastar::httpd::reply>>(
-        std::move(rep));
-  }
-  if (path != "/v1/graph/current/query" && req->param.exists("graph_id")) {
-    // TODO(zhanglei): get from graph_db.
-    if (!is_running_graph(req->param["graph_id"])) {
-      rep->set_status(
-          seastar::httpd::reply::status_type::internal_server_error);
-      rep->write_body("bin",
-                      seastar::sstring("The querying query is not running:" +
-                                       req->param["graph_id"]));
-      rep->done();
-      return seastar::make_ready_future<std::unique_ptr<seastar::httpd::reply>>(
-          std::move(rep));
-    }
-  }
+  // auto request_format = req->get_header(INTERACTIVE_REQUEST_FORMAT);
+  // if (request_format.empty()) {
+  //   // If no format specfied, we use default format: proto
+  //   request_format = PROTOCOL_FORMAT;
+  // }
+  // if (request_format == JSON_FORMAT) {
+  //   req->content.append(gs::GraphDBSession::kCypherJson, 1);
+  // } else if (request_format == PROTOCOL_FORMAT) {
+  //   req->content.append(gs::GraphDBSession::kCypherInternalProcedure, 1);
+  // } else if (request_format == ENCODER_FORMAT) {
+  //   req->content.append(gs::GraphDBSession::kCppEncoder, 1);
+  // } else {
+  //   LOG(ERROR) << "Unsupported request format: " << request_format;
+  //   rep->set_status(seastar::httpd::reply::status_type::internal_server_error);
+  //   rep->write_body("bin", seastar::sstring("Unsupported request format!"));
+  //   rep->done();
+  //   return
+  //   seastar::make_ready_future<std::unique_ptr<seastar::httpd::reply>>(
+  //       std::move(rep));
+  // }
+  // if (path != "/v1/graph/current/query" && req->param.exists("graph_id")) {
+  //   // TODO(zhanglei): get from graph_db.
+  //   if (!is_running_graph(req->param["graph_id"])) {
+  //     rep->set_status(
+  //         seastar::httpd::reply::status_type::internal_server_error);
+  //     rep->write_body("bin",
+  //                     seastar::sstring("The querying query is not running:" +
+  //                                      req->param["graph_id"]));
+  //     rep->done();
+  //     return
+  //     seastar::make_ready_future<std::unique_ptr<seastar::httpd::reply>>(
+  //         std::move(rep));
+  //   }
+  // }
 #ifdef HAVE_OPENTELEMETRY_CPP
   auto tracer = otel::get_tracer("hqps_procedure_query_handler");
   // Extract context from headers. This copy is necessary to avoid access after
@@ -265,33 +267,35 @@ seastar::future<std::unique_ptr<seastar::httpd::reply>> hqps_ic_handler::handle(
 
   return executor_refs_[dst_executor]
       .run_graph_db_query(query_param{std::move(req->content)})
-      .then([request_format
+      .then([  // request_format
 #ifdef HAVE_OPENTELEMETRY_CPP
-             ,
-             this, outer_span = outer_span
+                , this, outer_span = outer_span
 #endif  // HAVE_OPENTELEMETRY_CPP
   ](auto&& output) {
-        if (request_format == ENCODER_FORMAT) {
-          return seastar::make_ready_future<query_param>(
-              std::move(output.content));
-        } else {
-          // For cypher input format, the results are written with
-          // output.put_string(), which will add extra 4 bytes. So we need to
-          // remove the first 4 bytes here.
-          if (output.content.size() < 4) {
-            LOG(ERROR) << "Invalid output size: " << output.content.size();
-#ifdef HAVE_OPENTELEMETRY_CPP
-            outer_span->SetStatus(opentelemetry::trace::StatusCode::kError,
-                                  "Invalid output size");
-            outer_span->End();
-            std::map<std::string, std::string> labels = {{"status", "fail"}};
-            total_counter_->Add(1, labels);
-#endif  // HAVE_OPENTELEMETRY_CPP
-            return seastar::make_ready_future<query_param>(std::move(output));
-          }
-          return seastar::make_ready_future<query_param>(
-              std::move(output.content.substr(4)));
-        }
+        // if (request_format == ENCODER_FORMAT) {
+        return seastar::make_ready_future<query_param>(
+            std::move(output.content));
+        //         } else {
+        //           // For cypher input format, the results are written with
+        //           // output.put_string(), which will add extra 4 bytes. So we
+        //           need to
+        //           // remove the first 4 bytes here.
+        //           if (output.content.size() < 4) {
+        //             LOG(ERROR) << "Invalid output size: " <<
+        //             output.content.size();
+        // #ifdef HAVE_OPENTELEMETRY_CPP
+        //             outer_span->SetStatus(opentelemetry::trace::StatusCode::kError,
+        //                                   "Invalid output size");
+        //             outer_span->End();
+        //             std::map<std::string, std::string> labels = {{"status",
+        //             "fail"}}; total_counter_->Add(1, labels);
+        // #endif  // HAVE_OPENTELEMETRY_CPP
+        //             return
+        //             seastar::make_ready_future<query_param>(std::move(output));
+        //           }
+        //           return seastar::make_ready_future<query_param>(
+        //               std::move(output.content.substr(4)));
+        //         }
       })
       .then_wrapped([rep = std::move(rep)
 #ifdef HAVE_OPENTELEMETRY_CPP

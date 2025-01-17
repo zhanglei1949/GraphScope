@@ -152,42 +152,45 @@ class GraphDBSession {
       const std::string& input) {
     const char* str_data = input.data();
     VLOG(10) << "parse query type for " << input;
-    char input_tag = input.back();
-    VLOG(10) << "input tag: " << static_cast<int>(input_tag);
+    // char input_tag = input.back();
+    // VLOG(10) << "input tag: " << static_cast<int>(input_tag);
     size_t len = input.size();
-    if (input_tag == static_cast<uint8_t>(InputFormat::kCppEncoder)) {
-      // For cpp encoder, the query id is the second last byte, others are all
-      // user-defined payload,
-      return std::make_pair((uint8_t) input[len - 2],
-                            std::string_view(str_data, len - 2));
-    }
-#ifdef BUILD_HQPS
-    else if (input_tag ==
-             static_cast<uint8_t>(InputFormat::kCypherInternalAdhoc)) {
-      // For cypher internal adhoc, the query id is the
-      // second last byte,which is fixed to 255, and other bytes are a string
-      // representing the path to generated dynamic lib.
-      return std::make_pair((uint8_t) input[len - 2],
-                            std::string_view(str_data, len - 2));
-    } else if (input_tag == static_cast<uint8_t>(InputFormat::kCypherJson)) {
-      // For cypherJson there is no query-id provided. The query name is
-      // provided in the json string.
-      std::string_view str_view(input.data(), len - 1);
-      return parse_query_type_from_cypher_json(str_view);
-    } else if (input_tag ==
-               static_cast<uint8_t>(InputFormat::kCypherInternalProcedure)) {
-      // For cypher internal procedure, the query_name is
-      // provided in the protobuf message.
-      std::string_view str_view(input.data(), len - 1);
-      return parse_query_type_from_cypher_internal(str_view);
+    // if (input_tag == static_cast<uint8_t>(InputFormat::kCppEncoder)) {
+    // For cpp encoder, the query id is the second last byte, others are all
+    // user-defined payload,
+    return std::make_pair((uint8_t) input[len - 1],
+                          std::string_view(str_data, len - 1));
+    //     }
+    // #ifdef BUILD_HQPS
+    //     else if (input_tag ==
+    //              static_cast<uint8_t>(InputFormat::kCypherInternalAdhoc)) {
+    //       // For cypher internal adhoc, the query id is the
+    //       // second last byte,which is fixed to 255, and other bytes are a
+    //       string
+    //       // representing the path to generated dynamic lib.
+    //       return std::make_pair((uint8_t) input[len - 2],
+    //                             std::string_view(str_data, len - 2));
+    //     } else if (input_tag ==
+    //     static_cast<uint8_t>(InputFormat::kCypherJson)) {
+    //       // For cypherJson there is no query-id provided. The query name is
+    //       // provided in the json string.
+    //       std::string_view str_view(input.data(), len - 1);
+    //       return parse_query_type_from_cypher_json(str_view);
+    //     } else if (input_tag ==
+    //                static_cast<uint8_t>(InputFormat::kCypherInternalProcedure))
+    //                {
+    //       // For cypher internal procedure, the query_name is
+    //       // provided in the protobuf message.
+    //       std::string_view str_view(input.data(), len - 1);
+    //       return parse_query_type_from_cypher_internal(str_view);
 
-    }
-#endif  // BUILD_HQPS
-    else {
-      return Result<std::pair<uint8_t, std::string_view>>(
-          gs::Status(StatusCode::InValidArgument,
-                     "Invalid input tag: " + std::to_string(input_tag)));
-    }
+    //     }
+    // #endif  // BUILD_HQPS
+    //     else {
+    //       return Result<std::pair<uint8_t, std::string_view>>(
+    //           gs::Status(StatusCode::InValidArgument,
+    //                      "Invalid input tag: " + std::to_string(input_tag)));
+    //     }
   }
   std::reference_wrapper<GraphDB> db_;
   Allocator& alloc_;
