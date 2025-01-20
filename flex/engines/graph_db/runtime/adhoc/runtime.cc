@@ -476,6 +476,7 @@ Context runtime_eval_impl(const physical::PhysicalPlan& plan, Context&& ctx,
       t.start();
       ret = eval_scan(opr.opr().scan(), graph, params, timer);
       timer.record_opr("scan", t);
+      LOG(INFO) << "FInished scan";
     } break;
     case physical::PhysicalOpr_Operator::OpKindCase::kEdge: {
       CHECK_EQ(opr.meta_data_size(), 1);
@@ -762,6 +763,7 @@ Context runtime_eval(const physical::PhysicalPlan& plan,
                      OprTimer& timer) {
   TimerUnit t;
   t.start();
+  LOG(INFO) << "runtime_eval";
   auto ret = runtime_eval_impl(plan, Context(), graph, params, timer);
   timer.add_total(t);
   return ret;

@@ -1,0 +1,286 @@
+graph: sls
+loading_config:
+  data_source:
+    scheme: file  # file, oss, s3, hdfs; only file is supported now
+  import_option: init # append, overwrite, only init is supported now
+  format:
+    type: csv
+    metadata:
+      delimiter: ","  # other loading configuration places here
+      header_row: false # whether to use the first row as the header
+      quoting: false
+      quote_char: '"'
+      double_quote: true
+      escape_char: '\'
+      escaping: false
+      block_size: 4MB
+      batch_reader: true
+vertex_mappings:
+  - type_name: xzz_t1a  # must align with the schema
+    inputs:
+      - vertex_xzz_t1a.csv
+  - type_name: xzz_t1b
+    inputs:
+      - vertex_xzz_t1b.csv
+  - type_name: xzz_t2a  # must align with the schema
+    inputs:
+      - vertex_xzz_t2a.csv
+  - type_name: xzz_t2b
+    inputs:
+      - vertex_xzz_t2b.csv
+  - type_name: xzz_t3a  # must align with the schema
+    inputs:
+      - vertex_xzz_t3a.csv
+  - type_name: xzz_t3b
+    inputs:
+      - vertex_xzz_t3b.csv
+  - type_name: xzz_t3c
+    inputs:
+      - vertex_xzz_t3c.csv
+  - type_name: xzz_t4a
+    inputs:
+      - vertex_xzz_t4a.csv
+  - type_name: xzz_t4b
+    inputs:
+      - vertex_xzz_t4b.csv
+  - type_name: xzz_t4c
+    inputs:
+      - vertex_xzz_t4c.csv
+  - type_name: xzz_t4d
+    inputs:
+      - vertex_xzz_t4d.csv
+  - type_name: xzz_t4e
+    inputs:
+      - vertex_xzz_t4e.csv
+  - type_name: xzz_t5a
+    inputs:
+      - vertex_xzz_t5a.csv
+  - type_name: xzz_t5b
+    inputs:
+      - vertex_xzz_t5b.csv
+  - type_name: xzz_t5c  # must align with the schema
+    inputs:
+      - vertex_xzz_t5c.csv
+  - type_name: xzz_t5d  # must align with the schema
+    inputs:
+      - vertex_xzz_t5d.csv
+  - type_name: xzz_t5e  # must align with the schema
+    inputs:
+      - vertex_xzz_t5e.csv
+  - type_name: xzz_t6a
+    inputs:
+      - vertex_xzz_t6a.csv
+  - type_name: xzz_t6b
+    inputs:
+      - vertex_xzz_t6b.csv
+  - type_name: xzz_t6c
+    inputs:
+      - vertex_xzz_t6c.csv
+  - type_name: xzz_t6d
+    inputs:
+      - vertex_xzz_t6d.csv
+  - type_name: xzz_t6e
+    inputs:
+      - vertex_xzz_t6e.csv
+edge_mappings:
+  - type_triplet:
+      edge: test1
+      source_vertex:  xzz_t1a
+      destination_vertex:  xzz_t1b
+    inputs:
+      - edge_xzz_t1a_xzz_t1b_test1.csv
+  - type_triplet:
+      edge: test1
+      source_vertex:  xzz_t1b
+      destination_vertex:  xzz_t1a
+    inputs:
+      - edge_xzz_t1b_xzz_t1a_test1.csv
+  - type_triplet:
+      edge: test2_1
+      source_vertex:  xzz_t2a
+      destination_vertex:  xzz_t2b
+    inputs:
+      - edge_xzz_t2a_xzz_t2b_test2_1.csv
+  - type_triplet:
+      edge: test2_2
+      source_vertex:  xzz_t2a
+      destination_vertex:  xzz_t2b
+    inputs:
+      - edge_xzz_t2a_xzz_t2b_test2_2.csv
+  - type_triplet:
+      edge: test3
+      source_vertex:  xzz_t3a
+      destination_vertex:  xzz_t3a
+    inputs:
+      - edge_xzz_t3a_xzz_t3a_test3.csv
+  - type_triplet:
+      edge: test3
+      source_vertex:  xzz_t3a
+      destination_vertex:  xzz_t3b
+    inputs:
+      - edge_xzz_t3a_xzz_t3b_test3.csv
+  - type_triplet:
+      edge: test3
+      source_vertex:  xzz_t3a
+      destination_vertex:  xzz_t3c
+    inputs:
+      - edge_xzz_t3b_xzz_t3c_test3.csv
+  - type_triplet:
+      edge: test3
+      source_vertex:  xzz_t3b
+      destination_vertex:  xzz_t3a
+    inputs:
+      - edge_xzz_t3b_xzz_t3a_test3.csv
+  - type_triplet:
+      edge: test3
+      source_vertex:  xzz_t3b
+      destination_vertex:  xzz_t3b
+    inputs:
+      - edge_xzz_t3b_xzz_t3b_test3.csv
+  - type_triplet:
+      edge: test3
+      source_vertex:  xzz_t3b
+      destination_vertex:  xzz_t3c
+    inputs:
+      - edge_xzz_t3b_xzz_t3c_test3.csv
+  - type_triplet:
+      edge: test3
+      source_vertex:  xzz_t3c
+      destination_vertex:  xzz_t3a
+    inputs:
+      - edge_xzz_t3c_xzz_t3a_test3.csv
+  - type_triplet:
+      edge: test3
+      source_vertex:  xzz_t3c
+      destination_vertex:  xzz_t3b
+    inputs:
+      - edge_xzz_t3c_xzz_t3b_test3.csv
+  - type_triplet:
+      edge: test3
+      source_vertex:  xzz_t3c
+      destination_vertex:  xzz_t3c
+    inputs:
+      - edge_xzz_t3c_xzz_t3c_test3.csv
+  - type_triplet:
+      edge: test4
+      source_vertex:  xzz_t4a
+      destination_vertex:  xzz_t4b
+    inputs:
+      - edge_xzz_t4a_xzz_t4b_test4.csv
+  - type_triplet:
+      edge: test4
+      source_vertex:  xzz_t4b
+      destination_vertex:  xzz_t4c
+    inputs:
+      - edge_xzz_t4b_xzz_t4c_test4.csv
+  - type_triplet:
+      edge: test4
+      source_vertex:  xzz_t4c
+      destination_vertex:  xzz_t4d
+    inputs:
+      - edge_xzz_t4c_xzz_t4d_test4.csv
+  - type_triplet:
+      edge: test4
+      source_vertex:  xzz_t4d
+      destination_vertex:  xzz_t4e
+    inputs:
+      - edge_xzz_t4d_xzz_t4e_test4.csv
+  - type_triplet:
+      edge: test4
+      source_vertex:  xzz_t4e
+      destination_vertex:  xzz_t4a
+    inputs:
+      - edge_xzz_t4e_xzz_t4a_test4.csv
+  - type_triplet:
+      edge: test5
+      source_vertex:  xzz_t5a
+      destination_vertex:  xzz_t5b
+    inputs:
+      - edge_xzz_t5a_xzz_t5b_test5.csv
+  - type_triplet:
+      edge: test5
+      source_vertex:  xzz_t5a
+      destination_vertex:  xzz_t5c
+    inputs:
+      - edge_xzz_t5a_xzz_t5c_test5.csv
+  - type_triplet:
+      edge: test5
+      source_vertex:  xzz_t5a
+      destination_vertex:  xzz_t5d
+    inputs:
+      - edge_xzz_t5a_xzz_t5d_test5.csv
+  - type_triplet:
+      edge: test5
+      source_vertex: xzz_t5a
+      destination_vertex: xzz_t5e
+    inputs:
+      - edge_xzz_t5a_xzz_t5e_test5.csv
+  - type_triplet:
+      edge: test5
+      source_vertex:  xzz_t5b
+      destination_vertex:  xzz_t5a
+    inputs:
+      - edge_xzz_t5b_xzz_t5a_test5.csv
+  - type_triplet:
+      edge: test5
+      source_vertex:  xzz_t5b
+      destination_vertex:  xzz_t5b
+    inputs:
+      - edge_xzz_t5b_xzz_t5b_test5.csv
+  - type_triplet:
+      edge: test5
+      source_vertex:  xzz_t5c
+      destination_vertex:  xzz_t5a
+    inputs:
+      - edge_xzz_t5c_xzz_t5a_test5.csv
+  - type_triplet:
+      edge: test5
+      source_vertex:  xzz_t5c
+      destination_vertex:  xzz_t5c
+    inputs:
+      - edge_xzz_t5c_xzz_t5c_test5.csv
+  - type_triplet:
+      edge: test5
+      source_vertex:  xzz_t5d
+      destination_vertex:  xzz_t5d
+    inputs:
+      - edge_xzz_t5d_xzz_t5d_test5.csv
+  - type_triplet:
+      edge: test5
+      source_vertex:  xzz_t5e
+      destination_vertex:  xzz_t5e
+    inputs:
+      - edge_xzz_t5e_xzz_t5e_test5.csv
+  - type_triplet:
+      edge: test6
+      source_vertex:  xzz_t6a
+      destination_vertex:  xzz_t6b
+    inputs:
+      - edge_xzz_t6a_xzz_t6b_test6.csv
+  - type_triplet:
+      edge: test6
+      source_vertex:  xzz_t6b
+      destination_vertex:  xzz_t6c
+    inputs:
+      - edge_xzz_t6b_xzz_t6c_test6.csv
+  - type_triplet:
+      edge: test6
+      source_vertex:  xzz_t6c
+      destination_vertex:  xzz_t6d
+    inputs:
+      - edge_xzz_t6c_xzz_t6d_test6.csv
+  - type_triplet:
+      edge: test6
+      source_vertex:  xzz_t6d
+      destination_vertex:  xzz_t6e
+    inputs:
+      - edge_xzz_t6d_xzz_t6e_test6.csv
+  - type_triplet:
+      edge: test6
+      source_vertex:  xzz_t6e
+      destination_vertex:  xzz_t6e
+    inputs:
+      - edge_xzz_t6e_xzz_t6e_test6.csv
+    
+
+

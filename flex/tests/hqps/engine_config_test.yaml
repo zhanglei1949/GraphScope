@@ -5,7 +5,7 @@ directories:
     logs: logs
     conf: conf
 log_level: INFO
-default_graph: modern_graph
+default_graph: sls
 compute_engine:
   type: hiactor
   workers:
@@ -32,10 +32,12 @@ compiler:
   meta:
     reader:
       schema:
-        uri: /tmp/interactive_workspace/data/modern_graph/graph.yaml
+        # uri: /tmp/interactive_workspace/data/modern_graph/graph.yaml
+        uri: http://localhost:7777/v1/service/status
         interval: 1000 # ms
       statistics:
-        uri: /workspaces/GraphScope/interactive_engine/compiler/src/test/resources/statistics/modern_statistics.json
+        # uri: /workspaces/GraphScope/interactive_engine/compiler/src/test/resources/statistics/modern_statistics.json
+        uri: http://localhost:7777/v1/graph/%s/statistics
         interval: 86400000 # ms
   endpoint:
     default_listen_address: localhost

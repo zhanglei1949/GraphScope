@@ -58,6 +58,7 @@ void eval_sink_beta(const Context& ctx, const GraphReadInterface& graph,
       ss << val.to_string() << "|";
       val.sink(graph, j, column);
     }
+    LOG(INFO) << ss.str();
     std::cout << ss.str() << std::endl;
   }
   std::cout << "========================================================="

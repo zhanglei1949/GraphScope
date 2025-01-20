@@ -21,6 +21,7 @@
 #include <vector>
 #include "flex/engines/graph_db/database/graph_db.h"
 #include "flex/engines/graph_db/runtime/adhoc/runtime.h"
+#include <google/protobuf/util/json_util.h>
 
 namespace bpo = boost::program_options;
 
@@ -154,24 +155,27 @@ int main(int argc, char** argv) {
   gs::runtime::GraphReadInterface txn(g);
 #endif
   std::vector<std::map<std::string, std::string>> map;
-  if (vm.count("params_file")) {
-    load_params(vm["params_file"].as<std::string>(), map);
-  }
-  size_t params_num = map.size();
+  // if (vm.count("params_file")) {
+    // load_params(vm["params_file"].as<std::string>(), map);
+  // }
+  // size_t params_num = map.size();
+  map.resize(query_num);
 
   physical::PhysicalPlan pb;
-  pb.ParseFromString(query);
+  // pb.Parsefrom(query);
+  google::protobuf::util::JsonStringToMessage(query, &pb);
 
-  if (query_num == 0) {
-    query_num = params_num;
-  }
+  // if (query_num == 0) {
+    // query_num = params_num;
+  // }
+  CHECK(query_num > 0);
   std::vector<std::vector<char>> outputs(query_num);
 
   gs::runtime::OprTimer timer;
 
   double t1 = -grape::GetCurrentTime();
   for (int i = 0; i < query_num; ++i) {
-    auto& m = map[i % params_num];
+    auto& m = map[i];
     auto ctx = gs::runtime::runtime_eval(pb, txn, m, timer);
     gs::Encoder output(outputs[i]);
     gs::runtime::eval_sink_beta(ctx, txn, output);
