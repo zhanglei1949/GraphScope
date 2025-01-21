@@ -46,4 +46,10 @@ public class JNICompilePlanTest {
             System.out.println("Time cost: " + endTime);
         }
     }
+
+    @Test
+    public void path_expand_max_hop_test() throws Exception {
+        String query = "MATCH (src)-[e:test6*1..1000000]->(dest) Return src, dest";
+        PlanUtils.compilePlan(configPath, query, schemaYaml, statsJson);
+    }
 }
