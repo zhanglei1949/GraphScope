@@ -21,16 +21,11 @@ RUN curl -sf -L https://static.rust-lang.org/rustup.sh | \
   chmod +x "$HOME/.cargo/env" && \
   echo "$source $HOME/.cargo/env" >> ~/.bashrc && \
   . ${HOME}/.cargo/env && \
-  cargo --version
+  cargo --version && \
+  rustup toolchain install 1.81.0 && \
+  rustup default 1.81.0
 
 # install opentelemetry
-RUN cd /tmp && git clone -b v1.14.2 --single-branch https://github.com/open-telemetry/opentelemetry-cpp && cd opentelemetry-cpp && \
-cmake . -DCMAKE_INSTALL_PREFIX=/opt/flex -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 \
--DCMAKE_POSITION_INDEPENDENT_CODE=ON  -DBUILD_SHARED_LIBS=ON \
--DWITH_OTLP_HTTP=ON -DWITH_OTLP_GRPC=OFF \
--DWITH_ABSEIL=OFF -DWITH_PROMETHEUS=OFF \
--DBUILD_TESTING=OFF -DWITH_EXAMPLES=OFF && make -j  && make install && rm -rf /tmp/opentelemetry-cpp
-
 # install flex
 COPY --chown=graphscope:graphscope . /home/graphscope/GraphScope
 
