@@ -317,6 +317,8 @@ public class GraphBuilder extends RelBuilder {
      * @param opt anti or optional
      */
     public GraphBuilder match(RelNode single, GraphOpt.Match opt) {
+        // verify the hops in the sentence is valid
+        new QueryExecutionValidator(configs).validate(new LogicalPlan(single), true);
         if (FrontendConfig.GRAPH_TYPE_INFERENCE_ENABLED.get(configs)) {
             single =
                     new GraphTypeInference(
@@ -369,6 +371,9 @@ public class GraphBuilder extends RelBuilder {
         }
         Preconditions.checkArgument(
                 sentences.size() > 1, "at least two sentences are required in multiple match");
+        // verify the hops in each sentence is valid
+        sentences.forEach(
+                k -> new QueryExecutionValidator(configs).validate(new LogicalPlan(k), true));
         if (FrontendConfig.GRAPH_TYPE_INFERENCE_ENABLED.get(configs)) {
             sentences =
                     new GraphTypeInference(
