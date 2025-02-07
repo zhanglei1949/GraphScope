@@ -41,6 +41,7 @@ import com.alibaba.graphscope.common.utils.ClassUtils;
 import com.alibaba.graphscope.gremlin.plugin.QueryLogger;
 import com.alibaba.graphscope.proto.frontend.Code;
 import com.google.common.collect.Maps;
+
 import org.apache.calcite.plan.GraphOptCluster;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
@@ -82,6 +83,10 @@ public class GraphPlanner {
         this.logicalPlanFactory = logicalPlanFactory;
         this.rexBuilder = rexBuilderFactory.apply(graphConfig);
         this.validator = new QueryExecutionValidator(graphConfig);
+    }
+
+    public GraphRelOptimizer getOptimizer() {
+        return optimizer;
     }
 
     public PlannerInstance instance(String query, IrMeta irMeta) {
