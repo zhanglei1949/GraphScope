@@ -945,12 +945,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: X-Interactive-Request-Format
-          in: header
-          required: true
-          schema:
-            type: string
-            enum: [proto, encoder, json]
       requestBody:
         content:
           text/plain:
@@ -975,13 +969,6 @@ paths:
       operationId: proc_call_current
       description: |
         Submit a query to the running graph.
-      parameters:
-        - name: X-Interactive-Request-Format
-          in: header
-          required: true
-          schema:
-            type: string
-            enum: [proto, encoder, json]
       requestBody:
         content:
           text/plain:

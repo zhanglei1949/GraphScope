@@ -230,7 +230,7 @@ public class DriverTest {
                         new GSDataType(
                                 new PrimitiveType()
                                         .primitiveType(
-                                                PrimitiveType.PrimitiveTypeEnum.SIGNED_INT64)));
+                                                PrimitiveType.PrimitiveTypeEnum.DT_SIGNED_INT64)));
                 propertyMetaList.add(propertyMeta);
             }
             {
@@ -253,7 +253,7 @@ public class DriverTest {
                         new GSDataType(
                                 new PrimitiveType()
                                         .primitiveType(
-                                                PrimitiveType.PrimitiveTypeEnum.SIGNED_INT32)));
+                                                PrimitiveType.PrimitiveTypeEnum.DT_SIGNED_INT32)));
                 propertyMetaList.add(propertyMeta);
             }
             vertexType.setProperties(propertyMetaList);
@@ -270,7 +270,7 @@ public class DriverTest {
                 propertyMeta.setPropertyType(
                         new GSDataType(
                                 new PrimitiveType()
-                                        .primitiveType(PrimitiveType.PrimitiveTypeEnum.DOUBLE)));
+                                        .primitiveType(PrimitiveType.PrimitiveTypeEnum.DT_DOUBLE)));
                 propertyMetaList.add(propertyMeta);
             }
             edgeType.setProperties(propertyMetaList);
@@ -522,7 +522,7 @@ public class DriverTest {
                                         new PrimitiveType()
                                                 .primitiveType(
                                                         PrimitiveType.PrimitiveTypeEnum
-                                                                .SIGNED_INT32))));
+                                                                .DT_SIGNED_INT32))));
         Result<IrResult.CollectiveResults> resp = session.callProcedure(graphId, request);
         assertOk(resp);
     }
@@ -539,8 +539,8 @@ public class DriverTest {
                                 new GSDataType(
                                         new PrimitiveType()
                                                 .primitiveType(
-                                                        PrimitiveType.PrimitiveTypeEnum
-                                                                .SIGNED_INT32))));
+                                                        PrimitiveType.PrimitiveTypeEnum.DT_SIGNED_INT32))));
+
         Result<IrResult.CollectiveResults> resp = session.callProcedure(request);
         assertOk(resp);
     }

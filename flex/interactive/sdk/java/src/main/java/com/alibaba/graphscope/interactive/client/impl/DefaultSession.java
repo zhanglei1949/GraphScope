@@ -577,7 +577,7 @@ public class DefaultSession implements Session {
             // Here we add byte of value 1 to denote the input format is in JSON format.
             ApiResponse<byte[]> response =
                     queryApi.procCallWithHttpInfo(
-                            graphName, JSON_FORMAT_STRING, request.toJson().getBytes());
+                            graphName, request.toJson().getBytes());
             if (response.getStatusCode() != 200) {
                 return Result.fromException(
                         new ApiException(response.getStatusCode(), "Failed to call procedure"));
@@ -601,8 +601,7 @@ public class DefaultSession implements Session {
             // flex/engines/graph_db/graph_db_session.h
             // Here we add byte of value 1 to denote the input format is in JSON format.
             ApiResponse<byte[]> response =
-                    queryApi.procCallCurrentWithHttpInfo(
-                            JSON_FORMAT_STRING, request.toJson().getBytes());
+                    queryApi.procCallCurrentWithHttpInfo(request.toJson().getBytes());
             if (response.getStatusCode() != 200) {
                 return Result.fromException(
                         new ApiException(response.getStatusCode(), "Failed to call procedure"));
@@ -627,7 +626,7 @@ public class DefaultSession implements Session {
             // Here we add byte of value 0 to denote the input format is in raw encoder/decoder
             // format.
             ApiResponse<byte[]> response =
-                    queryApi.procCallWithHttpInfo(graphName, ENCODER_FORMAT_STRING, request);
+                    queryApi.procCallWithHttpInfo(graphName, request);
             if (response.getStatusCode() != 200) {
                 return Result.fromException(
                         new ApiException(response.getStatusCode(), "Failed to call procedure"));
@@ -647,7 +646,7 @@ public class DefaultSession implements Session {
             // Here we add byte of value 0 to denote the input format is in raw encoder/decoder
             // format.
             ApiResponse<byte[]> response =
-                    queryApi.procCallCurrentWithHttpInfo(ENCODER_FORMAT_STRING, request);
+                    queryApi.procCallCurrentWithHttpInfo(request);
             if (response.getStatusCode() != 200) {
                 return Result.fromException(
                         new ApiException(response.getStatusCode(), "Failed to call procedure"));
