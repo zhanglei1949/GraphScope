@@ -16,8 +16,7 @@
 # limitations under the License.
 #
 
-""" GraphScope default configuration.
-"""
+"""GraphScope default configuration."""
 
 import base64
 import json
@@ -229,6 +228,12 @@ class VineyardConfig:
 
 
 @dataclass
+class InteractiveConfig:
+    # a map from internal port to external port
+    port_mapping: Union[dict, None] = None
+
+
+@dataclass
 class CoordinatorConfig:
     endpoint: Union[str, None] = None
     """The address of existed coordinator service, with formats like 'ip:port'.
@@ -256,6 +261,9 @@ class CoordinatorConfig:
     # Launch coordinator only, do not let coordinator launch resources or delete resources.
     # It would try to find existing resources and connect to it.
     operator_mode: bool = False
+
+    # For http server, limit the max content length of request. Mainly for file upload.
+    max_content_length: int = 1024 * 1024 * 1024  # 1GB
 
 
 @dataclass
@@ -351,6 +359,8 @@ class Config(Serializable):
     coordinator: CoordinatorConfig = field(default_factory=CoordinatorConfig)
     # Vineyard configuration.
     vineyard: VineyardConfig = field(default_factory=VineyardConfig)
+    # Interactive configuration.
+    interactive: InteractiveConfig = field(default_factory=InteractiveConfig)
 
     # Local cluster configuration.
     hosts_launcher: HostsLauncherConfig = field(default_factory=HostsLauncherConfig)

@@ -15,7 +15,8 @@ option(BUILD_DOC "Whether to build doc" OFF)
 option(BUILD_ODPS_FRAGMENT_LOADER "Whether to build odps fragment loader" OFF)
 option(USE_PTHASH "Whether to use pthash" OFF)
 option(OPTIMIZE_FOR_HOST "Whether to optimize on host" ON) # Whether to build optimized code on host
-option(USE_STATIC_ARROW "Whether to use static arrow" ON) # Whether to link arrow statically, default is ON
+option(USE_STATIC_ARROW "Whether to use static arrow" OFF) # Whether to link arrow statically, default is OFF
+option(BUILD_WITH_OTEL "Whether to build with opentelemetry-cpp" OFF) # Whether to build with opentelemetry-cpp, default is OFF
 
 #print options
 message(STATUS "Build test: ${BUILD_TEST}")
@@ -85,7 +86,7 @@ if (OPTIMIZE_FOR_HOST)
 endif()
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -g")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-pedantic -Wno-format")
 
 find_package(MPI REQUIRED)
@@ -169,14 +170,16 @@ endif ()
 find_package(Protobuf REQUIRED)
 include_directories(${Protobuf_INCLUDE_DIRS})
 
-find_package(opentelemetry-cpp CONFIG)
-if (OPENTELEMETRY_CPP_FOUND)
-    message(STATUS "opentelemetry-cpp found")
-    find_package(CURL REQUIRED)
-    add_definitions(-DHAVE_OPENTELEMETRY_CPP)
-else()
-    message(STATUS "opentelemetry-cpp not found, build without opentelemetry-cpp")
-endif ()
+if (BUILD_WITH_OTEL)
+    find_package(opentelemetry-cpp CONFIG)
+    if (OPENTELEMETRY_CPP_FOUND)
+        message(STATUS "opentelemetry-cpp found")
+        find_package(CURL REQUIRED)
+        add_definitions(-DHAVE_OPENTELEMETRY_CPP)
+    else()
+        message(STATUS "opentelemetry-cpp not found, build without opentelemetry-cpp")
+    endif ()
+endif()
 
 # Find Doxygen
 if (BUILD_DOC)
@@ -209,6 +212,7 @@ add_definitions(-DRAPIDJSON_HAS_CXX11_RANGE_FOR=1)
 if (BUILD_ODPS_FRAGMENT_LOADER)
     include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/third_party/odps/include)
 endif()
+include_directories(SYSTEM ${CMAKE_SOURCE_DIR}/third_party/parallel-hashmap)
 
 macro(install_flex_target target)
     install(TARGETS ${target}

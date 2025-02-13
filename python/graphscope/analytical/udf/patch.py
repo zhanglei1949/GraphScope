@@ -16,8 +16,7 @@
 # limitations under the License.
 #
 
-""" Patch for Cython writer
-"""
+"""Patch for Cython writer"""
 
 import functools
 
@@ -134,7 +133,7 @@ def patch_cython_codewriter(writer):  # noqa: C901
     13. Add for `visit_CascadedCmpNode` node.
         Patch for `visit_PrimaryCmpNode` node.
 
-        Examaples:
+        Examples:
         ----------
 
         >>> 5 < 6 <= 7 > 4 >= 3 > 2 != 1

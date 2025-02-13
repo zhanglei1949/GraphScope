@@ -22,6 +22,7 @@
 #include "flex/engines/graph_db/runtime/common/columns/value_columns.h"
 #include "flex/engines/graph_db/runtime/common/columns/vertex_columns.h"
 #include "flex/engines/graph_db/runtime/common/context.h"
+#include "flex/engines/graph_db/runtime/common/graph_interface.h"
 #include "flex/engines/graph_db/runtime/common/rt_any.h"
 
 namespace gs {
@@ -56,14 +57,13 @@ class IAccessor {
   virtual std::string name() const { return "unknown"; }
 
   virtual std::shared_ptr<IContextColumnBuilder> builder() const {
-    // LOG(FATAL) << "not implemented for " << this->name();
     return nullptr;
   }
 };
 
 class VertexPathAccessor : public IAccessor {
  public:
-  using elem_t = std::pair<label_t, vid_t>;
+  using elem_t = VertexRecord;
 
   VertexPathAccessor(const Context& ctx, int tag)
       : vertex_col_(*std::dynamic_pointer_cast<IVertexColumn>(ctx.get(tag))) {}
@@ -93,34 +93,6 @@ class VertexPathAccessor : public IAccessor {
   const IVertexColumn& vertex_col_;
 };
 
-template <typename KEY_T>
-class VertexIdPathAccessor : public IAccessor {
- public:
-  using elem_t = KEY_T;
-  VertexIdPathAccessor(const ReadTransaction& txn, const Context& ctx, int tag)
-      : txn_(txn),
-        vertex_col_(*std::dynamic_pointer_cast<IVertexColumn>(ctx.get(tag))) {}
-
-  bool is_optional() const override { return vertex_col_.is_optional(); }
-
-  elem_t typed_eval_path(size_t idx) const {
-    const auto& v = vertex_col_.get_vertex(idx);
-    return AnyConverter<KEY_T>::from_any(txn_.GetVertexId(v.first, v.second));
-  }
-
-  RTAny eval_path(size_t idx) const override {
-    return RTAny(typed_eval_path(idx));
-  }
-
-  std::shared_ptr<IContextColumnBuilder> builder() const override {
-    return vertex_col_.builder();
-  }
-
- private:
-  const ReadTransaction& txn_;
-  const IVertexColumn& vertex_col_;
-};
-
 class VertexGIdPathAccessor : public IAccessor {
  public:
   using elem_t = int64_t;
@@ -131,7 +103,7 @@ class VertexGIdPathAccessor : public IAccessor {
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& v = vertex_col_.get_vertex(idx);
-    return encode_unique_vertex_id(v.first, v.second);
+    return encode_unique_vertex_id(v.label_, v.vid_);
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -150,36 +122,32 @@ template <typename T>
 class VertexPropertyPathAccessor : public IAccessor {
  public:
   using elem_t = T;
-  VertexPropertyPathAccessor(const ReadTransaction& txn, const Context& ctx,
-                             int tag, const std::string& prop_name)
-      : vertex_col_(*std::dynamic_pointer_cast<IVertexColumn>(ctx.get(tag))) {
-    int label_num = txn.schema().vertex_label_num();
-    property_columns_.resize(label_num, nullptr);
-    for (int i = 0; i < label_num; ++i) {
-      property_columns_[i] = dynamic_cast<const TypedColumn<elem_t>*>(
-          txn.get_vertex_property_column(static_cast<label_t>(i), prop_name)
-              .get());
+  VertexPropertyPathAccessor(const GraphReadInterface& graph,
+                             const Context& ctx, int tag,
+                             const std::string& prop_name)
+      : is_optional_(false),
+        vertex_col_(*std::dynamic_pointer_cast<IVertexColumn>(ctx.get(tag))) {
+    int label_num = graph.schema().vertex_label_num();
+    property_columns_.resize(label_num);
+    const auto& labels = vertex_col_.get_labels_set();
+    if (vertex_col_.is_optional()) {
+      is_optional_ = true;
+    }
+    for (auto label : labels) {
+      property_columns_[label] = graph.GetVertexColumn<T>(label, prop_name);
+      if (property_columns_[label].is_null()) {
+        is_optional_ = true;
+      }
     }
   }
 
-  bool is_optional() const override {
-    if (vertex_col_.is_optional()) {
-      return true;
-    }
-    auto label_set = vertex_col_.get_labels_set();
-    for (auto label : label_set) {
-      if (property_columns_[label] == nullptr) {
-        return true;
-      }
-    }
-    return false;
-  }
+  bool is_optional() const override { return is_optional_; }
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& v = vertex_col_.get_vertex(idx);
-    auto col_ptr = property_columns_[v.first];
-    if (col_ptr != nullptr) {
-      return property_columns_[v.first]->get_view(v.second);
+    auto& col = property_columns_[v.label_];
+    if (!col.is_null()) {
+      return col.get_view(v.vid_);
     } else {
       return elem_t();
     }
@@ -195,17 +163,18 @@ class VertexPropertyPathAccessor : public IAccessor {
       return RTAny(RTAnyType::kNull);
     }
     const auto& v = vertex_col_.get_vertex(idx);
-    auto col_ptr = property_columns_[v.first];
-    if (col_ptr != nullptr) {
-      return TypedConverter<T>::from_typed(col_ptr->get_view(v.second));
+    auto& col = property_columns_[v.label_];
+    if (!col.is_null()) {
+      return TypedConverter<T>::from_typed(col.get_view(v.vid_));
     } else {
       return RTAny(RTAnyType::kNull);
     }
   }
 
  private:
+  bool is_optional_;
   const IVertexColumn& vertex_col_;
-  std::vector<const TypedColumn<elem_t>*> property_columns_;
+  std::vector<GraphReadInterface::vertex_column_t<elem_t>> property_columns_;
 };
 
 class VertexLabelPathAccessor : public IAccessor {
@@ -215,7 +184,7 @@ class VertexLabelPathAccessor : public IAccessor {
       : vertex_col_(*std::dynamic_pointer_cast<IVertexColumn>(ctx.get(tag))) {}
 
   elem_t typed_eval_path(size_t idx) const {
-    return static_cast<int32_t>(vertex_col_.get_vertex(idx).first);
+    return static_cast<int32_t>(vertex_col_.get_vertex(idx).label_);
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -249,7 +218,10 @@ class ContextValueAccessor : public IAccessor {
  public:
   using elem_t = T;
   ContextValueAccessor(const Context& ctx, int tag)
-      : col_(*std::dynamic_pointer_cast<IValueColumn<elem_t>>(ctx.get(tag))) {}
+      : col_(*std::dynamic_pointer_cast<IValueColumn<elem_t>>(ctx.get(tag))) {
+    assert(std::dynamic_pointer_cast<IValueColumn<elem_t>>(ctx.get(tag)) !=
+           nullptr);
+  }
 
   elem_t typed_eval_path(size_t idx) const { return col_.get_value(idx); }
 
@@ -272,14 +244,13 @@ class ContextValueAccessor : public IAccessor {
   const IValueColumn<elem_t>& col_;
 };
 
-template <typename KEY_T>
 class VertexIdVertexAccessor : public IAccessor {
  public:
-  using elem_t = KEY_T;
-  VertexIdVertexAccessor(const ReadTransaction& txn) : txn_(txn) {}
+  using elem_t = VertexRecord;
+  VertexIdVertexAccessor() {}
 
   elem_t typed_eval_vertex(label_t label, vid_t v, size_t idx) const {
-    return AnyConverter<KEY_T>::from_any(txn_.GetVertexId(label, v));
+    return VertexRecord{label, v};
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -288,11 +259,15 @@ class VertexIdVertexAccessor : public IAccessor {
   }
 
   RTAny eval_vertex(label_t label, vid_t v, size_t idx) const override {
-    return RTAny(Any(typed_eval_vertex(label, v, idx)));
+    return RTAny::from_vertex(typed_eval_vertex(label, v, idx));
   }
 
- private:
-  const ReadTransaction& txn_;
+  RTAny eval_vertex(label_t label, vid_t v, size_t idx, int) const override {
+    if (v == std::numeric_limits<vid_t>::max()) {
+      return RTAny(RTAnyType::kNull);
+    }
+    return RTAny::from_vertex(typed_eval_vertex(label, v, idx));
+  }
 };
 
 class VertexGIdVertexAccessor : public IAccessor {
@@ -318,22 +293,20 @@ template <typename T>
 class VertexPropertyVertexAccessor : public IAccessor {
  public:
   using elem_t = T;
-  VertexPropertyVertexAccessor(const ReadTransaction& txn,
+  VertexPropertyVertexAccessor(const GraphReadInterface& graph,
                                const std::string& prop_name) {
-    int label_num = txn.schema().vertex_label_num();
-    property_columns_.resize(label_num, nullptr);
+    int label_num = graph.schema().vertex_label_num();
     for (int i = 0; i < label_num; ++i) {
-      property_columns_[i] = dynamic_cast<const TypedColumn<elem_t>*>(
-          txn.get_vertex_property_column(static_cast<label_t>(i), prop_name)
-              .get());
+      property_columns_.emplace_back(
+          graph.GetVertexColumn<T>(static_cast<label_t>(i), prop_name));
     }
   }
 
   elem_t typed_eval_vertex(label_t label, vid_t v, size_t idx) const {
-    if (property_columns_[label] == nullptr) {
+    if (property_columns_[label].is_null()) {
       return elem_t();
     }
-    return property_columns_[label]->get_view(v);
+    return property_columns_[label].get_view(v);
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -342,36 +315,35 @@ class VertexPropertyVertexAccessor : public IAccessor {
   }
 
   RTAny eval_vertex(label_t label, vid_t v, size_t idx) const override {
-    if (property_columns_[label] == nullptr) {
+    if (property_columns_[label].is_null()) {
       return RTAny();
     }
-    return TypedConverter<T>::from_typed(property_columns_[label]->get_view(v));
+    return TypedConverter<T>::from_typed(property_columns_[label].get_view(v));
   }
 
   RTAny eval_vertex(label_t label, vid_t v, size_t idx, int) const override {
-    if (property_columns_[label] == nullptr) {
+    if (property_columns_[label].is_null()) {
       return RTAny(RTAnyType::kNull);
     }
-    return TypedConverter<T>::from_typed(property_columns_[label]->get_view(v));
+    return TypedConverter<T>::from_typed(property_columns_[label].get_view(v));
   }
 
   bool is_optional() const override {
     for (auto col : property_columns_) {
-      if (col == nullptr) {
+      if (col.is_null()) {
         return true;
       }
     }
-
     return false;
   }
 
  private:
-  std::vector<const TypedColumn<elem_t>*> property_columns_;
+  std::vector<GraphReadInterface::vertex_column_t<T>> property_columns_;
 };
 
 class EdgeIdPathAccessor : public IAccessor {
  public:
-  using elem_t = std::tuple<LabelTriplet, vid_t, vid_t, Any, Direction>;
+  using elem_t = EdgeRecord;
   EdgeIdPathAccessor(const Context& ctx, int tag)
       : edge_col_(*std::dynamic_pointer_cast<IEdgeColumn>(ctx.get(tag))) {}
 
@@ -402,20 +374,19 @@ template <typename T>
 class EdgePropertyPathAccessor : public IAccessor {
  public:
   using elem_t = T;
-  EdgePropertyPathAccessor(const ReadTransaction& txn,
+  EdgePropertyPathAccessor(const GraphReadInterface& graph,
                            const std::string& prop_name, const Context& ctx,
                            int tag)
       : col_(*std::dynamic_pointer_cast<IEdgeColumn>(ctx.get(tag))) {}
 
   RTAny eval_path(size_t idx) const override {
     const auto& e = col_.get_edge(idx);
-    return RTAny(std::get<3>(e));
+    return RTAny(e.prop_);
   }
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& e = col_.get_edge(idx);
-    elem_t ret;
-    ConvertAny<T>::to(std::get<3>(e), ret);
+    elem_t ret = e.prop_.as<elem_t>();
     return ret;
   }
 
@@ -440,20 +411,20 @@ template <typename T>
 class MultiPropsEdgePropertyPathAccessor : public IAccessor {
  public:
   using elem_t = T;
-  MultiPropsEdgePropertyPathAccessor(const ReadTransaction& txn,
+  MultiPropsEdgePropertyPathAccessor(const GraphReadInterface& graph,
                                      const std::string& prop_name,
                                      const Context& ctx, int tag)
       : col_(*std::dynamic_pointer_cast<IEdgeColumn>(ctx.get(tag))) {
     const auto& labels = col_.get_labels();
-    vertex_label_num_ = txn.schema().vertex_label_num();
-    edge_label_num_ = txn.schema().edge_label_num();
+    vertex_label_num_ = graph.schema().vertex_label_num();
+    edge_label_num_ = graph.schema().edge_label_num();
     prop_index_.resize(
         2 * vertex_label_num_ * vertex_label_num_ * edge_label_num_,
         std::numeric_limits<size_t>::max());
     for (auto& label : labels) {
       size_t idx = label.src_label * vertex_label_num_ * edge_label_num_ +
                    label.dst_label * edge_label_num_ + label.edge_label;
-      const auto& names = txn.schema().get_edge_property_names(
+      const auto& names = graph.schema().get_edge_property_names(
           label.src_label, label.dst_label, label.edge_label);
       for (size_t i = 0; i < names.size(); ++i) {
         if (names[i] == prop_name) {
@@ -466,31 +437,32 @@ class MultiPropsEdgePropertyPathAccessor : public IAccessor {
 
   RTAny eval_path(size_t idx) const override {
     const auto& e = col_.get_edge(idx);
-    auto val = std::get<3>(e);
-    auto id = get_index(std::get<0>(e));
-    if (std::get<3>(e).type != PropertyType::RecordView()) {
-      CHECK(id == 0);
+    auto val = e.prop_;
+    auto id = get_index(e.label_triplet_);
+    if (e.prop_.type != RTAnyType::kRecordView) {
+      assert(id == 0);
       return RTAny(val);
     } else {
-      auto rv = val.AsRecordView();
-      CHECK(id != std::numeric_limits<size_t>::max());
+      auto rv = val.as<RecordView>();
+      assert(id != std::numeric_limits<size_t>::max());
       return RTAny(rv[id]);
     }
   }
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& e = col_.get_edge(idx);
-    auto val = std::get<3>(e);
-    auto id = get_index(std::get<0>(e));
-    if (std::get<3>(e).type != PropertyType::RecordView()) {
-      CHECK(id == 0);
-      elem_t ret;
-      ConvertAny<T>::to(val, ret);
+    auto val = e.prop_;
+    auto id = get_index(e.label_triplet_);
+
+    if (e.prop_.type != RTAnyType::kRecordView) {
+      assert(id == 0);
+      elem_t ret = e.prop_.as<elem_t>();
+
       return ret;
 
     } else {
-      auto rv = val.AsRecordView();
-      CHECK(id != std::numeric_limits<size_t>::max());
+      auto rv = val.as<RecordView>();
+      assert(id != std::numeric_limits<size_t>::max());
       auto tmp = rv[id];
       elem_t ret;
       ConvertAny<T>::to(tmp, ret);
@@ -532,12 +504,12 @@ class EdgeLabelPathAccessor : public IAccessor {
 
   RTAny eval_path(size_t idx) const override {
     const auto& e = col_.get_edge(idx);
-    return RTAny(static_cast<int32_t>(std::get<0>(e).edge_label));
+    return RTAny(static_cast<int32_t>(e.label_triplet_.edge_label));
   }
 
   elem_t typed_eval_path(size_t idx) const {
     const auto& e = col_.get_edge(idx);
-    return static_cast<int32_t>(std::get<0>(e).edge_label);
+    return static_cast<int32_t>(e.label_triplet_.edge_label);
   }
 
   std::shared_ptr<IContextColumnBuilder> builder() const override {
@@ -548,32 +520,11 @@ class EdgeLabelPathAccessor : public IAccessor {
   const IEdgeColumn& col_;
 };
 
-class EdgeLabelEdgeAccessor : public IAccessor {
- public:
-  using elem_t = int32_t;
-  EdgeLabelEdgeAccessor() {}
-
-  elem_t typed_eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
-                         const Any& data, size_t idx) const {
-    return static_cast<elem_t>(label.edge_label);
-  }
-
-  RTAny eval_path(size_t idx) const override {
-    LOG(FATAL) << "not supposed to reach here...";
-    return RTAny();
-  }
-
-  RTAny eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
-                  const Any& data, size_t idx) const override {
-    return RTAny::from_int32(typed_eval_edge(label, src, dst, data, idx));
-  }
-};
-
 template <typename T>
 class EdgePropertyEdgeAccessor : public IAccessor {
  public:
   using elem_t = T;
-  EdgePropertyEdgeAccessor(const ReadTransaction& txn,
+  EdgePropertyEdgeAccessor(const GraphReadInterface& graph,
                            const std::string& name) {}
 
   elem_t typed_eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
@@ -594,121 +545,31 @@ class EdgePropertyEdgeAccessor : public IAccessor {
   }
 };
 
-// Access the global edge id of an edge in a path
-// Currently we have no unique id for a edge.
-// We construct the id from the edge's src, dst and label.
-class EdgeGlobalIdPathAccessor : public IAccessor {
- public:
-  using elem_t = int64_t;  // edge global id
-  EdgeGlobalIdPathAccessor(const Context& ctx, int tag)
-      : edge_col_(*std::dynamic_pointer_cast<IEdgeColumn>(ctx.get(tag))) {}
-
-  static uint32_t generate_edge_label_id(label_t src_label_id,
-                                         label_t dst_label_id,
-                                         label_t edge_label_id) {
-    uint32_t unique_edge_label_id = src_label_id;
-    static constexpr int num_bits = sizeof(label_t) * 8;
-    unique_edge_label_id = unique_edge_label_id << num_bits;
-    unique_edge_label_id = unique_edge_label_id | dst_label_id;
-    unique_edge_label_id = unique_edge_label_id << num_bits;
-    unique_edge_label_id = unique_edge_label_id | edge_label_id;
-    return unique_edge_label_id;
-  }
-
-  static int64_t encode_unique_edge_id(uint32_t label_id, vid_t src,
-                                       vid_t dst) {
-    // We assume label_id is only used by 24 bits.
-    int64_t unique_edge_id = label_id;
-    unique_edge_id = unique_edge_id << 40;
-    // bitmask for top 40 bits set to 1
-    int64_t bitmask = 0xFFFFFFFFFF000000;
-    // 24 bit | 20 bit | 20 bit
-    if (bitmask & (int64_t) src || bitmask & (int64_t) dst) {
-      LOG(ERROR) << "src or dst is too large to be encoded in 20 bits: " << src
-                 << " " << dst;
-    }
-    unique_edge_id = unique_edge_id | (src << 20);
-    unique_edge_id = unique_edge_id | dst;
-    return unique_edge_id;
-  }
-
-  elem_t typed_eval_path(size_t idx) const {
-    const auto& e = edge_col_.get_edge(idx);
-    auto label_id = generate_edge_label_id(std::get<0>(e).src_label,
-                                           std::get<0>(e).dst_label,
-                                           std::get<0>(e).edge_label);
-    return encode_unique_edge_id(label_id, std::get<1>(e), std::get<2>(e));
-  }
-
-  RTAny eval_path(size_t idx) const override {
-    return RTAny::from_int64(typed_eval_path(idx));
-  }
-
-  bool is_optional() const override { return edge_col_.is_optional(); }
-
-  RTAny eval_path(size_t idx, int) const override {
-    if (!edge_col_.has_value(idx)) {
-      return RTAny(RTAnyType::kNull);
-    }
-    return RTAny::from_int64(typed_eval_path(idx));
-  }
-
-  std::shared_ptr<IContextColumnBuilder> builder() const override {
-    return edge_col_.builder();
-  }
-
- private:
-  const IEdgeColumn& edge_col_;
-};
-
-class EdgeGlobalIdEdgeAccessor : public IAccessor {
- public:
-  using elem_t = int64_t;  // edge global id
-  EdgeGlobalIdEdgeAccessor() {}
-
-  elem_t typed_eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
-                         const Any& data, size_t idx) const {
-    auto label_id = EdgeGlobalIdPathAccessor::generate_edge_label_id(
-        label.src_label, label.dst_label, label.edge_label);
-    return EdgeGlobalIdPathAccessor::encode_unique_edge_id(label_id, src, dst);
-  }
-
-  RTAny eval_path(size_t idx) const override {
-    LOG(FATAL) << "not supposed to reach here...";
-    return RTAny();
-  }
-
-  RTAny eval_edge(const LabelTriplet& label, vid_t src, vid_t dst,
-                  const Any& data, size_t idx) const override {
-    return RTAny::from_int64(typed_eval_edge(label, src, dst, data, idx));
-  }
-};
-
 template <typename T>
 class MultiPropsEdgePropertyEdgeAccessor : public IAccessor {
  public:
   using elem_t = T;
-  MultiPropsEdgePropertyEdgeAccessor(const ReadTransaction& txn,
+  MultiPropsEdgePropertyEdgeAccessor(const GraphReadInterface& graph,
                                      const std::string& name) {
-    edge_label_num_ = txn.schema().edge_label_num();
-    vertex_label_num_ = txn.schema().vertex_label_num();
+    edge_label_num_ = graph.schema().edge_label_num();
+    vertex_label_num_ = graph.schema().vertex_label_num();
     indexs.resize(2 * vertex_label_num_ * vertex_label_num_ * edge_label_num_,
                   std::numeric_limits<size_t>::max());
     for (label_t src_label = 0; src_label < vertex_label_num_; ++src_label) {
-      auto src = txn.schema().get_vertex_label_name(src_label);
+      auto src = graph.schema().get_vertex_label_name(src_label);
       for (label_t dst_label = 0; dst_label < vertex_label_num_; ++dst_label) {
-        auto dst = txn.schema().get_vertex_label_name(dst_label);
+        auto dst = graph.schema().get_vertex_label_name(dst_label);
         for (label_t edge_label = 0; edge_label < edge_label_num_;
              ++edge_label) {
-          auto edge = txn.schema().get_edge_label_name(edge_label);
-          if (!txn.schema().exist(src, dst, edge)) {
+          auto edge = graph.schema().get_edge_label_name(edge_label);
+          if (!graph.schema().exist(src, dst, edge)) {
             continue;
           }
           size_t idx = src_label * vertex_label_num_ * edge_label_num_ +
                        dst_label * edge_label_num_ + edge_label;
           const std::vector<std::string>& names =
-              txn.schema().get_edge_property_names(src_label, dst_label,
-                                                   edge_label);
+              graph.schema().get_edge_property_names(src_label, dst_label,
+                                                     edge_label);
           for (size_t i = 0; i < names.size(); ++i) {
             if (names[i] == name) {
               indexs[idx] = i;
@@ -724,11 +585,11 @@ class MultiPropsEdgePropertyEdgeAccessor : public IAccessor {
                          const Any& data, size_t idx) const {
     T ret;
     if (data.type != PropertyType::RecordView()) {
-      CHECK(get_index(label) == 0);
+      assert(get_index(label) == 0);
       ConvertAny<T>::to(data, ret);
     } else {
       auto id = get_index(label);
-      CHECK(id != std::numeric_limits<size_t>::max());
+      assert(id != std::numeric_limits<size_t>::max());
       auto view = data.AsRecordView();
       ConvertAny<T>::to(view[id], ret);
     }
@@ -813,7 +674,7 @@ class PathLenPathAccessor : public IAccessor {
       : path_col_(*std::dynamic_pointer_cast<IPathColumn>(ctx.get(tag))) {}
 
   elem_t typed_eval_path(size_t idx) const {
-    return static_cast<int32_t>(path_col_.get_path(idx).len());
+    return path_col_.get_path_length(idx);
   }
 
   RTAny eval_path(size_t idx) const override {
@@ -859,31 +720,26 @@ std::shared_ptr<IAccessor> create_context_value_accessor(const Context& ctx,
                                                          RTAnyType type);
 
 std::shared_ptr<IAccessor> create_vertex_property_path_accessor(
-    const ReadTransaction& txn, const Context& ctx, int tag, RTAnyType type,
-    const std::string& prop_name);
+    const GraphReadInterface& graph, const Context& ctx, int tag,
+    RTAnyType type, const std::string& prop_name);
 
 std::shared_ptr<IAccessor> create_vertex_property_vertex_accessor(
-    const ReadTransaction& txn, RTAnyType type, const std::string& prop_name);
+    const GraphReadInterface& graph, RTAnyType type,
+    const std::string& prop_name);
 
 std::shared_ptr<IAccessor> create_vertex_label_path_accessor(const Context& ctx,
                                                              int tag);
 
 std::shared_ptr<IAccessor> create_edge_property_path_accessor(
-    const ReadTransaction& txn, const std::string& prop_name,
+    const GraphReadInterface& graph, const std::string& prop_name,
     const Context& ctx, int tag, RTAnyType type);
 
 std::shared_ptr<IAccessor> create_edge_label_path_accessor(const Context& ctx,
                                                            int tag);
 
-std::shared_ptr<IAccessor> create_edge_label_edge_accessor();
-
-std::shared_ptr<IAccessor> create_edge_global_id_path_accessor(
-    const Context& ctx, int tag);
-
-std::shared_ptr<IAccessor> create_edge_global_id_edge_accessor();
-
 std::shared_ptr<IAccessor> create_edge_property_edge_accessor(
-    const ReadTransaction& txn, const std::string& prop_name, RTAnyType type);
+    const GraphReadInterface& graph, const std::string& prop_name,
+    RTAnyType type);
 
 }  // namespace runtime
 

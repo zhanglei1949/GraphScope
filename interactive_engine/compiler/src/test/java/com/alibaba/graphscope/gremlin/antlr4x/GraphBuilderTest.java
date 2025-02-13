@@ -23,11 +23,15 @@ import com.alibaba.graphscope.common.ir.meta.IrMeta;
 import com.alibaba.graphscope.common.ir.planner.GraphIOProcessor;
 import com.alibaba.graphscope.common.ir.planner.GraphRelOptimizer;
 import com.alibaba.graphscope.common.ir.planner.rules.ExpandGetVFusionRule;
+import com.alibaba.graphscope.common.ir.rel.GraphLogicalProject;
+import com.alibaba.graphscope.common.ir.rex.RexGraphVariable;
 import com.alibaba.graphscope.common.ir.runtime.proto.RexToProtoConverter;
 import com.alibaba.graphscope.common.ir.tools.GraphBuilder;
 import com.alibaba.graphscope.common.ir.tools.GraphStdOperatorTable;
 import com.alibaba.graphscope.common.ir.tools.config.GraphOpt;
 import com.alibaba.graphscope.common.ir.tools.config.SourceConfig;
+import com.alibaba.graphscope.common.ir.type.ArbitraryMapType;
+import com.alibaba.graphscope.common.ir.type.GraphLabelType;
 import com.alibaba.graphscope.common.ir.type.GraphProperty;
 import com.alibaba.graphscope.common.utils.FileUtils;
 import com.alibaba.graphscope.gaia.proto.OuterExpression;
@@ -40,6 +44,7 @@ import com.google.protobuf.util.JsonFormat;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.junit.Assert;
@@ -84,6 +89,36 @@ public class GraphBuilderTest {
         GraphBuilderVisitor visitor = new GraphBuilderVisitor(builder);
         ParseTree parseTree = new GremlinAntlr4Parser().parse(query);
         return visitor.visit(parseTree).build();
+    }
+
+    @Test
+    public void g_V_elementMap_test() {
+        GraphRelOptimizer optimizer = new GraphRelOptimizer(configs);
+        IrMeta irMeta =
+                Utils.mockIrMeta(
+                        "schema/ldbc.json",
+                        "statistics/ldbc30_statistics.json",
+                        optimizer.getGlogueHolder());
+        GraphBuilder builder = Utils.mockGraphBuilder(optimizer, irMeta);
+        RelNode node =
+                eval(
+                        "g.V(72057594037928268).as(\"a\").outE(\"KNOWS\").as(\"b\").inV().as(\"c\").select('a',"
+                            + " \"b\").by(elementMap())",
+                        builder);
+        RelDataType projectType = node.getRowType().getFieldList().get(0).getType();
+        RelDataType bValueType = projectType.getValueType();
+        Assert.assertTrue(bValueType instanceof ArbitraryMapType);
+        GraphLabelType labelType =
+                (GraphLabelType)
+                        ((ArbitraryMapType) bValueType)
+                                .getKeyValueTypeMap().values().stream()
+                                        .filter(k -> k.getValue() instanceof GraphLabelType)
+                                        .findFirst()
+                                        .get()
+                                        .getValue();
+        // make sure the inferred type contains the label type
+        Assert.assertTrue(
+                labelType.getLabelsEntry().stream().anyMatch(k -> k.getLabel().equals("KNOWS")));
     }
 
     @Test
@@ -1722,11 +1757,11 @@ public class GraphBuilderTest {
                         "g.V().hasLabel('person').as('a').out('knows').as('b').select('a',"
                                 + " 'b').by(valueMap())");
         Assert.assertEquals(
-                "({_UTF-8'a'=<CHAR(1), ({_UTF-8'name'=<CHAR(4), CHAR(1)>, _UTF-8'id'=<CHAR(2),"
+                "({_UTF-8'a'=<CHAR(1), ({_UTF-8'name'=<CHAR(4), VARCHAR>, _UTF-8'id'=<CHAR(2),"
                         + " BIGINT>, _UTF-8'age'=<CHAR(3), INTEGER>}) MAP>, _UTF-8'b'=<CHAR(1),"
-                        + " ({_UTF-8'name'=<CHAR(4), CHAR(1)>, _UTF-8'id'=<CHAR(2), BIGINT>,"
+                        + " ({_UTF-8'name'=<CHAR(4), VARCHAR>, _UTF-8'id'=<CHAR(2), BIGINT>,"
                         + " _UTF-8'creationDate'=<CHAR(12), DATE>, _UTF-8'age'=<CHAR(3), INTEGER>,"
-                        + " _UTF-8'lang'=<CHAR(4), CHAR(1)>}) MAP>}) MAP",
+                        + " _UTF-8'lang'=<CHAR(4), VARCHAR>}) MAP>}) MAP",
                 rel.getRowType().getFieldList().get(0).getType().toString());
     }
 
@@ -1767,7 +1802,7 @@ public class GraphBuilderTest {
         Assert.assertEquals(
                 "GraphLogicalProject($f0=[$f0], isAppend=[false])\n"
                     + "  GraphLogicalProject($f0=[PATH_FUNCTION(a, FLAG(VERTEX_EDGE),"
-                    + " MAP(_UTF-8'weight', a.weight, _UTF-8'name', a.name))], isAppend=[true])\n"
+                    + " MAP(_UTF-8'name', a.name, _UTF-8'weight', a.weight))], isAppend=[true])\n"
                     + "    GraphLogicalPathExpand(expand=[GraphLogicalExpand(tableConfig=[{isAll=true,"
                     + " tables=[created, knows]}], alias=[_], opt=[OUT])\n"
                     + "], getV=[GraphLogicalGetV(tableConfig=[{isAll=true, tables=[software,"
@@ -1818,5 +1853,69 @@ public class GraphBuilderTest {
                         + "    GraphLogicalSource(tableConfig=[{isAll=false, tables=[software,"
                         + " person]}], alias=[a], opt=[VERTEX])",
                 after3.explain().trim());
+    }
+
+    @Test
+    public void union_valueMap_test() {
+        Configs configs =
+                new Configs(
+                        ImmutableMap.of(
+                                "graph.planner.is.on",
+                                "true",
+                                "graph.planner.opt",
+                                "CBO",
+                                "graph.planner.rules",
+                                "FilterIntoJoinRule, FilterMatchRule, ExtendIntersectRule,"
+                                        + " ExpandGetVFusionRule"));
+        GraphRelOptimizer optimizer = new GraphRelOptimizer(configs);
+        IrMeta irMeta =
+                Utils.mockIrMeta(
+                        "schema/ldbc.json",
+                        "statistics/ldbc30_statistics.json",
+                        optimizer.getGlogueHolder());
+        GraphBuilder builder = Utils.mockGraphBuilder(optimizer, irMeta);
+        RelNode node1 =
+                eval(
+                        "g.V().hasLabel(\"PERSON\").has(\"id\","
+                            + " 1816).union(outE(\"LIKES\").limit(10).as('a').inV().as('b').select('a','b').by(valueMap(\"creationDate\")),"
+                            + " outE(\"KNOWS\").limit(10).as('c').inV().as('d').select('c','d').by(valueMap(\"creationDate\")))",
+                        builder);
+        RelNode after1 = optimizer.optimize(node1, new GraphIOProcessor(builder, irMeta));
+        GraphLogicalProject project = (GraphLogicalProject) after1;
+        RexNode expr = project.getProjects().get(0);
+        RexGraphVariable var = (RexGraphVariable) expr;
+        Assert.assertEquals(2, var.getAliasId());
+    }
+
+    @Test
+    public void g_V_match_a_out_b_path_elementMap() {
+        GraphBuilder builder = Utils.mockGraphBuilder(optimizer, irMeta);
+        RelNode rel =
+                eval(
+                        "g.V().match(as('a').out('3..4', 'knows').with('RESULT_OPT',"
+                            + " 'ALL_V_E').as('b').endV().as('c')).select('b').by(elementMap())",
+                        builder);
+        RelNode after = optimizer.optimize(rel, new GraphIOProcessor(builder, irMeta));
+        Assert.assertEquals(
+                "RecordType(({_UTF-8'name'=<CHAR(4), VARCHAR>, _UTF-8'id'=<CHAR(2), BIGINT>,"
+                    + " _UTF-8'weight'=<CHAR(6), DOUBLE>, _UTF-8'age'=<CHAR(3), INTEGER>,"
+                    + " _UTF-8'~label'=<CHAR(6), UNION_V_E([[EdgeLabel(knows, person, person)],"
+                    + " [VertexLabel(person)]])>, _UTF-8'~id'=<CHAR(3), BIGINT>}) MAP ARRAY $f0)",
+                after.getRowType().toString());
+    }
+
+    @Test
+    public void g_V_match_a_out_b_path_label() {
+        GraphBuilder builder = Utils.mockGraphBuilder(optimizer, irMeta);
+        RelNode rel =
+                eval(
+                        "g.V().match(as('a').out('3..4', 'knows').with('RESULT_OPT',"
+                                + " 'ALL_V_E').as('b').endV().as('c')).select('b').by('~label')",
+                        builder);
+        RelNode after = optimizer.optimize(rel, new GraphIOProcessor(builder, irMeta));
+        Assert.assertEquals(
+                "RecordType(UNION_V_E([[EdgeLabel(knows, person, person)], [VertexLabel(person)]])"
+                        + " ARRAY $f0)",
+                after.getRowType().toString());
     }
 }

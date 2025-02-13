@@ -13,3 +13,7 @@
 [submodule "flex/third_party/postgres"]
 	path = flex/third_party/postgres
 	url = https://github.com/zhanglei1949/postgres.git
+
+[submodule "flex/third_party/parallel-hashmap"]
+	path = flex/third_party/parallel-hashmap
+	url = https://github.com/greg7mdp/parallel-hashmap.git

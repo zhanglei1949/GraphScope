@@ -105,6 +105,8 @@ spec:
               value: {{ .Values.frontend.service.servicePort | quote }}
             - name: GROOT_GREMLIN_PORT
               value: {{ .Values.frontend.service.gremlinPort | quote }}
+            - name: GROOT_CYPHER_PORT
+              value: {{ .Values.frontend.service.cypherPort | quote }}
             - name: INSTANCE_NAME
               value: {{ .Release.Name | quote }}
             - name: NAMESPACE
@@ -115,6 +117,8 @@ spec:
               value: {{ .Values.portal.runtimePath | quote }}
             - name: STUDIO_WRAPPER_ENDPOINT
               value: {{ .Values.portal.studioWrapperEndpoint | quote }}
+            - name: BASEID
+              value: {{ .Values.portal.baseId | quote }}
             - name: SOLUTION
               value: "GRAPHSCOPE_INSIGHT"
             {{- range $key, $value := .Values.env }}

@@ -26,6 +26,7 @@ import socket
 from typing import List
 
 import psutil
+from graphscope.config import Config
 from gremlin_python.driver.client import Client
 
 from gscoordinator.flex.core.config import CLUSTER_TYPE
@@ -85,7 +86,7 @@ class GrootClient(object):
     def _pickle_job_status_impl(self):
         try:
             status = {}
-            # we can't pickle class objct with thread, so we pickle the status
+            # we can't pickle class object with thread, so we pickle the status
             for jobid, fetching in self._job_status.items():
                 status[jobid] = fetching.status
             with open(self._job_status_pickle_path, "wb") as f:
@@ -98,18 +99,21 @@ class GrootClient(object):
             raise RuntimeError(f"Graph {graph_id} not exist.")
 
     def list_service_status(self) -> List[dict]:
-        gremlin_interface = self._graph.gremlin_interface
-        return [
+        groot_endpoints = self._graph.groot_endpoints
+        res = [
             {
                 "graph_id": self._graph.id,
                 "status": "Running",
                 "start_time": CREATION_TIME,
                 "sdk_endpoints": {
-                    "gremlin": gremlin_interface["gremlin_endpoint"],
-                    "grpc": gremlin_interface["grpc_endpoint"],
+                    "gremlin": groot_endpoints["gremlin_endpoint"],
+                    "grpc": groot_endpoints["grpc_endpoint"],
                 },
             }
         ]
+        if "cypher_endpoint" in groot_endpoints and groot_endpoints["cypher_endpoint"]:
+            res[0]["sdk_endpoints"]["cypher"] = groot_endpoints["cypher_endpoint"]
+        return res
 
     def create_graph(self, graph: dict) -> dict:
         raise RuntimeError("Create graph is not supported yet.")
@@ -283,12 +287,12 @@ class GrootClient(object):
 
     def gremlin_service_available(self) -> bool:
         try:
-            gremlin_interface = self._graph.gremlin_interface
+            groot_endpoints = self._graph.groot_endpoints
             client = Client(
-                gremlin_interface["gremlin_endpoint"],
+                groot_endpoints["gremlin_endpoint"],
                 "g",
-                username=gremlin_interface["username"],
-                password=gremlin_interface["password"],
+                username=groot_endpoints["username"],
+                password=groot_endpoints["password"],
             )
             client.submit(
                 "g.with('evaluationTimeout', 5000).V().limit(1)"
@@ -307,5 +311,5 @@ class GrootClient(object):
             return True
 
 
-def init_groot_client():
+def init_groot_client(config: Config):
     return GrootClient()

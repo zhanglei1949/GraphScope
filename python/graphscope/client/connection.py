@@ -16,8 +16,7 @@
 # limitations under the License.
 #
 
-""" Manage connections of the GraphScope store service.
-"""
+"""Manage connections of the GraphScope store service."""
 
 import base64
 import json
@@ -212,6 +211,15 @@ class Connection:
             request, metadata=self._metadata
         )
         return response.success
+
+    def replay_records_v2(self, offset: int, timestamp: int):
+        request = model_pb2.ReplayRecordsRequestV2()
+        request.offset = offset
+        request.timestamp = timestamp
+        response = self._client_service_stub.replayRecordsV2(
+            request, metadata=self._metadata
+        )
+        return response.snapshot_id
 
     def _encode_metadata(self, username, password):
         if not (username and password):
