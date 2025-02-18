@@ -57,7 +57,7 @@ inline void to_json(nlohmann::json& j, const PropertyType& p) {
              p == PropertyType::UInt16() || p == PropertyType::Int32() ||
              p == PropertyType::UInt32() || p == PropertyType::Float() ||
              p == PropertyType::Int64() || p == PropertyType::UInt64() ||
-             p == PropertyType::Double()) {
+             p == PropertyType::Double() || p == PropertyType::StringMap()) {
     j["primitive_type"] = config_parsing::PrimitivePropertyTypeToString(p);
   } else if (p == PropertyType::Date()) {
     j["temporal"]["timestamp"] = {};
