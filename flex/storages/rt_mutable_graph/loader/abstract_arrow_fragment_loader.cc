@@ -83,6 +83,8 @@ void set_properties_column(gs::ColumnBase* col,
   // TODO(zhanglei): reduce the dummy code here with a template function.
   if (col_type == PropertyType::kBool) {
     set_column<bool>(col, array, offset);
+  } else if (col_type == PropertyType::kUInt8) {
+    set_column<uint8_t>(col, array, offset);
   } else if (col_type == PropertyType::kInt64) {
     set_column<int64_t>(col, array, offset);
   } else if (col_type == PropertyType::kInt32) {

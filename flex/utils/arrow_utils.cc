@@ -42,6 +42,8 @@ std::shared_ptr<arrow::DataType> PropertyTypeToArrowType(PropertyType type) {
     return arrow::null();
   } else if (type.type_enum == impl::PropertyTypeImpl::kVarChar) {
     return arrow::large_utf8();
+  } else if (type.type_enum == impl::PropertyTypeImpl::kUInt8) {
+    return arrow::uint8();
   } else {
     LOG(FATAL) << "Unexpected property type: "
                << static_cast<int>(type.type_enum);

@@ -25,6 +25,8 @@ namespace config_parsing {
 std::string PrimitivePropertyTypeToString(PropertyType type) {
   if (type == PropertyType::kInt32) {
     return DT_SIGNED_INT32;
+  } else if (type == PropertyType::kUInt8) {
+    return DT_UNSIGNED_INT8;
   } else if (type == PropertyType::kUInt32) {
     return DT_UNSIGNED_INT32;
   } else if (type == PropertyType::kBool) {
@@ -55,6 +57,8 @@ std::string PrimitivePropertyTypeToString(PropertyType type) {
 PropertyType StringToPrimitivePropertyType(const std::string& str) {
   if (str == "int32" || str == "INT" || str == DT_SIGNED_INT32) {
     return PropertyType::kInt32;
+  } else if (str == DT_UNSIGNED_INT8) {
+    return PropertyType::kUInt8;
   } else if (str == "uint32" || str == DT_UNSIGNED_INT32) {
     return PropertyType::kUInt32;
   } else if (str == "bool" || str == "BOOL" || str == DT_BOOL) {

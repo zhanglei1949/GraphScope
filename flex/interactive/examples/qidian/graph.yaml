@@ -54,11 +54,11 @@ schema:
         - property_id: 0
           property_name: rel_weight
           property_type:
-            primitive_type: DT_DOUBLE
+            primitive_type: DT_FLOAT
         - property_id: 1
           property_name: rel_type
           property_type:
-            primitive_type: DT_SIGNED_INT64
+            primitive_type: DT_UNSIGNED_INT8
         - property_id: 2
           property_name: rel_info
           property_type:
@@ -66,5 +66,7 @@ schema:
         - property_id: 3
           property_name: rel_detail
           property_type:
-            primitive_type: DT_STRINGMAP
+            string:
+              var_char:
+                max_length: 32
 
