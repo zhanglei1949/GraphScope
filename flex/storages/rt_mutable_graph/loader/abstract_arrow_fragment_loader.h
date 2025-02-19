@@ -33,9 +33,7 @@
 
 namespace gs {
 
-void printDiskRemaining(const std::string& path);
 // The interface providing visitor pattern for RecordBatch.
-
 class IRecordBatchSupplier {
  public:
   virtual ~IRecordBatchSupplier() = default;
@@ -62,8 +60,12 @@ void set_column(gs::ColumnBase* col, std::shared_ptr<arrow::ChunkedArray> array,
       if (offset[cur_ind] >= size) {
         cur_ind++;
       } else {
-        col->set_any(offset[cur_ind++],
-                     std::move(AnyConverter<COL_T>::to_any(casted->Value(k))));
+        col->set_any(
+            offset[cur_ind++],
+            std::move(casted->IsNull(k)
+                          ? AnyConverter<COL_T>::to_any(
+                                std::numeric_limits<COL_T>::max())
+                          : AnyConverter<COL_T>::to_any(casted->Value(k))));
       }
     }
   }
@@ -112,6 +114,9 @@ struct _add_vertex {
       }
       auto casted_array = std::static_pointer_cast<arrow_array_t>(col);
       for (size_t i = 0; i < row_num; ++i) {
+        if (casted_array->IsNull(i)) {
+          LOG(FATAL) << "Null value in primary key column: ";
+        }
         if (!indexer.add(casted_array->Value(i), vid)) {
           VLOG(2) << "Duplicate vertex id: " << casted_array->Value(i) << "..";
           offset.emplace_back(std::numeric_limits<size_t>::max());
@@ -123,7 +128,7 @@ struct _add_vertex {
       if (col->type()->Equals(arrow::utf8())) {
         auto casted_array = std::static_pointer_cast<arrow::StringArray>(col);
         for (size_t i = 0; i < row_num; ++i) {
-          auto str = casted_array->GetView(i);
+          auto str = casted_array->IsNull(i) ? "" : casted_array->GetView(i);
           std::string_view str_view(str.data(), str.size());
           if (!indexer.add(str_view, vid)) {
             VLOG(2) << "Duplicate vertex id: " << str_view << "..";
@@ -136,7 +141,7 @@ struct _add_vertex {
         auto casted_array =
             std::static_pointer_cast<arrow::LargeStringArray>(col);
         for (size_t i = 0; i < row_num; ++i) {
-          auto str = casted_array->GetView(i);
+          auto str = casted_array->IsNull(i) ? "" : casted_array->GetView(i);
           std::string_view str_view(str.data(), str.size());
           if (!indexer.add(str_view, vid)) {
             VLOG(2) << "Duplicate vertex id: " << str_view << "..";
@@ -166,13 +171,16 @@ struct _add_vertex {
       }
       auto casted_array = std::static_pointer_cast<arrow_array_t>(col);
       for (size_t i = 0; i < row_num; ++i) {
+        if (casted_array->IsNull(i)) {
+          LOG(FATAL) << "Null value in primary key column: ";
+        }
         indexer.add_vertex(casted_array->Value(i));
       }
     } else {
       if (col->type()->Equals(arrow::utf8())) {
         auto casted_array = std::static_pointer_cast<arrow::StringArray>(col);
         for (size_t i = 0; i < row_num; ++i) {
-          auto str = casted_array->GetView(i);
+          auto str = casted_array->IsNull(i) ? "" : casted_array->GetView(i);
           std::string_view str_view(str.data(), str.size());
           indexer.add_vertex(str_view);
         }
@@ -180,7 +188,7 @@ struct _add_vertex {
         auto casted_array =
             std::static_pointer_cast<arrow::LargeStringArray>(col);
         for (size_t i = 0; i < row_num; ++i) {
-          auto str = casted_array->GetView(i);
+          auto str = casted_array->IsNull(i) ? "" : casted_array->GetView(i);
           std::string_view str_view(str.data(), str.size());
           indexer.add_vertex(str_view);
         }
@@ -201,7 +209,7 @@ void _append(bool is_dst, size_t cur_ind, std::shared_ptr<arrow::Array> col,
     if (col->type()->Equals(arrow::utf8())) {
       auto casted = std::static_pointer_cast<arrow::StringArray>(col);
       for (auto j = 0; j < casted->length(); ++j) {
-        auto str = casted->GetView(j);
+        auto str = casted->IsNull(j) ? "" : casted->GetView(j);
         std::string_view str_view(str.data(), str.size());
         auto vid = indexer.get_index(Any::From(str_view));
         if (is_dst) {
@@ -217,7 +225,7 @@ void _append(bool is_dst, size_t cur_ind, std::shared_ptr<arrow::Array> col,
       // must be large utf8
       auto casted = std::static_pointer_cast<arrow::LargeStringArray>(col);
       for (auto j = 0; j < casted->length(); ++j) {
-        auto str = casted->GetView(j);
+        auto str = casted->IsNull(j) ? "" : casted->GetView(j);
         std::string_view str_view(str.data(), str.size());
         auto vid = indexer.get_index(Any::From(str_view));
         if (is_dst) {
@@ -234,6 +242,9 @@ void _append(bool is_dst, size_t cur_ind, std::shared_ptr<arrow::Array> col,
     using arrow_array_type = typename gs::TypeConverter<PK_T>::ArrowArrayType;
     auto casted = std::static_pointer_cast<arrow_array_type>(col);
     for (auto j = 0; j < casted->length(); ++j) {
+      if (casted->IsNull(j)) {
+        LOG(FATAL) << "Null value in primary key column: ";
+      }
       auto vid = indexer.get_index(Any::From(casted->Value(j)));
       if (is_dst) {
         std::get<1>(parsed_edges[cur_ind++]) = vid;
@@ -309,11 +320,17 @@ static void append_edges(std::shared_ptr<arrow::Array> src_col,
                                    arrow::StringArray>::value ||
                       std::is_same<arrow_array_type,
                                    arrow::LargeStringArray>::value) {
-          auto str = data->GetView(j);
-          std::string_view str_view(str.data(), str.size());
-          std::get<2>(parsed_edges[cur_ind++]) = str_view;
+          if (data->IsNull(j)) {
+            std::get<2>(parsed_edges[cur_ind++]) = "";
+          } else {
+            auto str = data->IsNull(j) ? "" : data->GetString(j);
+            std::string_view str_view(str.data(), str.size());
+            std::get<2>(parsed_edges[cur_ind++]) = str_view;
+          }
         } else {
-          std::get<2>(parsed_edges[cur_ind++]) = data->Value(j);
+          std::get<2>(parsed_edges[cur_ind++]) =
+              data->IsNull(j) ? std::numeric_limits<EDATA_T>::max()
+                              : data->Value(j);
         }
       }
       VLOG(10) << "Finish inserting:  " << src_col->length() << " edges";
@@ -378,8 +395,7 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
   void addVertexBatchFromArray(
       label_t v_label_id, IdIndexer<KEY_T, vid_t>& indexer,
       std::shared_ptr<arrow::Array>& primary_key_col,
-      const std::vector<std::shared_ptr<arrow::Array>>& property_cols,
-      std::shared_mutex& rw_mutex) {
+      const std::vector<std::shared_ptr<arrow::Array>>& property_cols) {
     size_t row_num = primary_key_col->length();
     auto col_num = property_cols.size();
     for (size_t i = 0; i < col_num; ++i) {
@@ -392,15 +408,12 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
       std::unique_lock<std::mutex> lock(mtxs_[v_label_id]);
       _add_vertex<KEY_T>()(primary_key_col, indexer, vids);
     }
-    {
-      std::shared_lock<std::shared_mutex> lock(rw_mutex);
-      for (size_t j = 0; j < property_cols.size(); ++j) {
-        auto array = property_cols[j];
-        auto chunked_array = std::make_shared<arrow::ChunkedArray>(array);
-        set_properties_column(
-            basic_fragment_loader_.GetVertexTable(v_label_id).column_ptrs()[j],
-            chunked_array, vids);
-      }
+    for (size_t j = 0; j < property_cols.size(); ++j) {
+      auto array = property_cols[j];
+      auto chunked_array = std::make_shared<arrow::ChunkedArray>(array);
+      set_properties_column(
+          basic_fragment_loader_.GetVertexTable(v_label_id).column_ptrs()[j],
+          chunked_array, vids);
     }
 
     VLOG(10) << "Insert rows: " << row_num;
@@ -459,9 +472,6 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
             },
             idx);
       }
-
-      std::atomic<size_t> offset(0);
-      std::shared_mutex rw_mutex;
       for (unsigned idx = 0;
            idx <
            std::min(static_cast<unsigned>(8 * record_batch_supplier_vec.size()),
@@ -469,10 +479,6 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
            ++idx) {
         work_threads.emplace_back(
             [&](int i) {
-              // It is possible that the inserted data will exceed the size of
-              // the table, so we need to resize the table.
-              // basic_fragment_loader_.GetVertexTable(v_label_id).resize(vids.size());
-              auto& vtable = basic_fragment_loader_.GetVertexTable(v_label_id);
               while (true) {
                 std::shared_ptr<arrow::RecordBatch> batch{nullptr};
                 auto ret = queue.Get(batch);
@@ -489,25 +495,8 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                 other_columns_array.erase(other_columns_array.begin() +
                                           primary_key_ind);
 
-                auto local_offset =
-                    offset.fetch_add(primary_key_column->length());
-                size_t cur_row_num = std::max(vtable.row_num(), 1ul);
-                while (cur_row_num <
-                       local_offset + primary_key_column->length()) {
-                  cur_row_num *= 2;
-                }
-                if (cur_row_num > vtable.row_num()) {
-                  std::unique_lock<std::shared_mutex> lock(rw_mutex);
-                  if (cur_row_num > vtable.row_num()) {
-                    LOG(INFO) << "Resize vertex table from " << vtable.row_num()
-                              << " to " << cur_row_num
-                              << ", local_offset: " << local_offset;
-                    vtable.resize(cur_row_num);
-                  }
-                }
-
                 addVertexBatchFromArray(v_label_id, indexer, primary_key_column,
-                                        other_columns_array, rw_mutex);
+                                        other_columns_array);
               }
             },
             idx);
@@ -615,22 +604,6 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
     basic_fragment_loader_.FinishAddingVertex(v_label_id, indexer_builder);
     const auto& indexer = basic_fragment_loader_.GetLFIndexer(v_label_id);
 
-    auto& vtable = basic_fragment_loader_.GetVertexTable(v_label_id);
-    size_t total_row_num = 0;
-    for (auto& batch : batchs) {
-      for (auto& b : batch) {
-        total_row_num += b->num_rows();
-      }
-    }
-    if (total_row_num > vtable.row_num()) {
-      std::unique_lock<std::mutex> lock(mtxs_[v_label_id]);
-      if (total_row_num > vtable.row_num()) {
-        LOG(INFO) << "Resize vertex table from " << vtable.row_num() << " to "
-                  << total_row_num;
-        vtable.resize(total_row_num);
-      }
-    }
-
     std::atomic<size_t> cur_batch_id(0);
     for (unsigned i = 0; i < std::thread::hardware_concurrency(); ++i) {
       work_threads.emplace_back(
@@ -648,6 +621,9 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                 auto casted_array =
                     std::static_pointer_cast<arrow_array_t>(primary_key_column);
                 for (size_t i = 0; i < row_num; ++i) {
+                  if (casted_array->IsNull(i)) {
+                    LOG(FATAL) << "Null value in primary key column: ";
+                  }
                   vids.emplace_back(indexer.get_index(casted_array->Value(i)));
                 }
               } else {
@@ -656,7 +632,8 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                       std::static_pointer_cast<arrow::StringArray>(
                           primary_key_column);
                   for (size_t i = 0; i < row_num; ++i) {
-                    auto str = casted_array->GetView(i);
+                    auto str =
+                        casted_array->IsNull(i) ? "" : casted_array->GetView(i);
                     std::string_view str_view(str.data(), str.size());
                     vids.emplace_back(indexer.get_index(str_view));
                   }
@@ -666,7 +643,8 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                       std::static_pointer_cast<arrow::LargeStringArray>(
                           primary_key_column);
                   for (size_t i = 0; i < row_num; ++i) {
-                    auto str = casted_array->GetView(i);
+                    auto str =
+                        casted_array->IsNull(i) ? "" : casted_array->GetView(i);
                     std::string_view str_view(str.data(), str.size());
                     vids.emplace_back(indexer.get_index(str_view));
                   }
@@ -679,8 +657,10 @@ class AbstractArrowFragmentLoader : public IFragmentLoader {
                 auto array = other_columns_array[j];
                 auto chunked_array =
                     std::make_shared<arrow::ChunkedArray>(array);
-                set_properties_column(vtable.column_ptrs()[j], chunked_array,
-                                      vids);
+                set_properties_column(
+                    basic_fragment_loader_.GetVertexTable(v_label_id)
+                        .column_ptrs()[j],
+                    chunked_array, vids);
               }
             }
           },
