@@ -1,3 +1,0 @@
-vertex_id,vertex_type,vertex_name,rel_vertex_id,rel_vertex_type,rel_vertex_name,rel_weight,rel_type,rel_info,rel_detail
-22,cmp,alibaba,23,cmp,tesla,0.8,1,holder_240,holder_240_happy
-25,cmp,alibaba,24,cmp,ms,0.8,1,holder_340,holder_340_happy

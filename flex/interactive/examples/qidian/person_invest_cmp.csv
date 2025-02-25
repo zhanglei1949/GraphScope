@@ -1,3 +1,0 @@
-vertex_id,vertex_type,vertex_name,rel_vertex_id,rel_vertex_type,rel_vertex_name,rel_weight,rel_type,rel_info,rel_detail
-1,person,alice,22,company,alibaba,0.1,0,invest_40_dollar,she_is_happy_40
-2,person,bob,23,company,ms,0.1,0,invest_80_dollar,she_is_happy_80
