@@ -49,55 +49,23 @@ void set_column(gs::ColumnBase* col, std::shared_ptr<arrow::ChunkedArray> array,
   using arrow_array_type = typename gs::TypeConverter<COL_T>::ArrowArrayType;
   auto array_type = array->type();
   auto arrow_type = gs::TypeConverter<COL_T>::ArrowTypeValue();
-  if (arrow_type->Equals(arrow::uint8())) {
-    // Allow cast from Int64Array to UInt8Array
-    if (!array_type->Equals(arrow::int64()) &&
-        !array_type->Equals(arrow::uint8())) {
-      LOG(FATAL) << "Inconsistent data type, expect " << arrow_type->ToString()
-                 << ", but got " << array_type->ToString();
-    } else {
-      LOG(INFO) << "Converting Int64Array to UInt8Array";
-    }
-  } else {
-    CHECK(array_type->Equals(arrow_type))
-        << "Inconsistent data type, expect " << arrow_type->ToString()
-        << ", but got " << array_type->ToString();
-  }
+  CHECK(array_type->Equals(arrow_type))
+      << "Inconsistent data type, expect " << arrow_type->ToString()
+      << ", but got " << array_type->ToString();
   size_t cur_ind = 0;
-  if (arrow_type->Equals(arrow::uint8()) &&
-      array_type->Equals(arrow::int64())) {
-    for (auto j = 0; j < array->num_chunks(); ++j) {
-      auto casted = std::static_pointer_cast<
-          typename gs::TypeConverter<int64_t>::ArrowArrayType>(array->chunk(j));
-      size_t size = col->size();
-      for (auto k = 0; k < casted->length(); ++k) {
-        if (offset[cur_ind] >= size) {
-          cur_ind++;
-        } else {
-          col->set_any(
-              offset[cur_ind++],
-              std::move(casted->IsNull(k)
-                            ? AnyConverter<uint8_t>::to_any(
-                                  std::numeric_limits<uint8_t>::max())
-                            : AnyConverter<uint8_t>::to_any(casted->Value(k))));
-        }
-      }
-    }
-  } else {
-    for (auto j = 0; j < array->num_chunks(); ++j) {
-      auto casted = std::static_pointer_cast<arrow_array_type>(array->chunk(j));
-      size_t size = col->size();
-      for (auto k = 0; k < casted->length(); ++k) {
-        if (offset[cur_ind] >= size) {
-          cur_ind++;
-        } else {
-          col->set_any(
-              offset[cur_ind++],
-              std::move(casted->IsNull(k)
-                            ? AnyConverter<COL_T>::to_any(
-                                  std::numeric_limits<COL_T>::max())
-                            : AnyConverter<COL_T>::to_any(casted->Value(k))));
-        }
+  for (auto j = 0; j < array->num_chunks(); ++j) {
+    auto casted = std::static_pointer_cast<arrow_array_type>(array->chunk(j));
+    size_t size = col->size();
+    for (auto k = 0; k < casted->length(); ++k) {
+      if (offset[cur_ind] >= size) {
+        cur_ind++;
+      } else {
+        col->set_any(
+            offset[cur_ind++],
+            std::move(casted->IsNull(k)
+                          ? AnyConverter<COL_T>::to_any(
+                                std::numeric_limits<COL_T>::max())
+                          : AnyConverter<COL_T>::to_any(casted->Value(k))));
       }
     }
   }

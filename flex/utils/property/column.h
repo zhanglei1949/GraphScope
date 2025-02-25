@@ -230,7 +230,6 @@ class TypedColumn : public ColumnBase {
 using BoolColumn = TypedColumn<bool>;
 using IntColumn = TypedColumn<int32_t>;
 using UIntColumn = TypedColumn<uint32_t>;
-using UInt8Column = TypedColumn<uint8_t>;
 using LongColumn = TypedColumn<int64_t>;
 using ULongColumn = TypedColumn<uint64_t>;
 using DateColumn = TypedColumn<Date>;
