@@ -123,20 +123,24 @@ hqps_heartbeat_handler::handle(const seastar::sstring& path,
 
 hqps_ic_handler::hqps_ic_handler(uint32_t init_group_id, uint32_t max_group_id,
                                  uint32_t group_inc_step,
-                                 uint32_t shard_concurrency)
+                                 uint32_t shard_concurrency, uint32_t shard_num)
     : cur_group_id_(init_group_id),
       max_group_id_(max_group_id),
       group_inc_step_(group_inc_step),
       shard_concurrency_(shard_concurrency),
       executor_idx_(0),
-      is_cancelled_(false) {
-  executor_refs_.reserve(shard_concurrency_);
+      is_cancelled_(false),
+      shard_num_(shard_num),
+      query_dispatcher_(shard_num, shard_concurrency) {
+  auto& executor_refs = get_executors();
+  CHECK(executor_refs.size() >= hiactor::local_shard_id());
   hiactor::scope_builder builder;
   builder.set_shard(hiactor::local_shard_id())
       .enter_sub_scope(hiactor::scope<executor_group>(0))
       .enter_sub_scope(hiactor::scope<hiactor::actor_group>(cur_group_id_));
   for (unsigned i = 0; i < shard_concurrency_; ++i) {
-    executor_refs_.emplace_back(builder.build_ref<executor_ref>(i));
+    executor_refs[hiactor::local_shard_id()].emplace_back(
+        builder.build_ref<executor_ref>(i));
   }
 #ifdef HAVE_OPENTELEMETRY_CPP
   total_counter_ = otel::create_int_counter("hqps_procedure_query_total");
@@ -161,7 +165,7 @@ seastar::future<> hqps_ic_handler::cancel_current_scope() {
       .then([this] {
         LOG(INFO) << "Cancel IC scope successfully!";
         // clear the actor refs
-        executor_refs_.clear();
+        get_executors()[hiactor::local_shard_id()].clear();
         is_cancelled_ = true;
         return seastar::make_ready_future<>();
       });
@@ -172,7 +176,7 @@ bool hqps_ic_handler::is_current_scope_cancelled() const {
 }
 
 bool hqps_ic_handler::create_actors() {
-  if (executor_refs_.size() > 0) {
+  if (get_executors()[hiactor::local_shard_id()].size() > 0) {
     LOG(ERROR) << "The actors have been already created!";
     return false;
   }
@@ -192,7 +196,8 @@ bool hqps_ic_handler::create_actors() {
       .enter_sub_scope(hiactor::scope<executor_group>(0))
       .enter_sub_scope(hiactor::scope<hiactor::actor_group>(cur_group_id_));
   for (unsigned i = 0; i < shard_concurrency_; ++i) {
-    executor_refs_.emplace_back(builder.build_ref<executor_ref>(i));
+    get_executors()[hiactor::local_shard_id()].emplace_back(
+        builder.build_ref<executor_ref>(i));
   }
   is_cancelled_ = false;  // locked outside
   return true;
@@ -214,8 +219,14 @@ bool hqps_ic_handler::is_running_graph(const seastar::sstring& graph_id) const {
 seastar::future<std::unique_ptr<seastar::httpd::reply>> hqps_ic_handler::handle(
     const seastar::sstring& path, std::unique_ptr<seastar::httpd::request> req,
     std::unique_ptr<seastar::httpd::reply> rep) {
-  auto dst_executor = executor_idx_;
-  executor_idx_ = (executor_idx_ + 1) % shard_concurrency_;
+  // auto dst_executor = executor_idx_;
+  // auto dst_shard = shard_idx_;
+  // executor_idx_ = (executor_idx_ + 1) % shard_concurrency_;
+  // shard_idx_ = (shard_idx_ + 1) % shard_num_;
+  auto dst_shard = query_dispatcher_.get_shard_idx();
+  auto dst_executor = query_dispatcher_.get_executor_idx();
+  LOG(INFO) << ", shard_idx_: " << dst_shard
+            << "executor_idx_: " << dst_executor;
   // TODO(zhanglei): choose read or write based on the request, after the
   // read/write info is supported in physical plan
   // auto request_format = req->get_header(INTERACTIVE_REQUEST_FORMAT);
@@ -265,7 +276,7 @@ seastar::future<std::unique_ptr<seastar::httpd::reply>> hqps_ic_handler::handle(
   auto start_ts = gs::GetCurrentTimeStamp();
 #endif  // HAVE_OPENTELEMETRY_CPP
 
-  return executor_refs_[dst_executor]
+  return get_executors()[dst_shard][dst_executor]
       .run_graph_db_query(query_param{std::move(req->content)})
       .then([  // request_format
 #ifdef HAVE_OPENTELEMETRY_CPP
@@ -587,10 +598,11 @@ hqps_adhoc_query_handler::handle(const seastar::sstring& path,
 }
 
 hqps_http_handler::hqps_http_handler(uint16_t http_port, int32_t shard_num)
-    : http_port_(http_port), actors_running_(true) {
+    : http_port_(http_port), actors_running_(true), shard_num_(shard_num) {
   ic_handlers_.resize(shard_num);
   adhoc_query_handlers_.resize(shard_num);
   heart_beat_handlers_.resize(shard_num);
+  hqps_ic_handler::get_executors().resize(shard_num);
 }
 
 hqps_http_handler::~hqps_http_handler() {
@@ -665,7 +677,7 @@ seastar::future<> hqps_http_handler::set_routes() {
   return server_.set_routes([this](seastar::httpd::routes& r) {
     auto ic_handler =
         new hqps_ic_handler(ic_query_group_id, max_group_id, group_inc_step,
-                            shard_query_concurrency);
+                            shard_query_concurrency, shard_num_);
     auto adhoc_query_handler = new hqps_adhoc_query_handler(
         ic_adhoc_group_id, codegen_group_id, max_group_id, group_inc_step,
         shard_adhoc_concurrency);
