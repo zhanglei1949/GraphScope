@@ -15,8 +15,6 @@
 #ifndef ENGINES_HTTP_SERVER_HANDLER_HQPS_HTTP_HANDLER_H_
 #define ENGINES_HTTP_SERVER_HANDLER_HQPS_HTTP_HANDLER_H_
 
-#include <random>
-
 #include <seastar/core/alien.hh>
 #include <seastar/core/print.hh>
 #include <seastar/http/handlers.hh>
@@ -30,25 +28,6 @@
 #endif  // HAVE_OPENTELEMETRY_CPP
 
 namespace server {
-
-class query_dispatcher {
- public:
-  query_dispatcher(uint32_t shard_num, uint32_t shard_concurrency)
-      : rd_(),
-        gen_(rd_()),
-        shard_dist_(0, shard_num - 1),
-        dis_(0, shard_concurrency - 1) {}
-
-  int get_executor_idx() { return dis_(gen_); }
-
-  int get_shard_idx() { return shard_dist_(gen_); }
-
- private:
-  std::random_device rd_;
-  std::mt19937 gen_;
-  std::uniform_int_distribution<> shard_dist_;
-  std::uniform_int_distribution<> dis_;
-};
 
 class hqps_heartbeat_handler : public seastar::httpd::handler_base {
  public:
@@ -71,15 +50,8 @@ class hqps_ic_handler : public seastar::httpd::handler_base {
   static constexpr const char* PROTOCOL_FORMAT = "proto";
   static constexpr const char* JSON_FORMAT = "json";
   static constexpr const char* ENCODER_FORMAT = "encoder";
-
-  static std::vector<std::vector<executor_ref>>& get_executors() {
-    static std::vector<std::vector<executor_ref>> executor_refs;
-    return executor_refs;
-  }
-
   hqps_ic_handler(uint32_t init_group_id, uint32_t max_group_id,
-                  uint32_t group_inc_step, uint32_t shard_concurrency,
-                  uint32_t shard_num);
+                  uint32_t group_inc_step, uint32_t shard_concurrency);
   ~hqps_ic_handler() override;
 
   bool create_actors();
@@ -100,11 +72,8 @@ class hqps_ic_handler : public seastar::httpd::handler_base {
   const uint32_t max_group_id_, group_inc_step_;
   const uint32_t shard_concurrency_;
   uint32_t executor_idx_;
-  uint32_t shard_idx_;
-  //   std::vector<executor_ref> executor_refs_;
+  std::vector<executor_ref> executor_refs_;
   bool is_cancelled_;
-  const uint32_t shard_num_;
-  query_dispatcher query_dispatcher_;
 #ifdef HAVE_OPENTELEMETRY_CPP
   opentelemetry::nostd::unique_ptr<opentelemetry::metrics::Counter<uint64_t>>
       total_counter_;
@@ -174,7 +143,6 @@ class hqps_http_handler {
   const uint16_t http_port_;
   seastar::httpd::http_server_control server_;
   std::atomic<bool> running_{false}, actors_running_{false};
-  const int32_t shard_num_;
 
   std::vector<hqps_ic_handler*> ic_handlers_;
   std::vector<hqps_adhoc_query_handler*> adhoc_query_handlers_;
