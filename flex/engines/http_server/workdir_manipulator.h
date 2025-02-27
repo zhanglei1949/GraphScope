@@ -182,6 +182,7 @@ class WorkDirManipulator {
   static gs::Result<std::string> CreateFile(const seastar::sstring& content);
 
  private:
+  static std::string get_temp_indices_dir(const std::string& graph_name);
   static std::string get_tmp_bulk_loading_job_log_path(
       const std::string& graph_name);
   /**

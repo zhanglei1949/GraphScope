@@ -691,9 +691,18 @@ bool WorkDirManipulator::is_graph_exist(const std::string& graph_name) {
   return std::filesystem::exists(graph_path);
 }
 
+std::string WorkDirManipulator::get_temp_indices_dir(
+    const std::string& graph_name) {
+  auto temp_indices_dir = "/tmp/indices";
+  if (!std::filesystem::exists(temp_indices_dir)) {
+    std::filesystem::create_directory(temp_indices_dir);
+  }
+  return std::string(temp_indices_dir) + "/" + graph_name;
+}
+
 std::string WorkDirManipulator::GetTempIndicesDir(
     const std::string& graph_name) {
-  return get_graph_dir(graph_name) + "/" + GRAPH_TEMP_INDICES_DIR_NAME;
+  return get_temp_indices_dir(graph_name);
 }
 
 std::string WorkDirManipulator::CleanTempIndicesDir(

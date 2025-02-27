@@ -12,9 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <sys/statvfs.h>
 
-#include "flex/storages/rt_mutable_graph/loader/abstract_arrow_fragment_loader.h"
 #include "flex/engines/hqps_db/core/utils/hqps_utils.h"
+#include "flex/storages/rt_mutable_graph/loader/abstract_arrow_fragment_loader.h"
 
 namespace gs {
 
@@ -95,13 +96,15 @@ void set_properties_column(gs::ColumnBase* col,
     set_column<double>(col, array, offset);
   } else if (col_type == PropertyType::kFloat) {
     set_column<float>(col, array, offset);
-  } else if (col_type == PropertyType::kStringMap) {
-    set_column_from_string_array(col, array, offset);
   } else if (col_type == PropertyType::kDate) {
     set_column_from_timestamp_array(col, array, offset);
   } else if (col_type == PropertyType::kDay) {
     set_column_from_timestamp_array_to_day(col, array, offset);
+  } else if (col_type == PropertyType::kStringMap) {
+    set_column_from_string_array(col, array, offset);
   } else if (col_type.type_enum == impl::PropertyTypeImpl::kVarChar) {
+    set_column_from_string_array(col, array, offset);
+  } else if (col_type == PropertyType::kStringView) {
     set_column_from_string_array(col, array, offset);
   } else {
     LOG(FATAL) << "Not support type: " << type->ToString();
@@ -222,9 +225,13 @@ void AbstractArrowFragmentLoader::AddVerticesRecordBatch(
     addVertexRecordBatchImpl<uint32_t>(v_label_id, v_files, supplier_creator);
   } else if (type == PropertyType::kUInt64) {
     addVertexRecordBatchImpl<uint64_t>(v_label_id, v_files, supplier_creator);
-  } else if (type.type_enum == impl::PropertyTypeImpl::kVarChar) {
+  } else if (type.type_enum == impl::PropertyTypeImpl::kVarChar ||
+             type.type_enum == impl::PropertyTypeImpl::kStringView) {
     addVertexRecordBatchImpl<std::string_view>(v_label_id, v_files,
                                                supplier_creator);
+  } else {
+    LOG(FATAL) << "Unsupported primary key type for vertex, type: " << type
+               << ", label: " << v_label_name;
   }
   VLOG(10) << "Finish init vertices for label " << v_label_name;
 }
@@ -386,11 +393,13 @@ void AbstractArrowFragmentLoader::AddEdgesRecordBatch(
                property_types[0].type_enum ==
                    impl::PropertyTypeImpl::kStringView) {
       // Both varchar and string are treated as string. For String, we use the
-      // default max length defined in PropertyType::STRING_DEFAULT_MAX_LENGTH
-      const auto& prop =
-          schema_.get_edge_property(src_label_i, dst_label_i, edge_label_i);
+      // default max length defined in PropertyType::GetStringDefaultMaxLength()
+      uint16_t max_length = gs::PropertyType::STRING_DEFAULT_MAX_LENGTH;
+      if (property_types[0].type_enum == impl::PropertyTypeImpl::kVarChar) {
+        max_length = property_types[0].additional_type_info.max_length;
+      }
       auto dual_csr = new DualCsr<std::string_view>(
-          oe_strategy, ie_strategy, prop.additional_type_info.max_length);
+          oe_strategy, ie_strategy, max_length, oe_mutable, ie_mutable);
       basic_fragment_loader_.set_csr(src_label_i, dst_label_i, edge_label_i,
                                      dual_csr);
       if (filenames.empty()) {
@@ -409,8 +418,9 @@ void AbstractArrowFragmentLoader::AddEdgesRecordBatch(
         src_label_name, dst_label_name, edge_label_name);
     const auto& prop_names = schema_.get_edge_property_names(
         src_label_name, dst_label_name, edge_label_name);
-    auto dual_csr = new DualCsr<RecordView>(oe_strategy, ie_strategy,
-                                            prop_names, props, {});
+    auto dual_csr =
+        new DualCsr<RecordView>(oe_strategy, ie_strategy, prop_names, props, {},
+                                ie_mutable, oe_mutable);
     basic_fragment_loader_.set_csr(src_label_i, dst_label_i, edge_label_i,
                                    dual_csr);
     if (filenames.empty()) {
