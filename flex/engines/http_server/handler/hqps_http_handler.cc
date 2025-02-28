@@ -23,6 +23,7 @@
 #include <seastar/core/sleep.hh>
 #include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/engines/http_server/executor_group.actg.h"
+#include "flex/engines/http_server/handler/http_utils.h"
 #include "flex/engines/http_server/options.h"
 #include "flex/engines/http_server/service/hqps_service.h"
 #include "flex/engines/http_server/types.h"
@@ -216,6 +217,13 @@ seastar::future<std::unique_ptr<seastar::httpd::reply>> hqps_ic_handler::handle(
     std::unique_ptr<seastar::httpd::reply> rep) {
   auto dst_executor = executor_idx_;
   executor_idx_ = (executor_idx_ + 1) % shard_concurrency_;
+  if (req->_method == "GET") {
+    // summaries the procedure's profileing results
+    return executor_refs_[dst_executor].get_procedure_profile().then_wrapped(
+        [rep = std::move(rep)](seastar::future<query_result>&& fut) mutable {
+          return return_reply_with_result(std::move(rep), std::move(fut));
+        });
+  }
   // TODO(zhanglei): choose read or write based on the request, after the
   // read/write info is supported in physical plan
   // auto request_format = req->get_header(INTERACTIVE_REQUEST_FORMAT);
@@ -677,6 +685,8 @@ seastar::future<> hqps_http_handler::set_routes() {
         .add_str("/query");
 
     r.add(rule_proc, seastar::httpd::operation_type::POST);
+    r.add(seastar::httpd::operation_type::GET,
+          seastar::httpd::url("/v1/graph/current/profile"), ic_handler);
 
     r.add(seastar::httpd::operation_type::POST,
           seastar::httpd::url("/interactive/adhoc_query"), adhoc_query_handler);

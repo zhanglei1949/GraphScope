@@ -13,9 +13,11 @@
  * limitations under the License.
  */
 
-#include "flex/engines/graph_db/database/graph_db.h"
+#include <sstream>
+
 #include "flex/engines/graph_db/app/hqps_app.h"
 #include "flex/engines/graph_db/app/server_app.h"
+#include "flex/engines/graph_db/database/graph_db.h"
 #include "flex/engines/graph_db/database/graph_db_session.h"
 #include "flex/engines/graph_db/database/wal.h"
 #include "flex/utils/yaml_utils.h"
@@ -373,7 +375,7 @@ AppWrapper GraphDB::CreateApp(uint8_t app_type, int thread_id) {
 bool GraphDB::registerApp(const std::string& plugin_path, uint8_t index) {
   // this function will only be called when initializing the graph db
   LOG(INFO) << "Registering stored procedure at:" << std::to_string(index)
-           << ", path:" << plugin_path;
+            << ", path:" << plugin_path;
   if (!app_factories_[index] && app_paths_[index].empty()) {
     app_paths_[index] = plugin_path;
     app_factories_[index] =
@@ -525,6 +527,30 @@ void GraphDB::showAppMetrics() const {
       summary.output(query_name);
     }
   }
+}
+
+std::string GraphDB::GetAppMetrics() const {
+  // return a json
+  std::stringstream ss;
+  ss << "{[";
+  int session_num = SessionNum();
+  for (int i = 0; i < 256; ++i) {
+    AppMetric summary;
+    for (int k = 0; k < session_num; ++k) {
+      summary += GetSession(k).GetAppMetric(i);
+    }
+    if (!summary.empty()) {
+      std::string query_name = "UNKNOWN";
+      if (i == 0) {
+        query_name = "ServerApp";
+      } else {
+        query_name = "Query-" + std::to_string(i);
+      }
+      ss << "{" << summary.toJson(query_name) << "},";
+    }
+  }
+  ss << "]}";
+  return ss.str();
 }
 
 size_t GraphDB::getExecutedQueryNum() const {

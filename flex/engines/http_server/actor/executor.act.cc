@@ -50,4 +50,9 @@ seastar::future<query_result> executor::run_graph_db_query(
   return seastar::make_ready_future<query_result>(std::move(content));
 }
 
+seastar::future<query_result> executor::get_procedure_profile() {
+  auto& db = gs::GraphDB::get();
+  return seastar::make_ready_future<query_result>(db.GetAppMetrics());
+}
+
 }  // namespace server

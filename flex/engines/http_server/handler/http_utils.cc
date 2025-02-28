@@ -105,4 +105,19 @@ return_reply_with_result(std::unique_ptr<seastar::httpd::reply> rep,
       std::move(rep));
 }
 
+seastar::future<std::unique_ptr<seastar::httpd::reply>>
+return_reply_with_result(std::unique_ptr<seastar::httpd::reply> rep,
+                         seastar::future<query_result>&& fut) {
+  if (__builtin_expect(fut.failed(), false)) {
+    return catch_exception_and_return_reply(std::move(rep),
+                                            fut.get_exception());
+  }
+  auto&& result = fut.get0();
+  rep->set_content_type("application/json");
+  rep->write_body("json", std::move(result.content));
+  rep->done();
+  return seastar::make_ready_future<std::unique_ptr<seastar::httpd::reply>>(
+      std::move(rep));
+}
+
 }  // namespace server

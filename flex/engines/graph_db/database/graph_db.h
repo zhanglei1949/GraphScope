@@ -163,6 +163,7 @@ class GraphDB {
       }
     }
   }
+  std::string GetAppMetrics() const;
 
  private:
   bool registerApp(const std::string& path, uint8_t index = 0);

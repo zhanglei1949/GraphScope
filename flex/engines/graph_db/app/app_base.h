@@ -171,6 +171,17 @@ struct AppMetric {
               << static_cast<double>(total_) / static_cast<double>(count_);
   }
 
+  std::string toJson(const std::string query_name) const {
+    std::stringstream ss;
+    ss << "\"query\":\"" << query_name << "\", ";
+    ss << "\"count\":" << count_ << ", ";
+    ss << "\"min\":" << min_val_ << ", ";
+    ss << "\"max\":" << max_val_ << ", ";
+    ss << "\"avg\":"
+       << static_cast<double>(total_) / static_cast<double>(count_);
+    return ss.str();
+  }
+
   int64_t total_;
   int64_t min_val_;
   int64_t max_val_;
