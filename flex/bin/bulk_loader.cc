@@ -69,8 +69,9 @@ int main(int argc, char** argv) {
       "data-path,d", bpo::value<std::string>(), "data directory path")(
       "graph-config,g", bpo::value<std::string>(), "graph schema config file")(
       "bulk-load,l", bpo::value<std::string>(), "bulk-load config file")(
-      "build-csr-in-mem,m", bpo::value<bool>(), "build csr in memory")(
-      "use-mmap-vector", bpo::value<bool>(), "use mmap vector");
+      "build-csr-in-mem,m", bpo::value<bool>()->default_value(true),
+      "build csr in memory")("use-mmap-vector", bpo::value<bool>(),
+                             "use mmap vector");
 
   google::InitGoogleLogging(argv[0]);
   FLAGS_logtostderr = true;
