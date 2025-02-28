@@ -1,6 +1,12 @@
 log_level: INFO
 verbose_level: 10
 default_graph: modern_graph
+replication_config:
+  type: standalone # or stream_replication
+  primary_node: localhost:7777 # The primary node address for stream_replication
+  secondary_nodes: # The secondary node addresses for stream_replication
+    - localhost:7778
+    - localhost:7779
 compute_engine:
   type: hiactor
   workers:
