@@ -331,7 +331,7 @@ class QiDian : public WriteAppBase {
 
   // rel_weigth, rel_type,rel_info,rel_detail
   bool edge_expand(gs::ReadTransaction& txn, const std::vector<vid_t>& vid_vec,
-                   std::vector<AdjListView<RecordView>>& edges_list,
+                   std::vector<ImmutableAdjListView<RecordView>>& edges_list,
                    const std::vector<label_t>& nbr_labels,
                    const std::vector<bool>& valid_rel_type_ids, int32_t cur_ind,
                    std::vector<std::vector<vid_t>>& cur_paths,
@@ -403,19 +403,18 @@ class QiDian : public WriteAppBase {
     return false;
   }
 
-  bool edge_expand_bfs(gs::ReadTransaction& txn,
-                       const std::vector<vid_t>& vid_vec,
-                       std::vector<AdjListView<RecordView>>& edges_list,
-                       const std::vector<label_t>& nbr_labels,
-                       const std::vector<bool>& valid_rel_type_ids,
-                       int32_t cur_ind,
-                       std::vector<std::vector<vid_t>>& cur_paths,
-                       std::vector<std::vector<RecordView>>& cur_edges_datas,
-                       std::vector<std::vector<vid_t>>& next_paths,
-                       std::vector<std::vector<RecordView>>& next_edges_datas,
-                       const std::vector<uint32_t>& directions,
-                       int32_t& simple_path_cnt, int32_t cur_hop_id,
-                       int32_t hop_limit) {  // 1 -> n
+  bool edge_expand_bfs(
+      gs::ReadTransaction& txn, const std::vector<vid_t>& vid_vec,
+      std::vector<ImmutableAdjListView<RecordView>>& edges_list,
+      const std::vector<label_t>& nbr_labels,
+      const std::vector<bool>& valid_rel_type_ids, int32_t cur_ind,
+      std::vector<std::vector<vid_t>>& cur_paths,
+      std::vector<std::vector<RecordView>>& cur_edges_datas,
+      std::vector<std::vector<vid_t>>& next_paths,
+      std::vector<std::vector<RecordView>>& next_edges_datas,
+      const std::vector<uint32_t>& directions, int32_t& simple_path_cnt,
+      int32_t cur_hop_id,
+      int32_t hop_limit) {  // 1 -> n
     auto& cur_path = cur_paths[cur_ind];
     auto& cur_edges_data = cur_edges_datas[cur_ind];
 
@@ -528,14 +527,18 @@ class QiDian : public WriteAppBase {
     left_bound = std::min(left_bound, result_limit);
     right_bound = std::min(right_bound, result_limit);
 
-    auto cmp_invest_cmp_outgoing_view = txn.GetOutgoingGraphView<RecordView>(
-        company_label_id_, company_label_id_, invest_label_id_);
-    auto cmp_invest_cmp_incoming_view = txn.GetIncomingGraphView<RecordView>(
-        company_label_id_, company_label_id_, invest_label_id_);
-    auto person_invest_cmp_outgoing_view = txn.GetOutgoingGraphView<RecordView>(
-        person_label_id_, company_label_id_, invest_label_id_);
-    auto person_invest_cmp_incoming_view = txn.GetIncomingGraphView<RecordView>(
-        company_label_id_, person_label_id_, invest_label_id_);
+    auto cmp_invest_cmp_outgoing_view =
+        txn.GetOutgoingImmutableGraphView<RecordView>(
+            company_label_id_, company_label_id_, invest_label_id_);
+    auto cmp_invest_cmp_incoming_view =
+        txn.GetIncomingImmutableGraphView<RecordView>(
+            company_label_id_, company_label_id_, invest_label_id_);
+    auto person_invest_cmp_outgoing_view =
+        txn.GetOutgoingImmutableGraphView<RecordView>(
+            person_label_id_, company_label_id_, invest_label_id_);
+    auto person_invest_cmp_incoming_view =
+        txn.GetIncomingImmutableGraphView<RecordView>(
+            company_label_id_, person_label_id_, invest_label_id_);
 
     ResultCreator result_creator_(txn);
     result_creator_.Init(page_id, page_limit, person_label_id_,
@@ -588,10 +591,10 @@ class QiDian : public WriteAppBase {
             std::vector<std::vector<RecordView>>>
   do_bfs(ReadTransaction& txn, vid_t start, const std::vector<vid_t>& vid_vec,
          int32_t hop_limit, const std::vector<bool>& valid_rel_type_ids,
-         const GraphView<RecordView>& cmp_invest_cmp_outgoing_view,
-         const GraphView<RecordView>& cmp_invest_cmp_incoming_view,
-         const GraphView<RecordView>& person_invest_cmp_outgoing_view,
-         const GraphView<RecordView>& person_invest_cmp_incoming_view,
+         const ImmutableGraphView<RecordView>& cmp_invest_cmp_outgoing_view,
+         const ImmutableGraphView<RecordView>& cmp_invest_cmp_incoming_view,
+         const ImmutableGraphView<RecordView>& person_invest_cmp_outgoing_view,
+         const ImmutableGraphView<RecordView>& person_invest_cmp_incoming_view,
          const std::vector<label_t>& labels,
          const std::vector<uint32_t>& directions) {
     std::vector<std::vector<vid_t>> cur_paths, next_paths;
@@ -608,7 +611,7 @@ class QiDian : public WriteAppBase {
       VLOG(10) << "hop: " << i << "cur path number: " << cur_paths.size();
       int32_t cnt = 0;
       for (auto j = 0; j < cur_paths.size(); ++j) {
-        std::vector<AdjListView<RecordView>> edges_list;
+        std::vector<ImmutableAdjListView<RecordView>> edges_list;
 
         auto last_vid_encoded = cur_paths[j].back();
         auto last_vid = decode_vid(last_vid_encoded);
@@ -658,10 +661,10 @@ class QiDian : public WriteAppBase {
       int32_t hop_limit, int32_t left_bound, int32_t right_bound,
       Encoder& output, ResultCreator& result_creator_,
       const std::vector<bool>& valid_rel_type_ids,
-      const GraphView<RecordView>& cmp_invest_cmp_outgoing_view,
-      const GraphView<RecordView>& cmp_invest_cmp_incoming_view,
-      const GraphView<RecordView>& person_invest_cmp_outgoing_view,
-      const GraphView<RecordView>& person_invest_cmp_incoming_view,
+      const ImmutableGraphView<RecordView>& cmp_invest_cmp_outgoing_view,
+      const ImmutableGraphView<RecordView>& cmp_invest_cmp_incoming_view,
+      const ImmutableGraphView<RecordView>& person_invest_cmp_outgoing_view,
+      const ImmutableGraphView<RecordView>& person_invest_cmp_incoming_view,
       const std::vector<label_t>& labels,
       const std::vector<uint32_t>& directions) {
     CHECK(vid_vec.size() == 2);
@@ -801,10 +804,10 @@ class QiDian : public WriteAppBase {
       int32_t hop_limit, int32_t left_bound, int32_t right_bound,
       Encoder& output, ResultCreator& result_creator_,
       const std::vector<bool>& valid_rel_type_ids,
-      const GraphView<RecordView>& cmp_invest_cmp_outgoing_view,
-      const GraphView<RecordView>& cmp_invest_cmp_incoming_view,
-      const GraphView<RecordView>& person_invest_cmp_outgoing_view,
-      const GraphView<RecordView>& person_invest_cmp_incoming_view,
+      const ImmutableGraphView<RecordView>& cmp_invest_cmp_outgoing_view,
+      const ImmutableGraphView<RecordView>& cmp_invest_cmp_incoming_view,
+      const ImmutableGraphView<RecordView>& person_invest_cmp_outgoing_view,
+      const ImmutableGraphView<RecordView>& person_invest_cmp_incoming_view,
       const std::vector<label_t>& labels,
       const std::vector<uint32_t>& directions) {
     // Expand from vid_vec, until end_vertex is valid, or hop limit is reached.
@@ -825,7 +828,7 @@ class QiDian : public WriteAppBase {
       VLOG(10) << "hop: " << i << "cur path number: " << cur_paths.size();
       int32_t cnt = 0;
       for (auto j = 0; j < cur_paths.size(); ++j) {
-        std::vector<AdjListView<RecordView>> edges_list;
+        std::vector<ImmutableAdjListView<RecordView>> edges_list;
 
         auto last_vid_encoded = cur_paths[j].back();
         auto last_vid = decode_vid(last_vid_encoded);
