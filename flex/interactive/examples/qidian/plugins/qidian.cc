@@ -197,7 +197,7 @@ class ResultCreator {
                      allocator);  // TODO: fix it to company or person
       path_json["nodes"].PushBack(node, allocator);
       if (i < path.vids.size() - 1) {
-        auto rel_type = get_rel_type_name(path.edge_data[i][1].AsInt64());
+        auto rel_type = get_rel_type_name(path.edge_data[i][1].AsInt32());
         auto rel_weight = path.edge_data[i][0].AsDouble();
         auto rel_info = path.edge_data[i][2].AsStringView();
         auto rel_detail = path.edge_data[i][3].AsStringView();
@@ -352,7 +352,7 @@ class QiDian : public WriteAppBase {
       auto& edges = edges_list[i];
       auto nbr_label = nbr_labels[i];
       for (auto& edge : edges) {
-        auto rel_type = edge.get_data()[1].AsInt64();
+        auto rel_type = edge.get_data()[1].AsInt32();
         if (rel_type >= REL_TYPE_MAX || !valid_rel_type_ids[rel_type]) {
           continue;
         }
@@ -424,7 +424,7 @@ class QiDian : public WriteAppBase {
       auto& edges = edges_list[i];
       auto nbr_label = nbr_labels[i];
       for (auto& edge : edges) {
-        auto rel_type = edge.get_data()[1].AsInt64();
+        auto rel_type = edge.get_data()[1].AsInt32();
         if (rel_type >= REL_TYPE_MAX || !valid_rel_type_ids[rel_type]) {
           continue;
         }
