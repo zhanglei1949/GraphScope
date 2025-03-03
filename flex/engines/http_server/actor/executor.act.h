@@ -32,6 +32,8 @@ class ANNOTATION(actor:impl) executor : public hiactor::actor {
 
   seastar::future<query_result> ANNOTATION(actor:method) get_procedure_profile();
 
+  seastar::future<query_result> ANNOTATION(actor:method) reset_procedure_profile();
+
   // DECLARE_RUN_QUERIES;
   /// Declare `do_work` func here, no need to implement.
   ACTOR_DO_WORK()

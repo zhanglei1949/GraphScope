@@ -553,6 +553,13 @@ std::string GraphDB::GetAppMetrics() const {
   return ss.str();
 }
 
+void GraphDB::ResetAppMetrics() {
+  int session_num = SessionNum();
+  for (int k = 0; k < session_num; ++k) {
+    GetSession(k).ResetAppMetric();
+  }
+}
+
 size_t GraphDB::getExecutedQueryNum() const {
   size_t ret = 0;
   for (int i = 0; i < thread_num_; ++i) {

@@ -109,6 +109,8 @@ class GraphDBSession {
 
   const AppMetric& GetAppMetric(int idx) const;
 
+  void ResetAppMetric();
+
   int64_t query_num() const;
 
   AppBase* GetApp(int idx);

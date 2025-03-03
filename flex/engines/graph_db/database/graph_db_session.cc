@@ -317,4 +317,11 @@ const AppMetric& GraphDBSession::GetAppMetric(int idx) const {
   return app_metrics_[idx];
 }
 
+void GraphDBSession::ResetAppMetric() {
+  // set app_metrics_ to 0
+  for (auto& metric : app_metrics_) {
+    metric.reset();
+  }
+}
+
 }  // namespace gs

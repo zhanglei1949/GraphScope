@@ -182,6 +182,13 @@ struct AppMetric {
     return ss.str();
   }
 
+  void reset() {
+    total_ = 0;
+    min_val_ = std::numeric_limits<int64_t>::max();
+    max_val_ = 0;
+    count_ = 0;
+  }
+
   int64_t total_;
   int64_t min_val_;
   int64_t max_val_;

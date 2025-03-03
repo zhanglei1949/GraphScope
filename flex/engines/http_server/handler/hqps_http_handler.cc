@@ -224,6 +224,12 @@ seastar::future<std::unique_ptr<seastar::httpd::reply>> hqps_ic_handler::handle(
           return return_reply_with_result(std::move(rep), std::move(fut));
         });
   }
+  if (req->_method == "DELETE") {
+    return executor_refs_[dst_executor].reset_procedure_profile().then_wrapped(
+        [rep = std::move(rep)](seastar::future<query_result>&& fut) mutable {
+          return return_reply_with_result(std::move(rep), std::move(fut));
+        });
+  }
   // TODO(zhanglei): choose read or write based on the request, after the
   // read/write info is supported in physical plan
   // auto request_format = req->get_header(INTERACTIVE_REQUEST_FORMAT);
@@ -686,6 +692,8 @@ seastar::future<> hqps_http_handler::set_routes() {
 
     r.add(rule_proc, seastar::httpd::operation_type::POST);
     r.add(seastar::httpd::operation_type::GET,
+          seastar::httpd::url("/v1/graph/current/profile"), ic_handler);
+    r.add(seastar::httpd::operation_type::DELETE,
           seastar::httpd::url("/v1/graph/current/profile"), ic_handler);
 
     r.add(seastar::httpd::operation_type::POST,

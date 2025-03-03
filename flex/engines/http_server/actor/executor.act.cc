@@ -55,4 +55,11 @@ seastar::future<query_result> executor::get_procedure_profile() {
   return seastar::make_ready_future<query_result>(db.GetAppMetrics());
 }
 
+seastar::future<query_result> executor::reset_procedure_profile() {
+  auto& db = gs::GraphDB::get();
+  db.ResetAppMetrics();
+  return seastar::make_ready_future<query_result>(
+      "Successfully removed procedure profile.");
+}
+
 }  // namespace server

@@ -165,6 +165,8 @@ class GraphDB {
   }
   std::string GetAppMetrics() const;
 
+  void ResetAppMetrics();
+
  private:
   bool registerApp(const std::string& path, uint8_t index = 0);
 
