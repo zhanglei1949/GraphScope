@@ -136,7 +136,8 @@ ETCDMetadataStore::GetAllMeta(const meta_kind_t& meta_kind) {
   std::vector<std::pair<meta_key_t, meta_value_t>> result;
   for (size_t i = 0; i < res.keys().size(); ++i) {
     result.push_back(
-        std::make_pair(res.keys()[i], res.values()[i].as_string()));
+        std::make_pair(get_key_from_meta_key(meta_kind, res.keys()[i]),
+                       res.values()[i].as_string()));
   }
   return result;
 }
@@ -261,4 +262,10 @@ std::string ETCDMetadataStore::get_full_meta_key(const std::string& meta_kind,
                                                  const std::string& key) {
   return prefix_ + "/" + meta_kind + "/" + key;
 }
+
+std::string ETCDMetadataStore::get_key_from_meta_key(
+    const std::string& meta_kind, const std::string& key) {
+  return key.substr(prefix_.size() + 1 + meta_kind.size() + 1);
+}
+
 }  // namespace gs

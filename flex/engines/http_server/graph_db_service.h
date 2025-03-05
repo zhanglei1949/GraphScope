@@ -33,6 +33,22 @@
 #include <boost/process.hpp>
 
 namespace server {
+
+enum class ReplicationMode {
+  kStandAlone,
+  kPrimary,
+  kStandby,
+};
+
+/**
+All replication related configurations
+ */
+struct ReplicationConfig {
+  ReplicationMode mode;
+
+  ReplicationConfig() : mode(ReplicationMode::kStandAlone) {}
+};
+
 /* Stored service configuration, read from interactive_config.yaml
  */
 struct ServiceConfig {
@@ -93,6 +109,7 @@ struct ServiceConfig {
   std::string engine_config_path;       // used for codegen.
   size_t admin_svc_max_content_length;  // max content length for admin service.
   std::string wal_uri;                  // The uri of the wal storage.
+  ReplicationConfig replication_config;
 
   ServiceConfig();
 
@@ -184,8 +201,11 @@ class GraphDBService {
   std::string find_interactive_class_path();
   // Insert graph meta into metadata store.
   gs::GraphId insert_default_graph_meta();
-  void open_default_graph();
-  void clear_running_graph();
+  void openGraph(const gs::GraphId& graph_id,
+                 const ServiceConfig& service_config);
+  // When an interactive server exits, the running graph info is kept. So when
+  // starting a new server, we can open the last running graph.
+  gs::Result<gs::GraphId> GetCurRunningGraphId();
 
  private:
   std::unique_ptr<actor_system> actor_sys_;
@@ -200,11 +220,43 @@ class GraphDBService {
   boost::process::child compiler_process_;
   // handler for metadata store
   std::shared_ptr<gs::IGraphMetaStore> metadata_store_;
+  // A thread busy for pulling latest current running graph from metadata store.
+  // If the current running graph is changed, we will open the new graph.
+  std::thread meta_pulling_thread_;
 };
 
 }  // namespace server
 
 namespace YAML {
+
+template <>
+struct convert<server::ReplicationConfig> {
+  static bool decode(const Node& config,
+                     server::ReplicationConfig& replication_config) {
+    if (!config.IsMap()) {
+      LOG(ERROR) << "ReplicationConfig should be a map";
+      return false;
+    }
+    auto mode_node = config["mode"];
+    if (mode_node) {
+      auto mode_str = mode_node.as<std::string>();
+      if (mode_str == "standalone") {
+        replication_config.mode = server::ReplicationMode::kStandAlone;
+      } else if (mode_str == "primary") {
+        replication_config.mode = server::ReplicationMode::kPrimary;
+      } else if (mode_str == "standby") {
+        replication_config.mode = server::ReplicationMode::kStandby;
+      } else {
+        LOG(ERROR) << "Unsupported replication mode: " << mode_str;
+        return false;
+      }
+    } else {
+      LOG(ERROR) << "Fail to find replication mode";
+      return false;
+    }
+    return true;
+  }
+};
 
 template <>
 struct convert<server::ServiceConfig> {
@@ -273,6 +325,10 @@ struct convert<server::ServiceConfig> {
       }
       if (engine_node["wal_uri"]) {
         service_config.wal_uri = engine_node["wal_uri"].as<std::string>();
+      }
+      if (engine_node["replication"]) {
+        service_config.replication_config =
+            engine_node["replication"].as<server::ReplicationConfig>();
       }
     } else {
       LOG(ERROR) << "Fail to find compute_engine configuration";

@@ -44,7 +44,8 @@ class DefaultGraphMetaStore : public IGraphMetaStore {
   static constexpr const char* LOCKED = "LOCKED";
   static constexpr const char* UNLOCKED = "UNLOCKED";
 
-  DefaultGraphMetaStore(std::unique_ptr<IMetaStore> base_store);
+  DefaultGraphMetaStore(std::unique_ptr<IMetaStore> base_store,
+                        bool ready_only = false);
   ~DefaultGraphMetaStore();
 
   Result<bool> Open() override;
@@ -110,6 +111,7 @@ class DefaultGraphMetaStore : public IGraphMetaStore {
                                             const PluginId& plugin_id);
 
   std::unique_ptr<IMetaStore> base_store_;
+  bool read_only_;
 };
 }  // namespace gs
 

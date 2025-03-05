@@ -33,7 +33,7 @@ namespace gs {
 class MetadataStoreFactory {
  public:
   static std::shared_ptr<IGraphMetaStore> Create(
-      const std::string& metadata_store_uri);
+      const std::string& metadata_store_uri, bool read_only = false);
 };
 }  // namespace gs
 

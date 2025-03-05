@@ -111,6 +111,8 @@ class ETCDMetadataStore : public IMetaStore {
   Result<std::string> get_next_meta_key(const std::string& meta_kind);
   std::string get_full_meta_key(const std::string& meta_kind,
                                 const std::string& key);
+  std::string get_key_from_meta_key(const std::string& meta_kind,
+                                    const std::string& full_key);
   Result<std::string> initOrUpdateValue(
       const std::string& key, const std::string& initial_value,
       std::function<std::string(const std::string&)> update_func);

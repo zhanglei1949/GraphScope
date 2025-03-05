@@ -1005,6 +1005,7 @@ seastar::future<admin_query_result> admin_actor::start_service(
           auto config = db.config();
           config.data_dir = data_dir_value;
           config.schema = schema_value;
+          config.graph_id = graph_name;
           db.Close();
           VLOG(10) << "Closed the previous graph db";
           if (!db.Open(config).ok()) {

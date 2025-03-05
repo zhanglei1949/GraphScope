@@ -17,8 +17,8 @@
 namespace gs {
 
 DefaultGraphMetaStore::DefaultGraphMetaStore(
-    std::unique_ptr<IMetaStore> base_store)
-    : base_store_(std::move(base_store)) {
+    std::unique_ptr<IMetaStore> base_store, bool read_only)
+    : base_store_(std::move(base_store)), read_only_(read_only) {
   // Clear previous context, in case of dirty data.
   clear_locks();
 }
@@ -34,6 +34,10 @@ Result<bool> DefaultGraphMetaStore::Close() {
 
 Result<GraphId> DefaultGraphMetaStore::CreateGraphMeta(
     const CreateGraphMetaRequest& request) {
+  if (read_only_) {
+    return Status(StatusCode::BAD_REQUEST,
+                  "Can not create graph meta in read only mode");
+  }
   GraphId graph_id;
   ASSIGN_AND_RETURN_IF_RESULT_NOT_OK(
       graph_id, base_store_->CreateMeta(GRAPH_META, request.ToString()));
@@ -67,11 +71,19 @@ Result<std::vector<GraphMeta>> DefaultGraphMetaStore::GetAllGraphMeta() {
 }
 
 Result<bool> DefaultGraphMetaStore::DeleteGraphMeta(const GraphId& graph_id) {
+  if (read_only_) {
+    return Status(StatusCode::BAD_REQUEST,
+                  "Can not delete graph meta in read only mode");
+  }
   return base_store_->DeleteMeta(GRAPH_META, graph_id);
 }
 
 Result<bool> DefaultGraphMetaStore::UpdateGraphMeta(
     const GraphId& graph_id, const UpdateGraphMetaRequest& request) {
+  if (read_only_) {
+    return Status(StatusCode::BAD_REQUEST,
+                  "Can not update graph meta in read only mode");
+  }
   return base_store_->UpdateMeta(
       GRAPH_META, graph_id, [graph_id, &request](const std::string& old_meta) {
         rapidjson::Document json;
@@ -101,6 +113,10 @@ Result<bool> DefaultGraphMetaStore::UpdateGraphMeta(
 
 Result<PluginId> DefaultGraphMetaStore::CreatePluginMeta(
     const CreatePluginMetaRequest& request) {
+  if (read_only_) {
+    return Status(StatusCode::BAD_REQUEST,
+                  "Can not create plugin meta in read only mode");
+  }
   if (request.id.has_value()) {
     auto real_meta_key =
         generate_real_plugin_meta_key(request.bound_graph, request.id.value());
@@ -158,13 +174,20 @@ Result<std::vector<PluginMeta>> DefaultGraphMetaStore::GetAllPluginMeta(
 
 Result<bool> DefaultGraphMetaStore::DeletePluginMeta(
     const GraphId& graph_id, const PluginId& plugin_id) {
+  if (read_only_) {
+    return Status(StatusCode::BAD_REQUEST,
+                  "Can not delete plugin meta in read only mode");
+  }
   auto real_meta_key = generate_real_plugin_meta_key(graph_id, plugin_id);
   return base_store_->DeleteMeta(PLUGIN_META, real_meta_key);
 }
 
 Result<bool> DefaultGraphMetaStore::DeletePluginMetaByGraphId(
     const GraphId& graph_id) {
-  // get all plugin meta, and get the plugin_ids which belong to graph graph_id
+  if (read_only_) {
+    return Status(StatusCode::BAD_REQUEST,
+                  "Can not delete plugin meta in read only mode");
+  }
   auto res = base_store_->GetAllMeta(PLUGIN_META);
   if (!res.ok()) {
     return Result<bool>(res.status());
@@ -186,6 +209,10 @@ Result<bool> DefaultGraphMetaStore::DeletePluginMetaByGraphId(
 Result<bool> DefaultGraphMetaStore::UpdatePluginMeta(
     const GraphId& graph_id, const PluginId& plugin_id,
     const UpdatePluginMetaRequest& update_request) {
+  if (read_only_) {
+    return Status(StatusCode::BAD_REQUEST,
+                  "Can not update plugin meta in read only mode");
+  }
   auto real_meta_key = generate_real_plugin_meta_key(graph_id, plugin_id);
   return base_store_->UpdateMeta(
       PLUGIN_META, real_meta_key,
@@ -242,6 +269,10 @@ Result<bool> DefaultGraphMetaStore::UpdatePluginMeta(
 
 Result<JobId> DefaultGraphMetaStore::CreateJobMeta(
     const CreateJobMetaRequest& request) {
+  if (read_only_) {
+    return Status(StatusCode::BAD_REQUEST,
+                  "Can not create job meta in read only mode");
+  }
   JobId job_id;
   ASSIGN_AND_RETURN_IF_RESULT_NOT_OK(
       job_id, base_store_->CreateMeta(JOB_META, request.ToString()));
@@ -274,11 +305,19 @@ Result<std::vector<JobMeta>> DefaultGraphMetaStore::GetAllJobMeta() {
 }
 
 Result<bool> DefaultGraphMetaStore::DeleteJobMeta(const JobId& job_id) {
+  if (read_only_) {
+    return Status(StatusCode::BAD_REQUEST,
+                  "Can not delete job meta in read only mode");
+  }
   return base_store_->DeleteMeta(JOB_META, job_id);
 }
 
 Result<bool> DefaultGraphMetaStore::UpdateJobMeta(
     const JobId& job_id, const UpdateJobMetaRequest& update_request) {
+  if (read_only_) {
+    return Status(StatusCode::BAD_REQUEST,
+                  "Can not update job meta in read only mode");
+  }
   return base_store_->UpdateMeta(
       JOB_META, job_id, [&update_request](const std::string& old_meta) {
         rapidjson::Document json;
@@ -301,6 +340,10 @@ Result<bool> DefaultGraphMetaStore::UpdateJobMeta(
 }
 
 Result<bool> DefaultGraphMetaStore::LockGraphIndices(const GraphId& graph_id) {
+  if (read_only_) {
+    return Status(StatusCode::OK,
+                  "Do not need to lock graph indices in read only mode");
+  }
   // First try to get lock
   auto get_lock_res = GetGraphIndicesLocked(graph_id);
   if (!get_lock_res.ok()) {
@@ -330,6 +373,10 @@ Result<bool> DefaultGraphMetaStore::LockGraphIndices(const GraphId& graph_id) {
 
 Result<bool> DefaultGraphMetaStore::UnlockGraphIndices(
     const GraphId& graph_id) {
+  if (read_only_) {
+    return Status(StatusCode::OK,
+                  "Do not need to unlock graph indices in read only mode");
+  }
   // First try to get lock
   auto get_lock_res = GetGraphIndicesLocked(graph_id);
   if (!get_lock_res.ok()) {
@@ -364,6 +411,10 @@ Result<bool> DefaultGraphMetaStore::GetGraphIndicesLocked(
 }
 
 Result<bool> DefaultGraphMetaStore::LockGraphPlugins(const GraphId& graph_id) {
+  if (read_only_) {
+    return Status(StatusCode::BAD_REQUEST,
+                  "Can not lock graph plugins in read only mode");
+  }
   // First try to get lock
   auto get_lock_res = GetGraphPluginsLocked(graph_id);
   if (!get_lock_res.ok()) {
@@ -393,6 +444,10 @@ Result<bool> DefaultGraphMetaStore::LockGraphPlugins(const GraphId& graph_id) {
 
 Result<bool> DefaultGraphMetaStore::UnlockGraphPlugins(
     const GraphId& graph_id) {
+  if (read_only_) {
+    return Status(StatusCode::BAD_REQUEST,
+                  "Can not unlock graph plugins in read only mode");
+  }
   // First try to get lock
   auto get_lock_res = GetGraphPluginsLocked(graph_id);
   if (!get_lock_res.ok()) {
@@ -428,6 +483,11 @@ Result<bool> DefaultGraphMetaStore::GetGraphPluginsLocked(
 }
 
 Result<bool> DefaultGraphMetaStore::SetRunningGraph(const GraphId& graph_id) {
+  if (read_only_) {
+    LOG(INFO) << "Skip setting running graph in read only mode";
+    return Status(StatusCode::OK,
+                  "Skip setting running graph in read only mode");
+  }
   auto create_res =
       base_store_->CreateMeta(RUNNING_GRAPH, RUNNING_GRAPH, graph_id);
   if (!create_res.ok()) {
@@ -448,10 +508,17 @@ Result<GraphId> DefaultGraphMetaStore::GetRunningGraph() {
 }
 
 Result<bool> DefaultGraphMetaStore::ClearRunningGraph() {
+  if (read_only_) {
+    return Status(StatusCode::OK,
+                  "Skip clearing running graph in read only mode");
+  }
   return base_store_->DeleteMeta(RUNNING_GRAPH, RUNNING_GRAPH);
 }
 
 Result<bool> DefaultGraphMetaStore::clear_locks() {
+  if (read_only_) {
+    return Status(StatusCode::OK, "Skip clearing locks in read only mode");
+  }
   RETURN_IF_NOT_OK(base_store_->DeleteAllMeta(INDICES_LOCK));
   RETURN_IF_NOT_OK(base_store_->DeleteAllMeta(PLUGINS_LOCK));
   return Result<bool>(true);

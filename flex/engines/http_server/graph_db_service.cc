@@ -15,6 +15,7 @@
 #include "flex/engines/http_server/graph_db_service.h"
 #include "flex/engines/http_server/options.h"
 #include "flex/engines/http_server/workdir_manipulator.h"
+#include "flex/third_party/httplib.h"
 namespace server {
 
 bool check_port_occupied(uint16_t port) {
@@ -30,6 +31,19 @@ bool check_port_occupied(uint16_t port) {
   int ret = bind(sockfd, (struct sockaddr*) &addr, sizeof(addr));
   close(sockfd);
   return ret < 0;
+}
+
+void sendStartServiceRequest(httplib::Client& cli,
+                             const gs::GraphId& new_graph_id) {
+  auto payload = "{\"graph_id\":\"" + new_graph_id + "\"}";
+  auto result = cli.Post("/v1/service/start", payload, "application/json");
+  if (!result) {
+    LOG(ERROR) << "Failed to send start service request to admin service: "
+               << result.error();
+  } else {
+    LOG(INFO) << "Start service request sent successfully: " << result->body
+              << ", new graph id" << new_graph_id;
+  }
 }
 
 ServiceConfig::ServiceConfig()
@@ -62,8 +76,8 @@ GraphDBService& GraphDBService::get() {
   return instance;
 }
 
-void openGraph(const gs::GraphId& graph_id,
-               const ServiceConfig& service_config) {
+void GraphDBService::openGraph(const gs::GraphId& graph_id,
+                               const ServiceConfig& service_config) {
   auto workspace = server::WorkDirManipulator::GetWorkspace();
   if (!std::filesystem::exists(workspace)) {
     LOG(ERROR) << "Workspace directory not exists: " << workspace;
@@ -98,6 +112,7 @@ void openGraph(const gs::GraphId& graph_id,
   db.Close();
   gs::GraphDBConfig config(schema_res.value(), data_dir, "",
                            service_config.shard_num);
+  config.graph_id = graph_id;
   config.memory_level = service_config.memory_level;
   config.wal_uri = service_config.wal_uri;
   if (config.memory_level >= 2) {
@@ -139,7 +154,12 @@ void GraphDBService::init(const ServiceConfig& config) {
           std::regex_replace(metadata_store_uri, std::regex("\\{WORKSPACE\\}"),
                              WorkDirManipulator::GetWorkspace());
     }
-    metadata_store_ = gs::MetadataStoreFactory::Create(metadata_store_uri);
+    if (config.replication_config.mode == server::ReplicationMode::kStandby) {
+      metadata_store_ =
+          gs::MetadataStoreFactory::Create(metadata_store_uri, true);
+    } else {
+      metadata_store_ = gs::MetadataStoreFactory::Create(metadata_store_uri);
+    }
 
     auto res = metadata_store_->Open();
     if (!res.ok()) {
@@ -148,59 +168,64 @@ void GraphDBService::init(const ServiceConfig& config) {
       return;
     }
     LOG(INFO) << "Metadata store opened successfully.";
-    // If there is no graph in the metadata store, insert the default graph.
-    auto graph_metas_res = metadata_store_->GetAllGraphMeta();
-    if (!graph_metas_res.ok()) {
-      LOG(FATAL) << "Failed to get graph metas: "
-                 << graph_metas_res.status().error_message();
-    }
-    gs::GraphId cur_graph_id = "";
-    // Try to launch service on the previous running graph.
-    auto running_graph_res = metadata_store_->GetRunningGraph();
-    if (running_graph_res.ok() && !running_graph_res.value().empty()) {
-      cur_graph_id = running_graph_res.value();
-      // make sure the cur_graph_id is in the graph_metas_res.
-      auto it = std::find_if(graph_metas_res.value().begin(),
-                             graph_metas_res.value().end(),
-                             [&cur_graph_id](const gs::GraphMeta& meta) {
-                               return meta.id == cur_graph_id;
-                             });
-      if (it == graph_metas_res.value().end()) {
-        LOG(ERROR) << "The running graph: " << cur_graph_id
-                   << " is not in the metadata store, maybe the metadata is "
-                      "corrupted.";
-        cur_graph_id = "";
+    if (config.replication_config.mode == server::ReplicationMode::kPrimary ||
+        config.replication_config.mode ==
+            server::ReplicationMode::kStandAlone) {
+      // Try to recover from the last running graph, or prepare the default
+      // graph
+      auto cur_graph_id_res = GetCurRunningGraphId();
+      gs::GraphId cur_graph_id = cur_graph_id_res.ok()
+                                     ? cur_graph_id_res.value()
+                                     : insert_default_graph_meta();
+      openGraph(cur_graph_id, service_config_);
+      auto set_res = metadata_store_->SetRunningGraph(cur_graph_id);
+      if (!set_res.ok()) {
+        LOG(FATAL) << "Failed to set running graph: "
+                   << res.status().error_message();
+        return;
       }
-    }
-    if (cur_graph_id.empty()) {
-      if (!graph_metas_res.value().empty()) {
-        LOG(INFO) << "There are already " << graph_metas_res.value().size()
-                  << " graph metas in the metadata store.";
-        // return the graph id with the smallest value.
-        cur_graph_id =
-            (std::min_element(
-                 graph_metas_res.value().begin(), graph_metas_res.value().end(),
-                 [](const gs::GraphMeta& a, const gs::GraphMeta& b) {
-                   return a.id < b.id;
-                 }))
-                ->id;
+      auto lock_res = metadata_store_->LockGraphIndices(cur_graph_id);
+      if (!lock_res.ok()) {
+        LOG(FATAL) << lock_res.status().error_message();
+        return;
+      }
+    } else {
+      // Under standby mode, we should just load the running graph if it exists.
+      // If it does not exist, we just go on. Maybe the primary will set the
+      // running graph info in the metadata store later, and it should be taken
+      // care by meta_pulling_thread_.
+      auto cur_graph_id_res = GetCurRunningGraphId();
+      if (cur_graph_id_res.ok()) {
+        openGraph(cur_graph_id_res.value(), service_config_);
       } else {
-        cur_graph_id = insert_default_graph_meta();
+        LOG(WARNING) << "In standby mode, no running graph is found.";
       }
     }
-    // open the graph with the default graph id.
-    openGraph(cur_graph_id, service_config_);
-    auto set_res = metadata_store_->SetRunningGraph(cur_graph_id);
-    if (!set_res.ok()) {
-      LOG(FATAL) << "Failed to set running graph: "
-                 << res.status().error_message();
-      return;
-    }
-
-    auto lock_res = metadata_store_->LockGraphIndices(cur_graph_id);
-    if (!lock_res.ok()) {
-      LOG(FATAL) << lock_res.status().error_message();
-      return;
+    // Start the thread to pull the latest running graph from metadata store.
+    if (config.replication_config.mode == server::ReplicationMode::kStandby) {
+      meta_pulling_thread_ =
+          std::thread([this, admin_port = config.admin_port]() {
+            httplib::Client cli("localhost", admin_port);
+            cli.set_connection_timeout(0, 300000);
+            cli.set_read_timeout(60, 0);
+            cli.set_write_timeout(60, 0);
+            while (!is_running()) {
+              std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+            while (is_running()) {
+              auto cur_graph_id_res = GetCurRunningGraphId();
+              LOG(INFO) << "Current running graph id: "
+                        << (cur_graph_id_res.ok() ? cur_graph_id_res.value()
+                                                  : "N/A");
+              if (cur_graph_id_res.ok() &&
+                  cur_graph_id_res.value() !=
+                      gs::GraphDB::get().config().graph_id) {
+                sendStartServiceRequest(cli, cur_graph_id_res.value());
+              }
+              std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+          });
+      LOG(INFO) << "Metadata pulling thread started.";
     }
   }
 }
@@ -212,6 +237,9 @@ GraphDBService::~GraphDBService() {
   stop_compiler_subprocess();
   if (metadata_store_) {
     metadata_store_->Close();
+  }
+  if (meta_pulling_thread_.joinable()) {
+    meta_pulling_thread_.join();
   }
 }
 
@@ -429,6 +457,57 @@ bool GraphDBService::stop_compiler_subprocess() {
     }
   }
   return true;
+}
+
+gs::Result<gs::GraphId> GraphDBService::GetCurRunningGraphId() {
+  gs::GraphId cur_graph_id = "";
+  auto graph_metas_res = metadata_store_->GetAllGraphMeta();
+  if (!graph_metas_res.ok()) {
+    LOG(FATAL) << "Failed to get graph metas: "
+               << graph_metas_res.status().error_message();
+  }
+  for (auto& meta : graph_metas_res.value()) {
+    LOG(INFO) << "Graph meta: " << meta.id;
+  }
+  // Try to launch service on the previous running graph.
+  auto running_graph_res = metadata_store_->GetRunningGraph();
+  if (running_graph_res.ok() && !running_graph_res.value().empty()) {
+    cur_graph_id = running_graph_res.value();
+    // make sure the cur_graph_id is in the graph_metas_res.
+    auto it = std::find_if(graph_metas_res.value().begin(),
+                           graph_metas_res.value().end(),
+                           [&cur_graph_id](const gs::GraphMeta& meta) {
+                             return meta.id == cur_graph_id;
+                           });
+    if (it == graph_metas_res.value().end()) {
+      LOG(ERROR) << "The running graph: " << cur_graph_id
+                 << " is not in the metadata store, maybe the metadata is "
+                    "corrupted.";
+      return gs::Status(gs::StatusCode::INTERNAL_ERROR,
+                        "The running graph is not in the metadata store.");
+    }
+  }
+  if (cur_graph_id.empty()) {
+    if (!graph_metas_res.value().empty()) {
+      LOG(INFO) << "There are already " << graph_metas_res.value().size()
+                << " graph metas in the metadata store.";
+      // return the graph id with the smallest value.
+      cur_graph_id =
+          (std::min_element(graph_metas_res.value().begin(),
+                            graph_metas_res.value().end(),
+                            [](const gs::GraphMeta& a, const gs::GraphMeta& b) {
+                              return a.id < b.id;
+                            }))
+              ->id;
+    }
+  }
+  if (cur_graph_id.empty()) {
+    LOG(ERROR) << "No graph is found in the metadata store!";
+    return gs::Status(gs::StatusCode::NOT_FOUND,
+                      "No graph is found in the "
+                      "metadata store!");
+  }
+  return cur_graph_id;
 }
 
 std::string GraphDBService::find_interactive_class_path() {

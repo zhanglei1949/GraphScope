@@ -1000,6 +1000,33 @@ def neo4j_session(interactive_driver):
     _neo4j_sess = interactive_driver.getNeo4jSession()
     yield _neo4j_sess
     _neo4j_sess.close()
+    
+@pytest.fixture(scope="module")
+def primary_driver():
+    if not os.environ.get("PRIMARY_ADMIN_SERVICE_ENDPOINT"):
+        raise Exception("Please set PRIMARY_ADMIN_SERVICE_ENDPOINT in environment variables.")
+    primary_endpoint = os.environ.get("PRIMARY_ADMIN_SERVICE_ENDPOINT")
+    primary_driver = Driver(admin_endpoint=primary_endpoint)
+    yield primary_driver
+    primary_driver.close()
+    
+@pytest.fixture(scope="module")
+def standby_driver():
+    if not os.environ.get("STANDBY_ADMIN_SERVICE_ENDPOINT"):
+        raise Exception("Please set STANDBY_ADMIN_SERVICE_ENDPOINT in environment variables.")
+    standby_endpoint = os.environ.get("STANDBY_ADMIN_SERVICE_ENDPOINT")
+    standby_driver = Driver(admin_endpoint=standby_endpoint)
+    yield standby_driver
+    standby_driver.close()
+
+@pytest.fixture(scope="module")
+def primary_session(primary_driver):
+    yield primary_driver.session()
+    
+@pytest.fixture(scope="module")
+def standby_session(standby_driver):
+    yield standby_driver.session()
+    
 
 
 @pytest.fixture(scope="function")
@@ -1010,6 +1037,15 @@ def create_modern_graph(interactive_session):
     graph_id = resp.get_value().graph_id
     yield graph_id
     delete_running_graph(interactive_session, graph_id)
+    
+@pytest.fixture(scope="function")
+def create_modern_graph_in_primary(primary_session):
+    create_graph_request = CreateGraphRequest.from_dict(modern_graph_full)
+    resp = primary_session.create_graph(create_graph_request)
+    assert resp.is_ok()
+    graph_id = resp.get_value().graph_id
+    yield graph_id
+    delete_running_graph(primary_session, graph_id)    
 
 
 @pytest.fixture(scope="function")
