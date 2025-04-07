@@ -1,2 +1,0 @@
-> [!NOTE]  
-> The Jupyter Notebook extension has been deprecated. We are currently developing a new visualization tool in Python, which we plan to release by the end of 2024. If you still need access to the legacy extension, which was previously available here, please refer to this [archived repository](https://github.com/GraphScope/jupyter-legacy).

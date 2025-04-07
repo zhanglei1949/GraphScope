@@ -5,6 +5,7 @@ __pycache__/
 *.egg-info/
 *.eggs
 python/*.eggs
+.pytest_cache/
 
 # coordinator
 coordinator/proto
