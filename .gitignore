@@ -13,6 +13,9 @@ coordinator/proto
 # python
 python/proto
 
+#cmake
+CMakeFiles/
+
 # Gar file
 *.gar
 
@@ -21,6 +24,8 @@ python/proto
 
 # swp file
 *.swp
+
+dist/
 
 # Protobuf GRPC
 *.pb.*
