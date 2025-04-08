@@ -20,9 +20,9 @@ protobuf_generate(APPEND_PATH
 
 
 ############################################ Generate Physical Plan Proto ############################################
-set(GIE_COMPILER_PROTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../interactive_engine/executor/ir/proto/)
-set(GIE_COMPILER_WRITE_PROTO_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/proto/)
-set(GIE_COMPILER_PROTO_JOB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../interactive_engine/executor/engine/pegasus/server/proto/)
+set(GIE_COMPILER_PROTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../proto/)
+set(GIE_COMPILER_WRITE_PROTO_DIR  ${CMAKE_CURRENT_SOURCE_DIR}/../../proto/)
+set(GIE_COMPILER_PROTO_JOB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../proto/)
 # proto files of gie compiler
 set(CODE_GEN_PROTOBUF_FILES
         ${GIE_COMPILER_PROTO_DIR}/algebra.proto

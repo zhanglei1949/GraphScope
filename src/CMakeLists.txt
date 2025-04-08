@@ -247,14 +247,14 @@ if (BUILD_TEST)
 endif()
 
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src-config.in.cmake
-               ${CMAKE_CURRENT_BINARY_DIR}/src-config.cmake @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/nexg-config.in.cmake
+               ${CMAKE_CURRENT_BINARY_DIR}/nexg-config.cmake @ONLY)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src-config-version.in.cmake
-               ${CMAKE_CURRENT_BINARY_DIR}/src-config-version.cmake @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/nexg-config-version.in.cmake
+               ${CMAKE_CURRENT_BINARY_DIR}/nexg-config-version.cmake @ONLY)
 
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/src-config.cmake"
-              "${CMAKE_CURRENT_BINARY_DIR}/src-config-version.cmake"
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/nexg-config.cmake"
+              "${CMAKE_CURRENT_BINARY_DIR}/nexg-config-version.cmake"
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/src)
 
 install(EXPORT src-targets
@@ -313,16 +313,3 @@ if(USE_PTHASH)
 endif()
 
 include(CPack)
-
-# add_subdirectory(pybind11)
-find_package(pybind11 CONFIG)
-if (pybind11_FOUND)
-    message(STATUS "pybind11 found")
-    pybind11_add_module(nexg main.cpp)
-
-    # EXAMPLE_VERSION_INFO is defined by setup.py and passed into the C++ code as a
-    # define (VERSION_INFO) here.
-    target_compile_definitions(nexg PRIVATE VERSION_INFO=${EXAMPLE_VERSION_INFO})
-else()
-    message(STATUS "pybind11 not found, please install the pybind11 library")
-endif()
