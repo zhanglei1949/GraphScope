@@ -24,7 +24,7 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Environment (please complete the following information):**
- - GraphScope version: [e.g., v0.1, v0.2.2, master]
+ - Interactive version: [e.g., v0.1, v0.2.2, master]
  - OS: [e.g. macOS, Linux]
  - Version [e.g. 10.15]
  - Kubernetes Version [e.g., 1.19]

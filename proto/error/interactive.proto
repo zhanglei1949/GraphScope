@@ -25,13 +25,13 @@
  */
 syntax = "proto3";
 
-package gs.flex.interactive;
+package gs.src.interactive;
 
 option java_package = "com.alibaba.graphscope.interactive.proto";
 option java_multiple_files = true;
 
 
-// component-05: GraphScope Interactive (flex)
+// component-05: GraphScope Interactive (src)
 enum Code {
     // Not an error; returned on success.
     OK = 0;

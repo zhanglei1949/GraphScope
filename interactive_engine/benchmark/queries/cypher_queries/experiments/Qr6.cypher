@@ -1,5 +1,0 @@
-MATCH (p: PERSON)-[k:KNOWS]-(f: PERSON)
-WITH f
-LIMIT 1000
-MATCH (f:PERSON)-[:ISLOCATEDIN]->(locationCity:PLACE)
-RETURN count(f);

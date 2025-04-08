@@ -1,18 +1,7 @@
-[submodule "learning_engine/graph-learn"]
-	path = learning_engine/graph-learn
-	url = https://github.com/alibaba/graph-learn.git
-
-[submodule "flex/grin"]
-	path = flex/grin
-	url = https://github.com/GraphScope/GRIN.git
-
-[submodule "learning_engine/graphlearn-for-pytorch"]
-	path = learning_engine/graphlearn-for-pytorch
-	url = https://github.com/alibaba/graphlearn-for-pytorch.git
-
-[submodule "flex/third_party/parallel-hashmap"]
-	path = flex/third_party/parallel-hashmap
+[submodule "src/third_party/parallel-hashmap"]
+	path = src/third_party/parallel-hashmap
 	url = https://github.com/greg7mdp/parallel-hashmap.git
-[submodule "flex/third_party/aliyun-oss-cpp-sdk"]
-	path = flex/third_party/aliyun-oss-cpp-sdk
+
+[submodule "src/third_party/aliyun-oss-cpp-sdk"]
+	path = src/third_party/aliyun-oss-cpp-sdk
 	url = https://github.com/aliyun/aliyun-oss-cpp-sdk.git
