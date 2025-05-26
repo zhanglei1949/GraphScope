@@ -96,6 +96,33 @@ public class GraphPlanner {
     }
 
     public PlannerInstance instance(
+            String query,
+            IrMeta irMeta,
+            @Nullable QueryLogger queryLogger,
+            StringBuilder extraMsg) {
+        GraphOptCluster optCluster =
+                GraphOptCluster.create(this.optimizer.getMatchPlanner(), this.rexBuilder);
+        RelMetadataQuery mq =
+                ClassUtils.callException(
+                        () -> optimizer.createMetaDataQuery(irMeta),
+                        Code.META_STATISTICS_NOT_READY);
+        if (mq != null) {
+            optCluster.setMetadataQuerySupplier(() -> mq);
+        }
+        // build logical plan from parsed query
+        IrGraphSchema schema = irMeta.getSchema();
+        GraphBuilder graphBuilder =
+                GraphBuilder.create(
+                        graphConfig, optCluster, new GraphOptSchema(optCluster, schema));
+        extraMsg.append("0");
+        LogicalPlan logicalPlan = logicalPlanFactory.create(graphBuilder, irMeta, query);
+        extraMsg.append(", 1");
+        this.validator.validate(logicalPlan, true);
+        extraMsg.append(", 2");
+        return new PlannerInstance(query, logicalPlan, graphBuilder, irMeta, queryLogger);
+    }
+
+    public PlannerInstance instance(
             String query, IrMeta irMeta, @Nullable QueryLogger queryLogger) {
         GraphOptCluster optCluster =
                 GraphOptCluster.create(this.optimizer.getMatchPlanner(), this.rexBuilder);
@@ -165,6 +192,41 @@ public class GraphPlanner {
                 if (after != before) {
                     logicalPlan = new LogicalPlan(after, logicalPlan.getDynamicParams());
                 }
+            }
+            return logicalPlan;
+        }
+
+        public Summary plan(StringBuilder msgBuilder) {
+            LogicalPlan logicalPlan =
+                    ClassUtils.callException(
+                            () -> planLogical(msgBuilder), Code.LOGICAL_PLAN_BUILD_FAILED);
+            if (queryLogger != null) {
+                queryLogger.info("[query][compiled]: logical IR compiled");
+            }
+            PhysicalPlan physicalPlan =
+                    ClassUtils.callException(
+                            () -> planPhysical(logicalPlan), Code.PHYSICAL_PLAN_BUILD_FAILED);
+            if (queryLogger != null) {
+                queryLogger.info("[query][compiled]: physical IR compiled");
+            }
+            return new Summary(logicalPlan, physicalPlan);
+        }
+
+        public LogicalPlan planLogical(StringBuilder msgBuilder) {
+            LogicalPlan logicalPlan = parsedPlan;
+            msgBuilder.append(", 3");
+            // apply optimizations
+            if (logicalPlan.getRegularQuery() != null && !logicalPlan.isReturnEmpty()) {
+                msgBuilder.append(", 4");
+                RelNode before = logicalPlan.getRegularQuery();
+                msgBuilder.append(", 5");
+                RelNode after =
+                        optimizer.optimize(before, new GraphIOProcessor(graphBuilder, irMeta));
+                msgBuilder.append(", 6");
+                if (after != before) {
+                    logicalPlan = new LogicalPlan(after, logicalPlan.getDynamicParams());
+                }
+                msgBuilder.append(", 7");
             }
             return logicalPlan;
         }

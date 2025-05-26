@@ -60,6 +60,7 @@ public class PlanUtils {
      */
     public static GraphPlan compilePlan(
             String configPath, String query, String schemaYaml, String statsJson) {
+        StringBuilder msgBuilder = new StringBuilder();
         try {
             long startTime = System.currentTimeMillis();
             Configs configs = Configs.Factory.create(configPath);
@@ -68,8 +69,8 @@ public class PlanUtils {
             IrMetaFetcher metaFetcher =
                     new StaticIrMetaFetcher(reader, graphPlanner.getOptimizer().getGlogueHolder());
             GraphPlanner.PlannerInstance plannerInstance =
-                    graphPlanner.instance(query, metaFetcher.fetch().get());
-            GraphPlanner.Summary summary = plannerInstance.plan();
+                    graphPlanner.instance(query, metaFetcher.fetch().get(), null, msgBuilder);
+            GraphPlanner.Summary summary = plannerInstance.plan(msgBuilder);
             LogicalPlan logicalPlan = summary.getLogicalPlan();
             PhysicalPlan<byte[]> physicalPlan = summary.getPhysicalPlan();
             StoredProcedureMeta procedureMeta =
@@ -86,8 +87,15 @@ public class PlanUtils {
                     Code.OK, null, physicalPlan.getContent(), new String(metaStream.toByteArray()));
         } catch (Throwable t) {
             if (t instanceof FrontendException) {
-                return new GraphPlan(
-                        ((FrontendException) t).getErrorCode(), t.getMessage(), null, null);
+                String errorMsg = t.getMessage();
+                errorMsg += "\nExtraMsg: " + msgBuilder;
+                if (((FrontendException) t).getDetails() != null
+                        && ((FrontendException) t).getDetails().get("stacktrace") != null) {
+                    errorMsg +=
+                            "\nStacktrace: "
+                                    + ((FrontendException) t).getDetails().get("stacktrace");
+                }
+                return new GraphPlan(((FrontendException) t).getErrorCode(), errorMsg, null, null);
             }
             return new GraphPlan(Code.UNRECOGNIZED, t.getMessage(), null, null);
         }
