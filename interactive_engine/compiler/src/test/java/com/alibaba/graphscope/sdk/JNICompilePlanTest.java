@@ -46,12 +46,26 @@ public class JNICompilePlanTest {
 
     @Test
     public void path_expand_test() throws Exception {
+        //            for (int i = 0; i < 20; ++i) {
         String query =
-                "MATCH (src)-[e:test1000*4..5]->(dest) WHERE src.__domain__ = 'xzz' RETURN"
-                        + " src.__entity_id__ AS sId, dest.__entity_id__ AS dId;";
+                " MATCH(s:`process` {__entity_id__: 'ce850d64618c01b9cdb148af1afe2809'})-[e]->(d)"
+                    + " \n"
+                    + "    RETURN e;";
         GraphPlan plan = PlanUtils.compilePlan(configPath, query, schemaYaml, statsJson);
         System.out.println(plan.errorCode);
         System.out.println(plan.fullMessage);
+        String schema2 =
+                FileUtils.readFileToString(
+                        new File("src/test/resources/schema/sls_schema_2.yaml"),
+                        StandardCharsets.UTF_8);
+        String stats2 =
+                FileUtils.readFileToString(
+                        new File("src/test/resources/statistics/sls_statistics_2.json"),
+                        StandardCharsets.UTF_8);
+        GraphPlan plan2 = PlanUtils.compilePlan(configPath, query, schema2, stats2);
+        System.out.println(plan2.errorCode);
+        System.out.println(plan2.fullMessage);
+        //        }
     }
 
     @Test

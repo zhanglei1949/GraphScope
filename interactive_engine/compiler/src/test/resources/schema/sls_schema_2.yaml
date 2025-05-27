@@ -4,7 +4,7 @@ description: sls_entitystore_graph
 schema:
   vertex_types:
     - type_id: 0
-      type_name: ip
+      type_name: process
       description: ""
       properties:
         - property_id: 0
@@ -40,7 +40,7 @@ schema:
       primary_keys:
         - __entity_id__
     - type_id: 1
-      type_name: process
+      type_name: ip
       description: ""
       properties:
         - property_id: 0
@@ -77,10 +77,10 @@ schema:
         - __entity_id__
   edge_types:
     - type_id: 0
-      type_name: access
+      type_name: servers
       vertex_type_pair_relations:
         - source_vertex: process
-          destination_vertex: ip
+          destination_vertex: process
           relation: MANY_TO_MANY
       properties:
         - property_id: 0
@@ -89,10 +89,10 @@ schema:
             string:
               long_text: true
     - type_id: 1
-      type_name: servers
+      type_name: access
       vertex_type_pair_relations:
         - source_vertex: process
-          destination_vertex: process
+          destination_vertex: ip
           relation: MANY_TO_MANY
       properties:
         - property_id: 0

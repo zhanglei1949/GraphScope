@@ -34,6 +34,7 @@ import com.alibaba.graphscope.common.ir.meta.schema.SchemaSpec;
 import com.alibaba.graphscope.common.ir.runtime.PhysicalPlan;
 import com.alibaba.graphscope.common.ir.tools.GraphPlanner;
 import com.alibaba.graphscope.common.ir.tools.LogicalPlan;
+import com.alibaba.graphscope.groot.common.schema.api.GraphElement;
 import com.alibaba.graphscope.groot.common.schema.api.GraphStatistics;
 import com.alibaba.graphscope.proto.frontend.Code;
 import com.google.common.collect.ImmutableMap;
@@ -45,6 +46,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 public class PlanUtils {
     private static final Logger logger = LoggerFactory.getLogger(PlanUtils.class);
@@ -68,8 +70,10 @@ public class PlanUtils {
             IrMetaReader reader = new StringMetaReader(schemaYaml, statsJson, configs);
             IrMetaFetcher metaFetcher =
                     new StaticIrMetaFetcher(reader, graphPlanner.getOptimizer().getGlogueHolder());
+            IrMeta irMeta = metaFetcher.fetch().get();
+            msgBuilder.append("\nparamLabels: [ " + printLabels(irMeta.getSchema()) + " ]\n");
             GraphPlanner.PlannerInstance plannerInstance =
-                    graphPlanner.instance(query, metaFetcher.fetch().get(), null, msgBuilder);
+                    graphPlanner.instance(query, irMeta, null, msgBuilder);
             GraphPlanner.Summary summary = plannerInstance.plan(msgBuilder);
             LogicalPlan logicalPlan = summary.getLogicalPlan();
             PhysicalPlan<byte[]> physicalPlan = summary.getPhysicalPlan();
@@ -84,7 +88,10 @@ public class PlanUtils {
             long elapsedTime = System.currentTimeMillis() - startTime;
             logger.info("compile plan cost: {} ms", elapsedTime);
             return new GraphPlan(
-                    Code.OK, null, physicalPlan.getContent(), new String(metaStream.toByteArray()));
+                    Code.OK,
+                    msgBuilder.toString(),
+                    physicalPlan.getContent(),
+                    new String(metaStream.toByteArray()));
         } catch (Throwable t) {
             if (t instanceof FrontendException) {
                 String errorMsg = t.getMessage();
@@ -98,6 +105,26 @@ public class PlanUtils {
                 return new GraphPlan(((FrontendException) t).getErrorCode(), errorMsg, null, null);
             }
             return new GraphPlan(Code.UNRECOGNIZED, t.getMessage(), null, null);
+        }
+    }
+
+    public static Map<String, Object> printLabels(IrGraphSchema schema) {
+        try {
+            GraphElement process = schema.getElement("process");
+            GraphElement ip = schema.getElement("ip");
+            GraphElement access = schema.getElement("access");
+            GraphElement servers = schema.getElement("servers");
+            return ImmutableMap.of(
+                    "process",
+                    process.getLabelId(),
+                    "ip",
+                    ip.getLabelId(),
+                    "access",
+                    access.getLabelId(),
+                    "servers",
+                    servers.getLabelId());
+        } catch (Exception e) {
+            return ImmutableMap.of();
         }
     }
 

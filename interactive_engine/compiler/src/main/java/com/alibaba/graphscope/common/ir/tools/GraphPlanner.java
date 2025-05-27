@@ -221,7 +221,8 @@ public class GraphPlanner {
                 RelNode before = logicalPlan.getRegularQuery();
                 msgBuilder.append(", 5");
                 RelNode after =
-                        optimizer.optimize(before, new GraphIOProcessor(graphBuilder, irMeta));
+                        optimizer.optimize(
+                                before, new GraphIOProcessor(graphBuilder, irMeta, msgBuilder));
                 msgBuilder.append(", 6");
                 if (after != before) {
                     logicalPlan = new LogicalPlan(after, logicalPlan.getDynamicParams());

@@ -50,6 +50,7 @@ import com.alibaba.graphscope.common.ir.type.GraphSchemaType;
 import com.alibaba.graphscope.groot.common.schema.api.EdgeRelation;
 import com.alibaba.graphscope.groot.common.schema.api.GraphEdge;
 import com.alibaba.graphscope.groot.common.schema.api.GraphVertex;
+import com.alibaba.graphscope.sdk.PlanUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 
@@ -80,12 +81,21 @@ public class GraphIOProcessor {
     private final IrMeta irMeta;
     private final RelMetadataQuery mq;
     private final Map<DataKey, DataValue> graphDetails;
+    private StringBuilder msgBuilder;
 
     public GraphIOProcessor(GraphBuilder builder, IrMeta irMeta) {
         this.builder = Objects.requireNonNull(builder);
         this.irMeta = Objects.requireNonNull(irMeta);
         this.mq = builder.getCluster().getMetadataQuery();
         this.graphDetails = Maps.newHashMap();
+    }
+
+    public GraphIOProcessor(GraphBuilder builder, IrMeta irMeta, StringBuilder msgBuilder) {
+        this.builder = Objects.requireNonNull(builder);
+        this.irMeta = Objects.requireNonNull(irMeta);
+        this.mq = builder.getCluster().getMetadataQuery();
+        this.graphDetails = Maps.newHashMap();
+        this.msgBuilder = msgBuilder;
     }
 
     /**
@@ -1155,8 +1165,10 @@ public class GraphIOProcessor {
         }
 
         private GraphLabelType createTripletEdgeType(List<EdgeTypeId> edgeTypeIds) {
+            msgBuilder.append("\nqueryLabels1: [ " + edgeTypeIds + " ]\n");
             List<GraphLabelType.Entry> entries = Lists.newArrayList();
             IrGraphSchema schema = irMeta.getSchema();
+            msgBuilder.append("\nqueryLabels2: [ " + PlanUtils.printLabels(schema) + " ]\n");
             for (EdgeTypeId typeId : edgeTypeIds) {
                 GraphEdge edgeWithTypeId = null;
                 for (GraphEdge edge : schema.getEdgeList()) {
