@@ -109,7 +109,6 @@ modern_graph = {
                         "source_vertex": "person",
                         "destination_vertex": "person",
                         "relation": "MANY_TO_MANY",
-                        "x_csr_params": {"sort_on_compaction": "true"},
                     }
                 ],
                 "properties": [
@@ -144,9 +143,9 @@ modern_graph = {
 }
 
 
-def create_graph(sess: Session, ds: str, report_error: bool):
+def create_graph(sess: Session,  report_error: bool):
     # copied_huoyan_graph = huoyan_graph.copy()
-    graph_name = f"onecompany_{ds}"
+    graph_name = f"modern_graph_test"
     create_graph_req = CreateGraphRequest.from_dict(modern_graph)
     create_graph_res = sess.create_graph(create_graph_req)
     # CreateGraphRequest.from_dict(copied_huoyan_graph)
@@ -166,7 +165,7 @@ def loading_graph(sess: Session, graph_id: str, report_error: bool):
         loading_config=SchemaMappingLoadingConfig(
             data_source=SchemaMappingLoadingConfigDataSource(
                 scheme="file",
-                location="@//home/graphscope/work/k8s-test/gs/flex/interactive/examples/modern_graph/",
+                location="/opt/flex/share/gs_interactive_default_graph/",
             ),
             import_option="init",
             format=SchemaMappingLoadingConfigFormat(
@@ -177,11 +176,11 @@ def loading_graph(sess: Session, graph_id: str, report_error: bool):
         vertex_mappings=[
             VertexMapping(
                 type_name="person",
-                inputs=[f"person.csv"],
+                inputs=["person.csv"],
             ),
             VertexMapping(
                 type_name="software",
-                inputs=[f"software.csv"],
+                inputs=["software.csv"],
             ),
         ],
         edge_mappings=[
@@ -227,7 +226,7 @@ def wait_job_finish(sess: Session, job_id: str):
 
 
 def create_procedure(
-    sess: Session, graph_id: str, file_path: str, proc_name, report_error: bool
+    sess: Session, graph_id: str, file_path: str,  proc_name, report_error: bool
 ):
     # read file into string
     with open(file_path, "r") as f:
@@ -289,7 +288,6 @@ if __name__ == "__main__":
     parser.add_argument("--endpoint", type=str, default="http://localhost:7777")
     parser.add_argument("--proc-name", type=str, default="huoyan")
     # parser.add_argument("--remove-old-graph", type=bool, default=True)
-    parser.add_argument("--ds", type=str)
     parser.add_argument("--validate-reporting", type=bool, default=False)
     parser.add_argument("--report-error", type=bool, default=False)
 
@@ -317,7 +315,7 @@ if __name__ == "__main__":
     print("-----------------Finish loading graph-----------------")
 
     create_procedure(
-        sess, graph_id, script_directory + "/procedure.cc", args.proc_name, report_error
+        sess, graph_id, script_directory + "/sample_app.cc" ,  args.proc_name, report_error
     )
     print("-----------------Finish creating procedure-----------------")
 
