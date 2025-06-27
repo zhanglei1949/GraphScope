@@ -781,9 +781,9 @@ if __name__ == "__main__":
     print("-----------------Finish creating graph-----------------")
     print("graph_id: ", graph_id)
 
-    job_id = loading_graph(sess, graph_id, ds, report_error)
-    wait_job_finish(sess, job_id)
-    print("-----------------Finish loading graph-----------------")
+    #job_id = loading_graph(sess, graph_id, ds, report_error)
+    #wait_job_finish(sess, job_id)
+    #print("-----------------Finish loading graph-----------------")
 
     create_procedure(
         sess, graph_id, script_directory + "/procedure.cc", args.proc_name, report_error

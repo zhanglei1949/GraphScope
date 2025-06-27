@@ -43,62 +43,13 @@ from gs_interactive.client.driver import Driver
 from gs_interactive.client.session import Session
 from gs_interactive.models import *
 
-query = """
-SELECT  ds
-            FROM    onecomp_risk.ads_fin_rsk_fe_ent_rel_data_version
-            WHERE   ds = MAX_PT("onecomp_risk.ads_fin_rsk_fe_ent_rel_data_version");
-"""
-import os
-
-script_directory = os.path.dirname(os.path.abspath(__file__))
-print("script directory", script_directory)
-
-uri = "https://oapi.dingtalk.com/robot/send?access_token="
-# read token from ${HOME}/.dingtalk_token
-token = ""
-with open(os.path.expanduser("~/.dingtalk_token"), "r") as f:
-    token = f.read().strip()
-if token == "":
-    raise Exception("token is empty")
-
-secret = ""
-with open(os.path.expanduser("~/.dingtalk_secret"), "r") as f:
-    secret = f.read().strip()
-if secret == "":
-    raise Exception("secret is empty")
-
-
-def get_full_uri():
-    timestamp = str(round(time.time() * 1000))
-    secret_enc = secret.encode("utf-8")
-    string_to_sign = "{}\n{}".format(timestamp, secret)
-    string_to_sign_enc = string_to_sign.encode("utf-8")
-    hmac_code = hmac.new(
-        secret_enc, string_to_sign_enc, digestmod=hashlib.sha256
-    ).digest()
-    sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
-    print(timestamp)
-    print(sign)
-    return uri + token + "&timestamp=" + timestamp + "&sign=" + sign
-
-
-def report_message(message: str):
-    uri = get_full_uri()
-    print(uri)
-    real_msg = {"msgtype": "text", "text": {"content": message}}
-    print(real_msg)
-    import requests
-
-    headers = {"Content-Type": "application/json"}
-    response = requests.post(uri, json=real_msg, headers=headers)
-    print(response.text)
-
 
 def restart_service(sess: Session, graph_id: str, report_error: bool):
     resp = sess.start_service(
         start_service_request=StartServiceRequest(graph_id=graph_id)
     )
     if not resp.is_ok():
+        print(resp)
         if report_error:
             report_message(f"Failed to restart service, graph_id: {graph_id}")
         raise Exception(f"Failed to restart service, graph_id: {graph_id}")
@@ -133,7 +84,6 @@ def list_graph(sess: Session):
     res = resp.get_value()
     graph_id_arr = [graph.id for graph in res]
     print("list graph: ", graph_id_arr)
-    return graph_id_arr
 
 
 def check_graph_exits_and_ready(sess: Session, graph_id: str, report_error: bool):
@@ -144,28 +94,16 @@ def check_graph_exits_and_ready(sess: Session, graph_id: str, report_error: bool
             report_message(f"Failed to get graph schema, graph_id: {graph_id}")
         raise Exception(f"Failed to get graph schema, graph_id: {graph_id}")
     print("graph exits: ", resp.get_value())
-    # check whether the graph contains loading config and has one procedures
     meta = resp.get_value()
-    if meta.data_import_config is None:
-        if report_error:
-            report_message(f"Graph {graph_id} does not contain loading config")
-        raise Exception(f"Graph {graph_id} does not contain loading config")
-    print("graph has loading config")
-
+    # check whether the graph contains loading config and has one procedures
     # check whether the graph has one procedures
-    if meta.stored_procedures is None or len(meta.stored_procedures) != 1:
-        if report_error:
-            report_message(f"Graph {graph_id} does not contain one procedures")
-        raise Exception(f"Graph {graph_id} does not contain one procedures")
-
-
+    
 if __name__ == "__main__":
     # parse command line args
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--endpoint", type=str, default="http://localhost:7777")
-    parser.add_argument("--graph_id", type=str, default=None, required=False)
     parser.add_argument("--validate-reporting", type=bool, default=False)
     parser.add_argument("--report-error", type=bool, default=False)
 
@@ -183,14 +121,9 @@ if __name__ == "__main__":
     print("-----------------Finish getting current running graph-----------------")
     print("old graph: ", old_graph)
 
-    if args.graph_id not in [None, ""]:
-        graph_id = args.graph_id
-    else:
-        # try to update service to the latest graph
-        graph_ids = list_graph(sess)
-        # pick the largest graph_id
-        graph_id = max(graph_ids,key=int)
-        print("pick the largest graph_id: ", graph_id, "from", graph_ids)
+        # assume old_graph is a int in string, plus 1
+    print("using old graph id to generate new graph id")
+    graph_id = old_graph
     print("new graph: ", graph_id)
 
     # check if graph_id exists
@@ -209,14 +142,3 @@ if __name__ == "__main__":
     list_graph(sess)
 
     # after switch to new graph, delete the old graph
-    delete_graph = sess.delete_graph(old_graph)
-    print("delete graph res: ", delete_graph)
-    if not delete_graph.is_ok():
-        if args.report_error:
-            report_message(f"Failed to delete graph {old_graph}")
-        raise Exception(f"fail to delete graph {old_graph}")
-
-    if args.report_error:
-        report_message(
-            f"Switched to graph {graph_id} successfully, restart service cost {execution_time:.6f}seconds"
-        )
