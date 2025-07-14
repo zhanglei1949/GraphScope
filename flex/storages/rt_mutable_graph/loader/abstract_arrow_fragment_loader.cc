@@ -390,7 +390,8 @@ void AbstractArrowFragmentLoader::AddEdgesRecordBatch(
       const auto& prop =
           schema_.get_edge_property(src_label_i, dst_label_i, edge_label_i);
       auto dual_csr = new DualCsr<std::string_view>(
-          oe_strategy, ie_strategy, prop.additional_type_info.max_length);
+          oe_strategy, ie_strategy, prop.additional_type_info.max_length,
+          oe_mutable, ie_mutable);
       basic_fragment_loader_.set_csr(src_label_i, dst_label_i, edge_label_i,
                                      dual_csr);
       if (filenames.empty()) {
@@ -409,8 +410,9 @@ void AbstractArrowFragmentLoader::AddEdgesRecordBatch(
         src_label_name, dst_label_name, edge_label_name);
     const auto& prop_names = schema_.get_edge_property_names(
         src_label_name, dst_label_name, edge_label_name);
-    auto dual_csr = new DualCsr<RecordView>(oe_strategy, ie_strategy,
-                                            prop_names, props, {});
+    auto dual_csr =
+        new DualCsr<RecordView>(oe_strategy, ie_strategy, prop_names, props, {},
+                                oe_mutable, ie_mutable);
     basic_fragment_loader_.set_csr(src_label_i, dst_label_i, edge_label_i,
                                    dual_csr);
     if (filenames.empty()) {

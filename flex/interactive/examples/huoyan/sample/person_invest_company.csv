@@ -1,0 +1,3 @@
+onecomp_id,rel_node_id,rel_weight,rel_label,rel_info
+2,3,1.0,1,"invest"
+3,1,0.5,3,"holder"

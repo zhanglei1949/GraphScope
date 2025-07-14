@@ -373,7 +373,7 @@ AppWrapper GraphDB::CreateApp(uint8_t app_type, int thread_id) {
 bool GraphDB::registerApp(const std::string& plugin_path, uint8_t index) {
   // this function will only be called when initializing the graph db
   LOG(INFO) << "Registering stored procedure at:" << std::to_string(index)
-           << ", path:" << plugin_path;
+            << ", path:" << plugin_path;
   if (!app_factories_[index] && app_paths_[index].empty()) {
     app_paths_[index] = plugin_path;
     app_factories_[index] =

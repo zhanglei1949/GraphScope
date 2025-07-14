@@ -4,14 +4,14 @@ store_type: mutable_csr  # v6d, groot, gart
 stored_procedures:
   - name: huoyan
     description: A stored procedure that does something
-    library: /home/graphscope/work/gs/flex/interactive/examples/huoyan/plugins/libhuoyan.so
+    library: /workspaces/GraphScope/flex/interactive/examples/huoyan/plugins/libnew_huoyan.so
     type: cpp
 schema:
   vertex_types:
     - type_id: 0
       type_name: company
       x_csr_params:
-        max_vertex_num: 2500000000
+        max_vertex_num: 2500
       properties:
         - property_id: 0
           property_name: vertex_id
@@ -44,7 +44,7 @@ schema:
     - type_id: 1
       type_name: person
       x_csr_params:
-        max_vertex_num: 2500000000
+        max_vertex_num: 2500
       properties:
         - property_id: 0
           property_name: vertex_id

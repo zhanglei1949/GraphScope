@@ -21,6 +21,8 @@ python/proto
 # swp file
 *.swp
 
+cmake-build/
+
 # Protobuf GRPC
 *.pb.*
 *_pb2.py

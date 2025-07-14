@@ -963,7 +963,8 @@ static Status parse_edge_schema(YAML::Node node, Schema& schema) {
 
     VLOG(10) << "edge " << edge_label_name << " from " << src_label_name
              << " to " << dst_label_name << " with " << property_types.size()
-             << " properties";
+             << " properties" << " oe_mutable: " << oe_mutable
+             << " ie_mutable: " << ie_mutable;
     schema.add_edge_label(src_label_name, dst_label_name, edge_label_name,
                           property_types, prop_names, cur_oe, cur_ie,
                           oe_mutable, ie_mutable, cur_sort_on_compaction,

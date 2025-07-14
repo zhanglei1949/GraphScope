@@ -131,6 +131,7 @@ void openDefaultGraph(const std::string workspace, int32_t thread_num,
   if (config.memory_level >= 2) {
     config.enable_auto_compaction = true;
   }
+  LOG(INFO) << "Open graph from: " << data_dir;
   if (!db.Open(config).ok()) {
     LOG(FATAL) << "Fail to load graph from data directory: " << data_dir;
   }

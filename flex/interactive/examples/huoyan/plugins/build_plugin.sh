@@ -4,7 +4,7 @@ FLEX_HOME=/opt/flex/
 GS_HOME=/opt/graphscope
 
 #for i in ctrl group minor 
-for i in huoyan
+for i in new_huoyan
 do
-  g++ -flto -fPIC -g -finline-functions -zopt --std=c++17  -I/usr/lib/${ARCH}-linux-gnu/openmpi/include -I${FLEX_HOME}/include -I${GS_HOME}/include -L${FLEX_HOME}/lib -rdynamic -O3 -o lib${i}.so ${i}.cc -lflex_utils -lflex_rt_mutable_graph -lflex_graph_db -shared
+  g++ -flto -fPIC -g -finline-functions -zopt --std=c++17  -I/usr/lib/${ARCH}-linux-gnu/openmpi/include -I${FLEX_HOME}/include -I${GS_HOME}/include -L${FLEX_HOME}/lib -rdynamic -O0 -o lib${i}.so ${i}.cc -lflex_utils -lflex_rt_mutable_graph -lflex_graph_db -shared
 done
